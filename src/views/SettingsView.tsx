@@ -97,9 +97,7 @@ export default function SettingsView() {
 
     if (!confirmed) return;
 
-    await db.transaction('rw', [db.debt_payments, db.debts, db.transactions, db.categories, db.wallets, db.settings], async () => {
-      await db.debt_payments.clear();
-      await db.debts.clear();
+    await db.transaction('rw', [db.transactions, db.categories, db.wallets, db.settings], async () => {
       await db.transactions.clear();
       await db.categories.clear();
       await db.wallets.clear();

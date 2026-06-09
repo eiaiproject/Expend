@@ -83,10 +83,6 @@ export function FAQSection() {
       answer: t('landing.faq7Answer'),
     },
     {
-      question: t('landing.faq8Question'),
-      answer: t('landing.faq8Answer'),
-    },
-    {
       question: t('landing.faq9Question'),
       answer: t('landing.faq9Answer'),
     },

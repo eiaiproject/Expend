@@ -116,12 +116,6 @@ export function FeaturesSection() {
       title: t('landing.featureTransferTitle'),
       description: t('landing.featureTransferDesc'),
     },
-    {
-      icon: <FileText size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featureDebtTitle'),
-      description: t('landing.featureDebtDesc'),
-      stats: t('landing.featureDebtStats'),
-    },
   ];
 
   const insightFeatures: FeatureItem[] = [

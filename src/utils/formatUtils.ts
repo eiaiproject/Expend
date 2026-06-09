@@ -59,7 +59,7 @@ export function formatCurrencyValue(amount: number, hideAmount = false): string 
 
 /**
  * Format currency using Intl.NumberFormat for consistent formatting.
- * Suitable for debt cards, category budgets, and wallet displays.
+ * Suitable for category budgets and wallet displays.
  */
 export function formatCurrencyIntl(amount: number): string {
   return CURRENCY_FORMATTER.format(amount);

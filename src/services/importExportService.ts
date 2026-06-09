@@ -1,8 +1,6 @@
 import {
   db,
   type Category,
-  type Debt,
-  type DebtPayment,
   type Setting,
   type Transaction,
   type Wallet,
@@ -28,8 +26,8 @@ export interface ExportData {
   categories: Category[];
   transactions: Transaction[];
   settings: Setting[];
-  debts?: Debt[];
-  debt_payments?: DebtPayment[];
+  debts?: unknown[];
+  debt_payments?: unknown[];
 }
 
 /**
@@ -45,8 +43,6 @@ export async function generateExport(): Promise<ExportData> {
     wallets: await db.wallets.toArray(),
     categories: await db.categories.toArray(),
     transactions: await db.transactions.toArray(),
-    debts: await db.debts.toArray(),
-    debt_payments: await db.debt_payments.toArray(),
     settings: sanitizedSettings,
   };
 }
@@ -90,14 +86,8 @@ export function validateImportData(json: unknown): string[] {
   if (!Array.isArray(data.categories)) {
     errors.push('Missing or invalid "categories" array.');
   }
-  if (!Array.isArray(data.settings)) {
+  if (data.settings !== undefined && !Array.isArray(data.settings)) {
     errors.push('Missing or invalid "settings" array.');
-  }
-  if (data.debts !== undefined && !Array.isArray(data.debts)) {
-    errors.push('Invalid "debts" array.');
-  }
-  if (data.debt_payments !== undefined && !Array.isArray(data.debt_payments)) {
-    errors.push('Invalid "debt_payments" array.');
   }
 
   if (errors.length > 0) return errors;
@@ -105,9 +95,6 @@ export function validateImportData(json: unknown): string[] {
   const wallets: Array<Record<string, unknown | undefined>> = data.wallets as Array<Record<string, unknown>>;
   const categories: Array<Record<string, unknown | undefined>> = data.categories as Array<Record<string, unknown>>;
   const transactions: Array<Record<string, unknown | undefined>> = data.transactions as Array<Record<string, unknown>>;
-  const debts: Array<Record<string, unknown | undefined>> = (data.debts ?? []) as Array<Record<string, unknown>>;
-  const debtPayments: Array<Record<string, unknown | undefined>> = (data.debt_payments ?? []) as Array<Record<string, unknown>>;
-
   // Validate wallet fields
   const walletIds = new Set<number>();
   for (let i = 0; i < wallets.length; i++) {
@@ -178,82 +165,6 @@ export function validateImportData(json: unknown): string[] {
     }
   }
 
-  // Validate debt fields. These arrays are optional for backward compatibility
-  // with v1.0 backups created before debt tracking existed.
-  const debtIds = new Set<number>();
-  const validDebtTypes: ReadonlyArray<Debt['type']> = ['payable', 'receivable'];
-  const validDebtStatuses: ReadonlyArray<Debt['status']> = ['pending', 'partial', 'settled', 'overdue'];
-  for (let i = 0; i < debts.length; i++) {
-    const debt = debts[i];
-    if (!debt) {
-      errors.push(`Debt ${i}: entry is null or undefined.`);
-      continue;
-    }
-    if (typeof debt.id === 'number') {
-      debtIds.add(debt.id);
-    }
-    if (!validDebtTypes.includes(debt.type as Debt['type'])) {
-      errors.push(`Debt ${i}: "type" must be one of: payable, receivable.`);
-    }
-    if (typeof debt.contactName !== 'string' || !debt.contactName) {
-      errors.push(`Debt ${i}: "contactName" is required and must be a string.`);
-    }
-    if (typeof debt.description !== 'string' || !debt.description) {
-      errors.push(`Debt ${i}: "description" is required and must be a string.`);
-    }
-    if (typeof debt.amount !== 'number' || isNaN(debt.amount)) {
-      errors.push(`Debt ${i}: "amount" must be a valid number.`);
-    }
-    if (typeof debt.remainingAmount !== 'number' || isNaN(debt.remainingAmount)) {
-      errors.push(`Debt ${i}: "remainingAmount" must be a valid number.`);
-    }
-    if (typeof debt.createdAt !== 'string' || !debt.createdAt) {
-      errors.push(`Debt ${i}: "createdAt" is required and must be a string.`);
-    }
-    if (!validDebtStatuses.includes(debt.status as Debt['status'])) {
-      errors.push(`Debt ${i}: "status" must be one of: pending, partial, settled, overdue.`);
-    }
-    if (debt.walletId !== undefined && typeof debt.walletId !== 'number') {
-      errors.push(`Debt ${i}: "walletId" must be a number when provided.`);
-    } else if (debt.walletId !== undefined && !walletIds.has(debt.walletId)) {
-      errors.push(`Debt ${i}: references wallet ID ${debt.walletId} which isn't in the import.`);
-    }
-    if (debt.categoryId !== undefined && typeof debt.categoryId !== 'number') {
-      errors.push(`Debt ${i}: "categoryId" must be a number when provided.`);
-    } else if (debt.categoryId !== undefined && !categoryIds.has(debt.categoryId)) {
-      errors.push(`Debt ${i}: references category ID ${debt.categoryId} which isn't in the import.`);
-    }
-  }
-
-  // Validate debt payment fields.
-  for (let i = 0; i < debtPayments.length; i++) {
-    const payment = debtPayments[i];
-    if (!payment) {
-      errors.push(`Debt payment ${i}: entry is null or undefined.`);
-      continue;
-    }
-    if (typeof payment.debtId !== 'number') {
-      errors.push(`Debt payment ${i}: "debtId" is required and must be a number.`);
-    } else if (!debtIds.has(payment.debtId)) {
-      errors.push(`Debt payment ${i}: references debt ID ${payment.debtId} which isn't in the import.`);
-    }
-    if (typeof payment.amount !== 'number' || isNaN(payment.amount)) {
-      errors.push(`Debt payment ${i}: "amount" must be a valid number.`);
-    }
-    if (!payment.date || typeof payment.date !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(payment.date as string)) {
-      errors.push(`Debt payment ${i}: "date" must be a YYYY-MM-DD string.`);
-    }
-    if (payment.transactionId !== undefined && typeof payment.transactionId !== 'number') {
-      errors.push(`Debt payment ${i}: "transactionId" must be a number when provided.`);
-    } else if (
-      payment.transactionId !== undefined &&
-      transactionIds.size > 0 &&
-      !transactionIds.has(payment.transactionId)
-    ) {
-      errors.push(`Debt payment ${i}: references transaction ID ${payment.transactionId} which isn't in the import.`);
-    }
-  }
-
   return errors;
 }
 
@@ -265,13 +176,9 @@ export function validateImportData(json: unknown): string[] {
 export async function importData(data: ExportData): Promise<void> {
   // Strip security settings to prevent restoring stolen PIN hash
   const sanitizedSettings = data.settings.filter(s => s.key !== 'security');
-  const debts = data.debts ?? [];
-  const debtPayments = data.debt_payments ?? [];
 
-  await db.transaction('rw', [db.wallets, db.categories, db.transactions, db.settings, db.debts, db.debt_payments], async () => {
+  await db.transaction('rw', [db.wallets, db.categories, db.transactions, db.settings], async () => {
     // Clear existing data
-    await db.debt_payments.clear();
-    await db.debts.clear();
     await db.wallets.clear();
     await db.categories.clear();
     await db.transactions.clear();
@@ -281,8 +188,6 @@ export async function importData(data: ExportData): Promise<void> {
     if (data.wallets.length > 0) await db.wallets.bulkPut(data.wallets);
     if (data.categories.length > 0) await db.categories.bulkPut(data.categories);
     if (data.transactions.length > 0) await db.transactions.bulkPut(data.transactions);
-    if (debts.length > 0) await db.debts.bulkPut(debts);
-    if (debtPayments.length > 0) await db.debt_payments.bulkPut(debtPayments);
     if (sanitizedSettings.length > 0) await db.settings.bulkPut(sanitizedSettings);
 
     // Normalize imported transfers: assign transferGroupId to legacy pairs

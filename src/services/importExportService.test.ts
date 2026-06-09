@@ -47,79 +47,14 @@ describe('import/export schema validation', () => {
     expect(validateImportData(payload)).toEqual([]);
   });
 
-  it('accepts v2 backups with debts and debt payments', () => {
-    const payload = {
-      ...basePayload(),
-      debts: [
-        {
-          id: 1,
-          type: 'payable',
-          contactName: 'Budi',
-          description: 'Loan',
-          amount: 100000,
-          remainingAmount: 50000,
-          dueDate: '2026-06-30',
-          createdAt: '2026-06-09T00:00:00.000Z',
-          status: 'partial',
-          walletId: 1,
-          categoryId: 1,
-        },
-      ],
-      debt_payments: [
-        {
-          id: 1,
-          debtId: 1,
-          amount: 50000,
-          date: '2026-06-10',
-          transactionId: 1,
-        },
-      ],
-    };
-
-    expect(validateImportData(payload)).toEqual([]);
-  });
-
-  it('rejects debt payments that reference missing debts', () => {
+  it('accepts backups with optional debt fields (ignored by validator)', () => {
     const payload = {
       ...basePayload(),
       debts: [],
-      debt_payments: [
-        {
-          id: 1,
-          debtId: 99,
-          amount: 50000,
-          date: '2026-06-10',
-        },
-      ],
-    };
-
-    expect(validateImportData(payload)).toContain(
-      "Debt payment 0: references debt ID 99 which isn't in the import.",
-    );
-  });
-
-  it('rejects debts that reference missing wallets', () => {
-    const payload = {
-      ...basePayload(),
-      debts: [
-        {
-          id: 1,
-          type: 'receivable',
-          contactName: 'Sari',
-          description: 'Loan',
-          amount: 100000,
-          remainingAmount: 100000,
-          createdAt: '2026-06-09T00:00:00.000Z',
-          status: 'pending',
-          walletId: 99,
-        },
-      ],
       debt_payments: [],
     };
 
-    expect(validateImportData(payload)).toContain(
-      "Debt 0: references wallet ID 99 which isn't in the import.",
-    );
+    expect(validateImportData(payload)).toEqual([]);
   });
 });
 

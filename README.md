@@ -1,16 +1,14 @@
-# Expend: Privacy-First Offline Personal Finance Tracker PWA
+# Expend - Privacy-First Offline Personal Finance Tracker
 
-Expend is a privacy-first, offline-first personal finance tracker built as a Progressive Web App (PWA). It helps users track expenses, manage multiple wallets, monitor category budgets, review interactive financial insights, track debts, and generate monthly financial reports while keeping financial data on the user's own device.
-
-The application is built with React, TypeScript, Vite, Tailwind CSS, IndexedDB, Dexie.js, Recharts, Workbox, and the Vite PWA Plugin.
+Expend is a local-first personal finance tracker built as a Progressive Web App (PWA). It enables users to record expenses, manage multiple wallets, monitor category budgets, review interactive financial insights, and generate monthly reports -- all without accounts, remote databases, or automatic cloud sync.
 
 [![CI](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml/badge.svg)](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml)
 
-## Current Release
+## Release Information
 
-- Version: `1.0.1`
-- Release name: Patch release with bug fixes and CI improvements
-- SemVer rationale: patch version for bug fixes only (UpdatePrompt state management, CI process group termination, test infrastructure mock, documentation cleanup). No new features or breaking changes.
+- Version: `1.1.0`
+- Release name: Minor release -- removed debt tracking feature, focused scope on expense management
+- SemVer rationale: minor version bump for scope reduction that does not break core expense tracking, wallet management, or data portability workflows
 - Source availability: the source is publicly available in this repository. No formal open-source license is included yet.
 
 ## Table of Contents
@@ -32,17 +30,16 @@ The application is built with React, TypeScript, Vite, Tailwind CSS, IndexedDB, 
 
 ## Overview
 
-Expend is a client-side personal finance management application for users who want a private expense tracker without accounts, remote databases, automatic cloud sync, or server-side financial data storage. It is designed for mobile and desktop use, with an installable PWA experience and a responsive interface.
+Expend is a browser-based personal finance application designed for users who want a private expense tracker without requiring accounts, remote APIs, or server-side data storage. It is optimized for mobile and desktop use, with an installable PWA experience and a responsive interface.
 
 Primary use cases:
 
-- Track daily expenses and balance adjustments.
-- Manage multiple wallets and monitor wallet balances.
+- Record daily expenses and balance adjustments.
+- Manage multiple wallets with independent balance tracking.
 - Transfer funds between wallets with paired transaction records.
 - Organize spending with categories and monthly budgets.
 - Search, filter, and inspect transaction history.
 - Review spending trends, charts, category breakdowns, and monthly reports.
-- Track payables and receivables with due dates and payment history.
 - Export backups and restore local data manually.
 
 ## Core Features
@@ -55,11 +52,11 @@ Primary use cases:
 - Update prompt when a newer service worker version is available.
 - Offline fallback page for navigation failures.
 
-### Local-First Personal Finance Data
+### Local-First Data Storage
 
 - Financial data is stored in IndexedDB on the current device.
-- Dexie.js provides typed local database access.
-- No account is required.
+- Dexie.js provides typed local database access with schema versioning and migrations.
+- No user account is required.
 - No remote API is required for core app functionality.
 - No automatic cloud sync is included.
 
@@ -75,14 +72,13 @@ Primary use cases:
 ### Wallet Management
 
 - Create and manage multiple wallets.
-- Track initial and current wallet balances.
+- Track initial and current wallet balances with incremental updates.
 - Update balances from real-world account values.
 - Detect stale wallets that have not been updated within the configured period.
 
 ### Categories and Budgets
 
-- Create and manage spending categories.
-- Select category colors from a curated palette.
+- Create and manage spending categories with curated color palettes.
 - Set monthly budgets per category.
 - View remaining budget and budget usage.
 - Receive alerts when spending approaches or exceeds a category budget.
@@ -90,7 +86,7 @@ Primary use cases:
 ### Search and Filtering
 
 - Full-text transaction search across descriptions, notes, categories, and wallets.
-- Search term highlighting.
+- Visual search term highlighting.
 - Filters for transaction type, category, wallet, date range, and amount range.
 - Quick filters for common views such as current period and transfers.
 - Date sorting and paginated transaction loading.
@@ -99,29 +95,18 @@ Primary use cases:
 
 - Dashboard summaries for balance, spending, and recent transactions.
 - Daily spending comparison between today and yesterday.
-- Current-month top spending category.
 - Monthly and all-time expense summary toggle.
 - Interactive Recharts visualizations:
-  - Daily spending trend.
+  - Daily spending trend line chart.
   - Monthly comparison bar chart.
-  - Category distribution chart.
-  - Drill-down into related transactions.
-
-### Debt Tracking
-
-- Track payables and receivables.
-- Store contact names, descriptions, due dates, notes, and optional wallet/category links.
-- Supported debt statuses: pending, partial, settled, and overdue.
-- Record payment history.
-- Optionally record debt creation and payments as transactions.
+  - Category distribution pie chart with drill-down into related transactions.
 
 ### Monthly Financial Reports
 
-- Automatic previous-month report generation at the beginning of the month.
-- Financial health score.
+- Automatic previous-month report generation at the beginning of each month.
+- Financial health score based on spending patterns.
 - Category breakdown and top expense summary.
-- Daily trend analysis.
-- Insights and recommendations.
+- Daily trend analysis with insights and recommendations.
 - Downloadable PDF reports generated with jsPDF.
 - PDF styling adapts to the selected app theme.
 
@@ -130,42 +115,39 @@ Primary use cases:
 - Export CSV for spreadsheet analysis.
 - Export JSON for full local backup.
 - Import JSON backups with schema validation.
-- Include wallets, categories, transactions, settings, debts, and debt payments in backup payloads.
+- Backward-compatible import supports legacy backup formats.
 - Sanitize CSV fields to reduce spreadsheet formula injection risk.
 - Sensitive PIN security settings are excluded from JSON exports.
 
 ### Security Controls
 
-- PIN-based screen lock.
+- PIN-based screen lock with configurable length.
 - PIN hashing with PBKDF2 through the Web Crypto API.
 - No plain-text PIN storage.
-- Auto-lock after inactivity.
-- Route and UI access are gated while the app is locked.
-- Important: the PIN lock protects the app screen, but it does not encrypt IndexedDB data at rest.
+- Auto-lock after inactivity timeout.
+- UI access is gated while the app is locked.
+- Note: the PIN lock protects the app screen but does not encrypt IndexedDB data at rest.
 
 ### Localization and Accessibility
 
-- English and Indonesian translations.
-- Browser language detection through i18next.
-- Light and dark themes.
-- Responsive mobile, tablet, and desktop layouts.
+- English and Indonesian translations with browser language detection.
+- Light and dark themes with system preference support.
+- Responsive layouts for mobile, tablet, and desktop.
 - Automated accessibility checks with Playwright and Axe.
 
 ## Architecture
 
-Expend is a browser-only application. The production app is served as static assets, and the user's financial data lives in the browser's local IndexedDB database.
+Expend is a browser-only application. The production build is served as static assets, and all financial data resides in the browser's local IndexedDB database.
 
-```text
+```
 Browser
-  React app
+  React application
   Vite PWA service worker
   IndexedDB
     wallets
     categories
     transactions
     settings
-    debts
-    debt_payments
 ```
 
 Key architecture properties:
@@ -190,7 +172,7 @@ Key architecture properties:
 | Internationalization | i18next, react-i18next |
 | PWA | Vite PWA Plugin, Workbox |
 | PDF Generation | jsPDF |
-| Tests | Vitest, jsdom, Playwright, Axe |
+| Testing | Vitest, jsdom, Playwright, Axe |
 | CI | GitHub Actions |
 
 ## Getting Started
@@ -214,7 +196,7 @@ npm install
 npm run dev
 ```
 
-The development server uses Vite on port `3000` and binds to `0.0.0.0`.
+The development server runs on port `3000` and binds to `0.0.0.0`.
 
 ### Production Build
 
@@ -232,18 +214,18 @@ npm run preview
 
 | Command | Description |
 | --- | --- |
-| `npm run dev` | Start the Vite development server. |
-| `npm run build` | Build the production app. |
-| `npm run preview` | Preview the production build. |
-| `npm run clean` | Remove the `dist` directory. |
-| `npm run audit` | Run a high-severity dependency audit against the lockfile. |
-| `npm run typecheck` | Run TypeScript type checking. |
-| `npm run test` | Start Vitest. |
-| `npm run test:unit` | Run unit tests once. |
-| `npm run test:pwa-static` | Run static PWA and deployment checks. |
-| `npm run test:e2e` | Run Playwright end-to-end tests. |
-| `npm run test:lighthouse` | Run Lighthouse smoke checks. |
-| `npm run qa:automated` | Run the full automated QA gate. |
+| `npm run dev` | Start the Vite development server |
+| `npm run build` | Build the production app |
+| `npm run preview` | Preview the production build |
+| `npm run clean` | Remove the `dist` directory |
+| `npm run audit` | Run a high-severity dependency audit against the lockfile |
+| `npm run typecheck` | Run TypeScript type checking |
+| `npm run test` | Start Vitest in watch mode |
+| `npm run test:unit` | Run unit tests once |
+| `npm run test:pwa-static` | Run static PWA and deployment checks |
+| `npm run test:e2e` | Run Playwright end-to-end tests |
+| `npm run test:lighthouse` | Run Lighthouse smoke checks |
+| `npm run qa:automated` | Run the full automated QA gate |
 
 ## Quality Assurance
 
@@ -257,7 +239,7 @@ It runs dependency audit, TypeScript type checking, unit tests, production build
 
 ## Project Structure
 
-```text
+```
 Expend/
   .github/workflows/       GitHub Actions CI workflow
   public/                  PWA icons and offline fallback page
@@ -292,15 +274,13 @@ Users who need encrypted backups or cross-device synchronization should treat th
 
 ## Offline Behavior
 
-After the first successful online load, the PWA service worker can serve the app shell and static assets from cache. Local financial data remains in IndexedDB on the current device.
-
-Important offline notes:
+After the first successful online load, the PWA service worker serves the app shell and static assets from cache. Local financial data remains in IndexedDB on the current device.
 
 - The first load requires a network connection.
 - Existing local data can be viewed and edited offline after the app has been cached.
 - Offline changes stay on the current device.
 - There is no automatic cloud sync.
-- `public/offline.html` is used when navigation cannot load the app shell.
+- `public/offline.html` is displayed when navigation cannot load the app shell.
 
 ## Data Portability
 
@@ -310,10 +290,10 @@ JSON backups include the primary local data model:
 - Categories
 - Transactions
 - Non-sensitive settings
-- Debts
-- Debt payments
 
 CSV exports are intended for spreadsheet analysis. JSON exports are intended for full backup and restore.
+
+Legacy backup formats that include debt data are accepted during import for backward compatibility, though the debt tracking feature is no longer available in the application.
 
 ## Deployment
 
@@ -333,14 +313,10 @@ npm run build
 - Encrypted backup and encrypted local storage options.
 - Additional monthly report templates.
 - Recurring transaction automation.
-- Financial goals.
+- Financial goals and savings tracking.
 - Multi-currency support.
 - More localization options.
 - Budget forecasting improvements.
-
-## Repository Keywords
-
-Personal finance tracker, expense tracker, budget tracker, wallet manager, debt tracker, offline-first PWA, privacy-first finance app, local-first finance app, IndexedDB finance manager, React TypeScript PWA.
 
 ## License
 

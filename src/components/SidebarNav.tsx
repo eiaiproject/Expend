@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Wallet, HandCoins, PieChart, Settings, Plus, Tag } from 'lucide-react';
+import { Home, Wallet, PieChart, Settings, Plus, Tag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../utils/cn';
 
@@ -21,7 +21,6 @@ export function SidebarNav({ onAddClick }: { onAddClick: () => void }) {
         <nav className="flex flex-col gap-2">
           <SidebarItem to="/" end icon={<Home size={20} />} label={t('Home')} />
           <SidebarItem to="/wallets" icon={<Wallet size={20} />} label={t('Wallets')} />
-          <SidebarItem to="/debts" icon={<HandCoins size={20} />} label={t('Debts')} />
           <SidebarItem to="/categories" icon={<Tag size={20} />} label={t('Categories')} />
           <SidebarItem to="/stats" icon={<PieChart size={20} />} label={t('Stats')} />
           <SidebarItem to="/settings" icon={<Settings size={20} />} label={t('Settings')} />

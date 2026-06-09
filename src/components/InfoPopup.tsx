@@ -34,7 +34,6 @@ export function InfoPopup({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             <span className="text-sm font-medium opacity-60">{t('Version')}</span>
             <span className="text-lg font-bold">{__APP_VERSION__}</span>
             <span className="text-[10px] opacity-40">Build: {new Date(__BUILD_DATE__).toLocaleDateString('id-ID')}</span>
-            <span className="text-[10px] opacity-40">Hash: {__GIT_HASH__.slice(0, 7)}</span>
           </div>
 
           <div className="h-px w-full bg-[var(--border)]" />

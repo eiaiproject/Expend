@@ -8,7 +8,7 @@ const WalletsView = lazy(() => import('./views/WalletsView'));
 const StatsView = lazy(() => import('./views/StatsView'));
 const SettingsView = lazy(() => import('./views/SettingsView'));
 const CategoriesView = lazy(() => import('./views/CategoriesView'));
-const DebtsView = lazy(() => import('./views/DebtsView'));
+
 import { TransactionFormSheet } from './components/TransactionFormSheet';
 import { Toaster } from './components/Toaster';
 import { ConfirmDialogProvider } from './components/ConfirmDialog';
@@ -207,7 +207,7 @@ function RoutesWithSuspense() {
         <Routes>
           <Route path="/" element={<HomeView />} />
           <Route path="/wallets" element={<WalletsView />} />
-          <Route path="/debts" element={<DebtsView />} />
+
           <Route path="/stats" element={<StatsView />} />
           <Route path="/settings" element={<SettingsView />} />
           <Route path="/categories" element={<CategoriesView />} />

@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Wallet, HandCoins, PieChart, Settings, Plus } from 'lucide-react';
+import { Home, Wallet, PieChart, Settings, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../utils/cn';
 
@@ -12,7 +12,6 @@ export function BottomNav({ onAddClick }: { onAddClick: () => void }) {
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <NavItem to="/" end icon={<Home size={24} />} label={t('Home')} />
       <NavItem to="/wallets" icon={<Wallet size={24} />} label={t('Wallets')} />
-      <NavItem to="/debts" icon={<HandCoins size={24} />} label={t('Debts')} />
       <NavItem to="/stats" icon={<PieChart size={24} />} label={t('Stats')} />
       <NavItem to="/settings" icon={<Settings size={24} />} label={t('Settings')} />
 

@@ -36,37 +36,11 @@ export interface Setting {
   value: unknown;
 }
 
-export interface Debt {
-  id?: number;
-  type: 'payable' | 'receivable';
-  contactName: string;
-  description: string;
-  amount: number;
-  remainingAmount: number;
-  dueDate?: string;
-  createdAt: string;
-  status: 'pending' | 'partial' | 'settled' | 'overdue';
-  walletId?: number;
-  notes?: string;
-  categoryId?: number;
-}
-
-export interface DebtPayment {
-  id?: number;
-  debtId: number;
-  amount: number;
-  date: string;
-  note?: string;
-  transactionId?: number;
-}
-
 const db = new Dexie('ExpendDB') as Dexie & {
   wallets: EntityTable<Wallet, 'id'>;
   categories: EntityTable<Category, 'id'>;
   transactions: EntityTable<Transaction, 'id'>;
   settings: EntityTable<Setting, 'key'>;
-  debts: EntityTable<Debt, 'id'>;
-  debt_payments: EntityTable<DebtPayment, 'id'>;
 };
 
 db.version(3).stores({
@@ -210,24 +184,12 @@ db.version(6).stores({
   await settingsTable.put({ key: 'category_colors_migrated', value: true });
 });
 
-// Version 7: Add debts and debt_payments tables
+// Version 7: Compute currentBalance for all wallets
 db.version(7).stores({
-  wallets: '++id, name, currency, lastUpdated',
-  categories: '++id, name, icon, color, budget',
-  transactions: '++id, walletId, categoryId, date, description, type, amount, transferGroupId, [type+date], [walletId+date], [categoryId+date]',
-  settings: 'key',
-  debts: '++id, type, contactName, status, dueDate, walletId, [status+dueDate]',
-  debt_payments: '++id, debtId, date, transactionId, [debtId+date]'
-});
-
-// Version 8: Compute currentBalance for all wallets
-db.version(8).stores({
   wallets: '++id, name, currency, lastUpdated, currentBalance',
   categories: '++id, name, icon, color, budget',
   transactions: '++id, walletId, categoryId, date, description, type, amount, transferGroupId, [type+date], [walletId+date], [categoryId+date]',
-  settings: 'key',
-  debts: '++id, type, contactName, status, dueDate, walletId, [status+dueDate]',
-  debt_payments: '++id, debtId, date, transactionId, [debtId+date]'
+  settings: 'key'
 }).upgrade(async (tx) => {
   const walletTable = tx.table('wallets');
   const txTable = tx.table('transactions');
@@ -258,7 +220,7 @@ db.version(8).stores({
     await settingsTable.put({ key: 'wallet_balance_computed', value: true });
     await settingsTable.delete('migration_in_progress');
   } catch (err) {
-    await settingsTable.put({ key: 'migration_failed_v8', value: String(err) });
+    await settingsTable.put({ key: 'migration_failed_v7', value: String(err) });
     throw err;
   }
 });
