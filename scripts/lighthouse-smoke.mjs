@@ -11,6 +11,7 @@ const url = `http://${host}:${previewPort}`;
 function startPreview() {
   const child = spawn('npm', ['run', 'preview', '--', '--host=127.0.0.1', `--port=${previewPort}`], {
     stdio: ['ignore', 'pipe', 'pipe'],
+    detached: true,
   });
 
   child.stdout.on('data', (chunk) => process.stdout.write(chunk));
@@ -75,5 +76,18 @@ try {
     await browser.close();
   }
 } finally {
-  preview.kill('SIGTERM');
+  // Kill the entire process group (npm + vite + all children)
+  try {
+    process.kill(-preview.pid, 'SIGTERM');
+  } catch {
+    // Process group might already be gone
+  }
+  // Force kill if still alive after 2 seconds
+  setTimeout(() => {
+    try {
+      process.kill(-preview.pid, 'SIGKILL');
+    } catch {
+      // Already dead
+    }
+  }, 2000);
 }

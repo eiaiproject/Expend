@@ -8,9 +8,9 @@ The application is built with React, TypeScript, Vite, Tailwind CSS, IndexedDB, 
 
 ## Current Release
 
-- Version: `1.0.0`
-- Release name: Initial stable release
-- SemVer rationale: this repository is starting fresh, while the app already has a production-ready PWA shell, local-first data layer, transaction workflows, wallet management, budgets, debt tracking, reports, import/export, localization, automated QA, and CI. Because the previous `1.18.0` value was only an assumed text version, `1.0.0` is the appropriate initial stable SemVer version.
+- Version: `1.0.1`
+- Release name: Patch release with bug fixes and CI improvements
+- SemVer rationale: patch version for bug fixes only (UpdatePrompt state management, CI process group termination, test infrastructure mock, documentation cleanup). No new features or breaking changes.
 - Source availability: the source is publicly available in this repository. No formal open-source license is included yet.
 
 ## Table of Contents
@@ -253,9 +253,7 @@ The full QA command is:
 npm run qa:automated
 ```
 
-It runs dependency audit, TypeScript type checking, unit tests, production build, static PWA checks, Playwright E2E tests, and Lighthouse smoke checks. CI runs the same gate in `.github/workflows/ci.yml`.
-
-See [QA_AUTOMATION.md](QA_AUTOMATION.md) for automated coverage, manual QA requirements, and the latest recorded local validation.
+It runs dependency audit, TypeScript type checking, unit tests, production build, static PWA checks, Playwright E2E tests, and Lighthouse smoke checks. CI runs the same gate in `.github/workflows/ci.yml` on pushes and pull requests targeting the `main` branch.
 
 ## Project Structure
 
