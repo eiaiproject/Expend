@@ -245,7 +245,9 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale }) => 
         });
       }
 
+      // Update currentBalance and lastUpdated
       await db.wallets.update(wallet.id!, {
+        currentBalance: absBal,
         lastUpdated: new Date().toISOString()
       });
 

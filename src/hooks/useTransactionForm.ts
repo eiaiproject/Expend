@@ -65,7 +65,11 @@ export function useTransactionForm({
 
   const recentDescriptions = useMemo(() => {
     return Array.from(
-      new Set(transactions.map((t) => t.description.replace(/\s\((In|Out)\)$/, '')))
+      new Set(
+        transactions
+          .filter((t) => t.type !== 'balance_adjustment')
+          .map((t) => t.description.replace(/\s\((In|Out)\)$/, ''))
+      )
     ).slice(0, 100);
   }, [transactions]);
 
