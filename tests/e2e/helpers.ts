@@ -57,7 +57,9 @@ export async function setupPin(page: Page, pin = '1234') {
 }
 
 export async function createDebtWithPayment(page: Page) {
-  await page.getByRole('link', { name: 'Debts' }).click();
+  const debtsLink = page.getByRole('link', { name: 'Debts' });
+  await debtsLink.waitFor({ state: 'visible', timeout: 10000 });
+  await debtsLink.click();
   await expect(page.getByRole('heading', { name: 'Debts', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add Debt', exact: true }).filter({ visible: true }).first().click();
   await expect(page.getByRole('dialog', { name: 'Add Debt' })).toBeVisible();
