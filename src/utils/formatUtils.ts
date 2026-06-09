@@ -1,0 +1,73 @@
+/**
+ * Semantic currency formatters for the Expend app.
+ *
+ * All currency formatting uses Intl.NumberFormat with IDR currency
+ * for consistent, locale-aware output.
+ *
+ * Each variant has a clear semantic meaning:
+ * - formatCurrency(amount)        → plain "Rp 50.000"
+ * - formatSignedCurrency(amount)  → "+Rp 50.000" or "-Rp 50.000"
+ * - formatAbsoluteCurrency(amount)→ "Rp 50.000" (always positive display)
+ * - formatCurrencyValue(amount)   → "50.000" (plain number for inline use)
+ */
+
+const CURRENCY_FORMATTER = new Intl.NumberFormat('id-ID', {
+  style: 'currency',
+  currency: 'IDR',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
+const NUMBER_FORMATTER = new Intl.NumberFormat('id-ID');
+
+/**
+ * Format a bare amount with "Rp" prefix (no sign).
+ * Suitable for total expense display.
+ */
+export function formatCurrency(amount: number, hideAmount = false): string {
+  if (hideAmount) return '•••••';
+  return CURRENCY_FORMATTER.format(Math.abs(amount));
+}
+
+/**
+ * Format an amount with an explicit sign prefix.
+ * Suitable for transaction items where the sign conveys direction.
+ */
+export function formatSignedCurrency(amount: number, sign: '+' | '-', hideAmount = false): string {
+  if (hideAmount) return '•••••';
+  const formatted = CURRENCY_FORMATTER.format(Math.abs(amount));
+  return `${sign}${formatted}`;
+}
+
+/**
+ * Format a balance value — preserves negative sign for the balance itself.
+ * Suitable for the summary card balance display.
+ */
+export function formatBalance(amount: number, hideAmount = false): string {
+  if (hideAmount) return '•••••';
+  const sign = amount < 0 ? '-' : '';
+  return `${sign}${CURRENCY_FORMATTER.format(Math.abs(amount))}`;
+}
+
+/**
+ * Format an amount value as a plain number string (for inline use in transaction cards).
+ */
+export function formatCurrencyValue(amount: number, hideAmount = false): string {
+  if (hideAmount) return '•••••';
+  return NUMBER_FORMATTER.format(Math.abs(amount));
+}
+
+/**
+ * Format currency using Intl.NumberFormat for consistent formatting.
+ * Suitable for debt cards, category budgets, and wallet displays.
+ */
+export function formatCurrencyIntl(amount: number): string {
+  return CURRENCY_FORMATTER.format(amount);
+}
+
+/**
+ * Format amount without currency symbol (for inline display).
+ */
+export function formatAmountLocal(amount: number): string {
+  return NUMBER_FORMATTER.format(amount);
+}

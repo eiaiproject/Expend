@@ -1,0 +1,535 @@
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db, Transaction } from '../db/db';
+import { Eye, EyeOff, ClipboardList, Filter, ArrowUpDown, Search, XCircle, X, Tag, Trash2, FileText } from 'lucide-react';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
+import { cn } from '../utils/cn';
+import { TransactionDetailSheet } from '../components/TransactionDetailSheet';
+import { TransactionFormSheet } from '../components/TransactionFormSheet';
+import { FilterSheet } from '../components/FilterSheet';
+import { InfoPopup } from '../components/InfoPopup';
+import { toast } from '../components/Toaster';
+import { deleteTransactionsWithPairs, restoreTransactions } from '../services/deleteTransactionService';
+import { computeDailySpending, generateInsight } from '../services/budgetService';
+
+
+import { Skeleton } from '../components/Skeleton';
+import { motion, AnimatePresence } from 'motion/react';
+import { getTodayStr, getYesterdayStr, getWeekStartStr, getMonthStartStr, normaliseDate } from '../utils/dateUtils';
+import { useTransactionFilters } from '../hooks/useTransactionFilters';
+import { useTransactionSelection } from '../hooks/useTransactionSelection';
+import { useTransactionSort } from '../hooks/useTransactionSort';
+
+// Home sub-components
+import { SummaryCard } from '../components/home/SummaryCard';
+import { ActiveFilterChips } from '../components/home/ActiveFilterChips';
+import { TransactionCard } from '../components/home/TransactionCard';
+import { MonthlyReportPopup } from '../components/MonthlyReportPopup';
+
+const TRANSACTION_RENDER_PAGE_SIZE = 100;
+
+export default function HomeView() {
+  const { t, i18n } = useTranslation();
+  const [hideAmount, setHideAmount] = useState(false);
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [editTx, setEditTx] = useState<Transaction | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [expensePeriod, setExpensePeriod] = useState<'month' | 'all'>('month');
+  const [visibleTransactionCount, setVisibleTransactionCount] = useState(TRANSACTION_RENDER_PAGE_SIZE);
+
+  // Custom hooks
+  const { sortConfig, toggleSortOrder } = useTransactionSort();
+  const { isSelectionMode, selectedIds, enterSelectionMode, exitSelectionMode, toggleSelection, handleBulkDelete, isSelected } = useTransactionSelection(t);
+
+  // Database queries
+  const transactions = useLiveQuery(() => {
+    let query = db.transactions.orderBy(sortConfig.field);
+    if (sortConfig.order === 'desc') {
+      return query.reverse().toArray();
+    }
+    return query.toArray();
+  }, [sortConfig], undefined);
+
+  const categories = useLiveQuery(() => db.categories.toArray(), [], undefined);
+  const wallets = useLiveQuery(() => db.wallets.toArray(), [], undefined);
+
+  // Filter hook (must be after transactions query)
+  const {
+    filters,
+    actions: filterActions,
+    filteredTransactions,
+    hasActiveFilters,
+    searchRef,
+    activeCategories,
+    activeWallets,
+  } = useTransactionFilters(transactions, sortConfig);
+
+  const isLoading = transactions === undefined || categories === undefined || wallets === undefined;
+
+  useEffect(() => {
+    setVisibleTransactionCount(TRANSACTION_RENDER_PAGE_SIZE);
+  }, [filteredTransactions]);
+
+  const visibleFilteredTransactions = useMemo(
+    () => filteredTransactions.slice(0, visibleTransactionCount),
+    [filteredTransactions, visibleTransactionCount],
+  );
+  const hasMoreTransactions = visibleTransactionCount < filteredTransactions.length;
+
+  // Category and wallet maps for O(1) lookups
+  const categoryMap = useMemo(() => {
+    if (!categories) return {};
+    return categories.reduce((acc, cat) => {
+      if (cat.id != null) acc[cat.id] = cat;
+      return acc;
+    }, {} as Record<number, import('../db/db').Category>);
+  }, [categories]);
+
+  const walletMap = useMemo(() => {
+    if (!wallets) return {};
+    return wallets.reduce((acc, w) => {
+      if (w.id != null) acc[w.id] = w;
+      return acc;
+    }, {} as Record<number, import('../db/db').Wallet>);
+  }, [wallets]);
+
+  // Initialize defaults if empty
+  useEffect(() => {
+    const initDefaults = async () => {
+      const walletCount = await db.wallets.count();
+      if (walletCount === 0) {
+        await db.wallets.add({
+          name: t('Main Wallet'),
+          currency: 'IDR',
+          initialBalance: 0,
+          lastUpdated: new Date().toISOString()
+        });
+      }
+    };
+    initDefaults();
+  }, [t]);
+
+  // Keyboard shortcuts for the home view
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const tag = target.tagName;
+      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable || target.hasAttribute('contenteditable') || target.getAttribute('role') === 'textbox';
+      if (isEditable) return;
+
+      if (e.key === '/') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      } else if (e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        toggleSortOrder();
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        setIsFilterOpen(prev => !prev);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [searchRef, toggleSortOrder]);
+
+
+
+  const dailySummary = useMemo(() => {
+    if (!transactions) return { today: 0, yesterday: 0 };
+    return computeDailySpending(transactions);
+  }, [transactions]);
+
+  const smartInsight = useMemo(() => {
+    if (!transactions || !categories) return null;
+    return generateInsight(transactions, categories, t);
+  }, [transactions, categories, t]);
+
+  // Group transactions by period
+  const groupedTransactions = useMemo(() => {
+    if (!visibleFilteredTransactions || !visibleFilteredTransactions.length) return [];
+
+    const todayStr = getTodayStr();
+    const yesterdayStr = getYesterdayStr();
+    const weekStartStr = getWeekStartStr();
+
+    const groups: { labelKey: string; transactions: Transaction[] }[] = [];
+
+    const todayTxs: Transaction[] = [];
+    const yesterdayTxs: Transaction[] = [];
+    const weekTxs: Transaction[] = [];
+    const earlierTxs: Transaction[] = [];
+
+    for (const tx of visibleFilteredTransactions) {
+      const txDate = normaliseDate(tx.date);
+      if (txDate === todayStr) {
+        todayTxs.push(tx);
+      } else if (txDate === yesterdayStr) {
+        yesterdayTxs.push(tx);
+      } else if (txDate >= weekStartStr) {
+        weekTxs.push(tx);
+      } else {
+        earlierTxs.push(tx);
+      }
+    }
+
+    if (todayTxs.length > 0) groups.push({ labelKey: 'Today', transactions: todayTxs });
+    if (yesterdayTxs.length > 0) groups.push({ labelKey: 'Yesterday', transactions: yesterdayTxs });
+    if (weekTxs.length > 0) groups.push({ labelKey: 'This Week', transactions: weekTxs });
+    if (earlierTxs.length > 0) groups.push({ labelKey: 'Earlier', transactions: earlierTxs });
+
+    return groups;
+  }, [visibleFilteredTransactions]);
+
+  // Calculate summary based on filtered transactions and selected period
+  const totalExpense = useMemo(() => {
+    const expenseTxs = filteredTransactions.filter(tx => tx.type === 'expense');
+    
+    if (expensePeriod === 'month') {
+      const monthStart = getMonthStartStr();
+      return expenseTxs
+        .filter(tx => normaliseDate(tx.date) >= monthStart)
+        .reduce((sum, tx) => sum + tx.amount, 0);
+    }
+    
+    // All time
+    return expenseTxs.reduce((sum, tx) => sum + tx.amount, 0);
+  }, [filteredTransactions, expensePeriod]);
+
+  // Use pre-computed currentBalance from DB (set by transactionSaveService)
+  const walletsTotal = useMemo(() => {
+    if (!wallets) return 0;
+    return wallets.reduce((sum, w) => sum + (w.currentBalance ?? w.initialBalance), 0);
+  }, [wallets]);
+
+const handleEdit = useCallback((tx: Transaction) => {
+    setEditTx(tx);
+    setIsFormOpen(true);
+  }, []);
+
+  const handleRepeat = useCallback((tx: Transaction) => {
+    const { id: _id, transferGroupId: _tg, ...rest } = tx;
+    setEditTx({ ...rest, date: getTodayStr() });
+    setIsFormOpen(true);
+  }, []);
+
+  const handleDelete = useCallback(async (tx: Transaction) => {
+    if (!tx.id) return;
+    const backups = await deleteTransactionsWithPairs([tx.id]);
+    toast.add(t('Transaction Deleted'), async () => {
+      await restoreTransactions(backups);
+    });
+  }, [t]);
+
+  return (
+    <div className="p-4 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-black tracking-tighter uppercase leading-none">
+              Expend
+            </h1>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              {format(new Date(), 'd MMMM yyyy', { 
+                locale: i18n.language === 'id' ? localeId : undefined 
+              })}
+            </p>
+          </div>
+          
+          <button 
+            onClick={() => setIsInfoOpen(true)}
+            className="ml-1 p-1 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
+            aria-label={t('Project Information')}
+          >
+            <div className="w-5 h-5 rounded-full border border-[var(--border)] flex items-center justify-center text-[10px] font-bold">
+              i
+            </div>
+          </button>
+          <button 
+            onClick={() => setIsReportOpen(true)}
+            className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-lg hover:bg-[var(--card)]"
+            aria-label={t('Monthly Report')}
+          >
+            <FileText size={18} />
+          </button>
+          <Link 
+            to="/categories"
+            className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-lg hover:bg-[var(--card)]"
+            aria-label={t('Categories & Budgets')}
+          >
+            <Tag size={18} />
+          </Link>
+        </div>
+        <button 
+          onClick={() => setHideAmount(!hideAmount)}
+          className="p-2 bg-[var(--card)] rounded-full border border-[var(--border)]"
+          aria-label={hideAmount ? t('Show Balance') : t('Hide Balance')}
+        >
+          {hideAmount ? <EyeOff size={20} /> : <Eye size={20} />}
+        </button>
+      </div>
+      
+      <InfoPopup isOpen={isInfoOpen} onClose={() => setIsInfoOpen(false)} />
+
+      {/* Summary Card */}
+      <SummaryCard
+        isLoading={isLoading}
+        walletsTotal={walletsTotal}
+        totalExpense={totalExpense}
+        expensePeriod={expensePeriod}
+        onToggleExpensePeriod={() => setExpensePeriod(prev => prev === 'month' ? 'all' : 'month')}
+        dailySummary={dailySummary}
+        smartInsight={smartInsight}
+        hideAmount={hideAmount}
+      />
+
+      {/* Search Bar */}
+      <div className="relative group">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] transition-colors" size={18} />
+        <input 
+          ref={searchRef}
+          type="text" 
+          aria-label={t('Search Placeholder')}
+          placeholder={t('Search Placeholder')} 
+          value={filters.searchTerm}
+          onChange={(e) => filterActions.setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-12 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)] transition-all placeholder:text-[var(--text-secondary)]"
+        />
+        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:inline-flex items-center justify-center w-6 h-6 rounded border border-[var(--border)] bg-[var(--bg)] text-[10px] font-mono font-bold text-[var(--text-secondary)]">
+          /
+        </kbd>
+      </div>
+
+      {/* Active Filter Chips */}
+      <ActiveFilterChips
+        filters={filters}
+        filterActions={filterActions}
+        categoryMap={categoryMap}
+        walletMap={walletMap}
+      />
+
+      {/* Quick Filter Chips */}
+      {!isSelectionMode && filters.type === 'all' && filters.searchTerm === '' && (
+        <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-none">
+          {(['today', 'week', 'transfers'] as const).map(qf => (
+            <button
+              key={qf}
+              onClick={() => filterActions.setQuickFilter(filters.quickFilter === qf ? null : qf)}
+              aria-pressed={filters.quickFilter === qf}
+              className={cn(
+                "shrink-0 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border transition-all active:scale-95",
+                filters.quickFilter === qf
+                  ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                  : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
+              )}
+            >
+              {qf === 'today' ? t('Today') : qf === 'week' ? t('This Week') : t('Transfers Only')}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Transaction List */}
+      <div className="relative">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-2">
+            {!isSelectionMode && <h2 className="text-lg font-bold">{t('Recent Transactions')}</h2>}
+            {isSelectionMode && (
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={exitSelectionMode}
+                  className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  aria-label={t('Close')}
+                >
+                  <XCircle size={20} />
+                </button>
+                <span className="text-lg font-bold">{selectedIds.length} {t('Selected')}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {!isSelectionMode && (
+              <button 
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className={cn(
+                  "relative p-2 rounded-lg border transition-colors group",
+                  isFilterOpen 
+                    ? "bg-[var(--accent)] text-white border-[var(--accent)]" 
+                    : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] active:bg-[var(--border)]"
+                )}
+                title="Filter"
+                aria-label={t('Filter Type')}
+              >
+                <Filter size={16} />
+                <kbd className="absolute -top-1.5 -right-1.5 hidden md:inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--border)] bg-[var(--bg)] text-[8px] font-mono font-bold text-[var(--text-secondary)] shadow-sm">
+                  F
+                </kbd>
+              </button>
+            )}
+            {!isSelectionMode && (
+              <button 
+                onClick={toggleSortOrder}
+                className="relative p-2 bg-[var(--card)] rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] active:bg-[var(--border)] transition-colors group"
+                title="Sort Date"
+                aria-label={t('Sort Date')}
+              >
+                <ArrowUpDown size={16} />
+                <kbd className="absolute -top-1.5 -right-1.5 hidden md:inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--border)] bg-[var(--bg)] text-[8px] font-mono font-bold text-[var(--text-secondary)] shadow-sm">
+                  S
+                </kbd>
+              </button>
+            )}
+            {isSelectionMode && (
+              <button 
+                onClick={handleBulkDelete}
+                className="p-2 bg-red-500 text-white rounded-lg border border-red-600 transition-colors hover:bg-red-600 active:scale-95"
+                title="Bulk Delete"
+                aria-label={t('Bulk Delete')}
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {!isLoading && (
+          <FilterSheet 
+            isOpen={isFilterOpen} 
+            onClose={() => setIsFilterOpen(false)}
+            categories={activeCategories || []}
+            wallets={activeWallets || []}
+            filters={{
+              type: filters.type,
+              setType: filterActions.setType,
+              categories: filters.categories,
+              setCategories: filterActions.setCategories,
+              wallets: filters.wallets,
+              setWallets: filterActions.setWallets,
+              startDate: filters.startDate,
+              setStartDate: filterActions.setStartDate,
+              endDate: filters.endDate,
+              setEndDate: filterActions.setEndDate,
+              minAmount: filters.minAmount,
+              setMinAmount: filterActions.setMinAmount,
+              maxAmount: filters.maxAmount,
+              setMaxAmount: filterActions.setMaxAmount,
+            }}
+          />
+        )}
+        
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map(i => (
+              <Skeleton key={i} className="w-full h-20 rounded-[16px]" />
+            ))}
+          </div>
+        ) : filteredTransactions.length === 0 ? (
+          <div className="text-center py-16 flex flex-col items-center">
+            <div className="bg-[var(--card)] w-24 h-24 rounded-full flex items-center justify-center mb-4 border border-[var(--border)] text-[var(--accent)] shadow-inner">
+              <ClipboardList size={48} className="opacity-20" />
+            </div>
+            <h3 className="font-bold text-[var(--text-primary)]">{t('No Transactions')}</h3>
+            <p className="text-sm text-[var(--text-secondary)] mt-1 max-w-[200px]">
+              {filters.searchTerm || filters.categories.length > 0 || filters.wallets.length > 0 || filters.startDate || filters.endDate
+                ? t('Filter Hint')
+                : t('Empty State Hint')}
+            </p>
+            {!(filters.searchTerm || filters.categories.length > 0 || filters.wallets.length > 0 || filters.startDate || filters.endDate) && (
+              <button
+                onClick={() => setIsFormOpen(true)}
+                className="mt-4 px-6 py-3 bg-[var(--accent)] text-white rounded-xl font-bold shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-transform"
+              >
+                {t('Add Transaction')}
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Selection Mode Toggle */}
+            {!isSelectionMode && (
+              <button 
+                onClick={enterSelectionMode}
+                className="w-full p-2 text-xs font-bold text-[var(--accent)] uppercase tracking-wider text-right mb-2 hover:underline"
+              >
+                {t('Select Multiple')}
+              </button>
+            )}
+
+            {groupedTransactions.map(group => (
+              <div key={group.labelKey}>
+                <h3 className="sticky top-0 z-10 bg-[var(--bg)] pt-1 pb-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-2">
+                  <span>{t(group.labelKey)}</span>
+                  <span className="text-[10px] font-mono text-[var(--text-secondary)]/50">{group.transactions.length}</span>
+                </h3>
+                <div className="space-y-2">
+                  <AnimatePresence mode="popLayout">
+                    {group.transactions.map(tx => (
+                      <motion.div
+                        key={tx.id}
+                        layout
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                      >
+                        <TransactionCard
+                          tx={tx}
+                          categoryMap={categoryMap}
+                          walletMap={walletMap}
+                          searchTerm={filters.searchTerm}
+                          hideAmount={hideAmount}
+                          isSelectionMode={isSelectionMode}
+                          isSelected={isSelected(tx.id!)}
+                          onSelect={toggleSelection}
+                          onClick={() => setSelectedTx(tx)}
+                          onDragEnd={(dir) => {
+                            if (dir === 'left') handleDelete(tx);
+                            else handleEdit(tx);
+                          }}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+            ))}
+
+            {hasMoreTransactions && (
+              <button
+                type="button"
+                onClick={() => setVisibleTransactionCount((count) => count + TRANSACTION_RENDER_PAGE_SIZE)}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+              >
+                {t('Load More')}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <TransactionDetailSheet 
+        tx={selectedTx} 
+        onClose={() => setSelectedTx(null)} 
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onRepeat={handleRepeat}
+      />
+
+      <TransactionFormSheet
+        isOpen={isFormOpen}
+        onClose={() => { setIsFormOpen(false); setEditTx(null); }}
+        txToEdit={editTx}
+      />
+
+      <MonthlyReportPopup
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+      />
+    </div>
+  );
+}
