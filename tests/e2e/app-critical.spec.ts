@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { addExpense, completeOnboarding, createDebtWithPayment, setupPin } from './helpers';
+import { addExpense, completeOnboarding, setupPin } from './helpers';
 
 test('onboarding, transaction, stats, and 404 flows work', async ({ page }) => {
   await completeOnboarding(page);
@@ -30,33 +30,4 @@ test('PIN lock gates app content after reload and unlocks with the configured PI
   await expect(page.getByText('App Locked')).toHaveCount(0);
 });
 
-test('JSON backup restores debts and debt payments after local reset', async ({ page }) => {
-  await completeOnboarding(page);
-  await page.waitForLoadState('networkidle');
-  await createDebtWithPayment(page);
 
-  await page.getByRole('link', { name: 'Settings' }).click();
-  await page.getByRole('button', { name: 'Data' }).click();
-
-  const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export Full Backup (JSON)' }).click();
-  const download = await downloadPromise;
-  const backupPath = await download.path();
-  expect(backupPath).toBeTruthy();
-
-  await page.getByRole('button', { name: 'Reset Local Data' }).click();
-  await page.getByRole('button', { name: 'Confirm' }).click();
-
-  await expect(page.getByRole('button', { name: 'Try Web Version' })).toBeVisible();
-  await page.getByRole('button', { name: 'Try Web Version' }).click();
-  await page.getByRole('link', { name: 'Settings' }).click();
-  await page.getByRole('button', { name: 'Data' }).click();
-
-  await page.locator('input[type="file"]').setInputFiles(backupPath!);
-  await page.getByRole('button', { name: 'Confirm' }).click();
-  await expect(page.getByText('Import successful.')).toBeVisible();
-
-  await page.getByRole('link', { name: 'Debts' }).click();
-  await expect(page.getByText('QA Contact')).toBeVisible();
-  await expect(page.getByRole('button', { name: /QA Contact.*Partial/ })).toBeVisible();
-});

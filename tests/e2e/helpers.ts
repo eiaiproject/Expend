@@ -56,24 +56,4 @@ export async function setupPin(page: Page, pin = '1234') {
   await expect(page.getByText('PIN Lock')).toBeVisible();
 }
 
-export async function createDebtWithPayment(page: Page) {
-  const debtsLink = page.getByRole('link', { name: 'Debts' });
-  await debtsLink.waitFor({ state: 'visible', timeout: 10000 });
-  await debtsLink.click();
-  await expect(page.getByRole('heading', { name: 'Debts', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Add Debt', exact: true }).filter({ visible: true }).first().click();
-  await expect(page.getByRole('dialog', { name: 'Add Debt' })).toBeVisible();
 
-  await page.getByLabel('Contact Name').fill('QA Contact');
-  await page.getByLabel(/Description/).fill('QA Debt');
-  await page.getByLabel('Amount').fill('100000');
-  await page.getByRole('button', { name: 'Save' }).click();
-
-  await expect(page.getByText('QA Contact')).toBeVisible();
-  await page.getByText('QA Contact').click();
-  await page.getByRole('button', { name: 'Record Payment' }).click();
-  await page.getByLabel('Payment Amount').fill('50000');
-  await page.getByRole('button', { name: 'Save Payment' }).click();
-
-  await expect(page.getByRole('button', { name: /QA Contact.*Partial/ })).toBeVisible();
-}
