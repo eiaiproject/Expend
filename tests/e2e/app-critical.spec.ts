@@ -32,6 +32,7 @@ test('PIN lock gates app content after reload and unlocks with the configured PI
 
 test('JSON backup restores debts and debt payments after local reset', async ({ page }) => {
   await completeOnboarding(page);
+  await page.waitForLoadState('networkidle');
   await createDebtWithPayment(page);
 
   await page.getByRole('link', { name: 'Settings' }).click();
