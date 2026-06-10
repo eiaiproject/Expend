@@ -3,7 +3,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/db';
 import { useSecurity } from '../contexts/SecurityContext';
-import { Moon, Sun, Download, Upload, Shield, Lock, Trash2, Check, Coffee, Tag } from 'lucide-react';
+import { Moon, Sun, Download, Upload, Shield, Lock, Trash2, Check, Coffee, Tag, Info } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { Link } from 'react-router-dom';
 import { toast } from '../components/Toaster';
@@ -11,6 +11,7 @@ import { confirm } from '../components/ConfirmDialog';
 import { AnimatePresence, motion } from 'motion/react';
 import { generateExport, importData, validateImportData, MAX_IMPORT_FILE_SIZE, downloadBlob, sanitizeCsvRows } from '../services/importExportService';
 import { STORAGE_KEYS } from '../utils/constants';
+import { useInstallPrompt } from '../utils/pwaUtils';
 
 // Settings sub-components
 import { SettingsAccordion } from '../components/settings/SettingsAccordion';
@@ -35,6 +36,7 @@ export default function SettingsView() {
 
   const { pin: pinAvailable } = checkSecurityAvailable();
   const { theme, setTheme } = useTheme();
+  const { deferredPrompt, showInstallPrompt } = useInstallPrompt();
 
   const handleLangChange = async (lang: string) => {
     await i18n.changeLanguage(lang);
@@ -72,7 +74,10 @@ export default function SettingsView() {
 
         const errors = validateImportData(json);
         if (errors.length > 0) {
-          toast.add(t('Import Invalid'));
+          const errorSummary = errors.length === 1 
+            ? errors[0] 
+            : `${errors[0]} (+${errors.length - 1} more)`;
+          toast.add(`${t('Import Invalid')} ${errorSummary}`);
           return;
         }
 
@@ -110,6 +115,15 @@ export default function SettingsView() {
     });
 
     Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+
+    // Clean Cache Storage for a complete reset
+    try {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map((name) => caches.delete(name)));
+    } catch {
+      // Cache Storage may not be available in all environments
+    }
+
     toast.add(t('Local Data Reset'));
     window.location.reload();
   };
@@ -261,6 +275,21 @@ export default function SettingsView() {
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                 </div>
 
+                {/* Security disclosure */}
+                <div className="mx-4 mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-start gap-2">
+                    <Info size={16} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                        {t('Security Disclosure')}
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
+                        {t('Security Disclosure Tip')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <button 
                   onClick={handleChangePinRequest}
                   className="w-full flex items-center gap-3 p-4 text-left hover:bg-[var(--card)] transition-colors"
@@ -287,6 +316,26 @@ export default function SettingsView() {
           </div>
         </SettingsAccordion>
       </div>
+
+      {/* Install PWA */}
+      {deferredPrompt && (
+        <div className="space-y-4">
+          <SettingsAccordion title={t('Install App')}>
+            <div className="p-4 space-y-3">
+              <p className="text-sm text-[var(--text-secondary)]">
+                {t('Install App Desc')}
+              </p>
+              <button
+                onClick={showInstallPrompt}
+                className="w-full py-3 bg-[var(--accent)] hover:opacity-90 text-white rounded-xl font-bold transition-all active:scale-95 shadow-md shadow-[var(--accent)]/20 flex items-center justify-center gap-2"
+              >
+                <Download size={18} />
+                {t('Install')}
+              </button>
+            </div>
+          </SettingsAccordion>
+        </div>
+      )}
 
       {/* Support Section */}
       <div className="mt-8 p-6 bg-orange-500/10 rounded-2xl border border-orange-500/20 flex flex-col items-center text-center gap-3">

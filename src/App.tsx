@@ -27,7 +27,7 @@ import LandingView from './views/LandingView';
 import { SidebarNav } from './components/SidebarNav';
 import { Download, WifiOff, X } from 'lucide-react';
 import OnboardingWizard from './components/OnboardingWizard';
-import { MonthlyReportPopup } from './components/MonthlyReportPopup';
+const MonthlyReportPopup = lazy(() => import('./components/MonthlyReportPopup').then(m => ({ default: m.MonthlyReportPopup })));
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { isIOSDevice, useInstallPrompt, useOnlineStatus } from './utils/pwaUtils';
 import type { TransactionType } from './hooks/useTransactionForm';

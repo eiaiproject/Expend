@@ -1,8 +1,28 @@
-# Expend
+# Expend - Privacy-First Offline Personal Finance Tracker
 
-**Privacy-first offline personal finance tracker as a Progressive Web App.**
+> A local-first Progressive Web App for expense tracking, budget planning, multi-wallet management, debt and receivable tracking, analytics, and monthly financial reports.
 
 [![CI](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml/badge.svg)](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-1.4.0-teal)](https://github.com/eiaiproject/Expend)
+[![License](https://img.shields.io/badge/license-proprietary-red)](#license)
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Privacy and Security](#privacy-and-security)
+- [Technology Stack](#technology-stack)
+- [Getting Started](#getting-started)
+- [Available Scripts](#available-scripts)
+- [Quality Assurance](#quality-assurance)
+- [Import, Export, and Backup](#import-export-and-backup)
+- [PWA and Offline Behavior](#pwa-and-offline-behavior)
+- [Deployment](#deployment)
+- [Project Structure](#project-structure)
+- [Roadmap](#roadmap)
+- [License](#license)
 
 ---
 
@@ -11,6 +31,8 @@
 Expend is a local-first personal finance application built for expense tracking, budget planning, multi-wallet management, debt and receivable tracking, analytics, and monthly reports. It runs entirely in the browser with no account required, no server-side storage, and no mandatory cloud synchronization. All data is stored locally on the user's device using IndexedDB.
 
 The application separates ordinary expenses, wallet transfers, balance adjustments, and debt or receivable cashflows so finance summaries remain easy to understand. Debt and receivable records affect wallet balances but are not treated as normal expense or income categories in the main spending analytics.
+
+---
 
 ## Key Features
 
@@ -76,6 +98,8 @@ The application separates ordinary expenses, wallet transfers, balance adjustmen
 - Light and dark themes.
 - Installable PWA experience on mobile and desktop browsers.
 
+---
+
 ## Privacy and Security
 
 Expend is privacy-first and local-first by design.
@@ -88,7 +112,9 @@ Expend is privacy-first and local-first by design.
 - PIN screen lock uses PBKDF2 hashing through the Web Crypto API.
 - Sensitive security settings are excluded from JSON exports.
 
-**Note:** The PIN lock protects the app UI from casual access. It does not encrypt IndexedDB at rest. Use an encrypted device, separate OS account, or encrypted backup location when stronger protection is required.
+**Important:** The PIN lock protects the app UI from casual access. It does not encrypt IndexedDB at rest. Use an encrypted device, separate OS account, or encrypted backup location when stronger protection is required.
+
+---
 
 ## Technology Stack
 
@@ -106,6 +132,8 @@ Expend is privacy-first and local-first by design.
 | CSV | PapaParse |
 | Testing | Vitest, Playwright, Axe |
 | CI | GitHub Actions |
+
+---
 
 ## Getting Started
 
@@ -142,6 +170,8 @@ npm run build
 npm run preview
 ```
 
+---
+
 ## Available Scripts
 
 | Command | Description |
@@ -158,6 +188,8 @@ npm run preview
 | `npm run test:e2e` | Run Playwright end-to-end tests |
 | `npm run test:lighthouse` | Run Lighthouse smoke checks |
 | `npm run qa:automated` | Run the full QA gate |
+
+---
 
 ## Quality Assurance
 
@@ -177,6 +209,8 @@ npm run test:unit
 npm run build
 ```
 
+---
+
 ## Import, Export, and Backup
 
 ### JSON Exports Include
@@ -193,6 +227,7 @@ JSON exports do not include PIN hashes or lockout records.
 ### Import Behavior
 
 - Import replaces wallets, categories, transactions, debts, debt payments, and non-sensitive settings.
+- Only whitelisted settings (`language`, `theme`) are imported from external backups.
 - Import preserves the local PIN/security setting configured on the current device.
 - Imported wallet `currentBalance` values are recomputed from transaction and debt cashflow history.
 - Legacy backups without debt tables remain valid.
@@ -200,6 +235,8 @@ JSON exports do not include PIN hashes or lockout records.
 ### CSV Exports
 
 CSV exports include transaction rows for spreadsheet analysis. CSV exports are not full backups.
+
+---
 
 ## PWA and Offline Behavior
 
@@ -209,6 +246,17 @@ CSV exports include transaction rows for spreadsheet analysis. CSV exports are n
 - App routes (`/`, `/wallets`, `/debts`, `/categories`, `/stats`, `/settings`) fall back to the cached app shell.
 - Offline changes persist locally on the current device.
 - No automatic sync between devices.
+
+### Service Worker Updates
+
+- The app checks for service worker updates every hour.
+- When a new version is available, an update prompt appears at the top of the screen.
+- Users can accept the update immediately or dismiss it.
+- If dismissed, the prompt reappears after 10 minutes to ensure important updates are not missed.
+- Accepting the update reloads the app with the new version. Dismissing keeps the current version active.
+- For critical security or bug fixes, updating promptly is recommended.
+
+---
 
 ## Deployment
 
@@ -221,6 +269,44 @@ npm run build
 ```
 
 Deploy the generated `dist` directory to Vercel, Netlify, Cloudflare Pages, or any static file server.
+
+### Deployment Requirements by Provider
+
+| Requirement | Vercel | Netlify | Cloudflare Pages |
+|-------------|--------|---------|------------------|
+| SPA fallback (rewrite to index.html) | Included in `vercel.json` | Add `_redirects` with `/* /index.html 200` | Add `_redirects` with `/* /index.html 200` |
+| SW no-cache header | Included | Add `_headers` with `/sw.js Cache-Control: no-cache, no-store, must-revalidate` | Add `_headers` with similar rule |
+| Immutable asset caching | Included | Add `_headers` with `/assets/* Cache-Control: public, max-age=31536000, immutable` | Add `_headers` with similar rule |
+| Security headers (CSP, HSTS, etc.) | Included | Add `_headers` with equivalent headers | Add `_headers` with equivalent headers |
+| HTTPS | Automatic | Automatic | Automatic |
+
+For Netlify, create a `_redirects` file in the `public` directory:
+
+```
+/* /index.html 200
+```
+
+For Netlify, create a `_headers` file in the `public` directory:
+
+```
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/index.html
+  Cache-Control: no-cache
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+```
+
+---
 
 ## Project Structure
 
@@ -241,6 +327,8 @@ Expend/
   tests/e2e/            End-to-end tests
 ```
 
+---
+
 ## Roadmap
 
 - Optional encrypted backup workflow.
@@ -251,6 +339,8 @@ Expend/
 - Financial goals and savings tracking.
 - Multi-currency support.
 - Additional language support.
+
+---
 
 ## License
 

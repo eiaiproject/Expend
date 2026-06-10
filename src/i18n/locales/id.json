@@ -123,10 +123,7 @@
     "Category \"{{name}}\" does not exist. Create it?": "Kategori \"{{name}}\" belum ada. Buat kategori baru?",
     "Import Invalid": "Format JSON tidak valid.",
     "Import Error": "Gagal membaca file JSON.",
-    "Support Title ID": "Suka dengan Expend?",
-    "Support Text ID": "Dukung pengembang agar aplikasi ini tetap gratis dan bebas iklan.",
-    "Support Title EN": "Love using Expend?",
-    "Support Text EN": "Support the developer to keep this app free and ad-free.",
+    
     "Buy Me A Coffee": "Traktir Kopi",
     "Appearance": "Tampilan",
     "Dark Mode": "Mode Gelap",
@@ -483,6 +480,10 @@
     "Due in days": "Jatuh tempo {{days}} hari lagi",
     "History": "Riwayat",
     "Error loading report": "Gagal memuat data laporan",
-    "Error generating PDF": "Gagal generate PDF"
+    "Error generating PDF": "Gagal generate PDF",
+    "Security Disclosure": "PIN lock hanya melindungi tampilan UI dari akses biasa. PIN TIDAK mengenkripsi data finansial yang tersimpan di IndexedDB. Siapa pun yang memiliki akses ke perangkat ini atau profil browser dapat membaca data tanpa mengetahui PIN.",
+    "Security Disclosure Tip": "Untuk perlindungan yang lebih kuat, gunakan perangkat terenkripsi, akun OS terpisah, atau lokasi backup terenkripsi.",
+    "Install App": "Install Aplikasi",
+    "Install App Desc": "Install Expend sebagai PWA untuk penggunaan offline dan tampilan layar penuh."
   }
 }

@@ -26,6 +26,7 @@ test('service worker serves app shell for offline app route navigation', async (
   const appRoutes = [
     { path: '/', heading: 'Expend' },
     { path: '/wallets', heading: 'Wallets' },
+    { path: '/debts', heading: 'Debts' },
     { path: '/stats', heading: 'Stats' },
     { path: '/settings', heading: 'Settings' },
     { path: '/categories', heading: 'Categories & Budgets' },

@@ -20,6 +20,9 @@ export { MAX_IMPORT_FILE_SIZE };
 export const EXPORT_SCHEMA_VERSION = '2.1';
 
 const SECURITY_SETTING_KEYS = new Set(['security', 'lockout_record']);
+
+/** Whitelist of settings keys that are safe to import from external backups. */
+const ALLOWED_IMPORT_SETTINGS = new Set(['language', 'theme']);
 const MAX_IMPORT_RECORDS = {
   wallets: 500,
   categories: 500,
@@ -365,7 +368,7 @@ export function validateImportData(json: unknown): string[] {
     }
   }
 
-  // Validate setting fields. Security-related settings are accepted but ignored during import.
+  // Validate setting fields. Only whitelisted settings are accepted during import.
   for (let i = 0; i < settings.length; i++) {
     const setting = settings[i];
     if (!isRecord(setting)) {
@@ -376,7 +379,11 @@ export function validateImportData(json: unknown): string[] {
       errors.push(`Setting ${i}: "key" is required and must be a bounded string.`);
       continue;
     }
-    if (!SECURITY_SETTING_KEYS.has(setting.key) && !isReasonableSettingValue(setting.value)) {
+    if (!ALLOWED_IMPORT_SETTINGS.has(setting.key)) {
+      // Skip unknown or non-importable settings silently
+      continue;
+    }
+    if (!isReasonableSettingValue(setting.value)) {
       errors.push(`Setting ${i}: "value" is too large or cannot be serialized.`);
     }
   }
@@ -496,7 +503,7 @@ export function sanitizeImportData(json: unknown): ExportData {
     .filter(isRecord)
     .filter((setting): setting is { key: string; value: unknown } => (
       isBoundedString(setting.key, MAX_LENGTH.settingKey) &&
-      !SECURITY_SETTING_KEYS.has(setting.key) &&
+      ALLOWED_IMPORT_SETTINGS.has(setting.key) &&
       isReasonableSettingValue(setting.value)
     ))
     .map((setting): Setting => ({

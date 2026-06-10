@@ -1,7 +1,10 @@
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useTranslation } from 'react-i18next';
 import { RefreshCw, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+// Re-show update prompt after this interval (10 minutes)
+const REDISMISS_INTERVAL_MS = 10 * 60 * 1000;
 
 export function UpdatePrompt() {
   const { t } = useTranslation();
@@ -20,6 +23,21 @@ export function UpdatePrompt() {
   });
 
   const [dismissed, setDismissed] = useState(false);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Re-show the prompt after REDISMISS_INTERVAL_MS if user dismissed it
+  useEffect(() => {
+    if (dismissed && needRefresh) {
+      dismissTimerRef.current = setTimeout(() => {
+        setDismissed(false);
+      }, REDISMISS_INTERVAL_MS);
+    }
+    return () => {
+      if (dismissTimerRef.current) {
+        clearTimeout(dismissTimerRef.current);
+      }
+    };
+  }, [dismissed, needRefresh]);
 
   if (!needRefresh || dismissed) return null;
 
@@ -31,7 +49,8 @@ export function UpdatePrompt() {
 
   const handleDismiss = () => {
     setDismissed(true);
-    setNeedRefresh(false);
+    // setNeedRefresh is NOT called here — so the SW stays waiting
+    // The prompt will re-appear after REDISMISS_INTERVAL_MS
   };
 
   return (

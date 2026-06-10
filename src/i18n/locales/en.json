@@ -479,6 +479,10 @@
     "Due in days": "Due in {{days}} days",
     "History": "History",
     "Error loading report": "Failed to load report data",
-    "Error generating PDF": "Failed to generate PDF"
+    "Error generating PDF": "Failed to generate PDF",
+    "Security Disclosure": "PIN lock protects the app UI from casual access. It does NOT encrypt your financial data stored in IndexedDB. Anyone with access to this device or browser profile can potentially read the data without the PIN.",
+    "Security Disclosure Tip": "For stronger protection, use an encrypted device, separate OS account, or encrypted backup location.",
+    "Install App": "Install App",
+    "Install App Desc": "Install Expend as a PWA for offline use and fullscreen experience."
   }
 }
