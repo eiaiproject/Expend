@@ -141,7 +141,7 @@ export default function StatsView() {
         const cat = categoryMap[parseInt(catId)];
         return {
           id: parseInt(catId),
-          name: cat?.name || 'Lainnya',
+          name: cat?.name || t('Other'),
           value: amount,
           color: cat?.color || '#ccc'
         };
@@ -323,7 +323,7 @@ export default function StatsView() {
               <div key={i} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-sm font-medium">{item.name === 'Lainnya' ? t('Other') : item.name}</span>
+                  <span className="text-sm font-medium">{item.name === t('Other') ? t('Other') : item.name}</span>
                 </div>
                 <div className="font-mono text-sm flex items-baseline">
                   <span className="w-8 text-right mr-1 text-[11px] text-[var(--text-secondary)]">Rp</span>

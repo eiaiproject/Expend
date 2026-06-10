@@ -118,8 +118,8 @@ export default function CategoriesView() {
         if (!confirmed) return;
 
         // Find or create "Other" category to reassign transactions
-        let otherCategory = categories?.find(c => c.name.toLowerCase() === 'other');
-        let otherCategoryName = 'Other';
+        let otherCategory = categories?.find(c => c.name.toLowerCase() === t('Other').toLowerCase());
+        let otherCategoryName = t('Other');
         let otherCategoryColor = '#64748B';
         let otherCategoryId: number;
         
@@ -130,7 +130,7 @@ export default function CategoriesView() {
         } else {
           // Create "Other" category if it doesn't exist
           const newId = await db.categories.add({
-            name: 'Other',
+            name: t('Other'),
             icon: '🏷️',
             color: otherCategoryColor,
           });

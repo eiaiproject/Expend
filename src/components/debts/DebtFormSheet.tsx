@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowDownLeft, ArrowUpRight, Wallet as WalletIcon } from 'lucide-react';
 import { db, type Debt, type DebtType } from '../../db/db';
@@ -31,6 +32,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit = null }: DebtFormSheetProps) {
+  const { t } = useTranslation();
   const formId = useId();
   const wallets = useLiveQuery(() => db.wallets.toArray(), [], []) ?? [];
   const isEdit = !!debtToEdit;
@@ -90,16 +92,16 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
   const rawAmount = parseAmount(amount);
   const isPayable = type === 'payable';
   const titleText = isEdit
-    ? (isPayable ? 'Ubah Utang' : 'Ubah Piutang')
+    ? (isPayable ? t('Edit Payable') : t('Edit Receivable'))
     : step === 'type'
-      ? 'Catat Utang / Piutang'
+      ? t('Record Payable')
       : isPayable
-        ? 'Saya Berutang'
-        : 'Saya Meminjamkan Uang';
+        ? t('I Owe')
+        : t('I Lend');
 
   const impactText = isPayable
-    ? `${selectedWallet?.name ?? 'Wallet'} bertambah ${formatCurrency(rawAmount, hideAmount)}`
-    : `${selectedWallet?.name ?? 'Wallet'} berkurang ${formatCurrency(rawAmount, hideAmount)}`;
+    ? t('wallet increases', { wallet: selectedWallet?.name ?? t('Wallet'), amount: formatCurrency(rawAmount, hideAmount) })
+    : t('wallet decreases', { wallet: selectedWallet?.name ?? t('Wallet'), amount: formatCurrency(rawAmount, hideAmount) });
 
   const handleSelectType = (nextType: DebtType) => {
     setType(nextType);
@@ -123,10 +125,10 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
 
       if (debtToEdit) {
         await updateDebt(debtToEdit.id, payload);
-        toast.add('Catatan berhasil diperbarui.');
+        toast.add(t('Debt updated'));
       } else {
         await createDebt({ ...payload, type });
-        toast.add(isPayable ? 'Utang berhasil dicatat.' : 'Piutang berhasil dicatat.');
+        toast.add(isPayable ? t('Debt recorded') : t('Receivable recorded'));
       }
 
       onClose();
@@ -147,7 +149,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
     >
       {step === 'type' && !isEdit ? (
         <div className="px-3 py-4 space-y-4">
-          <p className="text-sm font-medium text-[var(--text-secondary)]">Apa yang terjadi?</p>
+          <p className="text-sm font-medium text-[var(--text-secondary)]">{t('What happened?')}</p>
           <button
             type="button"
             onClick={() => handleSelectType('payable')}
@@ -158,8 +160,8 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
                 <ArrowDownLeft size={20} />
               </div>
               <div>
-                <h3 className="font-bold">Saya Berutang</h3>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">Saya menerima uang pinjaman.</p>
+                <h3 className="font-bold">{t('I Owe Money')}</h3>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">{t('I Owe Money Desc')}</p>
               </div>
             </div>
           </button>
@@ -173,8 +175,8 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
                 <ArrowUpRight size={20} />
               </div>
               <div>
-                <h3 className="font-bold">Saya Meminjamkan Uang</h3>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">Orang lain harus membayar saya.</p>
+                <h3 className="font-bold">{t('I Lent Money')}</h3>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">{t('I Lent Money Desc')}</p>
               </div>
             </div>
           </button>
@@ -183,7 +185,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
         <form onSubmit={handleSubmit} className="px-3 py-4 space-y-5">
           <div>
             <label htmlFor={`${formId}-person`} className="block text-sm font-medium mb-1">
-              {isPayable ? 'Dari siapa?' : 'Ke siapa?'} *
+              {isPayable ? t('From whom?') : t('To whom?')} *
             </label>
             <input
               id={`${formId}-person`}
@@ -205,7 +207,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
               type="text"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder={isPayable ? 'Contoh: Modal kerja' : 'Contoh: Pinjaman sementara'}
+              placeholder={isPayable ? t('Title placeholder payable') : t('Title placeholder receivable')}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus:outline-none focus:border-[var(--accent)]"
               autoComplete="off"
             />
@@ -234,7 +236,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
 
           <div>
             <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
-              {isPayable ? 'Uang masuk ke wallet' : 'Uang keluar dari wallet'} *
+              {isPayable ? t('Money into wallet') : t('Money from wallet')} *
             </label>
             <div className="relative">
               <WalletIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} />
@@ -245,7 +247,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
                 onChange={(event) => setWalletId(event.target.value)}
                 className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-10 focus:outline-none focus:border-[var(--accent)]"
               >
-                <option value="" disabled>Pilih wallet</option>
+                <option value="" disabled>{t('Select wallet')}</option>
                 {wallets.map((wallet) => (
                   <option key={wallet.id} value={wallet.id}>{wallet.name}</option>
                 ))}
@@ -257,7 +259,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
             id={`${formId}-start-date`}
             value={startDate}
             onChange={setStartDate}
-            label="Tanggal pinjam"
+            label={t('Loan date')}
             required
           />
 
@@ -269,7 +271,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
                 setDueDate(value);
                 if (value) setNoDueDate(false);
               }}
-              label="Jatuh tempo"
+              label={t('Due date')}
             />
             <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
               <input
@@ -281,13 +283,13 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
                 }}
                 className="h-4 w-4 accent-[var(--accent)]"
               />
-              Tidak ada jatuh tempo
+              {t('No due date')}
             </label>
           </div>
 
           <div>
             <label htmlFor={`${formId}-notes`} className="block text-sm font-medium mb-1">
-              Catatan
+              {t('Notes')}
             </label>
             <textarea
               id={`${formId}-notes`}
@@ -298,12 +300,12 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
           </div>
 
           <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">Dampak saldo</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t('Balance impact')}</p>
             <p className={cn('mt-2 font-mono text-sm font-bold', isPayable ? 'text-[var(--accent)]' : 'text-amber-500')}>
               {impactText}
             </p>
             <p className="mt-1 text-xs text-[var(--text-secondary)]">
-              {isPayable ? 'Utang aktif bertambah.' : 'Piutang aktif bertambah.'}
+              {isPayable ? t('Payable active increases') : t('Receivable active increases')}
             </p>
           </div>
 
@@ -313,7 +315,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
               disabled={isSubmitting}
               className="w-full rounded-xl bg-[var(--accent)] py-4 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
             >
-              {isEdit ? 'Simpan Perubahan' : isPayable ? 'Simpan Utang' : 'Simpan Piutang'}
+              {isEdit ? t('Save Changes') : isPayable ? t('Save Payable') : t('Save Receivable')}
             </button>
           </div>
         </form>

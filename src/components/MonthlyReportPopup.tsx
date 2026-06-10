@@ -44,7 +44,7 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
       setReportData(data);
     } catch (err) {
       console.error('Error loading report:', err);
-      setError('Gagal memuat data laporan');
+      setError(t('Error loading report'));
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +61,7 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
       onClose();
     } catch (err) {
       console.error('Error generating PDF:', err);
-      setError('Gagal generate PDF');
+      setError(t('Error generating PDF'));
     } finally {
       setIsGeneratingPDF(false);
     }

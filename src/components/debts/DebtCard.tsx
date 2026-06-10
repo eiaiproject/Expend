@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { differenceInCalendarDays, format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -16,21 +17,22 @@ interface DebtCardProps {
   onPayment: () => void;
 }
 
-function getDueLabel(debt: Debt): string {
-  if (!debt.dueDate) return 'Tanpa jatuh tempo';
+function getDueLabel(debt: Debt, t: (key: string, options?: Record<string, string | number>) => string): string {
+  if (!debt.dueDate) return t('No due date label');
 
   const today = parseDate(getTodayStr());
   const dueDate = parseDate(debt.dueDate);
   const diff = differenceInCalendarDays(dueDate, today);
 
-  if (diff < 0) return `Lewat jatuh tempo ${Math.abs(diff)} hari`;
-  if (diff === 0) return 'Jatuh tempo hari ini';
-  if (diff === 1) return 'Jatuh tempo besok';
-  if (diff <= 7) return `Jatuh tempo ${diff} hari lagi`;
+  if (diff < 0) return t('Overdue days', { days: Math.abs(diff) });
+  if (diff === 0) return t('Due today');
+  if (diff === 1) return t('Due tomorrow');
+  if (diff <= 7) return t('Due in days', { days: diff });
   return format(dueDate, 'dd MMM', { locale: localeId });
 }
 
 export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, onPayment }: DebtCardProps) {
+  const { t } = useTranslation();
   const status = calculateDebtStatus(debt, payments);
   const isPayable = debt.type === 'payable';
   const paidRatio = debt.principalAmount > 0
@@ -39,11 +41,11 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
   const closed = isDebtClosed(status);
 
   const statusLabel = {
-    open: 'Aktif',
-    partial: 'Sebagian dibayar',
-    paid: 'Lunas',
-    overdue: 'Lewat jatuh tempo',
-    written_off: 'Diikhlaskan',
+    open: t('Status Active'),
+    partial: t('Status Partial'),
+    paid: t('Status Paid'),
+    overdue: t('Status Overdue'),
+    written_off: t('Status Written Off'),
   }[status];
 
   return (
@@ -99,7 +101,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                 'mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider',
                 isPayable ? 'bg-amber-500/10 text-amber-600 dark:text-amber-300' : 'bg-[var(--accent)]/10 text-[var(--accent)]',
               )}>
-                {isPayable ? 'Utang' : 'Piutang'}
+                {isPayable ? t('Payable') : t('Receivable')}
               </span>
             </div>
           </div>
@@ -107,21 +109,21 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--text-secondary)]">
             <span>{statusLabel}</span>
             <span aria-hidden="true">•</span>
-            <span className={status === 'overdue' ? 'text-red-500' : undefined}>{getDueLabel(debt)}</span>
+            <span className={status === 'overdue' ? 'text-red-500' : undefined}>{getDueLabel(debt, t)}</span>
           </div>
 
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--text-secondary)]">
-            <span>{wallet?.name ?? 'Wallet tidak ditemukan'}</span>
+            <span>{wallet?.name ?? t('Wallet not found')}</span>
             {!hideAmount && (
               <>
                 <span aria-hidden="true">•</span>
-                <span>{paidRatio.toFixed(0)}% lunas</span>
+                <span>{t('Part paid percent', { percent: paidRatio.toFixed(0) })}</span>
               </>
             )}
             {hideAmount && debt.remainingAmount < debt.principalAmount && (
               <>
                 <span aria-hidden="true">•</span>
-                <span>Sebagian sudah dibayar</span>
+                <span>{t('Partially paid')}</span>
               </>
             )}
           </div>
@@ -147,7 +149,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                 className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--accent)] px-4 text-xs font-bold text-white shadow-lg shadow-[var(--accent)]/10"
               >
                 <Clock size={14} className="mr-1.5" />
-                {isPayable ? 'Bayar Utang' : 'Terima Pembayaran'}
+                {isPayable ? t('Pay debt') : t('Receive payment')}
               </button>
             </div>
           )}

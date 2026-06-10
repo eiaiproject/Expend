@@ -1,46 +1,18 @@
-# Expend: Privacy-First Offline Personal Finance Tracker PWA
+# Expend
 
-Expend is a local-first personal finance tracker built as a Progressive Web App for expense tracking, budget planning, multi-wallet management, debt and receivable tracking, analytics, and monthly reports.
+**Privacy-first offline personal finance tracker as a Progressive Web App.**
 
 [![CI](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml/badge.svg)](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml)
 
-## Project Metadata
-
-| Field | Value |
-|-------|-------|
-| Application | Expend |
-| Current version | `1.2.0` |
-| Release type | Minor |
-| Release focus | Debt and receivable management, documentation alignment, landing page consistency |
-| Runtime model | Client-side, local-first, offline-capable PWA |
-| Primary storage | IndexedDB via Dexie.js |
-| Primary keywords | personal finance tracker, offline expense tracker, budget tracker PWA, wallet manager, debt tracker, receivable tracker, local-first finance app |
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Core Features](#core-features)
-- [Debt and Receivable Tracking](#debt-and-receivable-tracking)
-- [Privacy and Security](#privacy-and-security)
-- [Technology Stack](#technology-stack)
-- [Architecture](#architecture)
-- [Data Model](#data-model)
-- [Getting Started](#getting-started)
-- [Available Scripts](#available-scripts)
-- [Quality Assurance](#quality-assurance)
-- [Import, Export, and Backup](#import-export-and-backup)
-- [PWA and Offline Behavior](#pwa-and-offline-behavior)
-- [Deployment](#deployment)
-- [Roadmap](#roadmap)
-- [License](#license)
+---
 
 ## Overview
 
-Expend is designed for people who want a private finance app without accounts, server-side storage, or mandatory cloud synchronization. It runs in the browser, can be installed as a PWA, and stores finance data locally on the user's device.
+Expend is a local-first personal finance application built for expense tracking, budget planning, multi-wallet management, debt and receivable tracking, analytics, and monthly reports. It runs entirely in the browser with no account required, no server-side storage, and no mandatory cloud synchronization. All data is stored locally on the user's device using IndexedDB.
 
-The application separates ordinary expenses, wallet transfers, balance adjustments, and debt or receivable cashflow so finance summaries remain easy to understand. Debt and receivable records affect wallet balances but are not treated as normal expense or income categories in the main spending analytics.
+The application separates ordinary expenses, wallet transfers, balance adjustments, and debt or receivable cashflows so finance summaries remain easy to understand. Debt and receivable records affect wallet balances but are not treated as normal expense or income categories in the main spending analytics.
 
-## Core Features
+## Key Features
 
 ### Expense Tracking
 
@@ -56,51 +28,22 @@ The application separates ordinary expenses, wallet transfers, balance adjustmen
 - Move money between wallets using paired transfer records.
 - Reconcile real-world balances through balance adjustments.
 - Detect stale wallet balances that have not been updated recently.
-- Keep `currentBalance` updated incrementally for fast reads.
+- Incremental `currentBalance` updates for fast reads.
 
 ### Categories and Budgets
 
-- Create and manage custom spending categories.
-- Assign category colors and monthly budgets.
+- Create and manage custom spending categories with colors.
+- Assign monthly budgets per category.
 - Monitor budget usage in real time.
-- Receive budget warnings when usage approaches or exceeds limits.
+- Receive warnings when usage approaches or exceeds limits.
 
-### Analytics and Reports
+### Debt and Receivable Tracking
 
-- Dashboard summary for total wallet balance and spending.
-- Daily comparison for today and yesterday.
-- Interactive charts for monthly comparison, spending trend, and category distribution.
-- Drill down from charts into related transactions.
-- Generate monthly financial reports with health score, category analysis, and PDF export.
-
-### Data Portability
-
-- Export transactions to CSV for spreadsheet analysis.
-- Export full JSON backups for local restore.
-- Import validated JSON backups.
-- Preserve local security settings during import.
-- Recompute wallet balances from imported transactions and debt cashflows instead of trusting stale backup balances.
-
-### Localization and Theming
-
-- Indonesian and English language support.
-- Browser language detection.
-- Light and dark themes.
-- Installable PWA experience on mobile and desktop browsers.
-
-## Debt and Receivable Tracking
-
-Version `1.2.0` adds a dedicated debt and receivable feature.
-
-### Supported Records
-
-- `Utang Saya`: money borrowed by the user and owed back to another person.
-- `Piutang Saya`: money lent by the user and expected to be received back.
-- Partial payments and full settlement.
-- Due dates, no-due-date records, overdue state, paid state, and written-off receivables.
-- Timeline of initial loan cashflow and repayment history.
-
-### Wallet Balance Rules
+- Record money borrowed (payable) and money lent (receivable).
+- Track partial payments and full settlements.
+- Support due dates, overdue states, and written-off receivables.
+- Timeline of initial loan cashflows and repayment history.
+- Dedicated cashflow records separate from expense analytics.
 
 | Action | Record Type | Wallet Effect | Remaining Balance Effect |
 |--------|-------------|---------------|--------------------------|
@@ -111,11 +54,31 @@ Version `1.2.0` adds a dedicated debt and receivable feature.
 | Write off receivable | Receivable | No wallet change | Remaining becomes zero |
 | Mark paid without cashflow | Debt or receivable | No wallet change | Remaining becomes zero |
 
-Debt and receivable cashflows are stored in dedicated IndexedDB tables and are intentionally separate from ordinary expense statistics.
+### Analytics and Reports
+
+- Dashboard summary for total wallet balance and spending.
+- Daily comparison for today and yesterday.
+- Interactive charts for monthly comparison, spending trend, and category distribution.
+- Drill down from charts into related transactions.
+- Monthly financial reports with health score, category analysis, and PDF export.
+
+### Data Portability
+
+- Export transactions to CSV for spreadsheet analysis.
+- Export full JSON backups for local restore.
+- Import validated JSON backups with automatic balance recomputation.
+- Preserve local security settings during import.
+
+### Localization and Theming
+
+- Indonesian and English language support with automatic detection.
+- Full bilingual coverage across all features including debt tracking.
+- Light and dark themes.
+- Installable PWA experience on mobile and desktop browsers.
 
 ## Privacy and Security
 
-Expend is privacy-first and local-first.
+Expend is privacy-first and local-first by design.
 
 - No account is required.
 - No remote finance API is required for core functionality.
@@ -125,83 +88,24 @@ Expend is privacy-first and local-first.
 - PIN screen lock uses PBKDF2 hashing through the Web Crypto API.
 - Sensitive security settings are excluded from JSON exports.
 
-The PIN lock protects the app UI from casual access. It does not encrypt IndexedDB at rest. Anyone with access to the operating system account, browser profile, DevTools, malware, or extracted browser storage may be able to inspect local finance data outside the app UI. Use an encrypted device, separate OS account, or encrypted backup location when stronger protection is required.
+**Note:** The PIN lock protects the app UI from casual access. It does not encrypt IndexedDB at rest. Use an encrypted device, separate OS account, or encrypted backup location when stronger protection is required.
 
 ## Technology Stack
 
 | Layer | Technology |
 |-------|------------|
 | Frontend | React 19, TypeScript, React Router |
-| Build tooling | Vite 6 |
+| Build | Vite 6 |
 | Styling | Tailwind CSS 4, CSS custom properties |
-| Local database | IndexedDB, Dexie.js, dexie-react-hooks |
+| Database | IndexedDB, Dexie.js |
 | Charts | Recharts |
 | Animation | Motion |
-| Internationalization | i18next, react-i18next |
+| i18n | i18next, react-i18next |
 | PWA | vite-plugin-pwa, Workbox |
-| PDF generation | jsPDF |
-| CSV handling | PapaParse |
+| PDF | jsPDF |
+| CSV | PapaParse |
 | Testing | Vitest, Playwright, Axe |
 | CI | GitHub Actions |
-
-## Architecture
-
-```text
-Browser
-  React Application
-  React Router Views
-  Vite PWA Service Worker
-  IndexedDB via Dexie
-    wallets
-    categories
-    transactions
-    debts
-    debtPayments
-    settings
-```
-
-Key architecture choices:
-
-- Client-side rendering with React and React Router.
-- Local persistence with Dexie.js and IndexedDB.
-- Atomic wallet balance updates through service-layer mutations.
-- PWA service worker for installability and offline app shell caching.
-- Separation between spending transactions and debt or receivable cashflows.
-
-## Data Model
-
-### Wallets
-
-Wallets store initial balances and incrementally maintained current balances.
-
-### Transactions
-
-Transactions cover:
-
-- `expense`
-- `balance_adjustment`
-- `transfer_in`
-- `transfer_out`
-
-These records power expense analytics, transaction history, charts, and category reporting.
-
-### Debts
-
-Debt records cover:
-
-- `payable`: the user owes someone else.
-- `receivable`: someone else owes the user.
-
-Debt status can be open, partial, overdue, paid, or written off. Status is calculated from remaining amount, due date, and payment history.
-
-### Debt Payments
-
-Debt payment records cover:
-
-- `initial`: loan money received or given.
-- `repayment`: debt payment or receivable collection.
-- `adjustment`: settlement without wallet cashflow.
-- `write_off`: receivable closure without wallet cashflow.
 
 ## Getting Started
 
@@ -275,7 +179,7 @@ npm run build
 
 ## Import, Export, and Backup
 
-JSON exports include:
+### JSON Exports Include
 
 - Wallets
 - Categories
@@ -286,28 +190,25 @@ JSON exports include:
 
 JSON exports do not include PIN hashes or lockout records.
 
-Import behavior:
+### Import Behavior
 
 - Import replaces wallets, categories, transactions, debts, debt payments, and non-sensitive settings.
 - Import preserves the local PIN/security setting configured on the current device.
 - Imported wallet `currentBalance` values are recomputed from transaction and debt cashflow history.
 - Legacy backups without debt tables remain valid.
-- Older `debt_payments` backup keys are accepted for backward compatibility.
+
+### CSV Exports
 
 CSV exports include transaction rows for spreadsheet analysis. CSV exports are not full backups.
 
 ## PWA and Offline Behavior
 
-Expend can be installed as a Progressive Web App.
-
 - First load requires a network connection.
-- After the service worker is ready, the app shell can load offline.
+- After the service worker is ready, the app shell loads offline.
 - Local data remains available through IndexedDB.
-- App routes such as `/`, `/wallets`, `/debts`, `/categories`, `/stats`, and `/settings` fall back to the cached app shell.
+- App routes (`/`, `/wallets`, `/debts`, `/categories`, `/stats`, `/settings`) fall back to the cached app shell.
 - Offline changes persist locally on the current device.
-- There is no automatic sync between devices.
-
-If the app appears stuck on an older version, export a JSON backup first, then reload while online or clear site data from browser settings.
+- No automatic sync between devices.
 
 ## Deployment
 
@@ -319,23 +220,23 @@ npm run qa:automated
 npm run build
 ```
 
-Deploy the generated `dist` directory to a static hosting provider such as Vercel, Netlify, Cloudflare Pages, or any static file server.
+Deploy the generated `dist` directory to Vercel, Netlify, Cloudflare Pages, or any static file server.
 
 ## Project Structure
 
 ```text
 Expend/
-  .github/workflows/    Continuous integration
+  .github/workflows/    CI configuration
   public/               PWA assets and offline page
   scripts/              QA and audit scripts
   src/
-    components/         Shared UI components and feature components
+    components/         UI components
     contexts/           Theme and security providers
     db/                 Dexie schema and migrations
     hooks/              React hooks
     i18n/               English and Indonesian translations
     services/           Business logic and data mutations
-    utils/              Formatting, dates, PWA helpers, and utilities
+    utils/              Formatting, dates, PWA helpers
     views/              Application pages and landing sections
   tests/e2e/            End-to-end tests
 ```

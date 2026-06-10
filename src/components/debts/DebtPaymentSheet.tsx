@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AlertTriangle, Wallet as WalletIcon } from 'lucide-react';
 import { db, type Debt } from '../../db/db';
@@ -25,11 +26,12 @@ function formatAmountInput(value: string): string {
   return raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Gagal mencatat pembayaran.';
+function getErrorMessage(error: unknown, t: (key: string) => string): string {
+  return error instanceof Error ? error.message : t('Save payment failed');
 }
 
 export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: DebtPaymentSheetProps) {
+  const { t } = useTranslation();
   const formId = useId();
   const wallets = useLiveQuery(() => db.wallets.toArray(), [], []) ?? [];
   const [amount, setAmount] = useState('');
@@ -57,7 +59,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
   const rawAmount = parseAmount(amount);
   const walletBalance = selectedWallet ? (selectedWallet.currentBalance ?? selectedWallet.initialBalance) : 0;
   const showBalanceWarning = isPayable && rawAmount > walletBalance;
-  const title = isPayable ? 'Bayar Utang' : 'Terima Pembayaran';
+  const title = isPayable ? t('Pay debt') : t('Receive payment');
 
   const setQuickAmount = (ratio: number) => {
     const nextAmount = Math.max(1, Math.round(debt.remainingAmount * ratio));
@@ -76,10 +78,10 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
         date,
         notes,
       });
-      toast.add('Pembayaran berhasil dicatat.');
+      toast.add(t('Payment recorded'));
       onClose();
     } catch (error) {
-      toast.add(getErrorMessage(error));
+      toast.add(getErrorMessage(error, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -97,13 +99,13 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
         <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-4">
           <p className="font-bold">{debt.personName}</p>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            {isPayable ? 'Sisa utang' : 'Sisa piutang'}: <span className="font-mono font-bold">{formatCurrency(debt.remainingAmount, hideAmount)}</span>
+            {isPayable ? t('Remaining payable') : t('Remaining receivable')}: <span className="font-mono font-bold">{formatCurrency(debt.remainingAmount, hideAmount)}</span>
           </p>
         </div>
 
         <div>
           <label htmlFor={`${formId}-amount`} className="block text-sm font-medium mb-1">
-            Nominal pembayaran *
+            {t('Payment amount')} *
           </label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-[var(--text-secondary)]">
@@ -125,7 +127,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
               { label: '25%', ratio: 0.25 },
               { label: '50%', ratio: 0.5 },
               { label: '75%', ratio: 0.75 },
-              { label: 'Lunasi', ratio: 1 },
+              { label: t('Pay in full'), ratio: 1 },
             ].map((option) => (
               <button
                 key={option.label}
@@ -152,7 +154,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
               onChange={(event) => setWalletId(event.target.value)}
               className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-10 focus:outline-none focus:border-[var(--accent)]"
             >
-              <option value="" disabled>Pilih wallet</option>
+              <option value="" disabled>{t('Select wallet')}</option>
               {wallets.map((wallet) => (
                 <option key={wallet.id} value={wallet.id}>{wallet.name}</option>
               ))}
@@ -161,7 +163,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
           {showBalanceWarning && (
             <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300">
               <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-              <span>Saldo wallet lebih kecil dari nominal pembayaran. Aplikasi tetap mengizinkan saldo negatif.</span>
+              <span>{t('Wallet balance low')}</span>
             </div>
           )}
         </div>
@@ -170,13 +172,13 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
           id={`${formId}-date`}
           value={date}
           onChange={setDate}
-          label="Tanggal"
+          label={t('Date')}
           required
         />
 
         <div>
           <label htmlFor={`${formId}-notes`} className="block text-sm font-medium mb-1">
-            Catatan
+            {t('Notes')}
           </label>
           <input
             id={`${formId}-notes`}
