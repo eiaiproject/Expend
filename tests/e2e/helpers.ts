@@ -20,7 +20,8 @@ export async function completeOnboarding(page: Page) {
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('button', { name: 'Start Tracking' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Expend' })).toBeVisible();
+  // Scope to main content area to avoid matching sidebar heading
+  await expect(page.locator('main').getByRole('heading', { name: 'Expend' })).toBeVisible();
   await expect(page.getByText('Recent Transactions')).toBeVisible();
 }
 
@@ -64,5 +65,5 @@ export async function setupPin(page: Page, pin = '1234') {
     await page.getByRole('button', { name: digit }).click();
   }
   await page.getByRole('button', { name: 'Confirm' }).click();
-  await expect(page.getByText('PIN Lock')).toBeVisible();
+  await expect(page.getByText('PIN Lock', { exact: true })).toBeVisible();
 }
