@@ -26,7 +26,18 @@ export async function completeOnboarding(page: Page) {
 
 export async function openAddTransactionSheet(page: Page) {
   await page.getByRole('button', { name: 'Add Transaction', exact: true }).filter({ visible: true }).first().click();
-  await expect(page.getByRole('dialog', { name: 'Add Transaction' })).toBeVisible();
+
+  const transactionDialog = page.getByRole('dialog', { name: 'Add Transaction' });
+  try {
+    await expect(transactionDialog).toBeVisible({ timeout: 1_000 });
+    return;
+  } catch {
+    // The global FAB now opens an action picker before the transaction form.
+  }
+
+  await expect(page.getByRole('dialog', { name: /Pilih jenis catatan|Tambah Catatan|Add Record|Add Transaction/ })).toBeVisible();
+  await page.getByRole('button', { name: /Tambah Pengeluaran|Add Expense/ }).click();
+  await expect(transactionDialog).toBeVisible();
 }
 
 export async function addExpense(page: Page, description = 'QA Lunch') {
@@ -55,5 +66,3 @@ export async function setupPin(page: Page, pin = '1234') {
   await page.getByRole('button', { name: 'Confirm' }).click();
   await expect(page.getByText('PIN Lock')).toBeVisible();
 }
-
-
