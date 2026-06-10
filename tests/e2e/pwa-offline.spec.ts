@@ -36,7 +36,11 @@ test('service worker serves app shell for offline app route navigation', async (
 
   for (const route of appRoutes) {
     await page.goto(route.path);
-    await expect(page.locator('#root').getByRole('heading', { name: route.heading })).toBeVisible();
+    // Scope to main for 'Expend' to avoid matching sidebar heading
+    const headingLocator = route.heading === 'Expend'
+      ? page.locator('main').getByRole('heading', { name: route.heading })
+      : page.locator('#root').getByRole('heading', { name: route.heading });
+    await expect(headingLocator).toBeVisible();
     await expect(page.getByRole('heading', { name: "You're Offline" })).toHaveCount(0);
   }
 
