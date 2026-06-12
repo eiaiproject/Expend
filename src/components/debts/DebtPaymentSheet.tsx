@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AlertTriangle, Wallet as WalletIcon } from 'lucide-react';
-import { db, type Debt } from '../../db/db';
+import { db, type Debt, type Wallet } from '../../db/db';
 import { recordDebtPayment } from '../../services/debtService';
 import { getTodayStr } from '../../utils/dateUtils';
 import { formatCurrency } from '../../utils/formatUtils';
@@ -16,6 +16,8 @@ interface DebtPaymentSheetProps {
   onClose: () => void;
   hideAmount?: boolean;
 }
+
+const EMPTY_WALLETS: Wallet[] = [];
 
 function parseAmount(value: string): number {
   return parseInt(value.replace(/[^0-9]/g, ''), 10) || 0;
@@ -33,7 +35,8 @@ function getErrorMessage(error: unknown, t: (key: string) => string): string {
 export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: DebtPaymentSheetProps) {
   const { t } = useTranslation();
   const formId = useId();
-  const wallets = useLiveQuery(() => db.wallets.toArray(), [], []) ?? [];
+  const queriedWallets = useLiveQuery(() => db.wallets.toArray(), [], undefined);
+  const wallets = queriedWallets ?? EMPTY_WALLETS;
   const [amount, setAmount] = useState('');
   const [walletId, setWalletId] = useState('');
   const [date, setDate] = useState(getTodayStr());

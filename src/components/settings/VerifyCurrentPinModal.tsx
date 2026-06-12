@@ -36,7 +36,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
   }, [isOpen]);
 
   const handleVerify = async () => {
-    if (pin.length < 4) return;
+    if (pin.length < pinLength) return;
     setLoading(true);
     const ok = await unlock(pin);
     setLoading(false);
@@ -92,22 +92,23 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
           autoFocus
         />
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3" role="group" aria-label={t('PIN entry')}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
             <button
               key={num}
-              onClick={() => { if (pin.length < 6) setPin(prev => prev + num); }}
+              onClick={() => { if (pin.length < pinLength) setPin(prev => prev + num); }}
               className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-lg font-medium hover:bg-[var(--card)] active:scale-95 transition-all"
             >{num}</button>
           ))}
           <button
             onClick={() => setPin(prev => prev.slice(0, -1))}
             className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--card)] active:scale-95 transition-all"
+            aria-label={t('Delete digit')}
           >
             <X size={20} />
           </button>
           <button
-            onClick={() => { if (pin.length < 6) setPin(prev => prev + '0'); }}
+            onClick={() => { if (pin.length < pinLength) setPin(prev => prev + '0'); }}
             className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-lg font-medium hover:bg-[var(--card)] active:scale-95 transition-all"
           >0</button>
         </div>

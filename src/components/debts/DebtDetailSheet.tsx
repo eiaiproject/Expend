@@ -56,9 +56,9 @@ export function DebtDetailSheet({
   onEdit,
   hideAmount = false,
 }: DebtDetailSheetProps) {
-  if (!debt) return null;
-
   const { t } = useTranslation();
+
+  if (!debt) return null;
 
   const isPayable = debt.type === 'payable';
   const status = calculateDebtStatus(debt, payments);

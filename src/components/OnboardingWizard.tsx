@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { toast } from './Toaster';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
-import { Wallet, Tag, Check, ArrowRight, ArrowLeft, Sparkles, Plus } from 'lucide-react';
+import { Wallet, Tag, Check, ArrowRight, ArrowLeft, Sparkles, Info } from 'lucide-react';
 import { db } from '../db/db';
 import { cn } from '../utils/cn';
 import { CURATED_PALETTE, DEFAULT_CATEGORIES, STORAGE_KEYS } from '../utils/constants';
@@ -238,6 +238,20 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   <span className="font-mono font-semibold">
                     Rp {walletBalance || '0'}
                   </span>
+                </div>
+              </div>
+
+              <div className="w-full rounded-xl border border-amber-200 bg-amber-50 p-4 text-left dark:border-amber-800 dark:bg-amber-900/20">
+                <div className="flex items-start gap-3">
+                  <Info size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                      {t('Local-first security note')}
+                    </p>
+                    <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                      {t('Security Disclosure')}
+                    </p>
+                  </div>
                 </div>
               </div>
             </motion.div>

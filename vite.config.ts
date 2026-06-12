@@ -12,7 +12,7 @@ export default defineConfig(({mode}) => {
   return {
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
-      __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
+      __BUILD_DATE__: JSON.stringify(process.env.BUILD_DATE || ''),
       __GIT_HASH__: JSON.stringify(process.env.GIT_HASH || 'dev'),
     },
     plugins: [
@@ -32,6 +32,29 @@ export default defineConfig(({mode}) => {
           display: 'standalone',
           orientation: 'portrait',
           categories: ['finance', 'productivity'],
+          shortcuts: [
+            {
+              name: 'Wallets',
+              short_name: 'Wallets',
+              description: 'Open wallet balances and management.',
+              url: '/wallets',
+              icons: [{ src: '/icons/app-icons/icon-192x192.png', sizes: '192x192', type: 'image/png' }]
+            },
+            {
+              name: 'Stats',
+              short_name: 'Stats',
+              description: 'Open spending analytics and reports.',
+              url: '/stats',
+              icons: [{ src: '/icons/app-icons/icon-192x192.png', sizes: '192x192', type: 'image/png' }]
+            },
+            {
+              name: 'Settings',
+              short_name: 'Settings',
+              description: 'Open data, backup, and security settings.',
+              url: '/settings',
+              icons: [{ src: '/icons/app-icons/icon-192x192.png', sizes: '192x192', type: 'image/png' }]
+            }
+          ],
           icons: [
             {
               src: '/icons/app-icons/icon-16x16.png',
@@ -77,52 +100,12 @@ export default defineConfig(({mode}) => {
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'navigation-cache',
-                networkTimeoutSeconds: 3,
                 precacheFallback: {
                   fallbackURL: '/index.html'
                 },
                 expiration: {
                   maxEntries: 20,
-                  maxAgeSeconds: 60 * 60 * 24
-                },
-                cacheableResponse: {
-                  statuses: [0, 200]
-                }
-              }
-            },
-            {
-              urlPattern: /^https:\/\/.*\.(?:png|jpg|jpeg|svg|gif|webp)/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'image-cache',
-                expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24 * 30
-                }
-              }
-            },
-            {
-              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-              handler: 'StaleWhileRevalidate',
-              options: {
-                cacheName: 'google-fonts-css',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 7
-                },
-                cacheableResponse: {
-                  statuses: [0, 200]
-                }
-              }
-            },
-            {
-              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'google-fonts-files',
-                expiration: {
-                  maxEntries: 30,
-                  maxAgeSeconds: 60 * 60 * 24 * 365
+                  maxAgeSeconds: 60 * 60
                 },
                 cacheableResponse: {
                   statuses: [0, 200]

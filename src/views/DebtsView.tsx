@@ -15,6 +15,10 @@ import { cn } from '../utils/cn';
 
 type DebtFilter = 'all' | 'payable' | 'receivable' | 'active' | 'overdue' | 'paid';
 
+const EMPTY_DEBTS: Debt[] = [];
+const EMPTY_PAYMENTS: DebtPayment[] = [];
+const EMPTY_WALLETS: Wallet[] = [];
+
 function buildWalletMap(wallets: readonly Wallet[]): Record<number, Wallet | undefined> {
   return wallets.reduce<Record<number, Wallet | undefined>>((acc, wallet) => {
     if (wallet.id != null) acc[wallet.id] = wallet;
@@ -115,9 +119,9 @@ export default function DebtsView() {
   }, []);
 
   const isLoading = debts === undefined || payments === undefined || wallets === undefined;
-  const safeDebts = debts ?? [];
-  const safePayments = payments ?? [];
-  const safeWallets = wallets ?? [];
+  const safeDebts = debts ?? EMPTY_DEBTS;
+  const safePayments = payments ?? EMPTY_PAYMENTS;
+  const safeWallets = wallets ?? EMPTY_WALLETS;
   const paymentsByDebt = useMemo(() => buildDebtPaymentsMap(safePayments), [safePayments]);
   const walletMap = useMemo(() => buildWalletMap(safeWallets), [safeWallets]);
   const summary = useMemo(() => summarizeDebts(safeDebts, paymentsByDebt), [safeDebts, paymentsByDebt]);

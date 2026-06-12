@@ -19,6 +19,10 @@ export function InfoPopup({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 
   if (!isOpen) return null;
 
+  const buildDateLabel = __BUILD_DATE__
+    ? new Date(__BUILD_DATE__).toLocaleDateString('id-ID')
+    : '-';
+
   return (
     <div ref={dialogRef} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-label={t('Project Information')}>
       <div className="bg-[var(--card)] text-[var(--text-primary)] w-full max-w-[300px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
@@ -33,7 +37,7 @@ export function InfoPopup({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
           <div className="flex flex-col items-center gap-1">
             <span className="text-sm font-medium opacity-60">{t('Version')}</span>
             <span className="text-lg font-bold">{__APP_VERSION__}</span>
-            <span className="text-[10px] opacity-40">Build: {new Date(__BUILD_DATE__).toLocaleDateString('id-ID')}</span>
+            <span className="text-[10px] opacity-40">Build: {buildDateLabel}</span>
           </div>
 
           <div className="h-px w-full bg-[var(--border)]" />

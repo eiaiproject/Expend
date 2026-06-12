@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSecurity } from '../contexts/SecurityContext';
 import { Lock, X } from 'lucide-react';
@@ -7,7 +7,7 @@ import { MAX_PIN_LENGTH } from '../utils/constants';
 
 export function LockScreen() {
   const { t } = useTranslation();
-  const { securityMethod, unlock, pinLength } = useSecurity();
+  const { unlock, pinLength } = useSecurity();
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -22,15 +22,7 @@ export function LockScreen() {
     inputRef.current?.focus();
   }, []);
 
-  // Auto-submit PIN when length matches stored pinLength
-  useEffect(() => {
-    if (pin.length >= pinLength) {
-      const timer = setTimeout(() => handlePinSubmit(), 100);
-      return () => clearTimeout(timer);
-    }
-  }, [pin, pinLength]);
-
-  const handlePinSubmit = async () => {
+  const handlePinSubmit = useCallback(async () => {
     const currentPin = pinRef.current;
     if (currentPin.length < pinLength) return;
 
@@ -43,7 +35,15 @@ export function LockScreen() {
       setPin('');
       setTimeout(() => setError(false), 1000);
     }
-  };
+  }, [pinLength, unlock]);
+
+  // Auto-submit PIN when length matches stored pinLength
+  useEffect(() => {
+    if (pin.length >= pinLength) {
+      const timer = setTimeout(() => handlePinSubmit(), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [handlePinSubmit, pin, pinLength]);
 
   const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, MAX_PIN_LENGTH);
@@ -58,7 +58,6 @@ export function LockScreen() {
       className="fixed inset-0 bg-[var(--bg)] z-50 flex flex-col items-center justify-center p-6"
     >
       <div className="w-full max-w-xs space-y-8">
-...
         <div className={`w-20 h-20 mx-auto rounded-full bg-[var(--accent)] flex items-center justify-center ${error ? 'animate-shake' : ''}`}>
           <Lock size={32} className="text-white" />
         </div>

@@ -11,6 +11,7 @@ import { findPairedTransfer, assignTransferGroupId } from '../utils/transferUtil
 import { VALID_TX_TYPES, MAX_IMPORT_FILE_SIZE } from '../utils/constants';
 import { downloadBlob } from '../utils/downloadUtils';
 import { recomputeWalletCurrentBalances } from '../utils/balanceUtils';
+import { getTodayStr } from '../utils/dateUtils';
 
 /**
  * Maximum import file size (10 MB default).
@@ -456,6 +457,8 @@ function recomputeWalletBalancesWithDebts(
 
 export function sanitizeImportData(json: unknown): ExportData {
   const data = json as unknown as Record<string, unknown>;
+  const fallbackDate = getTodayStr();
+
   const wallets = (Array.isArray(data.wallets) ? data.wallets : [])
     .filter(isRecord)
     .map((wallet): Wallet => ({
@@ -488,7 +491,7 @@ export function sanitizeImportData(json: unknown): ExportData {
         id: readOptionalId(tx.id),
         walletId: isSafePositiveInteger(tx.walletId) ? tx.walletId : 1,
         categoryId: isSafePositiveInteger(tx.categoryId) ? tx.categoryId : null,
-        date: isValidDateOnly(tx.date) ? tx.date : new Date().toISOString().split('T')[0]!,
+        date: isValidDateOnly(tx.date) ? tx.date : fallbackDate,
         description: readString(tx.description, 'Imported transaction', MAX_LENGTH.description),
         type: (VALID_TX_TYPES as readonly string[]).includes(String(tx.type))
           ? tx.type as Transaction['type']
@@ -525,7 +528,7 @@ export function sanitizeImportData(json: unknown): ExportData {
         principalAmount: isFiniteMoney(debt.principalAmount) && debt.principalAmount > 0 ? debt.principalAmount : 1,
         remainingAmount: isFiniteMoney(debt.remainingAmount) ? Math.max(0, debt.remainingAmount) : 0,
         walletId: isSafePositiveInteger(debt.walletId) ? debt.walletId : 1,
-        startDate: isValidDateOnly(debt.startDate) ? debt.startDate : new Date().toISOString().split('T')[0]!,
+        startDate: isValidDateOnly(debt.startDate) ? debt.startDate : fallbackDate,
         dueDate,
         status: ['open', 'partial', 'paid', 'overdue', 'written_off'].includes(String(debt.status))
           ? debt.status as Debt['status']
@@ -552,7 +555,7 @@ export function sanitizeImportData(json: unknown): ExportData {
         id: readRequiredId(payment.id, 'imported_debt_payment', index),
         debtId,
         amount: isFiniteMoney(payment.amount) ? Math.max(0, payment.amount) : 0,
-        date: isValidDateOnly(payment.date) ? payment.date : new Date().toISOString().split('T')[0]!,
+        date: isValidDateOnly(payment.date) ? payment.date : fallbackDate,
         walletId: isSafePositiveInteger(payment.walletId) ? payment.walletId : 1,
         type: ['initial', 'repayment', 'adjustment', 'write_off'].includes(String(payment.type))
           ? payment.type as DebtPayment['type']

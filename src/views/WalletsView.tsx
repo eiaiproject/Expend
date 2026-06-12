@@ -257,7 +257,7 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale }) => 
         await db.transactions.add({
           walletId: wallet.id!,
           categoryId: null,
-          date: new Date().toISOString().split('T')[0] ?? '',
+          date: getTodayStr(),
           description: t('Balance Update Description'),
           type: 'balance_adjustment',
           amount: difference

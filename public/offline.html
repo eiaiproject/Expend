@@ -89,7 +89,8 @@
       color: #94A3B8;
       line-height: 1.5;
     }
-    button {
+    .retry-link {
+      display: inline-block;
       margin-top: 24px;
       padding: 12px 24px;
       border-radius: 12px;
@@ -98,13 +99,14 @@
       color: #fff;
       font-size: 15px;
       font-weight: 600;
+      text-decoration: none;
       cursor: pointer;
       transition: background-color 0.2s;
     }
-    button:hover {
+    .retry-link:hover {
       background-color: #115E59;
     }
-    button:active {
+    .retry-link:active {
       transform: scale(0.98);
     }
   </style>
@@ -126,6 +128,6 @@
       Changes made offline are not synced to a cloud service automatically.
     </div>
   </div>
-  <button onclick="window.location.reload()">Try Again</button>
+  <a class="retry-link" href="/">Try Again</a>
 </body>
 </html>

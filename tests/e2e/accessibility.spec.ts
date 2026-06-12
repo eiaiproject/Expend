@@ -2,7 +2,17 @@ import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { addExpense, completeOnboarding, openAddTransactionSheet } from './helpers';
 
+async function waitForAppShellAnimation(page: Page) {
+  await page.waitForFunction(() => {
+    const main = document.querySelector('main');
+    const shell = main?.closest('.min-h-screen');
+    return !shell || getComputedStyle(shell).opacity === '1';
+  });
+}
+
 async function expectNoSeriousA11yViolations(page: Page, include = 'body') {
+  await waitForAppShellAnimation(page);
+
   const results = await new AxeBuilder({ page })
     .include(include)
     .analyze();

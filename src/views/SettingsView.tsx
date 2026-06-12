@@ -12,6 +12,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { generateExport, importData, validateImportData, MAX_IMPORT_FILE_SIZE, downloadBlob, sanitizeCsvRows } from '../services/importExportService';
 import { STORAGE_KEYS } from '../utils/constants';
 import { useInstallPrompt } from '../utils/pwaUtils';
+import { getTodayStr } from '../utils/dateUtils';
 
 // Settings sub-components
 import { SettingsAccordion } from '../components/settings/SettingsAccordion';
@@ -48,13 +49,13 @@ export default function SettingsView() {
     const txs = await db.transactions.toArray();
     const csv = Papa.unparse(sanitizeCsvRows(txs));
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    downloadBlob(blob, `expend_export_${new Date().toISOString().split('T')[0]}.csv`);
+    downloadBlob(blob, `expend_export_${getTodayStr()}.csv`);
   };
 
   const handleExportJSON = async () => {
     const data = await generateExport();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    downloadBlob(blob, `expend_backup_${new Date().toISOString().split('T')[0]}.json`);
+    downloadBlob(blob, `expend_backup_${getTodayStr()}.json`);
   };
 
   const handleImportJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -207,6 +208,19 @@ export default function SettingsView() {
         {/* Data */}
         <SettingsAccordion title={t('Data')}>
           <div className="flex flex-col">
+            <div className="mx-4 mt-4 mb-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3">
+              <div className="flex items-start gap-2">
+                <Info size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-[var(--text-primary)]">
+                    {t('Local Data Retention')}
+                  </p>
+                  <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
+                    {t('Local Data Retention Desc')}
+                  </p>
+                </div>
+              </div>
+            </div>
              <button onClick={handleExportCSV} className="w-full flex items-center gap-3 p-4 border-b border-[var(--border)] text-left hover:bg-[var(--card)] transition-colors">
               <Download size={20} /> {t('Export CSV')}
             </button>
@@ -251,13 +265,28 @@ export default function SettingsView() {
             )}
 
             {isSecurityLoaded && pinAvailable && !securityEnabled && (
-              <button 
-                onClick={() => setShowPinSetup(true)}
-                className="w-full flex items-center gap-3 p-4 text-left hover:bg-[var(--card)] transition-colors"
-              >
-                <Lock size={20} />
-                <span>{t('Set up PIN')}</span>
-              </button>
+              <>
+                <div className="mx-4 mt-4 mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-start gap-2">
+                    <Info size={16} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                        {t('Security Disclosure')}
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
+                        {t('Security Disclosure Tip')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPinSetup(true)}
+                  className="w-full flex items-center gap-3 p-4 text-left hover:bg-[var(--card)] transition-colors"
+                >
+                  <Lock size={20} />
+                  <span>{t('Set up PIN')}</span>
+                </button>
+              </>
             )}
 
             {isSecurityLoaded && securityEnabled && (

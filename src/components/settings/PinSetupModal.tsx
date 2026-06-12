@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { MAX_PIN_LENGTH } from '../../utils/constants';
-import { Lock, X, Eye, EyeOff } from 'lucide-react';
+import { MAX_PIN_LENGTH, MIN_PIN_LENGTH } from '../../utils/constants';
+import { Lock, X, Eye, EyeOff, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface PinSetupModalProps {
@@ -38,7 +38,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
   }, [isOpen, step]);
 
   const handleNextStep = () => {
-    if (pin.length >= 4) {
+    if (pin.length >= MIN_PIN_LENGTH) {
       setStep(2);
     }
   };
@@ -91,6 +91,17 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
           </p>
         </div>
 
+        {step === 1 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-left dark:border-amber-800 dark:bg-amber-900/20">
+            <div className="flex items-start gap-2">
+              <Info size={16} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                {t('Security Disclosure')}
+              </p>
+            </div>
+          </div>
+        )}
+
         {renderPinDots(step === 1 ? pin : confirmPin)}
 
         {error && <p className="text-center text-sm text-red-500">{error}</p>}
@@ -133,6 +144,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
           <button
             onClick={() => setShowPin(!showPin)}
             className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--card)] active:scale-95 transition-all"
+            aria-label={showPin ? t('Hide PIN') : t('Show PIN')}
           >
             {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -142,6 +154,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
               setter((prev) => prev.slice(0, -1));
             }}
             className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--card)] active:scale-95 transition-all"
+            aria-label={t('Delete digit')}
           >
             <X size={20} />
           </button>
@@ -174,7 +187,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
                 handleConfirm();
               }
             }}
-            disabled={step === 1 ? pin.length < 4 : confirmPin.length < 4}
+            disabled={step === 1 ? pin.length < MIN_PIN_LENGTH : confirmPin.length < MIN_PIN_LENGTH}
             className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-all"
           >
             {step === 1 ? t('Next') : t('Confirm')}

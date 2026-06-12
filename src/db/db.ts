@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { CURATED_PALETTE } from '../utils/constants';
 import { generateTransferGroupId } from '../utils/cryptoUtils';
+import { getTodayStr } from '../utils/dateUtils';
 
 export interface Wallet {
   id?: number;
@@ -102,7 +103,7 @@ function getDateOnly(value: unknown, fallback: string | null = null): string | n
 }
 
 function getTodayDateOnly(): string {
-  return new Date().toISOString().split('T')[0] ?? '1970-01-01';
+  return getTodayStr();
 }
 
 function getTimestamp(value: unknown, fallback: string): string {

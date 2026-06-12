@@ -27,6 +27,7 @@ describe('UpdatePrompt', () => {
     render(<UpdatePrompt />);
 
     expect(screen.getByText('New version available!')).toBeInTheDocument();
+    expect(screen.getByText('Update reload warning')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Update' })).toBeInTheDocument();
   });
 

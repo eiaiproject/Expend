@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowDownLeft, ArrowUpRight, Wallet as WalletIcon } from 'lucide-react';
-import { db, type Debt, type DebtType } from '../../db/db';
+import { db, type Debt, type DebtType, type Wallet } from '../../db/db';
 import { createDebt, updateDebt } from '../../services/debtService';
 import { getTodayStr } from '../../utils/dateUtils';
 import { formatCurrency } from '../../utils/formatUtils';
@@ -17,6 +17,8 @@ interface DebtFormSheetProps {
   hideAmount?: boolean;
   debtToEdit?: Debt | null;
 }
+
+const EMPTY_WALLETS: Wallet[] = [];
 
 function parseAmount(value: string): number {
   return parseInt(value.replace(/[^0-9]/g, ''), 10) || 0;
@@ -34,7 +36,8 @@ function getErrorMessage(error: unknown): string {
 export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit = null }: DebtFormSheetProps) {
   const { t } = useTranslation();
   const formId = useId();
-  const wallets = useLiveQuery(() => db.wallets.toArray(), [], []) ?? [];
+  const queriedWallets = useLiveQuery(() => db.wallets.toArray(), [], undefined);
+  const wallets = queriedWallets ?? EMPTY_WALLETS;
   const isEdit = !!debtToEdit;
 
   const [step, setStep] = useState<'type' | 'details'>('type');

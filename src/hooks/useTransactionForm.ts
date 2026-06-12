@@ -3,6 +3,11 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Transaction, type Wallet, type Category } from '../db/db';
 import { saveTransaction, saveTransfer } from '../services/transactionSaveService';
 import { resolveCategory } from '../services/categoryService';
+import { getTodayStr } from '../utils/dateUtils';
+
+const EMPTY_WALLETS: Wallet[] = [];
+const EMPTY_CATEGORIES: Category[] = [];
+const EMPTY_TRANSACTIONS: Transaction[] = [];
 
 export type TransactionType = 'expense' | 'transfer';
 
@@ -51,6 +56,19 @@ interface UseTransactionFormOptions {
   onConfirmCreateCategory: (name: string) => Promise<boolean>;
 }
 
+function getTransactionInitKey(tx: Transaction): string {
+  return [
+    tx.id ?? 'draft',
+    tx.type,
+    tx.walletId,
+    tx.categoryId ?? 'none',
+    tx.date,
+    tx.amount,
+    tx.description,
+    tx.notes ?? '',
+  ].join('|');
+}
+
 export function useTransactionForm({
   isOpen,
   txToEdit,
@@ -58,12 +76,15 @@ export function useTransactionForm({
   onClose,
   onConfirmCreateCategory,
 }: UseTransactionFormOptions): UseTransactionFormResult {
-  const wallets = useLiveQuery(() => db.wallets.toArray()) || [];
-  const categories = useLiveQuery(() => db.categories.toArray()) || [];
+  const queriedWallets = useLiveQuery(() => db.wallets.toArray());
+  const queriedCategories = useLiveQuery(() => db.categories.toArray());
+  const queriedTransactions = useLiveQuery(
+    () => db.transactions.orderBy('date').reverse().limit(100).toArray()
+  );
+  const wallets = queriedWallets ?? EMPTY_WALLETS;
+  const categories = queriedCategories ?? EMPTY_CATEGORIES;
   const transactions =
-    useLiveQuery(
-      () => db.transactions.orderBy('date').reverse().limit(100).toArray()
-    ) || [];
+    queriedTransactions ?? EMPTY_TRANSACTIONS;
 
   const recentDescriptions = useMemo(() => {
     return Array.from(
@@ -79,7 +100,7 @@ export function useTransactionForm({
   const [type, setType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0] ?? '');
+  const [date, setDate] = useState(() => getTodayStr());
   const [walletId, setWalletId] = useState('');
   const [toWalletId, setToWalletId] = useState('');
   const [categoryName, setCategoryName] = useState('');
@@ -88,7 +109,7 @@ export function useTransactionForm({
   const [showDescriptionSuggestions, setShowDescriptionSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const initializedRef = useRef(false);
+  const initializedKeyRef = useRef<string | null>(null);
 
   // Filter description suggestions
   const filteredDescriptionSuggestions = useMemo(() => {
@@ -102,11 +123,14 @@ export function useTransactionForm({
   // Initialize form when opened or txToEdit changes
   useEffect(() => {
     if (!isOpen) {
-      initializedRef.current = false;
+      initializedKeyRef.current = null;
       return;
     }
-    if (!initializedRef.current || txToEdit) {
-      initializedRef.current = true;
+
+    const initKey = txToEdit ? `edit:${getTransactionInitKey(txToEdit)}` : `new:${initialType}`;
+    if (initializedKeyRef.current !== initKey) {
+      initializedKeyRef.current = initKey;
+
       if (txToEdit) {
         setAmount(txToEdit.amount.toString());
         setDescription(txToEdit.description);
@@ -131,7 +155,7 @@ export function useTransactionForm({
       } else {
         setAmount('');
         setDescription('');
-        setDate(new Date().toISOString().split('T')[0] ?? '');
+        setDate(getTodayStr());
         setWalletId(
           wallets.length > 0 ? wallets[0]!.id!.toString() : ''
         );

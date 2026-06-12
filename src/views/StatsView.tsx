@@ -147,7 +147,7 @@ export default function StatsView() {
         };
       })
       .sort((a, b) => b.value - a.value);
-  }, [filteredTransactions, categoryMap]);
+  }, [filteredTransactions, categoryMap, t]);
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
