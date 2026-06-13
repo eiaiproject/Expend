@@ -21,7 +21,7 @@ export function SidebarNav({ onAddClick }: { onAddClick: () => void }) {
         <nav className="flex flex-col gap-2">
           <SidebarItem to="/" end icon={<Home size={20} />} label={t('Home')} />
           <SidebarItem to="/wallets" icon={<Wallet size={20} />} label={t('Wallets')} />
-          <SidebarItem to="/debts" icon={<Handshake size={20} />} label="Utang Piutang" />
+          <SidebarItem to="/debts" icon={<Handshake size={20} />} label={t('Debts & Receivables')} />
           <SidebarItem to="/categories" icon={<Tag size={20} />} label={t('Categories')} />
           <SidebarItem to="/stats" icon={<PieChart size={20} />} label={t('Stats')} />
           <SidebarItem to="/settings" icon={<Settings size={20} />} label={t('Settings')} />

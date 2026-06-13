@@ -44,6 +44,7 @@ export default function HomeView() {
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [expensePeriod, setExpensePeriod] = useState<'month' | 'all'>('month');
   const [visibleTransactionCount, setVisibleTransactionCount] = useState(TRANSACTION_RENDER_PAGE_SIZE);
+  const [openActionTransactionId, setOpenActionTransactionId] = useState<number | null>(null);
 
   // Custom hooks
   const { sortConfig, toggleSortOrder } = useTransactionSort();
@@ -118,6 +119,23 @@ export default function HomeView() {
     };
     initDefaults();
   }, [t]);
+
+  // Close swipe action on mode/sheet changes
+  useEffect(() => {
+    setOpenActionTransactionId(null);
+  }, [isSelectionMode]);
+
+  useEffect(() => {
+    setOpenActionTransactionId(null);
+  }, [isFilterOpen]);
+
+  useEffect(() => {
+    setOpenActionTransactionId(null);
+  }, [isFormOpen]);
+
+  useEffect(() => {
+    setOpenActionTransactionId(null);
+  }, [selectedTx]);
 
   // Keyboard shortcuts for the home view
   useEffect(() => {
@@ -218,10 +236,14 @@ export default function HomeView() {
 
   const showDebtSummaryCard = debtSummary.activeCount > 0 || debtSummary.attentionCount > 0;
 
-const handleEdit = useCallback((tx: Transaction) => {
+  // Close open swipe action when interacting with other UI
+  const closeOpenAction = useCallback(() => setOpenActionTransactionId(null), []);
+
+  const handleEdit = useCallback((tx: Transaction) => {
+    closeOpenAction();
     setEditTx(tx);
     setIsFormOpen(true);
-  }, []);
+  }, [closeOpenAction]);
 
   const handleRepeat = useCallback((tx: Transaction) => {
     const { id: _id, transferGroupId: _tg, ...rest } = tx;
@@ -230,12 +252,13 @@ const handleEdit = useCallback((tx: Transaction) => {
   }, []);
 
   const handleDelete = useCallback(async (tx: Transaction) => {
+    closeOpenAction();
     if (!tx.id) return;
     const backups = await deleteTransactionsWithPairs([tx.id]);
     toast.add(t('Transaction Deleted'), async () => {
       await restoreTransactions(backups);
     });
-  }, [t]);
+  }, [t, closeOpenAction]);
 
   return (
     <div className="p-4 space-y-6">
@@ -342,6 +365,16 @@ const handleEdit = useCallback((tx: Transaction) => {
           onChange={(e) => filterActions.setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-12 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)] transition-all placeholder:text-[var(--text-secondary)]"
         />
+        {filters.searchTerm && (
+          <button
+            type="button"
+            onClick={() => filterActions.setSearchTerm('')}
+            className="absolute right-10 top-1/2 -translate-y-1/2 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            aria-label={t('Clear search')}
+          >
+            <XCircle size={16} />
+          </button>
+        )}
         <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:inline-flex items-center justify-center w-6 h-6 rounded border border-[var(--border)] bg-[var(--bg)] text-[10px] font-mono font-bold text-[var(--text-secondary)]">
           /
         </kbd>
@@ -526,12 +559,13 @@ const handleEdit = useCallback((tx: Transaction) => {
                           hideAmount={hideAmount}
                           isSelectionMode={isSelectionMode}
                           isSelected={isSelected(tx.id!)}
+                          isActionOpen={openActionTransactionId === tx.id}
                           onSelect={toggleSelection}
                           onClick={() => setSelectedTx(tx)}
-                          onDragEnd={(dir) => {
-                            if (dir === 'left') handleDelete(tx);
-                            else handleEdit(tx);
-                          }}
+                          onEdit={() => handleEdit(tx)}
+                          onDelete={() => handleDelete(tx)}
+                          onActionOpen={() => setOpenActionTransactionId(tx.id!)}
+                          onActionClose={() => setOpenActionTransactionId(null)}
                         />
                       </motion.div>
                     ))}

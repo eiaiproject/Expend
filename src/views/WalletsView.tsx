@@ -297,10 +297,10 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale }) => 
                     className="flex-1 min-w-0 bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-sm font-bold focus:outline-none focus:border-[var(--accent)]"
                     autoFocus
                   />
-                  <button onClick={handleSaveName} className="p-1 text-green-500 hover:bg-green-500/10 rounded">
+                  <button onClick={handleSaveName} className="p-1 text-green-500 hover:bg-green-500/10 rounded" aria-label={t('Save')}>
                     <Check size={18} />
                   </button>
-                  <button onClick={() => { setEditName(wallet.name); setIsEditingName(false); }} className="p-1 text-red-500 hover:bg-red-500/10 rounded">
+                  <button onClick={() => { setEditName(wallet.name); setIsEditingName(false); }} className="p-1 text-red-500 hover:bg-red-500/10 rounded" aria-label={t('Cancel')}>
                     <X size={18} />
                   </button>
                 </div>

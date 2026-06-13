@@ -319,18 +319,37 @@ export default function StatsView() {
           {isLoading ? (
             [1, 2, 3].map(i => <Skeleton key={i} className="w-full h-5 rounded" />)
           ) : (
-            data.map((item, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-sm font-medium">{item.name === t('Other') ? t('Other') : item.name}</span>
-                </div>
-                <div className="font-mono text-sm flex items-baseline">
-                  <span className="w-8 text-right mr-1 text-[11px] text-[var(--text-secondary)]">Rp</span>
-                  <span>{item.value.toLocaleString('id-ID')}</span>
-                </div>
+            <>
+              <p className="sr-only">{t('Top categories')}: {categorySummary}</p>
+              <div role="list" aria-label={t('Top categories')}>
+                {data.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between" role="listitem">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cat = categoryMap[item.id];
+                        if (cat) {
+                          setDrillDownCategory({ id: item.id, name: item.name, color: item.color || cat.color });
+                        }
+                      }}
+                      className="flex items-center gap-2 hover:underline text-left"
+                    >
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} aria-hidden="true" />
+                      <span className="text-sm font-medium">{item.name === t('Other') ? t('Other') : item.name}</span>
+                    </button>
+                    <div className="font-mono text-sm flex items-baseline">
+                      <span className="w-8 text-right mr-1 text-[11px] text-[var(--text-secondary)]">Rp</span>
+                      <span>{item.value.toLocaleString('id-ID')}</span>
+                      {total > 0 && (
+                        <span className="text-[10px] text-[var(--text-secondary)] ml-1">
+                          ({Math.round((item.value / total) * 100)}%)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))
+            </>
           )}
         </div>
       </div>

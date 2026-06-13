@@ -63,25 +63,23 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall, onScrollToFe
           className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 mb-12 sm:mb-16"
         >
           <button
-            onClick={onScrollToInstall}
+            onClick={onEnter}
             className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-[var(--accent)] text-white rounded-full font-bold text-base sm:text-lg hover:bg-[var(--accent)]/90 transition-all active:scale-95 shadow-lg shadow-[var(--accent)]/30 cursor-pointer"
           >
-            {t('landing.installPwa')}
+            {t('landing.startTracking')}
           </button>
           <button
             onClick={onTryWeb}
             className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-white/10 border border-white/20 text-white rounded-full font-semibold text-base sm:text-lg hover:bg-white/15 transition-all active:scale-95 cursor-pointer"
           >
-            {t('landing.tryWeb')}
+            {t('landing.tryWithoutSetup')}
           </button>
-          {onEnter && (
-            <button
-              onClick={onEnter}
-              className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-transparent border border-white/10 text-white/70 rounded-full font-medium text-sm sm:text-base hover:text-white hover:border-white/30 transition-all cursor-pointer"
-            >
-              {t('landing.enterApp')}
-            </button>
-          )}
+          <button
+            onClick={onScrollToInstall}
+            className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-transparent border border-white/10 text-white/70 rounded-full font-medium text-sm sm:text-base hover:text-white hover:border-white/30 transition-all cursor-pointer"
+          >
+            {t('Install App')}
+          </button>
         </motion.div>
 
         {/* GitHub Link */}

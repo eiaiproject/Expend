@@ -419,7 +419,14 @@ export default function CategoriesView() {
                             <span className="text-[var(--text-secondary)]">{t('Budget')}</span>
                             <span className="font-mono text-[var(--text-secondary)]">Rp {formatAmountLocal(cat.budget!)}</span>
                           </div>
-                          <div className="w-full h-2 bg-[var(--bg)] rounded-full overflow-hidden">
+                          <div 
+                            className="w-full h-2 bg-[var(--bg)] rounded-full overflow-hidden"
+                            role="progressbar"
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={Math.round(progress)}
+                            aria-label={t('Budget progress for {{name}}: {{percent}}%', { name: cat.name, percent: Math.round(progress) })}
+                          >
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${progress}%` }}
@@ -435,7 +442,7 @@ export default function CategoriesView() {
                               'text-[10px] font-medium',
                               isOverBudget ? 'text-red-500' : isNearLimit ? 'text-yellow-500' : 'text-[var(--text-secondary)]'
                             )}>
-                              {progress.toFixed(0)}%
+                              {isOverBudget ? t('Over Budget') : isNearLimit ? t('Near Limit') : t('On Track')} · {progress.toFixed(0)}%
                             </span>
                             <span className="text-[10px] font-mono text-[var(--text-secondary)]">
                               Rp {formatAmountLocal(Math.max(cat.budget! - cat.spendingThisMonth, 0))} {t('remaining')}

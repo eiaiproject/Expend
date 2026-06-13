@@ -53,7 +53,7 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
           >
             <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
               <h2 className="text-lg font-bold truncate">{title}</h2>
-              <button onClick={onClose} className="p-2 rounded-full bg-[var(--bg)] shrink-0" aria-label="Close">
+              <button onClick={onClose} className="p-2 rounded-full bg-[var(--bg)] shrink-0" aria-label={t('Close')}>
                 <X size={18} />
               </button>
             </div>

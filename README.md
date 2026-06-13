@@ -1,124 +1,140 @@
-# Expend - Privacy-First Offline Personal Finance Tracker PWA
+# Expend -- Local-First Expense and Debt Tracker PWA
 
-Expend is a local-first personal finance tracker and expense tracker Progressive Web App for budgeting, wallet management, debt and receivable tracking, analytics, and monthly financial reports. It is built for people who want private, offline-capable money management without an account, remote finance database, ads, or mandatory cloud sync.
+Expend is a privacy-focused Progressive Web App for tracking daily expenses, managing multiple wallets, recording debts and receivables, and monitoring budgets. All data stays on your device in IndexedDB. No account, no cloud sync, no ads.
 
 [![CI](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml/badge.svg)](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-1.5.0-teal)](https://github.com/eiaiproject/Expend)
+[![Version](https://img.shields.io/badge/version-1.6.0-teal)](https://github.com/eiaiproject/Expend)
 [![License](https://img.shields.io/badge/license-proprietary-red)](#license)
+
+---
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Feature Highlights](#feature-highlights)
-- [Core Workflows](#core-workflows)
-- [Privacy and Security Model](#privacy-and-security-model)
-- [PWA and Offline Behavior](#pwa-and-offline-behavior)
+- [What Expend Is](#what-expend-is)
+- [Key Features](#key-features)
+- [How It Works](#how-it-works)
+- [Privacy and Security](#privacy-and-security)
+- [PWA and Offline Support](#pwa-and-offline-support)
 - [Technology Stack](#technology-stack)
 - [Getting Started](#getting-started)
 - [Available Scripts](#available-scripts)
-- [Quality Assurance](#quality-assurance)
-- [Import, Export, and Backup](#import-export-and-backup)
-- [Database Migrations](#database-migrations)
+- [Testing and QA](#testing-and-qa)
+- [Data Import and Export](#data-import-and-export)
 - [Deployment](#deployment)
 - [Project Structure](#project-structure)
-- [Release Versioning](#release-versioning)
+- [Versioning](#versioning)
 - [Roadmap](#roadmap)
 - [License](#license)
 
-## Overview
+---
 
-Expend helps users manage day-to-day personal finance directly in the browser. It combines expense tracking, budget tracking, multi-wallet balance management, debt tracking, receivable tracking, chart-based analytics, and PDF-ready monthly reports in one installable PWA.
+## What Expend Is
 
-The app stores financial data locally in IndexedDB on the current browser profile. Core workflows do not require a backend account or remote API. Users can manually export JSON backups, import backups, or export CSV transaction data for spreadsheet analysis.
+Expend is built for people who want to understand where their money goes without handing personal data to a remote server. It covers three core areas:
 
-## Feature Highlights
+1. **Expense Tracking** -- Record daily spending with categories, wallets, dates, and notes.
+2. **Wallet Management** -- Track balances across cash, bank accounts, and e-wallets. Transfer between wallets with automatic double-entry recording.
+3. **Debt and Receivable Tracking** -- Log money you owe and money others owe you, with partial payments, settlements, overdue detection, and write-offs.
 
-- Expense and income tracking with date, wallet, category, description, notes, and repeat options.
-- Multi-wallet management with transfers, balance adjustments, stale balance detection, and fast current-balance reads.
-- Category management with custom colors and monthly budget limits.
-- Debt and receivable tracking for payables, money lent, partial payments, settlements, overdue states, and write-offs.
-- Analytics dashboard with spending summaries, daily comparison, monthly comparison, trends, and category distribution.
-- Monthly financial report with health score, category analysis, insights, and PDF export.
-- Local JSON backup and restore with security settings protected from import/export.
-- CSV transaction export for spreadsheet workflows.
-- Indonesian and English localization.
-- Light and dark themes.
-- Installable PWA experience for desktop and mobile browsers.
+Expend is not a full personal finance suite. It does not track income, salary, investment returns, or net worth. The focus is on outflows and obligations.
 
-## Core Workflows
+---
+
+## Key Features
+
+- Expense recording with category, wallet, date, description, and notes
+- Multi-wallet balance tracking with transfer and adjustment support
+- Monthly budget limits per category with progress indicators
+- Debt and receivable tracking with payment recording, overdue status, and write-off
+- Interactive charts: pie, line, and bar with drill-down
+- Monthly financial report with health score and PDF export
+- Full-text search with type, category, wallet, date, and amount filters
+- JSON backup and restore (excludes PIN and security state)
+- CSV export for spreadsheet analysis
+- Indonesian and English language support
+- Light and dark theme
+- Swipe gestures and keyboard navigation on transaction cards
+- Screen reader accessible controls with ARIA labels and roles
+- Installable PWA for desktop and mobile
+
+---
+
+## How It Works
 
 ### Transactions
 
-Users can create, edit, repeat, delete, bulk-delete, search, and filter transactions. Filters support transaction type, category, wallet, date range, and amount range.
+Create, edit, repeat, delete, bulk-delete, search, and filter transactions. Swipe left on a transaction card to reveal Edit and Delete actions. Use keyboard shortcuts to navigate quickly.
 
 ### Wallets
 
-Wallet balances are maintained through ordinary transactions, paired transfer records, balance adjustments, and debt or receivable cashflows. This keeps wallet summaries fast while preserving an auditable transaction history.
+Each wallet tracks its own balance. Transfers between wallets create paired records. Balance adjustments record the difference without deleting history.
 
 ### Budgets
 
-Budgets are assigned per category and tracked monthly. The app shows usage progress and highlights categories that approach or exceed their budget.
+Set a monthly spending limit per category. Expend highlights categories approaching or exceeding their limit with color-coded progress bars and text status.
 
 ### Debts and Receivables
 
-Debt records are intentionally separated from normal expense analytics:
+| User Action | Record Type | Wallet Effect | Remaining Balance |
+|---|---|---|---|
+| Receive a loan | Payable debt | Wallet increases | Debt increases |
+| Pay back a debt | Payable debt | Wallet decreases | Debt decreases |
+| Lend money to someone | Receivable | Wallet decreases | Receivable increases |
+| Receive repayment | Receivable | Wallet increases | Receivable decreases |
+| Write off a receivable | Receivable | No change | Receivable becomes zero |
+| Mark as paid (no cash) | Debt or receivable | No change | Balance becomes zero |
 
-| Action | Record Type | Wallet Effect | Remaining Balance Effect |
-|--------|-------------|---------------|--------------------------|
-| User receives a loan | Payable debt | Increase wallet | Increase remaining debt |
-| User pays a debt | Payable debt | Decrease wallet | Decrease remaining debt |
-| User lends money | Receivable | Decrease wallet | Increase remaining receivable |
-| User receives repayment | Receivable | Increase wallet | Decrease remaining receivable |
-| Write off receivable | Receivable | No wallet change | Remaining becomes zero |
-| Mark paid without cashflow | Debt or receivable | No wallet change | Remaining becomes zero |
+---
 
-## Privacy and Security Model
+## Privacy and Security
 
-Expend is privacy-first and local-first by design:
+Expend is local-first by design:
 
-- No account is required for core usage.
-- No remote finance API is required for core functionality.
-- Financial data is stored in IndexedDB on the current device and browser profile.
-- No automatic cloud synchronization is performed.
-- JSON backups are created manually by the user.
-- PIN screen lock uses PBKDF2 hashing through the Web Crypto API.
-- PIN hashes and lockout records are excluded from JSON exports.
-- Import preserves local security settings on the current device.
+- No account registration required
+- No remote API calls for core functionality
+- Financial data stored in IndexedDB on your device
+- No automatic cloud synchronization
+- JSON backups created manually by the user
+- PIN screen lock uses PBKDF2 hashing via the Web Crypto API
+- PIN hashes and lockout records are excluded from JSON exports
+- Import preserves local security settings
 
-Important limitation: the PIN lock protects the app screen from casual access. It does not encrypt IndexedDB at rest. For stronger protection, use an encrypted device, a separate operating system account, an encrypted browser profile, or an encrypted backup location.
+**PIN lock limitation:** The PIN protects the app UI from casual access. It does not encrypt the IndexedDB database at rest. For stronger protection, use an encrypted device, a separate OS account, or an encrypted backup location.
 
-Encryption-at-rest for the local database remains a separate roadmap item and requires a stronger passphrase and key-management model than a short PIN.
+---
 
-## PWA and Offline Behavior
+## PWA and Offline Support
 
-- First load requires a network connection.
-- After the service worker is ready, the app shell can load offline.
-- Local finance data remains available through IndexedDB.
-- Main app routes fall back to the cached app shell.
-- Offline changes persist locally on the current device.
-- The app prompts users when a new service worker version is available.
-- Accepting an update reloads the app with the new version; dismissing keeps the current version active.
-- Reset Local Data clears IndexedDB, selected local app flags, and Cache Storage. After reset, the app may need a network connection to load assets again.
+- First load requires a network connection to download the app shell
+- After the service worker is ready, the app loads offline
+- Local finance data remains available through IndexedDB
+- Offline changes persist on the current device
+- Update prompt appears when a new service worker version is available
+- Reset Local Data clears IndexedDB, app flags, and Cache Storage
 
-Expend does not provide automatic multi-device sync. Users should export JSON backups manually when they need portability or recovery.
+Expend does not provide multi-device sync. Export JSON backups manually for portability or disaster recovery.
+
+---
 
 ## Technology Stack
 
 | Layer | Technology |
-|-------|------------|
+|---|---|
 | Frontend | React 19, TypeScript, React Router |
 | Build | Vite 6 |
 | Styling | Tailwind CSS 4, CSS custom properties |
-| Local database | IndexedDB, Dexie.js |
+| Database | IndexedDB via Dexie.js |
 | Charts | Recharts |
 | Animation | Motion |
 | Localization | i18next, react-i18next |
 | PWA | vite-plugin-pwa, Workbox |
-| PDF export | jsPDF |
-| CSV export | PapaParse |
-| Testing | Vitest, Playwright, Axe |
-| Quality | TypeScript strict mode, ESLint |
+| PDF Export | jsPDF |
+| CSV Export | PapaParse |
+| Testing | Vitest, Playwright, axe-core |
+| Linting | ESLint, TypeScript strict mode |
 | CI | GitHub Actions |
+
+---
 
 ## Getting Started
 
@@ -127,7 +143,7 @@ Expend does not provide automatic multi-device sync. Users should export JSON ba
 - Node.js 20 or newer
 - npm
 
-### Installation
+### Install
 
 ```bash
 git clone https://github.com/eiaiproject/Expend.git
@@ -141,7 +157,7 @@ npm install
 npm run dev
 ```
 
-The development server runs on port `3000` by default.
+The dev server starts on port 3000 by default.
 
 ### Production Build
 
@@ -155,77 +171,74 @@ npm run build
 npm run preview
 ```
 
+---
+
 ## Available Scripts
 
-| Command | Description |
-|---------|-------------|
+| Command | Purpose |
+|---|---|
 | `npm run dev` | Start the Vite development server |
-| `npm run build` | Build the production app |
+| `npm run build` | Build for production |
 | `npm run preview` | Preview the production build |
-| `npm run clean` | Remove the `dist` directory |
-| `npm run audit` | Run dependency audit with a high severity threshold |
+| `npm run clean` | Remove the dist directory |
+| `npm run audit` | Run dependency audit (high severity) |
 | `npm run lint` | Run ESLint |
-| `npm run typecheck` | Run TypeScript checks |
+| `npm run typecheck` | Run TypeScript type checking |
 | `npm run test` | Start Vitest in watch mode |
 | `npm run test:unit` | Run unit tests once |
 | `npm run test:pwa-static` | Run static PWA checks |
 | `npm run test:e2e` | Run Playwright end-to-end tests |
 | `npm run test:lighthouse` | Run Lighthouse smoke checks |
-| `npm run qa:automated` | Run the full automated QA gate |
+| `npm run qa:automated` | Run the full QA pipeline |
 
-## Quality Assurance
+---
 
-Run the full automated QA pipeline before release:
+## Testing and QA
+
+Run the full automated QA pipeline before any release:
 
 ```bash
 npm run qa:automated
 ```
 
-The full pipeline runs dependency audit, ESLint, TypeScript checks, unit tests, production build, static PWA checks, Playwright end-to-end tests, and Lighthouse smoke checks.
+This runs dependency audit, ESLint, TypeScript checks, unit tests, production build, static PWA checks, Playwright E2E tests, and Lighthouse smoke checks.
 
-For a faster local pre-commit check, run:
+For a faster local check:
 
 ```bash
-npm run audit
-npm run lint
-npm run typecheck
-npm run test:unit
-npm run build
-npm run test:pwa-static
+npm run audit && npm run lint && npm run typecheck && npm run test:unit && npm run build && npm run test:pwa-static
 ```
 
-## Import, Export, and Backup
+---
+
+## Data Import and Export
 
 ### JSON Backup Includes
 
 - Wallets
 - Categories
 - Transactions
-- Debts
-- Debt payments
-- Non-sensitive settings
+- Debts and debt payments
+- Non-sensitive settings (language, theme)
 
-JSON backups do not include PIN hashes, PIN lockout records, or other sensitive local security state.
+PIN hashes, lockout records, and other security state are excluded from exports.
 
 ### Import Behavior
 
-- Import replaces wallets, categories, transactions, debts, debt payments, and allowed non-sensitive settings.
-- Only whitelisted settings such as language and theme are imported from external backups.
-- Local PIN and security settings on the current device are preserved.
-- Wallet `currentBalance` values are recomputed from transaction and debt cashflow history.
-- Legacy backups without debt tables remain valid.
+- Replaces wallets, categories, transactions, debts, debt payments, and whitelisted settings
+- Preserves local PIN and security settings on the current device
+- Recomputes wallet balances from transaction and debt history
+- Legacy backups without debt tables remain valid
 
 ### CSV Export
 
-CSV export contains transaction rows for spreadsheet analysis. CSV export is not a full backup format.
+CSV export produces transaction rows for spreadsheet analysis. It is not a full backup format.
 
-## Database Migrations
-
-IndexedDB schema changes and legacy repair paths are documented in [`docs/database-migrations.md`](docs/database-migrations.md). Update that document whenever `src/db/db.ts` adds a Dexie version or a native preflight repair.
+---
 
 ## Deployment
 
-Expend is static-hosting compatible and includes a Vercel configuration.
+Expend is a static site. Deploy the `dist` directory to any static hosting provider.
 
 ```bash
 npm install
@@ -233,51 +246,23 @@ npm run qa:automated
 npm run build
 ```
 
-Deploy the generated `dist` directory to Vercel, Netlify, Cloudflare Pages, or another static file server.
+Supported platforms: Vercel, Netlify, Cloudflare Pages, GitHub Pages, or any static file server.
 
-### Deployment Requirements
+### Hosting Requirements
 
 | Requirement | Vercel | Netlify | Cloudflare Pages |
-|-------------|--------|---------|------------------|
-| SPA fallback to `index.html` | Included in `vercel.json` | Add `_redirects` with `/* /index.html 200` | Add `_redirects` with `/* /index.html 200` |
-| Service worker no-cache header | Included | Add `_headers` rule for `/sw.js` | Add `_headers` rule for `/sw.js` |
-| Manifest no-cache header | Included | Add `_headers` rule for `/manifest.webmanifest` | Add `_headers` rule for `/manifest.webmanifest` |
-| Immutable asset caching | Included | Add `_headers` rule for `/assets/*` | Add `_headers` rule for `/assets/*` |
-| Security headers | Included | Add equivalent `_headers` entries | Add equivalent `_headers` entries |
+|---|---|---|---|
+| SPA fallback to index.html | Included | Add `_redirects` | Add `_redirects` |
+| Service worker no-cache header | Included | Add `_headers` rule | Add `_headers` rule |
+| Manifest no-cache header | Included | Add `_headers` rule | Add `_headers` rule |
+| Immutable asset caching | Included | Add `_headers` rule | Add `_headers` rule |
 | HTTPS | Automatic | Automatic | Automatic |
 
-Example Netlify `_redirects` file:
-
-```text
-/* /index.html 200
-```
-
-Example Netlify `_headers` file:
-
-```text
-/sw.js
-  Cache-Control: no-cache, no-store, must-revalidate
-
-/manifest.webmanifest
-  Cache-Control: no-cache, no-store, must-revalidate
-
-/assets/*
-  Cache-Control: public, max-age=31536000, immutable
-
-/index.html
-  Cache-Control: no-cache
-
-/*
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
-  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-  Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
-```
+---
 
 ## Project Structure
 
-```text
+```
 Expend/
   .github/workflows/    CI configuration
   docs/                 Technical documentation
@@ -289,34 +274,41 @@ Expend/
     db/                 Dexie schema and IndexedDB migrations
     hooks/              React hooks
     i18n/               English and Indonesian translations
-    services/           Business logic and data mutation services
-    utils/              Formatting, dates, constants, and PWA helpers
+    services/           Business logic and data services
+    utils/              Formatting, dates, constants, PWA helpers
     views/              App pages and landing page sections
   tests/e2e/            Playwright end-to-end tests
 ```
 
-## Release Versioning
+---
 
-Expend follows Semantic Versioning:
+## Versioning
 
-- Major version: breaking changes or incompatible data model changes.
-- Minor version: backward-compatible features, user-facing improvements, or significant documentation and production-readiness work.
-- Patch version: backward-compatible bug fixes only.
+Expend follows Semantic Versioning (semver):
 
-Current release: `v1.5.0`.
+- **Major (X.0.0):** Breaking changes or incompatible data model changes
+- **Minor (0.X.0):** Backward-compatible features, UX improvements, accessibility enhancements
+- **Patch (0.0.X):** Backward-compatible bug fixes
+
+Current release: **v1.6.0**
+
+---
 
 ## Roadmap
 
-- Optional encrypted backup workflow.
-- Optional local database encryption with explicit passphrase-based key management.
-- Optional cloud sync with explicit user consent.
-- Recurring transaction automation.
-- Advanced debt reminders.
-- Additional monthly report templates.
-- Financial goals and savings tracking.
-- Multi-currency support.
-- Additional language support.
+- Encrypted backup workflow
+- Local database encryption with passphrase-based key management
+- Optional cloud sync with explicit user consent
+- Recurring expense reminders
+- Debt due date calendar view
+- Budget setup wizard
+- Monthly insight cards
+- Quick-add templates for frequent expenses
+- Multi-currency support
+- Additional language support
+
+---
 
 ## License
 
-No formal open-source license is included. The source code is publicly visible, but reuse, redistribution, and modification rights are not granted until a `LICENSE` file is added.
+No formal open-source license is included. Source code is publicly visible, but reuse, redistribution, and modification rights are not granted until a LICENSE file is added to the repository.

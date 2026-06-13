@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { cn } from '../utils/cn';
@@ -20,6 +20,9 @@ type QuickOption = {
 export function DatePicker({ id, value, onChange, label, required }: DatePickerProps) {
   const { t } = useTranslation();
   const [showQuick, setShowQuick] = useState(false);
+  const autoId = useId();
+  const datePickerId = id || autoId;
+  const menuId = `${datePickerId}-quick-menu`;
 
   const getDaysAgo = (days: number): string => {
     const d = new Date();
@@ -54,13 +57,13 @@ export function DatePicker({ id, value, onChange, label, required }: DatePickerP
   return (
     <div className="relative">
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium mb-1">{label} {required && '*'}</label>
+        <label htmlFor={datePickerId} className="block text-sm font-medium mb-1">{label} {required && '*'}</label>
       )}
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={16} />
+          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={16} aria-hidden="true" />
           <input
-            id={id}
+            id={datePickerId}
             type="date"
             required={required}
             value={value}
@@ -78,15 +81,23 @@ export function DatePicker({ id, value, onChange, label, required }: DatePickerP
               : "bg-[var(--bg)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]"
           )}
           aria-label={t('Quick Select')}
+          aria-expanded={showQuick}
+          aria-controls={menuId}
+          aria-haspopup="listbox"
         >
-          <ChevronDown size={18} className={cn("transition-transform", showQuick && "rotate-180")} />
+          <ChevronDown size={18} className={cn("transition-transform", showQuick && "rotate-180")} aria-hidden="true" />
         </button>
       </div>
 
       {showQuick && (
-        <div className="absolute z-30 left-0 right-0 mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden">
+        <div 
+          id={menuId}
+          role="listbox"
+          aria-label={t('Quick Select')}
+          className="absolute z-30 left-0 right-0 mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden"
+        >
           <div className="p-2">
-            <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider px-3 py-2">
+            <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider px-3 py-2" id={`${menuId}-label`}>
               {t('Quick Select')}
             </p>
             {quickOptions.map((option) => {
@@ -95,6 +106,8 @@ export function DatePicker({ id, value, onChange, label, required }: DatePickerP
                 <button
                   key={option.label}
                   type="button"
+                  role="option"
+                  aria-selected={value === optionValue}
                   onClick={() => handleQuickSelect(option)}
                   className={cn(
                     "w-full text-left px-3 py-2.5 text-sm rounded-lg transition-colors",

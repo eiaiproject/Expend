@@ -37,6 +37,16 @@ export function BottomSheetShell({
   const { t } = useTranslation();
   const dialogRef = useFocusTrap(isOpen);
 
+  // Lock body scroll when sheet is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
   // Close on Escape
   useEffect(() => {
     if (!isOpen) return;

@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -10,6 +11,15 @@ vi.mock('react-i18next', () => ({
     t: (key: string) => key,
     i18n: { language: 'en' },
   }),
+}));
+
+// Mock motion/react to avoid animation issues in tests
+vi.mock('motion/react', () => ({
+  motion: {
+    div: React.forwardRef(({ children, ...props }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>, ref: React.Ref<HTMLDivElement>) => {
+      return <div ref={ref} {...props}>{children}</div>;
+    }),
+  },
 }));
 
 describe('TransactionCard', () => {
@@ -46,9 +56,13 @@ describe('TransactionCard', () => {
     hideAmount: false,
     isSelectionMode: false,
     isSelected: false,
+    isActionOpen: false,
     onSelect: vi.fn(),
     onClick: vi.fn(),
-    onDragEnd: vi.fn(),
+    onEdit: vi.fn(),
+    onDelete: vi.fn(),
+    onActionOpen: vi.fn(),
+    onActionClose: vi.fn(),
   };
 
   it('renders transaction description correctly', () => {
@@ -107,7 +121,6 @@ describe('TransactionCard', () => {
         isSelected={false}
       />
     );
-    // Click on the card
     fireEvent.click(screen.getByText('Lunch at Warung'));
     expect(defaultProps.onSelect).toHaveBeenCalledWith(1);
   });
@@ -120,7 +133,6 @@ describe('TransactionCard', () => {
         isSelected={true}
       />
     );
-    // The selection indicator should be present
     const selectionIndicator = document.querySelector('.bg-\\[var\\(--accent\\)\\]');
     expect(selectionIndicator).toBeInTheDocument();
   });
@@ -138,5 +150,25 @@ describe('TransactionCard', () => {
     };
     render(<TransactionCard {...defaultProps} tx={transactionWithNotes} />);
     expect(screen.getByText('With colleagues')).toBeInTheDocument();
+  });
+
+  it('has role button and tabIndex for keyboard accessibility', () => {
+    render(<TransactionCard {...defaultProps} />);
+    const card = screen.getByRole('button', { name: /Lunch at Warung/i });
+    expect(card).toHaveAttribute('tabindex', '0');
+  });
+
+  it('calls onClick on Enter key press', () => {
+    render(<TransactionCard {...defaultProps} />);
+    const card = screen.getByRole('button', { name: /Lunch at Warung/i });
+    fireEvent.keyDown(card, { key: 'Enter' });
+    expect(defaultProps.onClick).toHaveBeenCalled();
+  });
+
+  it('calls onActionClose on Escape when action is open', () => {
+    render(<TransactionCard {...defaultProps} isActionOpen={true} />);
+    const card = screen.getByRole('button', { name: /Lunch at Warung/i });
+    fireEvent.keyDown(card, { key: 'Escape' });
+    expect(defaultProps.onActionClose).toHaveBeenCalledTimes(1);
   });
 });

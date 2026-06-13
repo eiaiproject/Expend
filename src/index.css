@@ -40,6 +40,8 @@
     --text-primary: #F1F5F9;
     --text-secondary: #94A3B8;
     --accent: #0F766E;
+    --accent-fill: #0F766E;
+    --accent-text: #2DD4BF;
     --expense: var(--color-expense);
     --income: var(--color-income);
     --border: #334155;
@@ -52,6 +54,8 @@
     --text-primary: #0F172A;
     --text-secondary: #475569;
     --accent: #0F766E;
+    --accent-fill: #0F766E;
+    --accent-text: #0F766E;
     --expense: #DC2626;
     --income: #15803D;
     --border: #CBD5E1;

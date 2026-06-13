@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Check, X } from 'lucide-react';
 import { cn } from '../utils/cn';
@@ -16,8 +16,13 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(value);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const listboxRef = useRef<HTMLDivElement>(null);
+  const autoId = useId();
+  const listboxId = `${autoId}-listbox`;
+  const inputId = id || `${autoId}-input`;
 
   // Sync search with external value
   useEffect(() => {
@@ -56,6 +61,7 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
     onChange(category.name);
     setSearchTerm(category.name);
     setIsOpen(false);
+    setActiveIndex(-1);
   };
 
   const handleClear = () => {
@@ -69,6 +75,7 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
     setSearchTerm(newValue);
     onChange(newValue);
     if (!isOpen) setIsOpen(true);
+    setActiveIndex(-1);
   };
 
   const handleInputFocus = () => {
@@ -80,9 +87,51 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
     if (e.key === 'Escape') {
       setIsOpen(false);
       setSearchTerm(value);
+      setActiveIndex(-1);
       inputRef.current?.blur();
+      return;
+    }
+
+    if (!isOpen) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setActiveIndex(prev => 
+          prev < filteredCategories.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveIndex(prev => 
+          prev > 0 ? prev - 1 : filteredCategories.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (activeIndex >= 0 && activeIndex < filteredCategories.length) {
+          const selected = filteredCategories[activeIndex];
+          if (selected) handleSelect(selected);
+        }
+        break;
+      case 'Home':
+        e.preventDefault();
+        setActiveIndex(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        setActiveIndex(filteredCategories.length - 1);
+        break;
     }
   };
+
+  // Scroll active option into view
+  useEffect(() => {
+    if (activeIndex >= 0 && listboxRef.current) {
+      const activeEl = listboxRef.current.children[activeIndex] as HTMLElement;
+      activeEl?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [activeIndex]);
 
   // Find matching category for color display
   const matchedCategory = categories.find(
@@ -96,10 +145,11 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
           <div 
             className="absolute left-3 w-3 h-3 rounded-full pointer-events-none"
             style={{ backgroundColor: matchedCategory.color }}
+            aria-hidden="true"
           />
         )}
         <input
-          id={id}
+          id={inputId}
           ref={inputRef}
           type="text"
           value={isOpen ? searchTerm : value}
@@ -112,6 +162,12 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
             matchedCategory && "pl-10"
           )}
           autoComplete="off"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-controls={listboxId}
+          aria-haspopup="listbox"
+          aria-autocomplete="list"
+          aria-activedescendant={activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined}
         />
         {value && !isOpen && (
           <button
@@ -128,15 +184,22 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
           onClick={() => setIsOpen(!isOpen)}
           className="absolute right-3 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           aria-label={t('Select Category')}
+          aria-hidden="true"
         >
           <ChevronDown size={16} className={cn("transition-transform", isOpen && "rotate-180")} />
         </button>
       </div>
 
       {isOpen && (
-        <div className="absolute z-30 left-0 right-0 top-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg max-h-60 overflow-auto">
+        <div 
+          id={listboxId}
+          ref={listboxRef}
+          role="listbox"
+          aria-label={t('Select Category')}
+          className="absolute z-30 left-0 right-0 top-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg max-h-60 overflow-auto"
+        >
           {filteredCategories.length === 0 ? (
-            <div className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+            <div role="option" className="px-4 py-3 text-sm text-[var(--text-secondary)]">
               {searchTerm.trim() ? (
                 <span>
                   {t('Create')} "<strong>{searchTerm}</strong>" {t('as new category')}
@@ -146,23 +209,28 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
               )}
             </div>
           ) : (
-            filteredCategories.map((category) => (
+            filteredCategories.map((category, index) => (
               <button
                 key={category.id}
                 type="button"
+                role="option"
+                id={`${listboxId}-option-${index}`}
+                aria-selected={value.toLowerCase() === category.name.toLowerCase()}
                 onClick={() => handleSelect(category)}
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-[var(--bg)] transition-colors text-left",
-                  value.toLowerCase() === category.name.toLowerCase() && "bg-[var(--accent)]/10"
+                  value.toLowerCase() === category.name.toLowerCase() && "bg-[var(--accent)]/10",
+                  index === activeIndex && "bg-[var(--bg)]"
                 )}
               >
                 <div 
                   className="w-3 h-3 rounded-full shrink-0"
                   style={{ backgroundColor: category.color }}
+                  aria-hidden="true"
                 />
                 <span className="flex-1 truncate">{category.name}</span>
                 {value.toLowerCase() === category.name.toLowerCase() && (
-                  <Check size={16} className="text-[var(--accent)] shrink-0" />
+                  <Check size={16} className="text-[var(--accent)] shrink-0" aria-hidden="true" />
                 )}
               </button>
             ))
