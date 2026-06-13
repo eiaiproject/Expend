@@ -9,7 +9,7 @@ export async function openFreshApp(page: Page, path = '/') {
 
 export async function completeOnboarding(page: Page) {
   await openFreshApp(page);
-  await page.getByRole('button', { name: 'Enter App' }).click();
+  await page.getByRole('button', { name: 'Start Tracking Expenses' }).click();
   await expect(page.getByText('Welcome to Expend')).toBeVisible();
 
   await page.getByPlaceholder('e.g. Main Wallet').fill('QA Wallet');
@@ -46,14 +46,14 @@ export async function addExpense(page: Page, description = 'QA Lunch') {
 
   await page.getByLabel(/Nominal/).fill('125000');
   await page.getByLabel(/Description/).fill(description);
-  await page.getByRole('textbox', { name: /Category/ }).fill('Food & Drinks');
+  await page.getByRole('combobox', { name: /Category|Type or select category/ }).fill('Food & Drinks');
   await page.getByRole('button', { name: 'Save' }).click();
 
   await expect(page.getByText(description)).toBeVisible();
 }
 
 export async function setupPin(page: Page, pin = '1234') {
-  await page.getByRole('link', { name: 'Settings' }).click();
+  await page.getByRole('link', { name: /Settings|More/ }).click();
   await page.getByRole('button', { name: 'Security' }).click();
   await page.getByRole('button', { name: 'Set up PIN' }).click();
 
