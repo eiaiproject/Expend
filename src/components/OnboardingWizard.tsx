@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { toast } from './Toaster';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
@@ -18,6 +18,14 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   const [walletBalance, setWalletBalance] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const walletNameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (step === 1 && walletNameInputRef.current) {
+      walletNameInputRef.current.focus();
+    }
+  }, [step]);
 
   const toggleCategory = (name: string) => {
     setSelectedCategories(prev =>
@@ -118,12 +126,12 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                 <div>
                   <label className="block text-sm font-medium mb-1">{t('Name')}</label>
                   <input
+                    ref={walletNameInputRef}
                     type="text"
                     value={walletName}
                     onChange={(e) => setWalletName(e.target.value)}
                     placeholder={t('e.g. Main Wallet')}
                     className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent)]"
-                    autoFocus
                   />
                 </div>
                 <div>

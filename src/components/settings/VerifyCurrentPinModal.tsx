@@ -30,6 +30,12 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
   }, [isOpen]);
 
   useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (isOpen) {
       inputRef.current?.focus();
     }
@@ -89,7 +95,6 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
           onChange={(e) => { setError(false); setPin(e.target.value.replace(/\D/g, '').slice(0, pinLength)); }}
           onKeyDown={(e) => { if (e.key === 'Enter') handleVerify(); }}
           className="w-full h-0 opacity-0 absolute"
-          autoFocus
         />
 
         <div className="grid grid-cols-3 gap-3" role="group" aria-label={t('PIN entry')}>

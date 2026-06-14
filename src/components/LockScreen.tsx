@@ -92,7 +92,6 @@ export function LockScreen() {
             value={pin}
             onChange={handlePinChange}
             className="w-full h-0 opacity-0 absolute"
-            autoFocus
           />
 
           {/* Numpad */}

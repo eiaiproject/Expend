@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 
@@ -45,6 +45,7 @@ export function ConfirmDialogProvider() {
   const { t } = useTranslation();
   const [currentDialog, setCurrentDialog] = useState<(ConfirmDialogOptions & { id: number }) | null>(null);
   const dialogRef = useFocusTrap(!!currentDialog);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setDialogState = setCurrentDialog;
@@ -54,6 +55,12 @@ export function ConfirmDialogProvider() {
       setDialogState = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (currentDialog && cancelButtonRef.current) {
+      cancelButtonRef.current.focus();
+    }
+  }, [currentDialog]);
 
   const handleClose = useCallback((result: boolean) => {
     const item = dialogQueue.shift();
@@ -101,9 +108,9 @@ export function ConfirmDialogProvider() {
             </div>
             <div className="flex gap-3 pt-2">
               <button
+                ref={cancelButtonRef}
                 onClick={() => handleClose(false)}
                 className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors active:scale-95"
-                autoFocus
               >
                 {currentDialog.cancelLabel || t('Cancel')}
               </button>

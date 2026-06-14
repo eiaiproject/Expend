@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -208,6 +208,20 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
   
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState(wallet.name);
+  const editInputRef = useRef<HTMLInputElement>(null);
+  const balanceInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditingName && editInputRef.current) {
+      editInputRef.current.focus();
+    }
+  }, [isEditingName]);
+
+  useEffect(() => {
+    if (isUpdating && balanceInputRef.current) {
+      balanceInputRef.current.focus();
+    }
+  }, [isUpdating]);
 
   const handleSaveName = async () => {
     if (!editName.trim()) {
@@ -322,12 +336,12 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
               {isEditingName ? (
                 <div className="flex items-center gap-2 flex-1">
                   <input
+                    ref={editInputRef}
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
                     className="flex-1 min-w-0 bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-sm font-bold focus:outline-none focus:border-[var(--accent)]"
-                    autoFocus
                   />
                   <button onClick={handleSaveName} className="p-1 text-green-500 hover:bg-green-500/10 rounded" aria-label={t('Save')}>
                     <Check size={18} />
@@ -427,7 +441,7 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
             }}
             placeholder={t('Balance Input Placeholder')}
             className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 font-mono"
-            autoFocus
+            ref={balanceInputRef}
           />
           <div className="flex justify-end gap-2">
             <button onClick={() => setIsUpdating(false)} className="px-4 py-2 text-[var(--text-secondary)]">{t('Cancel')}</button>

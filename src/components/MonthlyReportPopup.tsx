@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Download, TrendingUp, TrendingDown, Minus, ChevronRight, FileText, Loader2 } from 'lucide-react';
@@ -29,13 +29,7 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
   const [error, setError] = useState<string | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadReportData();
-    }
-  }, [isOpen]);
-
-  const loadReportData = async () => {
+  const loadReportData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -48,7 +42,13 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [i18n.language, t]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadReportData();
+    }
+  }, [isOpen, loadReportData]);
 
   const handleDownload = async () => {
     if (!reportData) return;

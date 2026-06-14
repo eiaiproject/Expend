@@ -32,8 +32,8 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen) {
-      inputRef.current?.focus();
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
     }
   }, [isOpen, step]);
 
@@ -121,7 +121,6 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
             }
           }}
           className="w-full h-0 opacity-0 absolute"
-          autoFocus
         />
 
         {/* Numpad */}

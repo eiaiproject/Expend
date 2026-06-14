@@ -37,7 +37,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadSecuritySettings();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-lock when app comes back to foreground after inactivity
   useEffect(() => {

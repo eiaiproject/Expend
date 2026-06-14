@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Category } from '../db/db';
@@ -39,6 +39,21 @@ export default function CategoriesView() {
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState<string>(CURATED_PALETTE[0] as string);
   const [newBudget, setNewBudget] = useState('');
+
+  const newCategoryInputRef = useRef<HTMLInputElement>(null);
+  const editCategoryInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showAddForm && newCategoryInputRef.current) {
+      newCategoryInputRef.current.focus();
+    }
+  }, [showAddForm]);
+
+  useEffect(() => {
+    if (editingId && editCategoryInputRef.current) {
+      editCategoryInputRef.current.focus();
+    }
+  }, [editingId]);
 
   const categoriesWithSpending: CategoryWithSpending[] = useMemo(() => {
     if (!categories || !transactions) return [];
@@ -246,12 +261,12 @@ export default function CategoriesView() {
             <div className="p-4 space-y-4">
               <h3 className="font-bold text-sm">{t('New Category')}</h3>
               <input
+                ref={newCategoryInputRef}
                 type="text"
                 placeholder={t('Category Name')}
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]"
-                autoFocus
               />
               <div>
                 <label className="text-xs font-medium text-[var(--text-secondary)] mb-2 block">{t('Color')}</label>
@@ -330,11 +345,11 @@ export default function CategoriesView() {
                   /* Edit Mode */
                   <div className="space-y-3">
                     <input
+                      ref={editCategoryInputRef}
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:border-[var(--accent)]"
-                      autoFocus
                     />
                     <div className="flex flex-wrap gap-2">
                       {CURATED_PALETTE.map((color) => (

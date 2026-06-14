@@ -64,7 +64,7 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets, act
         maxAmount: filters.maxAmount,
       });
     }
-  }, [isOpen]);
+  }, [isOpen, filters.type, filters.categories, filters.wallets, filters.startDate, filters.endDate, filters.minAmount, filters.maxAmount]);
 
   const updateDraft = useCallback((patch: Partial<DraftState>) => {
     setDraft(prev => ({ ...prev, ...patch }));
