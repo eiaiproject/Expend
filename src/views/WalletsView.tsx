@@ -31,7 +31,7 @@ export default function WalletsView() {
 
   // Compute spending trends for all wallets in a single query
   const spendingTrends = useLiveQuery(async (): Promise<Record<number, SpendingTrend>> => {
-    if (wallets.length === 0) return {};
+    if (wallets.length === 0) return {} as Record<number, SpendingTrend>;
 
     const now = new Date();
     const todayStr = getTodayStr(now);
@@ -39,7 +39,7 @@ export default function WalletsView() {
     const previousDaysAgoStr = getTodayStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - SPENDING_TREND_PREVIOUS_DAYS));
 
     const walletIds = wallets.map(w => w.id!).filter(Boolean);
-    if (walletIds.length === 0) return {};
+    if (walletIds.length === 0) return {} as Record<number, SpendingTrend>;
 
     const txs = await db.transactions
       .where('walletId')
@@ -73,7 +73,7 @@ export default function WalletsView() {
     }
 
     return result;
-  }, [wallets], {});
+  }, [wallets], {} as Record<number, SpendingTrend>);
 
   const handleAddWallet = async () => {
     if (!newWalletName.trim()) return;
