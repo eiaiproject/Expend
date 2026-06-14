@@ -28,25 +28,17 @@ export async function completeOnboarding(page: Page) {
 export async function openAddTransactionSheet(page: Page) {
   await page.getByRole('button', { name: 'Add Transaction', exact: true }).filter({ visible: true }).first().click();
 
-  const transactionDialog = page.getByRole('dialog', { name: 'Add Transaction' });
-  try {
-    // Wait for the action picker dialog to appear
-    await expect(transactionDialog.first()).toBeVisible({ timeout: 1_000 });
-    // Click the expense action to open the form
-    await page.getByRole('button', { name: /Tambah Pengeluaran|Add Expense/ }).click();
-    // Wait for the form dialog (second dialog) to appear
-    await expect(transactionDialog.last()).toBeVisible({ timeout: 5_000 });
-    // Wait for lazy-loaded form content to render
-    await expect(page.getByLabel(/Nominal/)).toBeVisible({ timeout: 5_000 });
-    return;
-  } catch {
-    // The global FAB now opens an action picker before the transaction form.
+  // The FAB may open an action picker first, or go directly to the form.
+  // Try the action picker path first.
+  const expenseBtn = page.getByRole('button', { name: /Tambah Pengeluaran|Add Expense/ });
+  if (await expenseBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    await expenseBtn.click();
   }
 
-  // Fallback: dialog opened directly as form
-  await expect(transactionDialog.last()).toBeVisible();
+  // Wait for the form dialog to be visible (whichever path was taken)
+  await page.getByRole('dialog', { name: 'Add Transaction' }).last().waitFor({ state: 'visible', timeout: 10_000 });
   // Wait for lazy-loaded form content to render
-  await expect(page.getByLabel(/Nominal/)).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByLabel(/Nominal/)).toBeVisible({ timeout: 10_000 });
 }
 
 export async function addExpense(page: Page, description = 'QA Lunch') {
