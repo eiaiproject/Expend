@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "npm run build && wrangler dev",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "audit": "npm audit --audit-level=critical --package-lock-only",
     "lint": "eslint .",
@@ -20,7 +20,8 @@
     "test:pwa-static": "node scripts/qa-static.mjs",
     "test:e2e": "playwright test",
     "test:lighthouse": "node scripts/lighthouse-smoke.mjs",
-    "qa:automated": "npm run audit && npm run lint && npm run typecheck && npm run test:unit && npm run build && npm run test:pwa-static && npm run test:e2e && npm run test:lighthouse"
+    "qa:automated": "npm run audit && npm run lint && npm run typecheck && npm run test:unit && npm run build && npm run test:pwa-static && npm run test:e2e && npm run test:lighthouse",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
+    "@cloudflare/vite-plugin": "^1.40.2",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.1",
@@ -67,6 +69,7 @@
     "workbox-precaching": "^7.4.0",
     "workbox-routing": "^7.4.0",
     "workbox-strategies": "^7.4.0",
-    "workbox-window": "^7.4.0"
+    "workbox-window": "^7.4.0",
+    "wrangler": "^4.100.0"
   }
 }
