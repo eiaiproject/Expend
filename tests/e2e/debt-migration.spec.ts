@@ -100,7 +100,8 @@ test('legacy debt schema opens from Wallets debt link', async ({ page }) => {
   });
 
   await page.goto('/wallets');
-  await page.getByRole('link', { name: /Utang Piutang|Debts & Receivables/ }).click();
+  // Use the card-style debt link (not the sidebar nav link)
+  await page.getByRole('link', { name: /Debts & Receivables Manage|Utang .* Piutang Kelola/ }).click();
 
   // Heading is translated; English = 'Debts & Receivables', Indonesian = 'Utang Piutang'
   await expect(page.getByRole('heading', { name: /Utang Piutang|Debts & Receivables/ })).toBeVisible();
