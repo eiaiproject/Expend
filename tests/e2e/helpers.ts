@@ -31,6 +31,8 @@ export async function openAddTransactionSheet(page: Page) {
   const transactionDialog = page.getByRole('dialog', { name: 'Add Transaction' });
   try {
     await expect(transactionDialog).toBeVisible({ timeout: 1_000 });
+    // Wait for lazy-loaded form content to render
+    await expect(page.getByLabel(/Nominal/)).toBeVisible({ timeout: 5_000 });
     return;
   } catch {
     // The global FAB now opens an action picker before the transaction form.
@@ -39,6 +41,8 @@ export async function openAddTransactionSheet(page: Page) {
   await expect(page.getByRole('dialog', { name: /Pilih jenis catatan|Tambah Catatan|Add Record|Add Transaction/ })).toBeVisible();
   await page.getByRole('button', { name: /Tambah Pengeluaran|Add Expense/ }).click();
   await expect(transactionDialog).toBeVisible();
+  // Wait for lazy-loaded form content to render
+  await expect(page.getByLabel(/Nominal/)).toBeVisible({ timeout: 5_000 });
 }
 
 export async function addExpense(page: Page, description = 'QA Lunch') {

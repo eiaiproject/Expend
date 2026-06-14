@@ -42,6 +42,7 @@
     --accent: #0F766E;
     --accent-fill: #0F766E;
     --accent-text: #2DD4BF;
+    --accent-on-dark: #A7F3D0;
     --expense: var(--color-expense);
     --income: var(--color-income);
     --border: #334155;
@@ -70,6 +71,7 @@
     --accent: #0F766E;
     --accent-fill: #0F766E;
     --accent-text: #0F766E;
+    --accent-on-dark: #065F46;
     --expense: #DC2626;
     --income: #15803D;
     --border: #CBD5E1;

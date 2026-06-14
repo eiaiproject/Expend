@@ -37,12 +37,12 @@ export function SummaryCard({
     : null;
 
   return (
-    <div className="bg-[var(--accent)] rounded-[16px] p-6 text-white shadow-lg space-y-4">
+    <div className="bg-[var(--accent)] rounded-[16px] p-6 text-[var(--accent-on-dark)] shadow-lg space-y-4">
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-white text-sm font-medium">{t('Balance')}</p>
+          <p className="text-[var(--accent-on-dark)] text-sm font-medium">{t('Balance')}</p>
           {isLoading ? (
-            <Skeleton className="h-9 w-40 bg-white/20 mt-1" />
+            <Skeleton className="h-9 w-40 bg-[var(--accent-on-dark)]/20 mt-1" />
           ) : (
             <p className="text-[28px] font-bold font-mono">
               {renderBalance(walletsTotal)}
@@ -53,10 +53,10 @@ export function SummaryCard({
       
       <div className="space-y-3">
         <div className="flex bg-black/25 rounded-xl p-3 items-center">
-          <ArrowDownCircle size={24} className="text-white mr-3" />
+          <ArrowDownCircle size={24} className="text-[var(--accent-on-dark)] mr-3" />
           <div className="flex-1">
-            <p className="text-white text-xs font-medium">{t('Total Expenses')}</p>
-            <div className="flex mt-1 bg-white/10 rounded-lg p-0.5" role="radiogroup" aria-label={t('Expense period')}>
+            <p className="text-[var(--accent-on-dark)] text-xs font-medium">{t('Total Expenses')}</p>
+            <div className="flex mt-1 bg-black/25 rounded-lg p-0.5" role="radiogroup" aria-label={t('Expense period')}>
               <button
                 type="button"
                 role="radio"
@@ -65,8 +65,8 @@ export function SummaryCard({
                 className={cn(
                   "flex-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all",
                   expensePeriod === 'month'
-                    ? "bg-white text-[var(--accent)]"
-                    : "text-white/70 hover:text-white"
+                    ? "bg-[var(--accent-on-dark)] text-[var(--accent)]"
+                    : "text-[var(--accent-on-dark)]/70 hover:text-[var(--accent-on-dark)]"
                 )}
               >
                 {t('This Month')}
@@ -79,15 +79,15 @@ export function SummaryCard({
                 className={cn(
                   "flex-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all",
                   expensePeriod === 'all'
-                    ? "bg-white text-[var(--accent)]"
-                    : "text-white/70 hover:text-white"
+                    ? "bg-[var(--accent-on-dark)] text-[var(--accent)]"
+                    : "text-[var(--accent-on-dark)]/70 hover:text-[var(--accent-on-dark)]"
                 )}
               >
                 {t('All Time')}
               </button>
             </div>
             {isLoading ? (
-              <Skeleton className="h-6 w-32 bg-white/20 mt-1" />
+              <Skeleton className="h-6 w-32 bg-[var(--accent-on-dark)]/20 mt-1" />
             ) : (
               <p className="font-mono font-semibold">
                 {renderAmount(totalExpense)}
@@ -113,11 +113,11 @@ export function SummaryCard({
         {!isLoading && (
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-black/25 rounded-lg p-3 flex flex-col">
-              <span className="text-[10px] text-white uppercase font-bold tracking-wider">{t('Today')}</span>
+              <span className="text-[10px] text-[var(--accent-on-dark)] uppercase font-bold tracking-wider">{t('Today')}</span>
               <span className="text-sm font-mono font-bold mt-0.5">{renderAmount(dailySummary.today)}</span>
             </div>
             <div className="bg-black/25 rounded-lg p-3 flex flex-col">
-              <span className="text-[10px] text-white uppercase font-bold tracking-wider">{t('Yesterday')}</span>
+              <span className="text-[10px] text-[var(--accent-on-dark)] uppercase font-bold tracking-wider">{t('Yesterday')}</span>
               <span className="text-sm font-mono font-bold mt-0.5">{renderAmount(dailySummary.yesterday)}</span>
             </div>
           </div>
@@ -125,7 +125,7 @@ export function SummaryCard({
 
         {!isLoading && yesterdayDiff !== null && yesterdayDiff !== 0 && (
           <div className="bg-black/25 rounded-lg p-2 flex items-center justify-center">
-            <span className="text-[11px] text-white">
+            <span className="text-[11px] text-[var(--accent-on-dark)]">
               {yesterdayDiff > 0 ? (
                 <>
                   <span>+{Math.abs(yesterdayDiff).toFixed(0)}%</span>
@@ -143,7 +143,7 @@ export function SummaryCard({
 
         {!isLoading && yesterdayDiff === 0 && dailySummary.today > 0 && dailySummary.yesterday > 0 && (
           <div className="bg-black/25 rounded-lg p-2 flex items-center justify-center">
-            <span className="text-[11px] text-white">{t('Same as yesterday')}</span>
+            <span className="text-[11px] text-[var(--accent-on-dark)]">{t('Same as yesterday')}</span>
           </div>
         )}
       </div>
