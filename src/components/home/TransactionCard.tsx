@@ -1,5 +1,6 @@
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDownCircle, ArrowUpRight, ArrowDownLeft, RefreshCw, Edit2, Trash2, CheckCircle2 } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpRight, ArrowDownLeft, RefreshCw, Edit2, Trash2, CheckCircle2, MoreVertical, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'motion/react';
 import { cn } from '../../utils/cn';
@@ -29,6 +30,7 @@ interface TransactionCardProps {
   onDelete: () => void;
   onActionOpen: () => void;
   onActionClose: () => void;
+  onViewDetail?: () => void;
 }
 
 export function TransactionCard({
@@ -46,13 +48,28 @@ export function TransactionCard({
   onDelete,
   onActionOpen,
   onActionClose,
+  onViewDetail,
 }: TransactionCardProps) {
   const { t } = useTranslation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const renderAmountValue = (amount: number) => formatCurrencyValue(amount, hideAmount);
   
   const isExpenseOrTransferOut = tx.type === 'expense' || tx.type === 'transfer_out' || 
     (tx.type === 'balance_adjustment' && tx.amount < 0);
+
+  // Close menu on click outside
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMenuOpen]);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -75,10 +92,11 @@ export function TransactionCard({
     <div className="relative group overflow-hidden rounded-[16px]">
       {/* Action Buttons Background */}
       {!isSelectionMode && (
-        <div className="absolute inset-0 flex items-center justify-between px-4 z-0">
+        <div className="absolute inset-0 flex items-center justify-between px-4 z-0" aria-hidden={!isActionOpen}>
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            tabIndex={isActionOpen ? 0 : -1}
             className="bg-blue-500 text-white p-2 rounded-lg flex items-center gap-1 text-xs font-bold active:scale-95 transition-transform"
             aria-label={t('Edit')}
           >
@@ -87,6 +105,7 @@ export function TransactionCard({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            tabIndex={isActionOpen ? 0 : -1}
             className="bg-red-500 text-white p-2 rounded-lg flex items-center gap-1 text-xs font-bold active:scale-95 transition-transform"
             aria-label={t('Delete')}
           >
@@ -195,10 +214,76 @@ export function TransactionCard({
             <span className="w-4 text-right mr-1">
               {isExpenseOrTransferOut ? '-' : '+'}
             </span>
-            <span className="w-8 text-right mr-1 text-[12px] text-[var(--text-secondary)]">Rp</span>
+            <span className="w-8 text-right mr-1 text-[12px] text-[var(--text-secondary)]">{t('Currency Symbol')}</span>
             <span>{renderAmountValue(tx.amount)}</span>
           </p>
         </div>
+
+        {/* Kebab Menu Button */}
+        {!isSelectionMode && (
+          <div ref={menuRef} className="relative ml-1">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMenuOpen(!isMenuOpen);
+              }}
+              className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--bg)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label={t('Open transaction actions')}
+              aria-haspopup="menu"
+              aria-expanded={isMenuOpen}
+            >
+              <MoreVertical size={16} />
+            </button>
+            {isMenuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full mt-1 w-44 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-30 py-1"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMenuOpen(false);
+                    onViewDetail?.() ?? onClick();
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors text-left"
+                >
+                  <Eye size={14} />
+                  {t('View Detail')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMenuOpen(false);
+                    onEdit();
+                  }}
+                  disabled={tx.type === 'transfer_in' || tx.type === 'transfer_out' || tx.type === 'balance_adjustment'}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors text-left disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <Edit2 size={14} />
+                  {t('Edit')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMenuOpen(false);
+                    onDelete();
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors text-left"
+                >
+                  <Trash2 size={14} />
+                  {t('Delete')}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </motion.div>
     </div>
   );

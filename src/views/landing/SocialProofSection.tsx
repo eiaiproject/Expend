@@ -31,19 +31,19 @@ export function SocialProofSection() {
   const highlights = [
     {
       icon: <CheckCircle2 size={16} className="text-green-400" />,
-      text: 'No registration required',
+      text: t('landing.highlightNoRegistration'),
     },
     {
       icon: <Zap size={16} className="text-amber-400" />,
-      text: 'Instant setup',
+      text: t('landing.highlightInstantSetup'),
     },
     {
       icon: <Shield size={16} className="text-blue-400" />,
-      text: 'PBKDF2-hashed PIN',
+      text: t('landing.highlightPbkdf2'),
     },
     {
       icon: <Wifi size={16} className="text-purple-400" />,
-      text: 'Offline after first load',
+      text: t('landing.highlightOffline'),
     },
   ];
 

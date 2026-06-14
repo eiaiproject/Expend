@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ArrowDownCircle, ChevronDown } from 'lucide-react';
+import { ArrowDownCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../../utils/cn';
 import { formatCurrency, formatBalance } from '../../utils/formatUtils';
@@ -55,16 +55,37 @@ export function SummaryCard({
         <div className="flex bg-black/25 rounded-xl p-3 items-center">
           <ArrowDownCircle size={24} className="text-white mr-3" />
           <div className="flex-1">
-            <button 
-              onClick={onToggleExpensePeriod}
-              className="flex items-center gap-1 text-white text-xs font-medium transition-colors group"
-            >
-              <span>{t('Total Expenses')}</span>
-              <span className="text-[10px]">
-                ({expensePeriod === 'month' ? t('This Month') : t('All Time')})
-              </span>
-              <ChevronDown size={12} />
-            </button>
+            <p className="text-white text-xs font-medium">{t('Total Expenses')}</p>
+            <div className="flex mt-1 bg-white/10 rounded-lg p-0.5" role="radiogroup" aria-label={t('Expense period')}>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={expensePeriod === 'month'}
+                onClick={() => expensePeriod !== 'month' && onToggleExpensePeriod()}
+                className={cn(
+                  "flex-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all",
+                  expensePeriod === 'month'
+                    ? "bg-white text-[var(--accent)]"
+                    : "text-white/70 hover:text-white"
+                )}
+              >
+                {t('This Month')}
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={expensePeriod === 'all'}
+                onClick={() => expensePeriod !== 'all' && onToggleExpensePeriod()}
+                className={cn(
+                  "flex-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all",
+                  expensePeriod === 'all'
+                    ? "bg-white text-[var(--accent)]"
+                    : "text-white/70 hover:text-white"
+                )}
+              >
+                {t('All Time')}
+              </button>
+            </div>
             {isLoading ? (
               <Skeleton className="h-6 w-32 bg-white/20 mt-1" />
             ) : (

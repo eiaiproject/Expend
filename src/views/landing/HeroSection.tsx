@@ -60,7 +60,7 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall, onScrollToFe
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.8 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 mb-12 sm:mb-16"
+          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 mb-4 sm:mb-6"
         >
           <button
             onClick={onEnter}
@@ -80,6 +80,20 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall, onScrollToFe
           >
             {t('Install App')}
           </button>
+        </motion.div>
+
+        {/* Explanatory Copy */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.8 }}
+          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] sm:text-xs text-white/40 px-4 mb-8 sm:mb-12"
+        >
+          <span>{t('Data stored locally on this device.')}</span>
+          <span className="hidden sm:inline">·</span>
+          <span>{t('No account required')}</span>
+          <span className="hidden sm:inline">·</span>
+          <span>{t('Install for app-like experience')}</span>
         </motion.div>
 
         {/* GitHub Link */}

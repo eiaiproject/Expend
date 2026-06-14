@@ -184,7 +184,6 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
           onClick={() => setIsOpen(!isOpen)}
           className="absolute right-3 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           aria-label={t('Select Category')}
-          aria-hidden="true"
         >
           <ChevronDown size={16} className={cn("transition-transform", isOpen && "rotate-180")} />
         </button>

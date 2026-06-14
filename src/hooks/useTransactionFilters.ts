@@ -48,12 +48,25 @@ export function useTransactionFilters(
   const [categories, setCategories] = useState<number[]>([]);
   const [wallets, setWallets] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
   const [quickFilter, setQuickFilter] = useState<FilterState['quickFilter']>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce search term
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchTerm]);
 
   const categoryMap = useMemo(() => {
     if (!allCategories) return {};
@@ -105,7 +118,7 @@ export function useTransactionFilters(
       type,
       categories,
       wallets,
-      searchTerm,
+      searchTerm: debouncedSearchTerm,
       startDate,
       endDate,
       minAmount,
@@ -128,7 +141,7 @@ export function useTransactionFilters(
     }
 
     return results;
-  }, [transactions, type, categories, wallets, searchTerm, startDate, endDate, minAmount, maxAmount, categoryMap, walletMap, quickFilter]);
+  }, [transactions, type, categories, wallets, debouncedSearchTerm, startDate, endDate, minAmount, maxAmount, categoryMap, walletMap, quickFilter]);
 
   // Get only categories and wallets that are actually used in transactions
   const activeCategories = useMemo(() => {

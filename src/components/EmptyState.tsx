@@ -1,0 +1,35 @@
+import { useTranslation } from 'react-i18next';
+import { ClipboardList } from 'lucide-react';
+import type { ReactNode } from 'react';
+
+interface EmptyStateProps {
+  icon?: ReactNode;
+  title: string;
+  description: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+}
+
+export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
+  return (
+    <div className="text-center py-16 flex flex-col items-center">
+      <div className="bg-[var(--card)] w-24 h-24 rounded-full flex items-center justify-center mb-4 border border-[var(--border)] text-[var(--accent)] shadow-inner">
+        {icon || <ClipboardList size={48} className="opacity-20" />}
+      </div>
+      <h3 className="font-bold text-[var(--text-primary)]">{title}</h3>
+      <p className="text-sm text-[var(--text-secondary)] mt-1 max-w-[240px]">
+        {description}
+      </p>
+      {action && (
+        <button
+          onClick={action.onClick}
+          className="mt-4 px-6 py-3 bg-[var(--accent)] text-white rounded-xl font-bold shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-transform"
+        >
+          {action.label}
+        </button>
+      )}
+    </div>
+  );
+}

@@ -147,7 +147,7 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
           <label htmlFor={amountInputId} className="block text-sm font-medium mb-1">{t('Nominal')} *</label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] font-mono font-bold">
-              Rp
+              {t('Currency Symbol')}
             </span>
             <input
               id={amountInputId}
@@ -189,7 +189,7 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
                 }}
                 className="px-3 py-1.5 bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 rounded-lg text-xs font-semibold flex items-center gap-1 hover:bg-[var(--accent)]/20 transition-all active:scale-95"
               >
-                <Plus size={12} /> Custom
+                <Plus size={12} /> {t('Custom')}
               </button>
             </motion.div>
           )}

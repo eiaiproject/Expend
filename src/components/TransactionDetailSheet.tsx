@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Transaction } from '../db/db';
 import { Edit2, Trash2, Repeat } from 'lucide-react';
 import { displayDateFull } from '../utils/dateUtils';
+import { formatCurrency } from '../utils/formatUtils';
 import { BottomSheetShell } from './BottomSheetShell';
 
 interface TransactionDetailSheetProps {
@@ -40,7 +41,7 @@ export function TransactionDetailSheet({ tx, onClose, onEdit, onDelete, onRepeat
                <p className="text-[var(--text-secondary)] text-sm mb-1">{displayDateFull(tx.date, i18n.language)}</p>
                <h2 className="text-2xl font-bold mb-2">{tx.description}</h2>
                <p className={(tx.type === 'expense' || tx.type === 'transfer_out' || (tx.type === 'balance_adjustment' && tx.amount < 0)) ? "text-[var(--expense)] text-3xl font-mono font-bold" : "text-[var(--accent)] text-3xl font-mono font-bold"}>
-                 {(tx.type === 'expense' || tx.type === 'transfer_out' || (tx.type === 'balance_adjustment' && tx.amount < 0)) ? '-' : '+'}Rp {Math.abs(tx.amount).toLocaleString('id-ID')}
+                 {(tx.type === 'expense' || tx.type === 'transfer_out' || (tx.type === 'balance_adjustment' && tx.amount < 0)) ? '-' : '+'}{formatCurrency(tx.amount)}
                </p>
                {tx.notes && <p className="mt-4 text-sm bg-[var(--bg)] p-3 rounded-lg inline-block text-left">{tx.notes}</p>}
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useId, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +36,7 @@ export function BottomSheetShell({
 }: BottomSheetShellProps) {
   const { t } = useTranslation();
   const dialogRef = useFocusTrap(isOpen);
+  const titleId = useId();
 
   // Lock body scroll when sheet is open
   useEffect(() => {
@@ -80,10 +81,10 @@ export function BottomSheetShell({
             style={{ zIndex }}
             role="dialog"
             aria-modal="true"
-            aria-label={ariaLabel ?? title}
+            aria-labelledby={titleId}
           >
             <div className="flex items-center justify-between p-4 border-b border-[var(--border)] shrink-0">
-              <h2 className="text-lg font-bold">{title}</h2>
+              <h2 id={titleId} className="text-lg font-bold">{title}</h2>
               <button onClick={onClose} className="p-2 rounded-full bg-[var(--bg)]" aria-label={t('Close')}>
                 <X size={20} />
               </button>

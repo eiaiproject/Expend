@@ -12,6 +12,7 @@ import { toast } from '../components/Toaster';
 import { CURATED_PALETTE } from '../utils/constants';
 import { formatAmountLocal } from '../utils/formatUtils';
 import { motion, AnimatePresence } from 'motion/react';
+import { EmptyState } from '../components/EmptyState';
 
 interface CategoryWithSpending {
   id: number;
@@ -42,28 +43,34 @@ export default function CategoriesView() {
   const categoriesWithSpending: CategoryWithSpending[] = useMemo(() => {
     if (!categories || !transactions) return [];
 
-    // Use local timezone string helpers to avoid UTC day-shifting bugs
     const monthStart = getMonthStartStr();
     const nextMonthStart = getNextMonthStartStr();
 
-    return categories.map(cat => {
-      const catTxs = transactions.filter(
-        t => t.categoryId === cat.id && t.type === 'expense'
-      );
-      const thisMonthTxs = catTxs.filter(t => {
-        const txDate = normaliseDate(t.date);
-        return txDate >= monthStart && txDate < nextMonthStart;
-      });
-      const spendingThisMonth = thisMonthTxs.reduce((sum, t) => sum + t.amount, 0);
+    // Single-pass aggregation: O(n+m) instead of O(n*m)
+    const spendingMap = new Map<number, { totalSpending: number; txCount: number; monthSpending: number }>();
 
+    for (const tx of transactions) {
+      if (tx.type !== 'expense' || tx.categoryId == null) continue;
+      const entry = spendingMap.get(tx.categoryId) ?? { totalSpending: 0, txCount: 0, monthSpending: 0 };
+      entry.totalSpending += tx.amount;
+      entry.txCount += 1;
+      const txDate = normaliseDate(tx.date);
+      if (txDate >= monthStart && txDate < nextMonthStart) {
+        entry.monthSpending += tx.amount;
+      }
+      spendingMap.set(tx.categoryId, entry);
+    }
+
+    return categories.map(cat => {
+      const stats = spendingMap.get(cat.id!);
       return {
         id: cat.id!,
         name: cat.name,
         icon: cat.icon,
         color: cat.color,
         budget: cat.budget,
-        spendingThisMonth,
-        txCount: catTxs.length,
+        spendingThisMonth: stats?.monthSpending ?? 0,
+        txCount: stats?.txCount ?? 0,
       };
     }).sort((a, b) => b.spendingThisMonth - a.spendingThisMonth);
   }, [categories, transactions]);
@@ -297,15 +304,15 @@ export default function CategoriesView() {
       {/* Category List */}
       <div className="space-y-3">
         {categoriesWithSpending.length === 0 ? (
-          <div className="text-center py-16 flex flex-col items-center">
-            <div className="bg-[var(--card)] w-24 h-24 rounded-full flex items-center justify-center mb-4 border border-[var(--border)] text-[var(--accent)] shadow-inner">
-              <Tag size={48} className="opacity-20" />
-            </div>
-            <h3 className="font-bold text-[var(--text-primary)]">{t('No Categories')}</h3>
-            <p className="text-sm text-[var(--text-secondary)] mt-1 max-w-[200px]">
-              {t('Categories will appear here as you add transactions.')}
-            </p>
-          </div>
+          <EmptyState
+            icon={<Tag size={48} className="opacity-20" />}
+            title={t('No Categories')}
+            description={t('Add categories to make your transactions easier to analyze.')}
+            action={{
+              label: t('Add Category'),
+              onClick: () => setShowAddForm(true),
+            }}
+          />
         ) : (
           categoriesWithSpending.map((cat) => {
             const isEditing = editingId === cat.id;

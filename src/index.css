@@ -45,6 +45,20 @@
     --expense: var(--color-expense);
     --income: var(--color-income);
     --border: #334155;
+
+    /* Semantic design tokens */
+    --surface: var(--card);
+    --surface-elevated: #1E293B;
+    --text-muted: var(--text-secondary);
+    --border-subtle: var(--border);
+    --danger: #EF4444;
+    --danger-bg: rgba(239, 68, 68, 0.1);
+    --warning: #F59E0B;
+    --warning-bg: rgba(245, 158, 11, 0.1);
+    --success: #22C55E;
+    --success-bg: rgba(34, 197, 94, 0.1);
+    --info: #3B82F6;
+    --info-bg: rgba(59, 130, 246, 0.1);
   }
 
   :root[data-theme="light"] {
@@ -59,6 +73,20 @@
     --expense: #DC2626;
     --income: #15803D;
     --border: #CBD5E1;
+
+    /* Semantic design tokens */
+    --surface: var(--card);
+    --surface-elevated: #FFFFFF;
+    --text-muted: var(--text-secondary);
+    --border-subtle: var(--border);
+    --danger: #DC2626;
+    --danger-bg: rgba(220, 38, 38, 0.1);
+    --warning: #D97706;
+    --warning-bg: rgba(217, 119, 6, 0.1);
+    --success: #16A34A;
+    --success-bg: rgba(22, 163, 74, 0.1);
+    --info: #2563EB;
+    --info-bg: rgba(37, 99, 235, 0.1);
   }
 
   /* Global focus ring for accessibility */

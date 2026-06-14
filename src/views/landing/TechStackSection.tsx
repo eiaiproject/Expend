@@ -91,7 +91,7 @@ export function TechStackSection() {
         >
           <Code2 size={14} className="text-[#94A3B8]" />
           <span className="text-xs sm:text-sm font-semibold text-[#94A3B8] uppercase tracking-wider">
-            Source Available
+            {t('landing.openSource')}
           </span>
         </motion.div>
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
@@ -123,7 +123,7 @@ export function TechStackSection() {
           className="inline-flex items-center gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-white/5 border border-white/10 rounded-full text-white font-semibold hover:bg-white/10 hover:border-white/20 transition-all duration-300 group"
         >
           <Github size={20} />
-          <span>View Source Code</span>
+          <span>{t('landing.viewSource')}</span>
           <span className="text-white/40 group-hover:text-white/60 transition-colors">→</span>
         </a>
       </motion.div>

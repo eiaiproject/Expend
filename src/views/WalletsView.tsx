@@ -8,9 +8,17 @@ import { confirm } from '../components/ConfirmDialog';
 import { toast } from '../components/Toaster';
 import { findPairedTransfer, assignTransferGroupId } from '../utils/transferUtils';
 import { format, differenceInDays } from 'date-fns';
-import { formatAmountLocal } from '../utils/formatUtils';
+import { formatAmountLocal, formatCurrency } from '../utils/formatUtils';
 import { getTodayStr } from '../utils/dateUtils';
 import { WALLET_STALE_DAYS, SPENDING_TREND_RECENT_DAYS, SPENDING_TREND_PREVIOUS_DAYS } from '../utils/constants';
+import { EmptyState } from '../components/EmptyState';
+
+export type SpendingTrend = {
+  recentSpent: number;
+  previousSpent: number;
+  change: number;
+  isUp: boolean;
+} | null;
 
 export default function WalletsView() {
   const { t } = useTranslation();
@@ -20,6 +28,52 @@ export default function WalletsView() {
 
   const [newWalletName, setNewWalletName] = useState('');
   const [newWalletBal, setNewWalletBal] = useState('');
+
+  // Compute spending trends for all wallets in a single query
+  const spendingTrends = useLiveQuery(async (): Promise<Record<number, SpendingTrend>> => {
+    if (wallets.length === 0) return {};
+
+    const now = new Date();
+    const todayStr = getTodayStr(now);
+    const recentDaysAgoStr = getTodayStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - SPENDING_TREND_RECENT_DAYS));
+    const previousDaysAgoStr = getTodayStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - SPENDING_TREND_PREVIOUS_DAYS));
+
+    const walletIds = wallets.map(w => w.id!).filter(Boolean);
+    if (walletIds.length === 0) return {};
+
+    const txs = await db.transactions
+      .where('walletId')
+      .anyOf(walletIds)
+      .and(t => t.date >= previousDaysAgoStr)
+      .toArray();
+
+    const result: Record<number, SpendingTrend> = {};
+
+    for (const walletId of walletIds) {
+      const walletTxs = txs.filter(t => t.walletId === walletId);
+      let recentSpent = 0;
+      let previousSpent = 0;
+
+      for (const tx of walletTxs) {
+        if (tx.type !== 'expense' && tx.type !== 'transfer_out') continue;
+        const txDate = tx.date.split('T')[0]!;
+        if (txDate >= recentDaysAgoStr && txDate <= todayStr) {
+          recentSpent += tx.amount;
+        } else if (txDate >= previousDaysAgoStr && txDate < recentDaysAgoStr) {
+          previousSpent += tx.amount;
+        }
+      }
+
+      if (previousSpent === 0) {
+        result[walletId] = null;
+      } else {
+        const change = ((recentSpent - previousSpent) / previousSpent) * 100;
+        result[walletId] = { recentSpent, previousSpent, change, isUp: change > 0 };
+      }
+    }
+
+    return result;
+  }, [wallets], {});
 
   const handleAddWallet = async () => {
     if (!newWalletName.trim()) return;
@@ -55,6 +109,7 @@ export default function WalletsView() {
         <button 
           onClick={() => setIsAddWalletOpen(true)}
           className="p-2 bg-[var(--accent)] text-white rounded-full shadow"
+          aria-label={t('Add Wallet')}
         >
           <Plus size={20} />
         </button>
@@ -97,30 +152,43 @@ export default function WalletsView() {
             <Handshake size={20} />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="font-bold">Utang Piutang</h2>
+            <h2 className="font-bold">{t('Debts & Receivables')}</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Kelola uang yang kamu pinjam atau pinjamkan.
+              {t('Manage money lent or borrowed')}
             </p>
           </div>
-          <span className="shrink-0 text-xs font-bold text-[var(--accent)]">Lihat</span>
+          <span className="shrink-0 text-xs font-bold text-[var(--accent)]">{t('View')}</span>
         </div>
       </Link>
 
       <div className="space-y-4">
-        {wallets.map(wallet => {
-          // Use pre-computed currentBalance from DB (set by transactionSaveService)
-          const balance = wallet.currentBalance ?? wallet.initialBalance;
-          const isStale = differenceInDays(new Date(), new Date(wallet.lastUpdated)) >= WALLET_STALE_DAYS;
+        {wallets.length === 0 ? (
+          <EmptyState
+            icon={<WalletIcon size={48} className="opacity-20" />}
+            title={t('No Wallets')}
+            description={t('Create a wallet to start tracking your balance and transactions.')}
+            action={{
+              label: t('Add Wallet'),
+              onClick: () => setIsAddWalletOpen(true),
+            }}
+          />
+        ) : (
+          wallets.map(wallet => {
+            // Use pre-computed currentBalance from DB (set by transactionSaveService)
+            const balance = wallet.currentBalance ?? wallet.initialBalance;
+            const isStale = differenceInDays(new Date(), new Date(wallet.lastUpdated)) >= WALLET_STALE_DAYS;
 
-          return (
-             <WalletCard 
-               key={wallet.id}
-               wallet={wallet}
-               balance={balance}
-               isStale={isStale}
-             />
-          );
-        })}
+            return (
+               <WalletCard 
+                 key={wallet.id}
+                 wallet={wallet}
+                 balance={balance}
+                 isStale={isStale}
+                 spendingTrend={spendingTrends?.[wallet.id!] ?? null}
+               />
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -130,52 +198,16 @@ interface WalletCardProps {
   wallet: Wallet;
   balance: number;
   isStale: boolean;
+  spendingTrend: SpendingTrend;
 }
 
-const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale }) => {
+const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spendingTrend }) => {
   const { t } = useTranslation();
   const [isUpdating, setIsUpdating] = useState(false);
   const [absoluteBalance, setAbsoluteBalance] = useState('');
   
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState(wallet.name);
-
-  // Calculate spending trend using string-based date comparison
-  const spendingTrend = useLiveQuery(async () => {
-    const now = new Date();
-    const todayStr = getTodayStr(now);
-    const recentDaysAgoStr = getTodayStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - SPENDING_TREND_RECENT_DAYS));
-    const previousDaysAgoStr = getTodayStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - SPENDING_TREND_PREVIOUS_DAYS));
-    
-    const txs = await db.transactions
-      .where('walletId')
-      .equals(wallet.id!)
-      .and(t => t.date >= previousDaysAgoStr)
-      .toArray();
-    
-    let recentSpent = 0;
-    let previousSpent = 0;
-    
-    for (const tx of txs) {
-      if (tx.type !== 'expense' && tx.type !== 'transfer_out') continue;
-      const txDate = tx.date.split('T')[0]!;
-      if (txDate >= recentDaysAgoStr && txDate <= todayStr) {
-        recentSpent += tx.amount;
-      } else if (txDate >= previousDaysAgoStr && txDate < recentDaysAgoStr) {
-        previousSpent += tx.amount;
-      }
-    }
-    
-    if (previousSpent === 0) return null;
-    
-    const change = ((recentSpent - previousSpent) / previousSpent) * 100;
-    return {
-      recentSpent,
-      previousSpent,
-      change,
-      isUp: change > 0
-    };
-  });
 
   const handleSaveName = async () => {
     if (!editName.trim()) {
@@ -313,12 +345,14 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale }) => 
                     <button 
                       onClick={() => setIsEditingName(true)} 
                       className="p-1 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all shrink-0"
+                      aria-label={t('Edit Wallet')}
                     >
                       <Edit2 size={14} />
                     </button>
                     <button 
                       onClick={handleDelete} 
                       className="p-1 text-[var(--text-secondary)] hover:text-red-500 transition-all shrink-0 ml-1"
+                      aria-label={t('Delete Wallet')}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -341,7 +375,7 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale }) => 
 
       <div className="mb-4">
         <p className="font-mono text-2xl font-bold">
-          Rp {formatAmountLocal(balance)}
+          {formatCurrency(balance)}
         </p>
         {spendingTrend && (
           <div className="flex items-center gap-1.5 mt-1">
@@ -382,6 +416,7 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale }) => 
       ) : (
         <div className="space-y-3 mt-4 border-t border-[var(--border)] pt-4">
           <p className="text-sm font-medium">{t('Absolute Balance')}</p>
+          <p className="text-xs text-[var(--text-secondary)]">{t('Balance update creates an adjustment transaction.')}</p>
           <input 
             type="text" 
             inputMode="numeric"

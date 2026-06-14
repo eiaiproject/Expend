@@ -1,9 +1,9 @@
-# Expend -- Local-First Expense and Debt Tracker PWA
+# Expend — Local-First Expense and Debt Tracker PWA
 
 Expend is a privacy-focused Progressive Web App for tracking daily expenses, managing multiple wallets, recording debts and receivables, and monitoring budgets. All data stays on your device in IndexedDB. No account, no cloud sync, no ads.
 
 [![CI](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml/badge.svg)](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-1.6.0-teal)](https://github.com/eiaiproject/Expend)
+[![Version](https://img.shields.io/badge/version-1.7.0-teal)](https://github.com/eiaiproject/Expend)
 [![License](https://img.shields.io/badge/license-proprietary-red)](#license)
 
 ---
@@ -15,6 +15,7 @@ Expend is a privacy-focused Progressive Web App for tracking daily expenses, man
 - [How It Works](#how-it-works)
 - [Privacy and Security](#privacy-and-security)
 - [PWA and Offline Support](#pwa-and-offline-support)
+- [Accessibility](#accessibility)
 - [Technology Stack](#technology-stack)
 - [Getting Started](#getting-started)
 - [Available Scripts](#available-scripts)
@@ -32,9 +33,9 @@ Expend is a privacy-focused Progressive Web App for tracking daily expenses, man
 
 Expend is built for people who want to understand where their money goes without handing personal data to a remote server. It covers three core areas:
 
-1. **Expense Tracking** -- Record daily spending with categories, wallets, dates, and notes.
-2. **Wallet Management** -- Track balances across cash, bank accounts, and e-wallets. Transfer between wallets with automatic double-entry recording.
-3. **Debt and Receivable Tracking** -- Log money you owe and money others owe you, with partial payments, settlements, overdue detection, and write-offs.
+1. **Expense Tracking** — Record daily spending with categories, wallets, dates, and notes.
+2. **Wallet Management** — Track balances across cash, bank accounts, and e-wallets. Transfer between wallets with automatic double-entry recording.
+3. **Debt and Receivable Tracking** — Log money you owe and money others owe you, with partial payments, settlements, overdue detection, and write-offs.
 
 Expend is not a full personal finance suite. It does not track income, salary, investment returns, or net worth. The focus is on outflows and obligations.
 
@@ -42,20 +43,87 @@ Expend is not a full personal finance suite. It does not track income, salary, i
 
 ## Key Features
 
-- Expense recording with category, wallet, date, description, and notes
-- Multi-wallet balance tracking with transfer and adjustment support
-- Monthly budget limits per category with progress indicators
-- Debt and receivable tracking with payment recording, overdue status, and write-off
+### Expense Tracking
+
+- Record expenses with category, wallet, date, description, and notes
+- Repeat transactions from history
+- Bulk delete with selection mode
+- Full-text search across descriptions, categories, and wallets
+
+### Wallet Management
+
+- Multi-wallet balance tracking (cash, bank accounts, e-wallets)
+- Transfer between wallets with automatic double-entry recording
+- Balance adjustments that preserve transaction history
+- Stale wallet detection with update prompts
+- Spending trend comparison (last 7 days vs previous 7 days)
+
+### Budget Tracking
+
+- Monthly spending limits per category
+- Color-coded progress bars (on track, near limit, over budget)
+- Real-time budget status in category view
+
+### Debt and Receivable Tracking
+
+- Record payable and receivable debts
+- Partial payment recording with remaining balance tracking
+- Overdue detection with due date monitoring
+- Mark as paid or write off receivables
+- Net position summary (receivables minus payables)
+
+### Statistics and Reporting
+
 - Interactive charts: pie, line, and bar with drill-down
-- Monthly financial report with health score and PDF export
+- Category spending breakdown with percentage ranking
+- Monthly comparison across last 6 months
+- Daily spending trend for current period
+- Monthly financial report with health score
+- PDF export of monthly reports
+
+### Search and Filtering
+
 - Full-text search with type, category, wallet, date, and amount filters
+- Draft filter state with apply and reset controls
+- Active filter count indicator
+- Quick filters for today, this week, and transfers
+- Keyboard shortcuts (/ for search, F for filters, S for sort)
+
+### Data Management
+
 - JSON backup and restore (excludes PIN and security state)
 - CSV export for spreadsheet analysis
+- Import preserves local security settings
+
+### User Experience
+
 - Indonesian and English language support
-- Light and dark theme
-- Swipe gestures and keyboard navigation on transaction cards
-- Screen reader accessible controls with ARIA labels and roles
-- Installable PWA for desktop and mobile
+- Light and dark theme with semantic design tokens
+- Swipe gestures on transaction cards (edit, delete)
+- Visible kebab menu on transaction cards for discoverable actions
+- Segmented period toggle on summary card
+- Contextual empty states with direct action buttons
+- One-time swipe hint for new users
+
+### Accessibility
+
+- All icon-only buttons have descriptive aria-labels
+- No focusable element uses aria-hidden="true"
+- Hidden swipe actions are not keyboard-focusable
+- FAQ accordion exposes expanded/collapsed state via ARIA
+- Bottom sheets use aria-labelledby for programmatic names
+- Focus trap inside open modals and sheets
+- Focus returns to trigger element after close
+- Screen reader summaries for all charts
+- Keyboard navigation throughout the application
+- Respects prefers-reduced-motion for animations
+
+### PWA and Offline
+
+- Installable on desktop and mobile
+- Offline support after first load
+- Service worker caching for app shell and assets
+- Update prompt for new versions
 
 ---
 
@@ -63,11 +131,11 @@ Expend is not a full personal finance suite. It does not track income, salary, i
 
 ### Transactions
 
-Create, edit, repeat, delete, bulk-delete, search, and filter transactions. Swipe left on a transaction card to reveal Edit and Delete actions. Use keyboard shortcuts to navigate quickly.
+Create, edit, repeat, delete, bulk-delete, search, and filter transactions. Swipe left on a transaction card to reveal Edit and Delete actions, or use the kebab menu for accessible action discovery. Use keyboard shortcuts to navigate quickly.
 
 ### Wallets
 
-Each wallet tracks its own balance. Transfers between wallets create paired records. Balance adjustments record the difference without deleting history.
+Each wallet tracks its own balance. Transfers between wallets create paired records. Balance adjustments record the difference without deleting history. Stale wallets that haven't been updated recently show a warning prompt.
 
 ### Budgets
 
@@ -116,6 +184,20 @@ Expend does not provide multi-device sync. Export JSON backups manually for port
 
 ---
 
+## Accessibility
+
+Expend follows WCAG 2.1 AA guidelines where applicable:
+
+- **Keyboard navigation:** All interactive elements are reachable via Tab, Enter, Escape, and arrow keys
+- **Screen readers:** ARIA labels, roles, and live regions provide context for assistive technologies
+- **Focus management:** Focus is trapped inside open modals and restored to the trigger on close
+- **Color contrast:** Semantic design tokens maintain readable contrast in both light and dark themes
+- **Touch targets:** All interactive controls meet the 44x44px minimum touch target size
+- **Motion:** Animations respect the prefers-reduced-motion media query
+- **Charts:** All chart data is available as screen-reader-only text summaries and interactive lists
+
+---
+
 ## Technology Stack
 
 | Layer | Technology |
@@ -128,7 +210,7 @@ Expend does not provide multi-device sync. Export JSON backups manually for port
 | Animation | Motion |
 | Localization | i18next, react-i18next |
 | PWA | vite-plugin-pwa, Workbox |
-| PDF Export | jsPDF |
+| PDF Export | jsPDF (dynamically imported) |
 | CSV Export | PapaParse |
 | Testing | Vitest, Playwright, axe-core |
 | Linting | ESLint, TypeScript strict mode |
@@ -290,7 +372,7 @@ Expend follows Semantic Versioning (semver):
 - **Minor (0.X.0):** Backward-compatible features, UX improvements, accessibility enhancements
 - **Patch (0.0.X):** Backward-compatible bug fixes
 
-Current release: **v1.6.0**
+Current release: **v1.7.0**
 
 ---
 

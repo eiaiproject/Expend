@@ -73,8 +73,8 @@ export function DebtDetailSheet({
     const confirmed = await confirm({
       title: t('Mark as paid?'),
       message: hideAmount
-        ? t('Mark paid desc', { type: isPayable ? 'utang' : 'piutang' })
-        : t('Mark paid desc amount', { type: isPayable ? 'utang' : 'piutang' }),
+        ? t('Mark paid desc', { type: isPayable ? t('Payable') : t('Receivable') })
+        : t('Mark paid desc amount', { type: isPayable ? t('Payable') : t('Receivable') }),
       confirmLabel: t('Mark Paid'),
     });
     if (!confirmed) return;
@@ -208,7 +208,7 @@ export function DebtDetailSheet({
             onClick={() => onEdit(debt)}
             className="inline-flex items-center justify-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-3 text-sm font-bold text-[var(--text-secondary)]"
           >
-            <Pencil size={15} /> Edit
+            <Pencil size={15} /> {t('Edit')}
           </button>
           <button
             type="button"

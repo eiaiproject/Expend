@@ -1,15 +1,13 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
-import { Eye, EyeOff, ClipboardList, Filter, ArrowUpDown, Search, XCircle, X, Tag, Trash2, FileText, Handshake } from 'lucide-react';
+import { Eye, EyeOff, ClipboardList, Filter, ArrowUpDown, Search, XCircle, X, Tag, Trash2, FileText, Handshake, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '../utils/cn';
 import { TransactionDetailSheet } from '../components/TransactionDetailSheet';
-import { TransactionFormSheet } from '../components/TransactionFormSheet';
-import { FilterSheet } from '../components/FilterSheet';
 import { InfoPopup } from '../components/InfoPopup';
 import { toast } from '../components/Toaster';
 import { deleteTransactionsWithPairs, restoreTransactions } from '../services/deleteTransactionService';
@@ -29,7 +27,11 @@ import { useTransactionSort } from '../hooks/useTransactionSort';
 import { SummaryCard } from '../components/home/SummaryCard';
 import { ActiveFilterChips } from '../components/home/ActiveFilterChips';
 import { TransactionCard } from '../components/home/TransactionCard';
-import { MonthlyReportPopup } from '../components/MonthlyReportPopup';
+import { EmptyState } from '../components/EmptyState';
+
+const TransactionFormSheet = lazy(() => import('../components/TransactionFormSheet').then(m => ({ default: m.TransactionFormSheet })));
+const FilterSheet = lazy(() => import('../components/FilterSheet').then(m => ({ default: m.FilterSheet })));
+const MonthlyReportPopup = lazy(() => import('../components/MonthlyReportPopup').then(m => ({ default: m.MonthlyReportPopup })));
 
 const TRANSACTION_RENDER_PAGE_SIZE = 100;
 
@@ -42,6 +44,7 @@ export default function HomeView() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isOverflowOpen, setIsOverflowOpen] = useState(false);
   const [expensePeriod, setExpensePeriod] = useState<'month' | 'all'>('month');
   const [visibleTransactionCount, setVisibleTransactionCount] = useState(TRANSACTION_RENDER_PAGE_SIZE);
   const [openActionTransactionId, setOpenActionTransactionId] = useState<number | null>(null);
@@ -126,7 +129,7 @@ export default function HomeView() {
   }, [isSelectionMode]);
 
   useEffect(() => {
-    setOpenActionTransactionId(null);
+    setIsOverflowOpen(false);
   }, [isFilterOpen]);
 
   useEffect(() => {
@@ -276,29 +279,49 @@ export default function HomeView() {
             </p>
           </div>
           
-          <button 
-            onClick={() => setIsInfoOpen(true)}
-            className="ml-1 p-1 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
-            aria-label={t('Project Information')}
-          >
-            <div className="w-5 h-5 rounded-full border border-[var(--border)] flex items-center justify-center text-[10px] font-bold">
-              i
-            </div>
-          </button>
-          <button 
-            onClick={() => setIsReportOpen(true)}
-            className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-lg hover:bg-[var(--card)]"
-            aria-label={t('Monthly Report')}
-          >
-            <FileText size={18} />
-          </button>
           <Link 
             to="/categories"
-            className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-lg hover:bg-[var(--card)]"
+            className="ml-1 p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-lg hover:bg-[var(--card)]"
             aria-label={t('Categories & Budgets')}
           >
             <Tag size={18} />
           </Link>
+          <div className="relative">
+            <button 
+              onClick={() => setIsOverflowOpen(!isOverflowOpen)}
+              className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-lg hover:bg-[var(--card)]"
+              aria-label={t('More')}
+              aria-expanded={isOverflowOpen}
+              aria-haspopup="true"
+            >
+              <MoreVertical size={18} />
+            </button>
+            {isOverflowOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsOverflowOpen(false)} />
+                <div className="absolute left-0 top-full mt-1 z-50 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg py-1 min-w-[180px]">
+                  <button
+                    type="button"
+                    onClick={() => { setIsOverflowOpen(false); setIsInfoOpen(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors"
+                  >
+                    <div className="w-5 h-5 rounded-full border border-[var(--border)] flex items-center justify-center text-[10px] font-bold text-[var(--text-secondary)]">
+                      i
+                    </div>
+                    {t('Project Information')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsOverflowOpen(false); setIsReportOpen(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors"
+                  >
+                    <FileText size={16} className="text-[var(--text-secondary)]" />
+                    {t('Monthly Report')}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
         <button 
           onClick={() => setHideAmount(!hideAmount)}
@@ -333,21 +356,21 @@ export default function HomeView() {
               <div className="rounded-lg bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
                 <Handshake size={16} />
               </div>
-              <h2 className="font-bold">Utang Piutang</h2>
+              <h2 className="font-bold">{t('Debts & Receivables')}</h2>
             </div>
-            <span className="text-xs font-bold text-[var(--accent)]">Lihat</span>
+            <span className="text-xs font-bold text-[var(--accent)]">{t('View')}</span>
           </div>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between gap-3">
-              <span className="text-[var(--text-secondary)]">Utang aktif</span>
+              <span className="text-[var(--text-secondary)]">{t('Active Debts')}</span>
               <span className="font-mono font-bold text-amber-500">{formatCurrency(debtSummary.payableTotal, hideAmount)}</span>
             </div>
             <div className="flex justify-between gap-3">
-              <span className="text-[var(--text-secondary)]">Piutang aktif</span>
+              <span className="text-[var(--text-secondary)]">{t('Active Receivables')}</span>
               <span className="font-mono font-bold text-[var(--accent)]">{formatCurrency(debtSummary.receivableTotal, hideAmount)}</span>
             </div>
             {debtSummary.attentionCount > 0 && (
-              <p className="text-xs font-bold text-red-500">{debtSummary.attentionCount} perlu perhatian</p>
+              <p className="text-xs font-bold text-red-500">{t('needs attention count', { count: debtSummary.attentionCount })}</p>
             )}
           </div>
         </Link>
@@ -389,7 +412,7 @@ export default function HomeView() {
       />
 
       {/* Quick Filter Chips */}
-      {!isSelectionMode && filters.type === 'all' && filters.searchTerm === '' && (
+      {!isSelectionMode && (
         <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-none">
           {(['today', 'week', 'transfers'] as const).map(qf => (
             <button
@@ -437,7 +460,7 @@ export default function HomeView() {
                     ? "bg-[var(--accent)] text-white border-[var(--accent)]" 
                     : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] active:bg-[var(--border)]"
                 )}
-                title="Filter"
+                title={t('Filter Type')}
                 aria-label={t('Filter Type')}
               >
                 <Filter size={16} />
@@ -450,7 +473,7 @@ export default function HomeView() {
               <button 
                 onClick={toggleSortOrder}
                 className="relative p-2 bg-[var(--card)] rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] active:bg-[var(--border)] transition-colors group"
-                title="Sort Date"
+                title={t('Sort Date')}
                 aria-label={t('Sort Date')}
               >
                 <ArrowUpDown size={16} />
@@ -463,7 +486,7 @@ export default function HomeView() {
               <button 
                 onClick={handleBulkDelete}
                 className="p-2 bg-red-500 text-white rounded-lg border border-red-600 transition-colors hover:bg-red-600 active:scale-95"
-                title="Bulk Delete"
+                title={t('Bulk Delete')}
                 aria-label={t('Bulk Delete')}
               >
                 <Trash2 size={16} />
@@ -473,28 +496,39 @@ export default function HomeView() {
         </div>
 
         {!isLoading && (
-          <FilterSheet 
-            isOpen={isFilterOpen} 
-            onClose={() => setIsFilterOpen(false)}
-            categories={activeCategories || []}
-            wallets={activeWallets || []}
-            filters={{
-              type: filters.type,
-              setType: filterActions.setType,
-              categories: filters.categories,
-              setCategories: filterActions.setCategories,
-              wallets: filters.wallets,
-              setWallets: filterActions.setWallets,
-              startDate: filters.startDate,
-              setStartDate: filterActions.setStartDate,
-              endDate: filters.endDate,
-              setEndDate: filterActions.setEndDate,
-              minAmount: filters.minAmount,
-              setMinAmount: filterActions.setMinAmount,
-              maxAmount: filters.maxAmount,
-              setMaxAmount: filterActions.setMaxAmount,
-            }}
-          />
+          <Suspense fallback={null}>
+            <FilterSheet 
+              isOpen={isFilterOpen} 
+              onClose={() => setIsFilterOpen(false)}
+              categories={activeCategories || []}
+              wallets={activeWallets || []}
+              activeFilterCount={
+                (filters.type !== 'all' ? 1 : 0) +
+                filters.categories.length +
+                filters.wallets.length +
+                (filters.startDate ? 1 : 0) +
+                (filters.endDate ? 1 : 0) +
+                (filters.minAmount ? 1 : 0) +
+                (filters.maxAmount ? 1 : 0)
+              }
+              filters={{
+                type: filters.type,
+                setType: filterActions.setType,
+                categories: filters.categories,
+                setCategories: filterActions.setCategories,
+                wallets: filters.wallets,
+                setWallets: filterActions.setWallets,
+                startDate: filters.startDate,
+                setStartDate: filterActions.setStartDate,
+                endDate: filters.endDate,
+                setEndDate: filterActions.setEndDate,
+                minAmount: filters.minAmount,
+                setMinAmount: filterActions.setMinAmount,
+                maxAmount: filters.maxAmount,
+                setMaxAmount: filterActions.setMaxAmount,
+              }}
+            />
+          </Suspense>
         )}
         
         {isLoading ? (
@@ -504,25 +538,34 @@ export default function HomeView() {
             ))}
           </div>
         ) : filteredTransactions.length === 0 ? (
-          <div className="text-center py-16 flex flex-col items-center">
-            <div className="bg-[var(--card)] w-24 h-24 rounded-full flex items-center justify-center mb-4 border border-[var(--border)] text-[var(--accent)] shadow-inner">
-              <ClipboardList size={48} className="opacity-20" />
-            </div>
-            <h3 className="font-bold text-[var(--text-primary)]">{t('No Transactions')}</h3>
-            <p className="text-sm text-[var(--text-secondary)] mt-1 max-w-[200px]">
-              {filters.searchTerm || filters.categories.length > 0 || filters.wallets.length > 0 || filters.startDate || filters.endDate
-                ? t('Filter Hint')
-                : t('Empty State Hint')}
-            </p>
-            {!(filters.searchTerm || filters.categories.length > 0 || filters.wallets.length > 0 || filters.startDate || filters.endDate) && (
-              <button
-                onClick={() => setIsFormOpen(true)}
-                className="mt-4 px-6 py-3 bg-[var(--accent)] text-white rounded-xl font-bold shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-transform"
-              >
-                {t('Add Transaction')}
-              </button>
-            )}
-          </div>
+          filters.searchTerm || filters.categories.length > 0 || filters.wallets.length > 0 || filters.startDate || filters.endDate ? (
+            <EmptyState
+              title={t('No matching transactions')}
+              description={t('Try changing your filter or search keywords.')}
+              action={{
+                label: t('Reset All'),
+                onClick: () => {
+                  filterActions.setType('all');
+                  filterActions.setCategories([]);
+                  filterActions.setWallets([]);
+                  filterActions.setStartDate('');
+                  filterActions.setEndDate('');
+                  filterActions.setMinAmount('');
+                  filterActions.setMaxAmount('');
+                  filterActions.setSearchTerm('');
+                },
+              }}
+            />
+          ) : (
+            <EmptyState
+              title={t('No Transactions')}
+              description={t('Add your first transaction to start seeing your spending summary.')}
+              action={{
+                label: t('Add Transaction'),
+                onClick: () => setIsFormOpen(true),
+              }}
+            />
+          )
         ) : (
           <div className="space-y-6">
             {/* Selection Mode Toggle */}
@@ -566,6 +609,7 @@ export default function HomeView() {
                           onDelete={() => handleDelete(tx)}
                           onActionOpen={() => setOpenActionTransactionId(tx.id!)}
                           onActionClose={() => setOpenActionTransactionId(null)}
+                          onViewDetail={() => setSelectedTx(tx)}
                         />
                       </motion.div>
                     ))}
@@ -595,16 +639,20 @@ export default function HomeView() {
         onRepeat={handleRepeat}
       />
 
-      <TransactionFormSheet
-        isOpen={isFormOpen}
-        onClose={() => { setIsFormOpen(false); setEditTx(null); }}
-        txToEdit={editTx}
-      />
+      <Suspense fallback={null}>
+        <TransactionFormSheet
+          isOpen={isFormOpen}
+          onClose={() => { setIsFormOpen(false); setEditTx(null); }}
+          txToEdit={editTx}
+        />
+      </Suspense>
 
-      <MonthlyReportPopup
-        isOpen={isReportOpen}
-        onClose={() => setIsReportOpen(false)}
-      />
+      <Suspense fallback={null}>
+        <MonthlyReportPopup
+          isOpen={isReportOpen}
+          onClose={() => setIsReportOpen(false)}
+        />
+      </Suspense>
     </div>
   );
 }

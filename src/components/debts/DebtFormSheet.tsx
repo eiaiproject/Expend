@@ -30,7 +30,7 @@ function formatAmountInput(value: string): string {
 }
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Gagal menyimpan catatan.';
+  return error instanceof Error ? error.message : 'Save debt failed';
 }
 
 export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit = null }: DebtFormSheetProps) {
@@ -203,7 +203,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
 
           <div>
             <label htmlFor={`${formId}-title`} className="block text-sm font-medium mb-1">
-              Judul
+              {t('Title')}
             </label>
             <input
               id={`${formId}-title`}
@@ -218,11 +218,11 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
 
           <div>
             <label htmlFor={`${formId}-amount`} className="block text-sm font-medium mb-1">
-              Nominal *
+              {t('Amount')} *
             </label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-[var(--text-secondary)]">
-                Rp
+                {t('Currency Symbol')}
               </span>
               <input
                 id={`${formId}-amount`}

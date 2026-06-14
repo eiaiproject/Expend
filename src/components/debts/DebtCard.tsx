@@ -129,7 +129,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
           </div>
 
           {!hideAmount && (
-            <div className="mt-3 h-2 rounded-full bg-[var(--border)]" aria-label={`${paidRatio.toFixed(0)} persen lunas`}>
+            <div className="mt-3 h-2 rounded-full bg-[var(--border)]" aria-label={t('Part paid percent', { percent: paidRatio.toFixed(0) })}>
               <div
                 className={cn('h-full rounded-full', isPayable ? 'bg-amber-500' : 'bg-[var(--accent)]')}
                 style={{ width: `${paidRatio}%` }}

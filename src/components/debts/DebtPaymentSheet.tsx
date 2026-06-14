@@ -112,7 +112,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
           </label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-[var(--text-secondary)]">
-              Rp
+              {t('Currency Symbol')}
             </span>
             <input
               id={`${formId}-amount`}
@@ -146,7 +146,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
 
         <div>
           <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
-            {isPayable ? 'Keluar dari wallet' : 'Masuk ke wallet'} *
+            {isPayable ? t('Money from wallet') : t('Money into wallet')} *
           </label>
           <div className="relative">
             <WalletIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} />

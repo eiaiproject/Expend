@@ -9,7 +9,7 @@ import {
   markReportDownloaded,
   getPreviousMonthName 
 } from '../services/monthlyReportService';
-import { generateSimplePDF } from '../utils/pdfGenerator';
+import { formatCurrency } from '../utils/formatUtils';
 import { useTheme } from '../contexts/ThemeContext';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { Skeleton } from './Skeleton';
@@ -55,6 +55,7 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
     
     setIsGeneratingPDF(true);
     try {
+      const { generateSimplePDF } = await import('../utils/pdfGenerator');
       const locale = i18n.language || 'id';
       await generateSimplePDF(reportData, locale, theme);
       markReportDownloaded();
@@ -72,8 +73,8 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
     onClose();
   };
 
-  const formatCurrency = (amount: number) => {
-    return `Rp ${amount.toLocaleString('id-ID')}`;
+  const displayCurrency = (amount: number) => {
+    return formatCurrency(amount);
   };
 
   const getTrendIcon = (change: number) => {
@@ -198,7 +199,7 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
                   <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-5 border border-red-200 dark:border-red-800">
                     <p className="text-xs text-red-600 dark:text-red-400 mb-2 uppercase tracking-wide">{t('Total Expenses')}</p>
                     <p className="text-2xl font-bold text-red-700 dark:text-red-300">
-                      {formatCurrency(reportData.totalExpense)}
+                      {displayCurrency(reportData.totalExpense)}
                     </p>
                   </div>
 
@@ -219,7 +220,7 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-sm font-medium truncate">{cat.categoryName}</span>
-                              <span className="text-sm font-bold">{formatCurrency(cat.total)}</span>
+                              <span className="text-sm font-bold">{displayCurrency(cat.total)}</span>
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                               <div 
@@ -274,7 +275,7 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-[var(--card)] rounded-xl p-4 border border-[var(--border)]">
                       <p className="text-xs text-[var(--text-secondary)] mb-1">{t('Avg Daily')}</p>
-                      <p className="font-bold">{formatCurrency(reportData.avgDailyExpense)}</p>
+                      <p className="font-bold">{displayCurrency(reportData.avgDailyExpense)}</p>
                     </div>
                     <div className="bg-[var(--card)] rounded-xl p-4 border border-[var(--border)]">
                       <p className="text-xs text-[var(--text-secondary)] mb-1">{t('Transactions')}</p>
