@@ -30,7 +30,7 @@ jobs:
         run: npm run qa:automated
 
   deploy:
-    name: Deploy to Cloudflare Pages
+    name: Deploy to Cloudflare
     needs: check
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -45,9 +45,9 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Deploy to Cloudflare Pages
+      - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=expend
+          command: deploy
