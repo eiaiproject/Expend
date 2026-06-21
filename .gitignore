@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+pnp
+pnp.js
+
+# Production
+dist/
+build/
+coverage/
+
+# Test/QA output
+test-results/
+playwright-report/
+blob-report/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs/Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.vercel
+.agents/
+.pi/
+.qwen/
+
+# TypeScript
+*.tsbuildinfo
+
+# ESLint
+.eslintcache
+
+# Preview/Development files
+preview-*.html
+test-*.ts
+
+# Wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example

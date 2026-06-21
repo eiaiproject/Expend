@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+  --color-brand: #0F766E;
+  --color-expense: #F87171;
+  --color-income: #4ADE80;
+}
+
+@layer utilities {
+  /* Hide scrollbar but keep scroll functionality */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Skeleton shimmer animation */
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--border) 25%,
+      var(--card) 50%,
+      var(--border) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --bg: #0F172A;
+    --card: #1E293B;
+    --text-primary: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --accent: #0F766E;
+    --accent-fill: #0F766E;
+    --accent-text: #2DD4BF;
+    --accent-on-dark: #D1FAE5;
+    --expense: var(--color-expense);
+    --income: var(--color-income);
+    --border: #334155;
+
+    /* Semantic design tokens */
+    --surface: var(--card);
+    --surface-elevated: #1E293B;
+    --text-muted: var(--text-secondary);
+    --border-subtle: var(--border);
+    --danger: #EF4444;
+    --danger-bg: rgba(239, 68, 68, 0.1);
+    --warning: #F59E0B;
+    --warning-bg: rgba(245, 158, 11, 0.1);
+    --success: #22C55E;
+    --success-bg: rgba(34, 197, 94, 0.1);
+    --info: #3B82F6;
+    --info-bg: rgba(59, 130, 246, 0.1);
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #F1F5F9;
+    --card: #FFFFFF;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --accent: #0F766E;
+    --accent-fill: #0F766E;
+    --accent-text: #0F766E;
+    --accent-on-dark: #065F46;
+    --expense: #DC2626;
+    --income: #15803D;
+    --border: #CBD5E1;
+
+    /* Semantic design tokens */
+    --surface: var(--card);
+    --surface-elevated: #FFFFFF;
+    --text-muted: var(--text-secondary);
+    --border-subtle: var(--border);
+    --danger: #DC2626;
+    --danger-bg: rgba(220, 38, 38, 0.1);
+    --warning: #D97706;
+    --warning-bg: rgba(217, 119, 6, 0.1);
+    --success: #16A34A;
+    --success-bg: rgba(22, 163, 74, 0.1);
+    --info: #2563EB;
+    --info-bg: rgba(37, 99, 235, 0.1);
+  }
+
+  /* Global focus ring for accessibility */
+  *:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  margin: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Honour reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
