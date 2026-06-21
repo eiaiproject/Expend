@@ -33,7 +33,7 @@ function FAQAccordion({ item, index }: { item: FAQItem; index: number }) {
         </span>
         <ChevronDown
           size={18}
-          className={`text-[#94A3B8] shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-[var(--text-secondary)] shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
       <AnimatePresence>
@@ -48,7 +48,7 @@ function FAQAccordion({ item, index }: { item: FAQItem; index: number }) {
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed pb-4 sm:pb-5">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed pb-4 sm:pb-5">
               {item.answer}
             </p>
           </motion.div>
@@ -116,20 +116,20 @@ export function FAQSection() {
             viewport={{ once: true }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-6"
           >
-            <span className="text-xs sm:text-sm font-semibold text-[#94A3B8] uppercase tracking-wider">
+            <span className="text-xs sm:text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
               FAQ
             </span>
           </motion.div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white mb-3">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">
             {t('landing.faqTitle')}
           </h2>
-          <p className="text-sm sm:text-base text-[#94A3B8]">
+          <p className="text-sm sm:text-base text-[var(--text-secondary)]">
             {t('landing.faqSubtitle')}
           </p>
         </motion.div>
 
         {/* FAQ List */}
-        <div className="bg-[#1E293B]/30 border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-8">
+        <div className="bg-[var(--card)]/30 border border-white/5 rounded-xl sm:rounded-2xl p-5 sm:p-8">
           {faqs.map((faq, i) => (
             <FAQAccordion key={i} item={faq} index={i} />
           ))}
@@ -140,7 +140,7 @@ export function FAQSection() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="text-center text-xs sm:text-sm text-[#94A3B8] mt-6 sm:mt-8"
+          className="text-center text-xs sm:text-sm text-[var(--text-secondary)] mt-6 sm:mt-8"
         >
           {t('landing.faqContact')}{' '}
           <a

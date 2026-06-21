@@ -214,7 +214,7 @@ export function TransactionCard({
             <span className="w-4 text-right mr-1">
               {isExpenseOrTransferOut ? '-' : '+'}
             </span>
-            <span className="w-8 text-right mr-1 text-[12px] text-[var(--text-secondary)]">{t('Currency Symbol')}</span>
+
             <span>{renderAmountValue(tx.amount)}</span>
           </p>
         </div>

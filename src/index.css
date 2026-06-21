@@ -1,12 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
 
-  --color-brand: #0F766E;
-  --color-expense: #F87171;
-  --color-income: #4ADE80;
+  /* Type scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  --color-brand: #7A9B6A;
+  --color-expense: #C4705A;
+  --color-income: #7A9B6A;
 }
 
 @layer utilities {
@@ -30,65 +41,89 @@
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
   }
+
+  /* Text overflow protection */
+  .truncate-single {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .truncate-multi {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Prevent flex/grid overflow */
+  .overflow-safe {
+    min-width: 0;
+    overflow: hidden;
+  }
 }
 
 @layer base {
   :root {
     color-scheme: dark;
-    --bg: #0F172A;
-    --card: #1E293B;
-    --text-primary: #F1F5F9;
-    --text-secondary: #94A3B8;
-    --accent: #0F766E;
-    --accent-fill: #0F766E;
-    --accent-text: #2DD4BF;
-    --accent-on-dark: #D1FAE5;
+    --bg: #1A1E16;
+    --card: #252A20;
+    --text-primary: #EDE8DC;
+    --text-secondary: #9CA88E;
+    --accent: #7A9B6A;
+    --accent-fill: #7A9B6A;
+    --accent-text: #A8C49A;
+    --accent-on-dark: #5E8A4A;
     --expense: var(--color-expense);
     --income: var(--color-income);
-    --border: #334155;
+    --border: #3A4235;
 
     /* Semantic design tokens */
     --surface: var(--card);
-    --surface-elevated: #1E293B;
+    --surface-elevated: #2A3024;
     --text-muted: var(--text-secondary);
     --border-subtle: var(--border);
-    --danger: #EF4444;
-    --danger-bg: rgba(239, 68, 68, 0.1);
-    --warning: #F59E0B;
-    --warning-bg: rgba(245, 158, 11, 0.1);
-    --success: #22C55E;
-    --success-bg: rgba(34, 197, 94, 0.1);
-    --info: #3B82F6;
-    --info-bg: rgba(59, 130, 246, 0.1);
+    --category-red: #EF4444;
+    --category-orange: #F97316;
+    --category-blue: #3B82F6;
+    --category-gray: #64748B;
+    --danger: #B85A4A;
+    --danger-bg: rgba(184, 90, 74, 0.15);
+    --warning: #C4A35A;
+    --warning-bg: rgba(196, 163, 90, 0.15);
+    --success: #7A9B6A;
+    --success-bg: rgba(122, 155, 106, 0.15);
+    --info: #5A8AA0;
+    --info-bg: rgba(90, 138, 160, 0.15);
   }
 
   :root[data-theme="light"] {
     color-scheme: light;
-    --bg: #F1F5F9;
-    --card: #FFFFFF;
-    --text-primary: #0F172A;
-    --text-secondary: #475569;
-    --accent: #0F766E;
-    --accent-fill: #0F766E;
-    --accent-text: #0F766E;
-    --accent-on-dark: #065F46;
-    --expense: #DC2626;
-    --income: #15803D;
-    --border: #CBD5E1;
+    --bg: #F2F4EE;
+    --card: #FAFAF7;
+    --text-primary: #3D2E1F;
+    --text-secondary: #5C4D3C;
+    --accent: #5E8A4A;
+    --accent-fill: #5E8A4A;
+    --accent-text: #5E8A4A;
+    --accent-on-dark: #7A9B6A;
+    --expense: #B86B5A;
+    --income: #5E8A4A;
+    --border: #D4D9CE;
 
     /* Semantic design tokens */
     --surface: var(--card);
     --surface-elevated: #FFFFFF;
     --text-muted: var(--text-secondary);
     --border-subtle: var(--border);
-    --danger: #DC2626;
-    --danger-bg: rgba(220, 38, 38, 0.1);
-    --warning: #D97706;
-    --warning-bg: rgba(217, 119, 6, 0.1);
-    --success: #16A34A;
-    --success-bg: rgba(22, 163, 74, 0.1);
-    --info: #2563EB;
-    --info-bg: rgba(37, 99, 235, 0.1);
+    --danger: #A85A4A;
+    --danger-bg: rgba(168, 90, 74, 0.1);
+    --warning: #B08A3A;
+    --warning-bg: rgba(176, 138, 58, 0.1);
+    --success: #5E8A4A;
+    --success-bg: rgba(94, 138, 74, 0.1);
+    --info: #4A7A8A;
+    --info-bg: rgba(74, 122, 138, 0.1);
   }
 
   /* Global focus ring for accessibility */
@@ -110,6 +145,34 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+  /* Prevent text selection on non-interactive elements */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection colors */
+::selection {
+  background-color: var(--accent);
+  color: white;
+}
+
+/* Scrollbar styling for webkit */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
 @keyframes shake {

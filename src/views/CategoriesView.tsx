@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Category } from '../db/db';
-import { Tag, Plus, Edit2, Trash2, Check, X, Save, ArrowLeft } from 'lucide-react';
+import { Tag, Plus, Edit2, Trash2, Check, X, Save, ArrowLeft, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { cn } from '../utils/cn';
@@ -36,6 +36,7 @@ export default function CategoriesView() {
   const [editColor, setEditColor] = useState('');
   const [editBudget, setEditBudget] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState<string>(CURATED_PALETTE[0] as string);
   const [newBudget, setNewBudget] = useState('');
@@ -240,14 +241,36 @@ export default function CategoriesView() {
           </button>
           <h1 className="text-2xl font-bold">{t('Categories & Budgets')}</h1>
         </div>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="p-2 bg-[var(--accent)] text-white rounded-full shadow"
-          aria-label={t('Add Category')}
-        >
-          <Plus size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowHelp(!showHelp)}
+            className="p-2 border border-[var(--border)] bg-[var(--card)] rounded-full"
+            aria-label={t('Help')}
+          >
+            <HelpCircle size={20} />
+          </button>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="p-2 bg-[var(--accent)] text-white rounded-full shadow"
+            aria-label={t('Add Category')}
+          >
+            <Plus size={20} />
+          </button>
+        </div>
       </div>
+
+      {showHelp && (
+        <div className="rounded-[16px] border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4">
+          <h3 className="font-bold text-[var(--accent)] mb-2">{t('How Categories Work')}</h3>
+          <ul className="text-sm text-[var(--text-secondary)] space-y-1">
+            <li>• {t('Categories organize your expenses')}</li>
+            <li>• {t('Set budgets to track spending limits')}</li>
+            <li>• {t('Budget progress shows in the bar below')}</li>
+            <li>• {t('Deleting a category moves transactions to Other')}</li>
+          </ul>
+        </div>
+      )}
 
       {/* Add Category Form */}
       <AnimatePresence>

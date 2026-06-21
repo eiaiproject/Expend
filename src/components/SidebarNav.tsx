@@ -12,7 +12,7 @@ export function SidebarNav({ onAddClick }: { onAddClick: () => void }) {
       <div className="space-y-8">
         {/* Brand Logo */}
         <div className="flex items-center gap-2 px-2">
-          <h1 className="text-2xl font-black tracking-tighter uppercase text-[var(--accent)]">
+          <h1 className="text-2xl tracking-tight text-[var(--accent)]" style={{ fontFamily: 'var(--font-display)' }}>
             Expend
           </h1>
         </div>
@@ -53,7 +53,7 @@ function SidebarItem({ to, end: isEnd, icon, label }: { to: string; end?: boolea
         cn(
           "flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-sm transition-all",
           isActive 
-            ? "bg-[var(--accent)]/10 text-[var(--accent)] font-bold border-l-4 border-[var(--accent)] pl-3" 
+            ? "bg-[var(--accent)]/10 text-[var(--accent)] font-bold" 
             : "text-[var(--text-secondary)] hover:bg-[var(--border)]/30 hover:text-[var(--text-primary)]"
         )
       }

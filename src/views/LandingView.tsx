@@ -14,18 +14,13 @@ export default function LandingView({ onTryWeb, onEnter }: { onTryWeb: () => voi
     document.getElementById('install-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const scrollToFeatures = () => {
-    document.getElementById('features-section')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   return (
-    <div className="bg-[#0F172A] text-[#F1F5F9] font-sans overflow-x-hidden">
+    <div className="bg-[var(--bg)] text-[var(--text-primary)] font-sans overflow-x-hidden">
       {/* Hero Section */}
       <HeroSection
         onTryWeb={onTryWeb}
         onEnter={onEnter}
         onScrollToInstall={scrollToInstall}
-        onScrollToFeatures={scrollToFeatures}
       />
 
       {/* Features Section */}

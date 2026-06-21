@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Wallet } from '../db/db';
-import { Wallet as WalletIcon, AlertCircle, Plus, Edit2, Check, X, Trash2, TrendingUp, TrendingDown, Minus, Handshake } from 'lucide-react';
+import { Wallet as WalletIcon, AlertCircle, HelpCircle, Plus, Edit2, Check, X, Trash2, TrendingUp, TrendingDown, Minus, Handshake } from 'lucide-react';
 import { confirm } from '../components/ConfirmDialog';
 import { toast } from '../components/Toaster';
 import { findPairedTransfer, assignTransferGroupId } from '../utils/transferUtils';
@@ -23,6 +23,7 @@ export type SpendingTrend = {
 export default function WalletsView() {
   const { t } = useTranslation();
   const [isAddWalletOpen, setIsAddWalletOpen] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   
   const wallets = useLiveQuery(() => db.wallets.toArray()) || [];
 
@@ -106,14 +107,36 @@ export default function WalletsView() {
     <div className="p-4 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{t('Wallets')}</h1>
-        <button 
-          onClick={() => setIsAddWalletOpen(true)}
-          className="p-2 bg-[var(--accent)] text-white rounded-full shadow"
-          aria-label={t('Add Wallet')}
-        >
-          <Plus size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowHelp(!showHelp)}
+            className="p-2 border border-[var(--border)] bg-[var(--card)] rounded-full"
+            aria-label={t('Help')}
+          >
+            <HelpCircle size={20} />
+          </button>
+          <button 
+            onClick={() => setIsAddWalletOpen(true)}
+            className="p-2 bg-[var(--accent)] text-white rounded-full shadow"
+            aria-label={t('Add Wallet')}
+          >
+            <Plus size={20} />
+          </button>
+        </div>
       </div>
+
+      {showHelp && (
+        <div className="rounded-[16px] border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4">
+          <h3 className="font-bold text-[var(--accent)] mb-2">{t('How Wallets Work')}</h3>
+          <ul className="text-sm text-[var(--text-secondary)] space-y-1">
+            <li>• {t('Each wallet tracks its own balance')}</li>
+            <li>• {t('Initial balance is your starting point')}</li>
+            <li>• {t('Transfers move money between wallets')}</li>
+            <li>• {t('Stale wallets show a warning after 30 days')}</li>
+          </ul>
+        </div>
+      )}
 
       {isAddWalletOpen && (
         <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border)] shadow-sm space-y-4">

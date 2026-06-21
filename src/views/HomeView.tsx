@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
-import { Eye, EyeOff, ClipboardList, Filter, ArrowUpDown, Search, XCircle, X, Tag, Trash2, FileText, Handshake, MoreVertical } from 'lucide-react';
+import { Eye, EyeOff, Moon, Sun, ClipboardList, Filter, ArrowUpDown, Search, XCircle, X, Tag, Trash2, FileText, Handshake, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '../utils/cn';
+import { useTheme } from '../contexts/ThemeContext';
 import { TransactionDetailSheet } from '../components/TransactionDetailSheet';
 import { InfoPopup } from '../components/InfoPopup';
 import { toast } from '../components/Toaster';
@@ -37,6 +38,7 @@ const TRANSACTION_RENDER_PAGE_SIZE = 100;
 
 export default function HomeView() {
   const { t, i18n } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const [hideAmount, setHideAmount] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
@@ -269,7 +271,7 @@ export default function HomeView() {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <div className="flex flex-col">
-            <h1 className="text-2xl font-black tracking-tighter uppercase leading-none">
+            <h1 className="text-2xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
               Expend
             </h1>
             <p className="text-xs text-[var(--text-secondary)] mt-1">
@@ -323,13 +325,22 @@ export default function HomeView() {
             )}
           </div>
         </div>
-        <button 
-          onClick={() => setHideAmount(!hideAmount)}
-          className="p-2 bg-[var(--card)] rounded-full border border-[var(--border)]"
-          aria-label={hideAmount ? t('Show Balance') : t('Hide Balance')}
-        >
-          {hideAmount ? <EyeOff size={20} /> : <Eye size={20} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="p-2 bg-[var(--card)] rounded-full border border-[var(--border)]"
+            aria-label={theme === 'dark' ? t('Switch to light mode') : t('Switch to dark mode')}
+          >
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          <button 
+            onClick={() => setHideAmount(!hideAmount)}
+            className="p-2 bg-[var(--card)] rounded-full border border-[var(--border)]"
+            aria-label={hideAmount ? t('Show Balance') : t('Hide Balance')}
+          >
+            {hideAmount ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
       </div>
       
       <InfoPopup isOpen={isInfoOpen} onClose={() => setIsInfoOpen(false)} />

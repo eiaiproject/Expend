@@ -67,10 +67,10 @@ export function SocialProofSection() {
               {t('landing.trustedBy')}
             </span>
           </motion.div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
             {t('landing.trustedTitle')}
           </h2>
-          <p className="text-base sm:text-lg text-[#94A3B8] max-w-xl mx-auto">
+          <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-xl mx-auto">
             {t('landing.trustStatement')}
           </p>
         </div>
@@ -84,15 +84,15 @@ export function SocialProofSection() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="bg-[#1E293B]/50 border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center hover:border-[var(--accent)]/20 transition-all duration-300 group"
+              className="bg-[var(--card)]/50 border border-white/5 rounded-xl sm:rounded-2xl p-5 sm:p-6 text-center hover:border-[var(--accent)]/20 transition-all duration-300 group"
             >
               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 {proof.icon}
               </div>
-              <p className="text-2xl sm:text-3xl font-black text-white mb-1">
+              <p className="text-2xl sm:text-3xl font-bold text-white mb-1">
                 {proof.value}
               </p>
-              <p className="text-[10px] sm:text-xs text-[#94A3B8] uppercase tracking-wider font-medium">
+              <p className="text-[10px] sm:text-xs text-[var(--text-secondary)] uppercase tracking-wider font-medium">
                 {proof.label}
               </p>
             </motion.div>
@@ -113,7 +113,7 @@ export function SocialProofSection() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.4 + i * 0.1 }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#1E293B]/30 border border-white/5 rounded-full"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--card)]/30 border border-white/5 rounded-full"
             >
               {item.icon}
               <span className="text-xs sm:text-sm text-white/80 font-medium">{item.text}</span>

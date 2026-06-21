@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { AlertTriangle, Eye, EyeOff, Handshake, Plus, Search, X } from 'lucide-react';
+import { AlertTriangle, Eye, EyeOff, Handshake, HelpCircle, Plus, Search, X } from 'lucide-react';
 import { db, type Debt, type DebtPayment, type Wallet } from '../db/db';
 import { DebtCard } from '../components/debts/DebtCard';
 import { DebtDetailSheet } from '../components/debts/DebtDetailSheet';
@@ -12,6 +12,7 @@ import { buildDebtPaymentsMap, calculateDebtStatus, summarizeDebts } from '../se
 import { getTodayStr } from '../utils/dateUtils';
 import { formatCurrency, formatBalance } from '../utils/formatUtils';
 import { cn } from '../utils/cn';
+import { EmptyState } from '../components/EmptyState';
 
 type DebtFilter = 'all' | 'payable' | 'receivable' | 'active' | 'overdue' | 'paid';
 
@@ -88,6 +89,7 @@ export default function DebtsView() {
   const [debtToEdit, setDebtToEdit] = useState<Debt | null>(null);
   const [selectedDebt, setSelectedDebt] = useState<Debt | null>(null);
   const [paymentDebt, setPaymentDebt] = useState<Debt | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   const FILTERS: Array<{ id: DebtFilter; labelKey: string }> = [
     { id: 'all', labelKey: 'All Debts' },
@@ -160,10 +162,18 @@ export default function DebtsView() {
     <div className="p-4 space-y-6 pb-24">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{t('Utang Piutang')}</h1>
+          <h1 className="text-2xl font-bold">{t('Debts')}</h1>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">{t('Debt Info Local')}</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowHelp(!showHelp)}
+            className="rounded-full border border-[var(--border)] bg-[var(--card)] p-2"
+            aria-label={t('Help')}
+          >
+            <HelpCircle size={20} />
+          </button>
           <button
             type="button"
             onClick={() => setHideAmount((value) => !value)}
@@ -182,6 +192,18 @@ export default function DebtsView() {
           </button>
         </div>
       </div>
+
+      {showHelp && (
+        <div className="rounded-[16px] border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4">
+          <h3 className="font-bold text-[var(--accent)] mb-2">{t('How Debts Work')}</h3>
+          <ul className="text-sm text-[var(--text-secondary)] space-y-1">
+            <li>• {t('Payable: Money you owe to others')}</li>
+            <li>• {t('Receivable: Money others owe you')}</li>
+            <li>• {t('Record payments to track progress')}</li>
+            <li>• {t('Overdue debts are highlighted in red')}</li>
+          </ul>
+        </div>
+      )}
 
       <div className="rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-4">
         <div className="mb-4 flex items-center justify-between">
@@ -294,26 +316,12 @@ export default function DebtsView() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center rounded-[16px] border border-[var(--border)] bg-[var(--card)] px-6 py-12 text-center">
-          <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg)] text-[var(--accent)]">
-            <Handshake size={36} />
-          </div>
-          <h2 className="font-bold">{hasAnyDebt ? t('No matching debts') : t('No debts yet')}</h2>
-          <p className="mt-2 max-w-[260px] text-sm text-[var(--text-secondary)]">
-            {hasAnyDebt
-              ? t('Try changing filter')
-              : t('Record debt desc')}
-          </p>
-          {!hasAnyDebt && (
-            <button
-              type="button"
-              onClick={handleOpenForm}
-              className="mt-5 rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[var(--accent)]/20"
-            >
-              {t('Record Debt')}
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon={<Handshake size={36} />}
+          title={hasAnyDebt ? t('No matching debts') : t('No debts yet')}
+          description={hasAnyDebt ? t('Try changing filter') : t('Record debt desc')}
+          action={!hasAnyDebt ? { label: t('Record Debt'), onClick: handleOpenForm } : undefined}
+        />
       )}
 
       <DebtFormSheet

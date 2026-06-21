@@ -19,13 +19,13 @@ function TechCard({ icon, name, description, color, index }: TechItem & { index:
       transition={{ duration: 0.5, delay: index * 0.1 }}
       className="group"
     >
-      <div className="flex items-start gap-4 p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-[#1E293B]/30 border border-white/5 hover:border-white/10 transition-all duration-300">
+      <div className="flex items-start gap-4 p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--card)]/30 border border-white/5 hover:border-white/10 transition-all duration-300">
         <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 ${color} group-hover:scale-110 transition-transform duration-300`}>
           {icon}
         </div>
         <div className="min-w-0">
           <h4 className="text-sm sm:text-base font-bold text-white mb-1">{name}</h4>
-          <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">{description}</p>
+          <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">{description}</p>
         </div>
       </div>
     </motion.div>
@@ -89,15 +89,15 @@ export function TechStackSection() {
           viewport={{ once: true }}
           className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-6"
         >
-          <Code2 size={14} className="text-[#94A3B8]" />
-          <span className="text-xs sm:text-sm font-semibold text-[#94A3B8] uppercase tracking-wider">
+          <Code2 size={14} className="text-[var(--text-secondary)]" />
+          <span className="text-xs sm:text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
             {t('landing.openSource')}
           </span>
         </motion.div>
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
           {t('landing.techTitle')}
         </h2>
-        <p className="text-base sm:text-lg text-[#94A3B8] max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
           {t('landing.techSubtitle')}
         </p>
       </motion.div>

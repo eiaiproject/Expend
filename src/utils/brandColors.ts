@@ -1,7 +1,7 @@
-export const BRAND_COLOR = '#0F766E';
+export const BRAND_COLOR = '#7A9B6A';
 
 export const THEME_META_COLORS = {
   brand: BRAND_COLOR,
-  light: '#F1F5F9',
-  dark: '#0F172A',
+  light: '#F2F4EE',
+  dark: '#1A1E16',
 } as const;

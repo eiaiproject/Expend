@@ -3,11 +3,10 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Github } from 'lucide-react';
 
-export function HeroSection({ onTryWeb, onEnter, onScrollToInstall, onScrollToFeatures }: {
+export function HeroSection({ onTryWeb, onEnter, onScrollToInstall }: {
   onTryWeb: () => void;
   onEnter?: () => void;
   onScrollToInstall: () => void;
-  onScrollToFeatures: () => void;
 }) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
@@ -40,7 +39,7 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall, onScrollToFe
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          className="text-5xl sm:text-7xl md:text-9xl font-black tracking-tighter mb-4 sm:mb-6 bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent px-4"
+          className="text-6xl sm:text-8xl md:text-9xl font-normal tracking-tight mb-4 sm:mb-6 text-white px-4" style={{ fontFamily: 'var(--font-display)' }}
         >
           Expend
         </motion.h1>
@@ -50,7 +49,7 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall, onScrollToFe
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 1 }}
-          className="text-base sm:text-lg md:text-2xl text-[#94A3B8] max-w-2xl mx-auto mb-8 sm:mb-12 font-light leading-relaxed px-4"
+          className="text-base sm:text-lg md:text-2xl text-[var(--text-secondary)] max-w-2xl mx-auto mb-8 sm:mb-12 font-light leading-relaxed px-4"
         >
           {t('landing.tagline')}
         </motion.p>
@@ -60,47 +59,27 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall, onScrollToFe
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.8 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 mb-4 sm:mb-6"
+          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 mb-8 sm:mb-12"
         >
           <button
             onClick={onEnter}
-            className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-[var(--accent)] text-white rounded-full font-bold text-base sm:text-lg hover:bg-[var(--accent)]/90 transition-all active:scale-95 shadow-lg shadow-[var(--accent)]/30 cursor-pointer"
+            className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-[var(--accent)] text-white rounded-full font-semibold text-base sm:text-lg hover:bg-[var(--accent)]/90 transition-all active:scale-95 cursor-pointer"
           >
             {t('landing.startTracking')}
           </button>
           <button
             onClick={onTryWeb}
-            className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-white/10 border border-white/20 text-white rounded-full font-semibold text-base sm:text-lg hover:bg-white/15 transition-all active:scale-95 cursor-pointer"
+            className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-white/10 border border-white/20 text-white rounded-full font-medium text-base sm:text-lg hover:bg-white/15 transition-all active:scale-95 cursor-pointer"
           >
             {t('landing.tryWithoutSetup')}
           </button>
-          <button
-            onClick={onScrollToInstall}
-            className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-transparent border border-white/10 text-white/70 rounded-full font-medium text-sm sm:text-base hover:text-white hover:border-white/30 transition-all cursor-pointer"
-          >
-            {t('Install App')}
-          </button>
-        </motion.div>
-
-        {/* Explanatory Copy */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
-          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] sm:text-xs text-white/40 px-4 mb-8 sm:mb-12"
-        >
-          <span>{t('Data stored locally on this device.')}</span>
-          <span className="hidden sm:inline">·</span>
-          <span>{t('No account required')}</span>
-          <span className="hidden sm:inline">·</span>
-          <span>{t('Install for app-like experience')}</span>
         </motion.div>
 
         {/* GitHub Link */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.7, duration: 0.8 }}
+          transition={{ delay: 0.6, duration: 0.8 }}
         >
           <a
             href="https://github.com/eiaiproject/Expend.git"
@@ -125,12 +104,12 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall, onScrollToFe
       >
         <div className="relative">
           {/* Phone Frame */}
-          <div className="relative bg-[#1E293B] rounded-[2.5rem] sm:rounded-[3rem] p-3 sm:p-4 shadow-2xl shadow-black/50 border border-white/10">
+          <div className="relative bg-[var(--card)] rounded-[1.25rem] sm:rounded-[1.5rem] p-3 sm:p-4 shadow-2xl shadow-black/50 border border-white/10">
             {/* Notch */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 sm:w-40 h-6 sm:h-7 bg-[#1E293B] rounded-b-2xl z-20" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 sm:w-40 h-6 sm:h-7 bg-[var(--card)] rounded-b-2xl z-20" />
             
             {/* Screen */}
-            <div className="bg-[#0F172A] rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden">
+            <div className="bg-[var(--bg)] rounded-xl sm:rounded-[1.25rem] overflow-hidden">
               {/* Status Bar */}
               <div className="h-10 sm:h-12 flex items-center justify-between px-6 sm:px-8 pt-2">
                 <span className="text-[10px] sm:text-xs text-white/60 font-medium">9:41</span>
@@ -146,7 +125,7 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall, onScrollToFe
                 {/* Header */}
                 <div className="flex justify-between items-center mb-4 sm:mb-6 mt-2">
                   <div>
-                    <h3 className="text-lg sm:text-xl font-black tracking-tighter uppercase text-white">Expend</h3>
+                    <h3 className="text-lg sm:text-xl font-bold tracking-tight uppercase text-white">Expend</h3>
                     <p className="text-[10px] sm:text-xs text-white/50">29 May 2024</p>
                   </div>
                 </div>
@@ -174,7 +153,7 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall, onScrollToFe
                     { name: 'Grab to Office', amount: '25.000', time: '08:15', color: 'bg-orange-400' },
                     { name: 'Coffee Bean', amount: '35.000', time: 'Yesterday', color: 'bg-amber-400' },
                   ].map((tx, i) => (
-                    <div key={i} className="bg-[#1E293B] rounded-xl sm:rounded-2xl p-3 sm:p-3.5 flex items-center gap-3">
+                    <div key={i} className="bg-[var(--card)] rounded-xl sm:rounded-2xl p-3 sm:p-3.5 flex items-center gap-3">
                       <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full ${tx.color} flex items-center justify-center`}>
                         <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white/80 rounded-full" />
                       </div>
@@ -191,34 +170,13 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall, onScrollToFe
           </div>
 
           {/* Glow Effect */}
-          <div className="absolute -inset-10 bg-[var(--accent)]/20 blur-[60px] sm:blur-[80px] rounded-full -z-10" />
+          <div className="absolute -inset-8 bg-[var(--accent)]/10 blur-[40px] sm:blur-[60px] rounded-full -z-10" />
         </div>
       </motion.div>
 
-      {/* Scroll Indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5, duration: 1 }}
-        className="relative z-10 mt-12 sm:mt-16"
-      >
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className="flex flex-col items-center gap-2 cursor-pointer opacity-50 hover:opacity-100 transition-opacity"
-          onClick={onScrollToFeatures}
-        >
-          <span className="text-[10px] sm:text-xs text-white/60 uppercase tracking-widest">{t('landing.scrollDown')}</span>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/60">
-            <path d="M12 5v14M5 12l7 7 7-7" />
-          </svg>
-        </motion.div>
-      </motion.div>
-
-      {/* Background Effects */}
+      {/* Background */}
       <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-[var(--accent)]/10 blur-[100px] sm:blur-[150px] rounded-full" />
-        <div className="absolute bottom-1/4 right-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-blue-500/10 blur-[100px] sm:blur-[150px] rounded-full" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-[var(--accent)]/5 blur-[120px] rounded-full" />
       </div>
     </section>
   );

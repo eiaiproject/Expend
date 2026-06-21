@@ -8,7 +8,10 @@ import { id as localeId } from 'date-fns/locale';
 import { Skeleton } from '../components/Skeleton';
 import { useTheme } from '../contexts/ThemeContext';
 import { parseDate } from '../utils/dateUtils';
+import { formatCurrency } from '../utils/formatUtils';
 import { DrillDownModal } from '../components/DrillDownModal';
+import { EmptyState } from '../components/EmptyState';
+import { BarChart3 } from 'lucide-react';
 
 export default function StatsView() {
   const { t, i18n } = useTranslation();
@@ -20,9 +23,11 @@ export default function StatsView() {
     border: 'none',
     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
     fontSize: '12px',
-    backgroundColor: theme === 'light' ? '#FFFFFF' : '#1E293B',
-    color: theme === 'light' ? '#0F172A' : '#F1F5F9',
-  }), [theme]);
+    backgroundColor: 'var(--card)',
+    color: 'var(--text-primary)',
+  }), []);
+
+  const formatTooltipValue = useCallback((value: unknown) => formatCurrency(Number(value ?? 0)), []);
 
   const allTransactions = useLiveQuery(() => db.transactions.toArray(), [], undefined);
   const transactions = useLiveQuery(() => db.transactions.where('type').equals('expense').toArray(), [], undefined);
@@ -143,7 +148,7 @@ export default function StatsView() {
           id: parseInt(catId),
           name: cat?.name || t('Other'),
           value: amount,
-          color: cat?.color || '#ccc'
+          color: cat?.color || 'var(--text-secondary)'
         };
       })
       .sort((a, b) => b.value - a.value);
@@ -152,19 +157,28 @@ export default function StatsView() {
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
   const isLoading = transactions === undefined || categories === undefined;
+  const hasNoData = !isLoading && filteredTransactions.length === 0;
   const monthlyComparisonSummary = monthlyComparisonData
-    .map(item => `${item.month}: Rp ${item.amount.toLocaleString('id-ID')}`)
+    .map(item => `${item.month}: ${formatCurrency(item.amount)}`)
     .join(', ');
   const trendSummary = trendData
-    .map(item => `${item.date}: Rp ${item.amount.toLocaleString('id-ID')}`)
+    .map(item => `${item.date}: ${formatCurrency(item.amount)}`)
     .join(', ');
   const categorySummary = data.length > 0
-    ? data.map(item => `${item.name}: Rp ${item.value.toLocaleString('id-ID')}`).join(', ')
+    ? data.map(item => `${item.name}: ${formatCurrency(item.value)}`).join(', ')
     : t('No transactions in this view');
 
   return (
     <div className="p-4 space-y-6 pb-24">
       <h1 className="text-2xl font-bold">{t('Stats')}</h1>
+
+      {hasNoData && (
+        <EmptyState
+          icon={<BarChart3 size={36} />}
+          title={t('No transactions yet')}
+          description={t('Add your first expense to start seeing statistics.')}
+        />
+      )}
 
       <div className="flex bg-[var(--card)] rounded-lg p-1 border border-[var(--border)]" aria-label={t('Filter Date Range')}>
         {(['week', 'month', 'all'] as const).map(p => (
@@ -200,7 +214,7 @@ export default function StatsView() {
                 />
                 <YAxis hide />
                 <Tooltip 
-                  formatter={(value: unknown) => `Rp ${Number(value ?? 0).toLocaleString('id-ID')}`}
+                  formatter={formatTooltipValue}
                   contentStyle={tooltipStyle}
                   cursor={{ fill: 'var(--accent)', opacity: 0.1 }}
                 />
@@ -251,7 +265,7 @@ export default function StatsView() {
                 />
                 <YAxis hide />
                 <Tooltip 
-                  formatter={(value: unknown) => `Rp ${Number(value ?? 0).toLocaleString('id-ID')}`}
+                  formatter={formatTooltipValue}
                   contentStyle={tooltipStyle}
                 />
                 <Line 
@@ -260,7 +274,7 @@ export default function StatsView() {
                   stroke="var(--accent)" 
                   strokeWidth={3} 
                   dot={false}
-                  activeDot={{ r: 6, fill: 'var(--accent)', stroke: '#fff', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: 'var(--accent)', stroke: 'var(--card)', strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -291,7 +305,7 @@ export default function StatsView() {
                     const e = entry as { id?: number; name?: string; color?: string } | undefined;
                     if (e?.id) {
                       const cat = categoryMap[e.id];
-                      setDrillDownCategory({ id: e.id, name: e.name || '', color: e.color || cat?.color || '#ccc' });
+                      setDrillDownCategory({ id: e.id, name: e.name || '', color: e.color || cat?.color || 'var(--text-secondary)' });
                     }
                   }}
                   style={{ cursor: 'pointer' }}
@@ -301,7 +315,7 @@ export default function StatsView() {
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value: unknown) => `Rp ${Number(value ?? 0).toLocaleString('id-ID')}`}
+                  formatter={formatTooltipValue}
                   contentStyle={tooltipStyle}
                 />
               </PieChart>
@@ -310,7 +324,7 @@ export default function StatsView() {
           {!isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span className="text-xs text-[var(--text-secondary)]">{t('Total')}</span>
-              <span className="font-mono font-bold">Rp {total.toLocaleString('id-ID')}</span>
+              <span className="font-mono font-bold">{formatCurrency(total)}</span>
             </div>
           )}
         </div>
@@ -338,8 +352,7 @@ export default function StatsView() {
                       <span className="text-sm font-medium">{item.name === t('Other') ? t('Other') : item.name}</span>
                     </button>
                     <div className="font-mono text-sm flex items-baseline">
-                      <span className="w-8 text-right mr-1 text-[11px] text-[var(--text-secondary)]">Rp</span>
-                      <span>{item.value.toLocaleString('id-ID')}</span>
+                      <span>{formatCurrency(item.value)}</span>
                       {total > 0 && (
                         <span className="text-[10px] text-[var(--text-secondary)] ml-1">
                           ({Math.round((item.value / total) * 100)}%)

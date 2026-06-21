@@ -32,17 +32,17 @@ function FeatureCard({ icon, title, description, stats, index }: FeatureItem & {
       transition={{ duration: 0.6, delay: (index % 4) * 0.1 }}
       className="relative group"
     >
-      <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-[#1E293B]/50 border border-white/5 hover:border-[var(--accent)]/30 transition-all duration-300 h-full">
+      <div className="p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-[var(--card)]/50 border border-white/5 hover:border-[var(--accent)]/30 transition-all duration-300 h-full">
         {/* Icon */}
-        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 group-hover:bg-[var(--accent)]/20 transition-all duration-300">
+        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 group-hover:bg-[var(--accent)]/20 transition-all duration-300">
           {icon}
         </div>
 
         {/* Content */}
-        <h3 className="text-lg sm:text-xl font-bold text-white mb-2 sm:mb-3">
+        <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-3">
           {title}
         </h3>
-        <p className="text-sm sm:text-base text-[#94A3B8] leading-relaxed">
+        <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
           {description}
         </p>
 
@@ -58,15 +58,6 @@ function FeatureCard({ icon, title, description, stats, index }: FeatureItem & {
   );
 }
 
-function SectionDivider() {
-  return (
-    <div className="flex items-center gap-4 my-12 sm:my-16">
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      <div className="w-2 h-2 rounded-full bg-[var(--accent)]/30" />
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-    </div>
-  );
-}
 
 export function FeaturesSection() {
   const { t } = useTranslation();
@@ -167,10 +158,10 @@ export function FeaturesSection() {
             {t('landing.featuresBadge')}
           </span>
         </motion.div>
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
           {t('landing.featuresTitle')}
         </h2>
-        <p className="text-base sm:text-lg text-[#94A3B8] max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
           {t('landing.featuresSubtitle')}
         </p>
       </motion.div>
@@ -197,8 +188,6 @@ export function FeaturesSection() {
         </div>
       </motion.div>
 
-      <SectionDivider />
-
       {/* Finance Features */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -220,8 +209,6 @@ export function FeaturesSection() {
           ))}
         </div>
       </motion.div>
-
-      <SectionDivider />
 
       {/* Insight & Security Features */}
       <motion.div

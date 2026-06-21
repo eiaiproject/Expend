@@ -19,12 +19,12 @@ function PreviewCard({ icon, title, description, mockup, index }: PreviewCardPro
       transition={{ duration: 0.7, delay: index * 0.15 }}
       className="group"
     >
-      <div className="bg-[#1E293B]/50 border border-white/5 rounded-2xl sm:rounded-3xl overflow-hidden hover:border-[var(--accent)]/20 transition-all duration-500">
+      <div className="bg-[var(--card)]/50 border border-white/5 rounded-xl sm:rounded-2xl overflow-hidden hover:border-[var(--accent)]/20 transition-all duration-500">
         {/* Mockup Area */}
-        <div className="relative bg-[#0F172A] p-4 sm:p-6 min-h-[200px] sm:min-h-[260px] flex items-center justify-center overflow-hidden">
+        <div className="relative bg-[var(--bg)] p-4 sm:p-6 min-h-[200px] sm:min-h-[260px] flex items-center justify-center overflow-hidden">
           {mockup}
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1E293B]/80 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--card)]/80 via-transparent to-transparent pointer-events-none" />
         </div>
 
         {/* Content */}
@@ -35,7 +35,7 @@ function PreviewCard({ icon, title, description, mockup, index }: PreviewCardPro
             </div>
             <h3 className="text-base sm:text-lg font-bold text-white">{title}</h3>
           </div>
-          <p className="text-sm text-[#94A3B8] leading-relaxed">{description}</p>
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{description}</p>
         </div>
       </div>
     </motion.div>
@@ -73,7 +73,7 @@ function DashboardMockup() {
       {/* Quick Transactions */}
       <div className="space-y-2">
         {['Lunch', 'Grab', 'Coffee'].map((name, i) => (
-          <div key={i} className="bg-[#1E293B] rounded-xl p-2.5 flex items-center gap-2">
+          <div key={i} className="bg-[var(--card)] rounded-xl p-2.5 flex items-center gap-2">
             <div className={`w-7 h-7 rounded-full flex items-center justify-center ${i === 0 ? 'bg-red-400' : i === 1 ? 'bg-orange-400' : 'bg-amber-400'}`}>
               <div className="w-2 h-2 bg-white/80 rounded-full" />
             </div>
@@ -92,7 +92,7 @@ function StatsMockup() {
   return (
     <div className="w-full max-w-[280px] space-y-3">
       {/* Pie Chart Mockup */}
-      <div className="bg-[#1E293B] rounded-2xl p-4">
+      <div className="bg-[var(--card)] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-bold text-white">Spending by Category</p>
           <PieChart size={14} className="text-[var(--accent)]" />
@@ -123,7 +123,7 @@ function StatsMockup() {
         </div>
       </div>
       {/* Bar Chart Mockup */}
-      <div className="bg-[#1E293B] rounded-2xl p-4">
+      <div className="bg-[var(--card)] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-bold text-white">Monthly Comparison</p>
           <BarChart3 size={14} className="text-[var(--accent)]" />
@@ -155,7 +155,7 @@ function WalletMockup() {
         { name: 'Savings', balance: 'Rp 1.240.000', change: '+Rp 100.000', icon: '🏦', trend: 'up' },
         { name: 'Cash', balance: 'Rp 500.000', change: '-Rp 50.000', icon: '💵', trend: 'down' },
       ].map((wallet, i) => (
-        <div key={i} className="bg-[#1E293B] rounded-2xl p-4 flex items-center gap-3 hover:border-[var(--accent)]/20 border border-transparent transition-all">
+        <div key={i} className="bg-[var(--card)] rounded-2xl p-4 flex items-center gap-3 hover:border-[var(--accent)]/20 border border-transparent transition-all">
           <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-xl">
             {wallet.icon}
           </div>
@@ -221,10 +221,10 @@ export function PreviewSection() {
             {t('landing.previewTitle')}
           </span>
         </motion.div>
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
           {t('landing.previewTitle')}
         </h2>
-        <p className="text-base sm:text-lg text-[#94A3B8] max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
           {t('landing.previewSubtitle')}
         </p>
       </motion.div>

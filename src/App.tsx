@@ -126,6 +126,13 @@ function AppContent() {
       transition={{ duration: 0.5 }}
       className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans flex flex-col"
     >
+      {/* Skip to content link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[var(--accent)] focus:text-white focus:rounded-lg focus:font-bold focus:shadow-lg"
+      >
+        {t('Skip to content')}
+      </a>
       {/* Render elegant installation banner on mobile web if not standalone and banner not dismissed */}
       {!isStandalone && !isBannerDismissed && (
         <div className="md:hidden bg-[var(--accent)] text-white px-4 py-3 flex items-center justify-between gap-3 text-xs font-semibold shadow z-50 relative shrink-0">
@@ -170,7 +177,7 @@ function AppContent() {
         </div>
 
         {/* Main View Area */}
-        <main className="flex-1 pb-[80px] md:pb-6 md:px-6 md:py-8 max-w-4xl mx-auto w-full overflow-y-auto">
+        <main id="main-content" className="flex-1 pb-[80px] md:pb-6 md:px-6 md:py-8 max-w-4xl mx-auto w-full overflow-y-auto" tabIndex={-1}>
           <RoutesWithSuspense />
         </main>
       </div>
@@ -261,7 +268,7 @@ function NotFoundView() {
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6">
-      <h1 className="text-4xl font-black text-[var(--text-primary)]">404</h1>
+      <h1 className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">404</h1>
       <p className="mt-2 text-sm text-[var(--text-secondary)]">{t('Page not found')}</p>
       <Link
         to="/"

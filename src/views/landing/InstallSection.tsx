@@ -22,10 +22,10 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
           viewport={{ once: true }}
           className="text-center mb-10 sm:mb-14"
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-4 text-white">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4 text-white">
             {t('landing.installTitle')}
           </h2>
-          <p className="text-sm sm:text-base text-[#94A3B8] max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-xl mx-auto">
             {t('landing.installSubtitle')}
           </p>
         </motion.div>
@@ -41,18 +41,18 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
             <div className="space-y-4">
               <button
                 onClick={showInstallPrompt}
-                className="px-10 sm:px-12 py-4 sm:py-5 bg-[var(--accent)] text-white rounded-full font-bold text-base sm:text-lg hover:bg-[var(--accent)]/90 transition-all active:scale-95 shadow-lg shadow-[var(--accent)]/30 cursor-pointer inline-flex items-center gap-3"
+                className="px-10 sm:px-12 py-4 sm:py-5 bg-[var(--accent)] text-white rounded-full font-semibold text-base sm:text-lg hover:bg-[var(--accent)]/90 transition-all active:scale-95 cursor-pointer inline-flex items-center gap-3"
               >
                 <Download size={20} />
                 {t('landing.installButton')}
               </button>
-              <p className="text-xs sm:text-sm text-[#94A3B8]">
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
                 {t('landing.installQuickNote')}
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-sm sm:text-base text-[#94A3B8] max-w-lg mx-auto">
+              <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-lg mx-auto">
                 {isIOS
                   ? t('landing.iosManualStep')
                   : t('landing.browserInstallOption')}
@@ -75,7 +75,7 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="bg-[#1E293B]/50 border border-white/5 rounded-2xl sm:rounded-3xl p-6 sm:p-8 relative overflow-hidden group hover:border-[var(--accent)]/20 transition-all"
+            className="bg-[var(--card)]/50 border border-white/5 rounded-xl sm:rounded-2xl p-6 sm:p-8 relative overflow-hidden group hover:border-[var(--accent)]/20 transition-all"
           >
             {/* Step Number */}
             <div className="absolute top-4 sm:top-6 right-4 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
@@ -95,7 +95,7 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
             <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">
               {isIOS ? t('landing.step1Ios') : t('landing.step1Browser')}
             </h3>
-            <p className="text-sm sm:text-base text-[#94A3B8] leading-relaxed">
+            <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
               {isIOS ? t('landing.step1IosDesc') : t('landing.step1BrowserDesc')}
             </p>
 
@@ -108,7 +108,7 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
                   <span className="text-lg">⋮</span>
                 )}
               </div>
-              <div className="text-xs sm:text-sm text-[#94A3B8]">
+              <div className="text-xs sm:text-sm text-[var(--text-secondary)]">
                 {isIOS ? t('landing.step1IosVisual') : t('landing.step1BrowserVisual')}
               </div>
             </div>
@@ -120,7 +120,7 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-[#1E293B]/50 border border-white/5 rounded-2xl sm:rounded-3xl p-6 sm:p-8 relative overflow-hidden group hover:border-[var(--accent)]/20 transition-all"
+            className="bg-[var(--card)]/50 border border-white/5 rounded-xl sm:rounded-2xl p-6 sm:p-8 relative overflow-hidden group hover:border-[var(--accent)]/20 transition-all"
           >
             {/* Step Number */}
             <div className="absolute top-4 sm:top-6 right-4 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
@@ -136,7 +136,7 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
             <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">
               {t('landing.step2Title')}
             </h3>
-            <p className="text-sm sm:text-base text-[#94A3B8] leading-relaxed">
+            <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
               {t('landing.step2Desc')}
             </p>
 
@@ -145,7 +145,7 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
               <div className="p-2.5 sm:p-3 rounded-xl bg-white/5">
                 <PlusSquare size={20} className="text-white/70" />
               </div>
-              <div className="text-xs sm:text-sm text-[#94A3B8]">
+              <div className="text-xs sm:text-sm text-[var(--text-secondary)]">
                 {t('landing.step2Visual')}
               </div>
             </div>
@@ -159,7 +159,7 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
           viewport={{ once: true }}
           className="mt-8 sm:mt-10 text-center"
         >
-          <p className="text-xs sm:text-sm text-[#94A3B8]">
+          <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
             {t('landing.installNote')}
           </p>
         </motion.div>
@@ -183,27 +183,27 @@ export function LandingFooter() {
           onClick={scrollToTop}
           className="text-center cursor-pointer mb-8 sm:mb-10 group"
         >
-          <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-white group-hover:text-[var(--accent)] transition-colors mb-2">
+          <h2 className="text-2xl sm:text-3xl tracking-tight text-white group-hover:text-[var(--accent)] transition-colors mb-2" style={{ fontFamily: 'var(--font-display)' }}>
             Expend
           </h2>
-          <p className="text-sm sm:text-base text-[#94A3B8] font-light">
+          <p className="text-sm sm:text-base text-[var(--text-secondary)] font-light">
             {t('landing.footerTagline')}
           </p>
         </div>
 
         {/* Quick Links */}
         <div className="flex justify-center flex-wrap gap-6 sm:gap-8 mb-8 sm:mb-10">
-          <a href="#features-section" className="text-xs sm:text-sm text-[#94A3B8] hover:text-white transition-colors">
+          <a href="#features-section" className="text-xs sm:text-sm text-[var(--text-secondary)] hover:text-white transition-colors">
             {t('landing.footerFeatures')}
           </a>
-          <a href="#install-section" className="text-xs sm:text-sm text-[#94A3B8] hover:text-white transition-colors">
+          <a href="#install-section" className="text-xs sm:text-sm text-[var(--text-secondary)] hover:text-white transition-colors">
             {t('landing.footerInstall')}
           </a>
           <a
             href="https://github.com/eiaiproject/Expend.git"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs sm:text-sm text-[#94A3B8] hover:text-white transition-colors"
+            className="text-xs sm:text-sm text-[var(--text-secondary)] hover:text-white transition-colors"
           >
             {t('landing.footerGitHub')}
           </a>
@@ -213,7 +213,7 @@ export function LandingFooter() {
         <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8 sm:mb-10" />
 
         {/* Bottom */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-xs text-[#94A3B8]/60">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-xs text-[var(--text-secondary)]/60">
           <span>{APP_VERSION}</span>
           <span className="hidden sm:inline">|</span>
           <span>{t('landing.footerCopyright')}</span>

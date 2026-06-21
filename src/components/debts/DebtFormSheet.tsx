@@ -210,7 +210,6 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
               type="text"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder={isPayable ? t('Title placeholder payable') : t('Title placeholder receivable')}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus:outline-none focus:border-[var(--accent)]"
               autoComplete="off"
             />

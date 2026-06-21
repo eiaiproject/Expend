@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Coffee, X } from 'lucide-react';
+import { Coffee, Keyboard, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -38,6 +38,33 @@ export function InfoPopup({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             <span className="text-sm font-medium opacity-60">{t('Version')}</span>
             <span className="text-lg font-bold">{__APP_VERSION__}</span>
             <span className="text-[10px] opacity-40">Build: {buildDateLabel}</span>
+          </div>
+
+          <div className="h-px w-full bg-[var(--border)]" />
+
+          <div className="w-full">
+            <div className="flex items-center gap-2 mb-2">
+              <Keyboard size={14} className="text-[var(--text-secondary)]" />
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t('Keyboard Shortcuts')}</span>
+            </div>
+            <div className="text-xs text-[var(--text-secondary)] space-y-1 text-left">
+              <div className="flex justify-between">
+                <span>{t('Search')}</span>
+                <kbd className="px-1.5 py-0.5 bg-[var(--bg)] rounded border border-[var(--border)] font-mono">/</kbd>
+              </div>
+              <div className="flex justify-between">
+                <span>{t('Toggle sort')}</span>
+                <kbd className="px-1.5 py-0.5 bg-[var(--bg)] rounded border border-[var(--border)] font-mono">S</kbd>
+              </div>
+              <div className="flex justify-between">
+                <span>{t('Toggle filter')}</span>
+                <kbd className="px-1.5 py-0.5 bg-[var(--bg)] rounded border border-[var(--border)] font-mono">F</kbd>
+              </div>
+              <div className="flex justify-between">
+                <span>{t('Add transaction')}</span>
+                <kbd className="px-1.5 py-0.5 bg-[var(--bg)] rounded border border-[var(--border)] font-mono">N</kbd>
+              </div>
+            </div>
           </div>
 
           <div className="h-px w-full bg-[var(--border)]" />
