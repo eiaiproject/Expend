@@ -279,6 +279,30 @@ function createDebtPaymentStore(nativeDb: IDBDatabase): IDBObjectStore {
   return paymentStore;
 }
 
+/**
+ * Pre-flight native IndexedDB repair for the legacy v1.0.0 debt schema.
+ *
+ * WHY VERSION 100?
+ * The v1.0.0 release shipped with a schema that used `debt_payments` (snake_case)
+ * instead of `debtPayments` (camelCase). Dexie could not handle this because its
+ * version declarations expected `debtPayments`. This native repair runs BEFORE
+ * Dexie opens the database:
+ * 1. It probes the current native IndexedDB version.
+ * 2. If the DB has the old `debt_payments` store and version < 100, it opens at
+ *    version 100 to perform the migration (rename store, normalize records).
+ * 3. After repair, native DB version is 100.
+ * 4. Dexie then opens at version 10. Since 10 <= 100, IndexedDB simply opens
+ *    the database without triggering any downgrade or upgrade — the existing
+ *    stores from version 100 remain intact.
+ *
+ * SAFETY:
+ * - Version 100 will never conflict with Dexie's declared versions (currently 10).
+ * - Dexie opens with version <= 100 → no downgrade attempted.
+ * - If the database doesn't need repair, no version change occurs.
+ * - Future Dexie upgrades (e.g., version 11) still work because 11 < 100.
+ *
+ * This function is idempotent: it only repairs if the legacy store exists.
+ */
 function repairLegacyDebtSchemaNative(): Promise<void> {
   if (typeof indexedDB === 'undefined') return Promise.resolve();
 

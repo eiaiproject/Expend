@@ -111,19 +111,19 @@ export async function generateMonthlyReport(locale: string = 'id'): Promise<Mont
   const startDateStr = formatDate(start);
   const endDateStr = formatDate(end);
   
-  // Get only transactions needed for the previous month report window.
-  const transactions = await getTransactionsByDateRange(startDateStr, endDateStr);
+  // Get only expense transactions for the previous month report window.
+  const transactions = await getTransactionsByDateRange(startDateStr, endDateStr, 'expense');
   
   if (transactions.length === 0) {
-    return null; // No data for previous month
+    return null; // No expense data for previous month
   }
   
   const categories = await db.categories.toArray();
   const categoryMap: Record<number, Category> = {};
   categories.forEach(c => { if (c.id) categoryMap[c.id] = c; });
   
-  // Filter by type
-  const expenses = transactions.filter(t => t.type === 'expense');
+  // All fetched transactions are already expenses (filtered by type above)
+  const expenses = transactions;
   
   // Calculate totals
   const totalExpense = expenses.reduce((sum, t) => sum + t.amount, 0);
@@ -255,7 +255,7 @@ export async function generateMonthlyReport(locale: string = 'id'): Promise<Mont
       hasData: prevMonthTotal > 0,
     },
     dailyTrend,
-    transactionCount: transactions.length,
+    transactionCount: expenses.length,
   };
 }
 

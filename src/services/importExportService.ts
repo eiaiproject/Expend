@@ -290,8 +290,18 @@ export function validateImportData(json: unknown): string[] {
     if (!tx.type || !(VALID_TX_TYPES as readonly string[]).includes(tx.type as string)) {
       errors.push(`Transaction ${i}: "type" must be one of: ${VALID_TX_TYPES.join(', ')}.`);
     }
-    if (!isFiniteMoney(tx.amount)) {
-      errors.push(`Transaction ${i}: "amount" must be a finite number within supported range.`);
+    if (tx.type === 'expense') {
+      if (!isFiniteMoney(tx.amount) || tx.amount <= 0) {
+        errors.push(`Transaction ${i}: "amount" must be a positive finite number for expenses.`);
+      }
+    } else if (tx.type === 'transfer_in' || tx.type === 'transfer_out') {
+      if (!isFiniteMoney(tx.amount) || tx.amount <= 0) {
+        errors.push(`Transaction ${i}: "amount" must be a positive finite number for transfers.`);
+      }
+    } else {
+      if (!isFiniteMoney(tx.amount)) {
+        errors.push(`Transaction ${i}: "amount" must be a finite number within supported range.`);
+      }
     }
     if (tx.categoryId !== null && tx.categoryId !== undefined && typeof tx.categoryId !== 'number') {
       errors.push(`Transaction ${i}: "categoryId" must be null or a number.`);
