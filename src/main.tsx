@@ -20,14 +20,5 @@ if (splashScreen) {
   }, 500);
 }
 
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
-  console.log('Registering service worker...');
-  navigator.serviceWorker.register('/sw.js', { scope: '/' })
-    .then((reg) => {
-      console.log('Service worker registered:', reg.scope);
-    })
-    .catch((err) => {
-      console.error('Service worker registration failed:', err);
-    });
-}
+// Service worker registration is handled by vite-plugin-pwa via UpdatePrompt
+// using virtual:pwa-register/react. Do not register manually here.
