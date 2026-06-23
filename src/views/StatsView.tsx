@@ -113,20 +113,21 @@ export default function StatsView() {
     });
   }, [transactions, i18n.language, expenseAggregates]);
 
-  // Get transactions for the drill-down category
+  // Get expense transactions for the drill-down category
   const drillDownTransactions = useMemo(() => {
     if (!drillDownCategory || !allTransactions) return [];
     return allTransactions
-      .filter(t => t.categoryId === drillDownCategory.id)
+      .filter(t => t.type === 'expense' && t.categoryId === drillDownCategory.id)
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [drillDownCategory, allTransactions]);
 
-  // Get transactions for the drill-down month key
+  // Get expense transactions for the drill-down month key
   const drillDownMonthTransactions = useMemo(() => {
     if (!drillDownMonthKey || !allTransactions) return [];
     const { monthIndex, year } = drillDownMonthKey;
     return allTransactions
       .filter(t => {
+        if (t.type !== 'expense') return false;
         const d = parseDate(t.date);
         return d.getUTCMonth() === monthIndex && d.getUTCFullYear() === year;
       })

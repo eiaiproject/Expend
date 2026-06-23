@@ -140,40 +140,42 @@ export default function CategoriesView() {
         });
         if (!confirmed) return;
 
-        // Find or create "Other" category to reassign transactions
-        let otherCategory = categories?.find(c => c.name.toLowerCase() === t('Other').toLowerCase());
-        let otherCategoryName = t('Other');
-        let otherCategoryColor = '#64748B';
+        // Use canonical fallback name "__OTHER__" to avoid i18n-dependent identity
+        const FALLBACK_NAME = '__OTHER__';
+        const FALLBACK_COLOR = '#64748B';
+        
+        // Find existing fallback category (by canonical name)
+        let otherCategory = categories?.find(c => c.name === FALLBACK_NAME);
         let otherCategoryId: number;
         
-        if (otherCategory && otherCategory.id != null) {
-          otherCategoryId = otherCategory.id;
-          otherCategoryName = otherCategory.name;
-          otherCategoryColor = otherCategory.color;
-        } else {
-          // Create "Other" category if it doesn't exist
-          const newId = await db.categories.add({
-            name: t('Other'),
-            icon: '🏷️',
-            color: otherCategoryColor,
-          });
-          otherCategoryId = newId as number;
-        }
-
         // Store backup for undo
         const originalCategoryId = id;
         const originalCategory = catToDelete ? { ...catToDelete } : null;
         const originalTransactions = await db.transactions.where('categoryId').equals(id).toArray();
 
-        // Reassign all transactions to "Other" atomically
+        // All operations in one atomic transaction
         await db.transaction('rw', db.categories, db.transactions, async () => {
+          if (otherCategory && otherCategory.id != null) {
+            otherCategoryId = otherCategory.id;
+          } else {
+            // Create fallback category inside the same transaction
+            const newId = await db.categories.add({
+              name: FALLBACK_NAME,
+              icon: '🏷️',
+              color: FALLBACK_COLOR,
+            });
+            otherCategoryId = newId as number;
+          }
+
+          // Reassign all transactions to fallback category
           await db.transactions.where('categoryId').equals(id).modify({ categoryId: otherCategoryId });
+          // Delete the category
           await db.categories.delete(id);
         });
 
         // Show undo toast
         toast.add(
-          t('Category deleted. Transactions moved to {{name}}.', { name: otherCategoryName }),
+          t('Category deleted. Transactions moved to {{name}}.', { name: otherCategory?.name ?? FALLBACK_NAME }),
           async () => {
             // Undo: restore category and reassign transactions back
             if (originalCategory && originalCategory.id != null) {

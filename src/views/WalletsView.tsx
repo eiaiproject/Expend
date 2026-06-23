@@ -6,7 +6,7 @@ import { db, Wallet } from '../db/db';
 import { Wallet as WalletIcon, AlertCircle, HelpCircle, Plus, Edit2, Check, X, Trash2, TrendingUp, TrendingDown, Minus, Handshake } from 'lucide-react';
 import { confirm } from '../components/ConfirmDialog';
 import { toast } from '../components/Toaster';
-import { findPairedTransfer, assignTransferGroupId } from '../utils/transferUtils';
+import { deleteWalletSafely, adjustWalletBalance } from '../services/walletService';
 import { format, differenceInDays } from 'date-fns';
 import { formatAmountLocal, formatCurrency } from '../utils/formatUtils';
 import { getTodayStr } from '../utils/dateUtils';
@@ -274,42 +274,7 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
     const confirmed = await confirm({ title: t('Delete Wallet'), message: t('Delete Wallet Confirmation'), variant: 'danger' });
     if (!confirmed) return;
     try {
-      await db.transaction('rw', [db.transactions, db.wallets], async () => {
-        // Find all transfer group IDs touching this wallet
-        const walletTxs = await db.transactions
-          .where('walletId')
-          .equals(wallet.id!)
-          .toArray();
-
-        const transferGroupIds = new Set<string>();
-        for (const tx of walletTxs) {
-          if (tx.transferGroupId) {
-            transferGroupIds.add(tx.transferGroupId);
-          } else if (tx.type === 'transfer_in' || tx.type === 'transfer_out') {
-            // Use shared helper to find paired transaction
-            const pairedTx = await findPairedTransfer(tx);
-            if (pairedTx?.id) {
-              // Assign transferGroupId to both for future consistency
-              const groupId = await assignTransferGroupId(tx, pairedTx);
-              if (groupId) transferGroupIds.add(groupId);
-            }
-          }
-        }
-
-        // Delete all transactions in the wallet
-        await db.transactions.where('walletId').equals(wallet.id!).delete();
-
-        // Also delete paired transactions from OTHER wallets
-        for (const groupId of transferGroupIds) {
-          await db.transactions
-            .where('transferGroupId')
-            .equals(groupId)
-            .and(t => t.walletId !== wallet.id!)
-            .delete();
-        }
-
-        await db.wallets.delete(wallet.id!);
-      });
+      await deleteWalletSafely(wallet.id!);
     } catch (err) {
       console.error('Failed to delete wallet:', err);
       toast.add(t('Error deleting wallet'));
@@ -321,22 +286,8 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
     if (isNaN(absBal)) return;
 
     try {
-      const difference = absBal - balance;
-      if (difference !== 0) {
-        await db.transactions.add({
-          walletId: wallet.id!,
-          categoryId: null,
-          date: getTodayStr(),
-          description: t('Balance Update Description'),
-          type: 'balance_adjustment',
-          amount: difference
-        });
-      }
-
-      // Update currentBalance and lastUpdated
-      await db.wallets.update(wallet.id!, {
-        currentBalance: absBal,
-        lastUpdated: new Date().toISOString()
+      await adjustWalletBalance(wallet.id!, absBal, {
+        description: t('Balance Update Description'),
       });
 
       setIsUpdating(false);
