@@ -32,6 +32,25 @@ App runs at `http://localhost:3000`.
 
 All data stored locally in IndexedDB. No accounts, no cloud sync, no ads. Financial data never leaves your device.
 
+**Important:**
+- Your data is stored entirely in the browser's IndexedDB database.
+- **Deleting browser data or clearing site storage will permanently delete all Expend data.** Always keep backups.
+- **PIN lock is UI protection only** — it prevents casual access to the app but does **not** encrypt the IndexedDB database. Anyone with technical access to the browser can still read the data.
+- There is **no cloud sync, no login system, and no remote data storage.** Your financial data exists only on this device.
+
+### Backup & Restore
+
+1. Go to **Settings → Export Backup** to download a JSON file of all your data.
+2. Store the backup file safely (e.g., external drive, encrypted cloud storage).
+3. To restore, go to **Settings → Import Backup** and select your JSON file.
+4. Import **replaces all existing data** with the backup contents (except PIN/security settings which are preserved locally).
+
+### Offline & PWA
+
+- After first load, the app works fully offline via Service Worker.
+- Install as a PWA from your browser's install prompt for fullscreen, offline access.
+- Updates are detected automatically and prompted when available.
+
 ## Tech Stack
 
 React 19, TypeScript, Vite 6, Tailwind CSS 4, Dexie.js, Recharts, i18next, Workbox
@@ -43,9 +62,32 @@ React 19, TypeScript, Vite 6, Tailwind CSS 4, Dexie.js, Recharts, i18next, Workb
 | `npm run dev` | Start development server |
 | `npm run build` | Build for production |
 | `npm run test:unit` | Run unit tests |
-| `npm run test:e2e` | Run E2E tests |
+| `npm run test:e2e` | Run Playwright E2E tests |
 | `npm run lint` | Run ESLint |
 | `npm run typecheck` | Run TypeScript checks |
+| `npm run qa:automated` | Run full QA pipeline (lint + typecheck + tests + build + e2e) |
+
+### Running Tests
+
+```bash
+# Unit tests (runs reliably, no browser needed)
+npm run test:unit
+
+# E2E tests (requires Playwright browsers)
+npx playwright install chromium
+npm run test:e2e
+```
+
+### Building for Production
+
+```bash
+npm run build
+```
+
+The `dist/` directory contains the production build including:
+- `sw.js` — Service Worker for offline/PWA support
+- `manifest.webmanifest` — PWA manifest
+- Optimized JavaScript and CSS bundles
 
 ## Documentation
 
