@@ -32,14 +32,14 @@ function FeatureCard({ icon, title, description, stats, index }: FeatureItem & {
       transition={{ duration: 0.6, delay: (index % 4) * 0.1 }}
       className="relative group"
     >
-      <div className="p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-[var(--card)]/50 border border-white/5 hover:border-[var(--accent)]/30 transition-all duration-300 h-full">
+      <div className="p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-[var(--surface)]/50 border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 transition-all duration-300 h-full">
         {/* Icon */}
         <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 group-hover:bg-[var(--accent)]/20 transition-all duration-300">
           {icon}
         </div>
 
         {/* Content */}
-        <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-3">
+        <h3 className="text-lg sm:text-xl font-semibold text-[var(--text-primary)] mb-2 sm:mb-3">
           {title}
         </h3>
         <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
@@ -148,20 +148,10 @@ export function FeaturesSection() {
         viewport={{ once: true }}
         className="text-center mb-12 sm:mb-16"
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-full mb-6"
-        >
-          <span className="text-xs sm:text-sm font-semibold text-[var(--accent)] uppercase tracking-wider">
-            {t('landing.featuresBadge')}
-          </span>
-        </motion.div>
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] mb-4">
           {t('landing.featuresTitle')}
         </h2>
-        <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-2xl mx-auto">
           {t('landing.featuresSubtitle')}
         </p>
       </motion.div>
@@ -177,7 +167,7 @@ export function FeaturesSection() {
           <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
             <Shield size={16} className="text-[var(--accent)]" />
           </div>
-          <h3 className="text-lg sm:text-xl font-bold text-white">
+          <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
             {t('landing.featuresCoreTitle')}
           </h3>
         </div>
@@ -199,7 +189,7 @@ export function FeaturesSection() {
           <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
             <Wallet size={16} className="text-[var(--accent)]" />
           </div>
-          <h3 className="text-lg sm:text-xl font-bold text-white">
+          <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
             {t('landing.featuresFinanceTitle')}
           </h3>
         </div>
@@ -221,7 +211,7 @@ export function FeaturesSection() {
           <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
             <BarChart3 size={16} className="text-[var(--accent)]" />
           </div>
-          <h3 className="text-lg sm:text-xl font-bold text-white">
+          <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
             {t('landing.featuresInsightTitle')}
           </h3>
         </div>

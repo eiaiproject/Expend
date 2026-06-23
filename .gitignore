@@ -45,6 +45,7 @@ Thumbs.db
 .agents/
 .pi/
 .qwen/
+.impeccable/
 
 # TypeScript
 *.tsbuildinfo

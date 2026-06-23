@@ -19,23 +19,23 @@ function PreviewCard({ icon, title, description, mockup, index }: PreviewCardPro
       transition={{ duration: 0.7, delay: index * 0.15 }}
       className="group"
     >
-      <div className="bg-[var(--card)]/50 border border-white/5 rounded-xl sm:rounded-2xl overflow-hidden hover:border-[var(--accent)]/20 transition-all duration-500">
+      <div className="h-full bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl overflow-hidden hover:border-[var(--accent)]/20 transition-all duration-500 flex flex-col">
         {/* Mockup Area */}
-        <div className="relative bg-[var(--bg)] p-4 sm:p-6 min-h-[200px] sm:min-h-[260px] flex items-center justify-center overflow-hidden">
+        <div className="relative bg-[var(--bg)] p-4 sm:p-6 flex-1 flex items-start justify-center overflow-hidden">
           {mockup}
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-[var(--card)]/80 via-transparent to-transparent pointer-events-none" />
         </div>
 
         {/* Content */}
-        <div className="p-5 sm:p-6">
-          <div className="flex items-center gap-3 mb-2 sm:mb-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+        <div className="p-5 sm:p-6 mt-auto h-[144px] sm:h-[156px] flex flex-col justify-center">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               {icon}
             </div>
-            <h3 className="text-base sm:text-lg font-bold text-white">{title}</h3>
+            <h3 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">{title}</h3>
           </div>
-          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{description}</p>
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed line-clamp-2 pl-[52px]">{description}</p>
         </div>
       </div>
     </motion.div>
@@ -151,12 +151,12 @@ function WalletMockup() {
   return (
     <div className="w-full max-w-[280px] space-y-3">
       {[
-        { name: 'Main Wallet', balance: 'Rp 3.500.000', change: '+Rp 250.000', icon: '💰', trend: 'up' },
-        { name: 'Savings', balance: 'Rp 1.240.000', change: '+Rp 100.000', icon: '🏦', trend: 'up' },
-        { name: 'Cash', balance: 'Rp 500.000', change: '-Rp 50.000', icon: '💵', trend: 'down' },
+        { name: 'Main Wallet', balance: 'Rp 3.500.000', change: '+Rp 250.000', icon: 'W', trend: 'up' },
+        { name: 'Savings', balance: 'Rp 1.240.000', change: '+Rp 100.000', icon: 'S', trend: 'up' },
+        { name: 'Cash', balance: 'Rp 500.000', change: '-Rp 50.000', icon: 'C', trend: 'down' },
       ].map((wallet, i) => (
         <div key={i} className="bg-[var(--card)] rounded-2xl p-4 flex items-center gap-3 hover:border-[var(--accent)]/20 border border-transparent transition-all">
-          <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-xl">
+          <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-sm font-bold text-[var(--accent)]">
             {wallet.icon}
           </div>
           <div className="flex-1">
@@ -210,27 +210,18 @@ export function PreviewSection() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         className="text-center mb-12 sm:mb-16"
+        id="preview-section"
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-full mb-6"
-        >
-          <span className="text-xs sm:text-sm font-semibold text-[var(--accent)] uppercase tracking-wider">
-            {t('landing.previewTitle')}
-          </span>
-        </motion.div>
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] mb-4">
           {t('landing.previewTitle')}
         </h2>
-        <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-2xl mx-auto">
           {t('landing.previewSubtitle')}
         </p>
       </motion.div>
 
       {/* Preview Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-stretch">
         {previews.map((preview, i) => (
           <PreviewCard key={i} {...preview} />
         ))}

@@ -19,7 +19,7 @@ function FAQAccordion({ item, index }: { item: FAQItem; index: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: (index % 5) * 0.05 }}
-      className="border-b border-white/5 last:border-b-0"
+      className="border-b border-[var(--border-subtle)] last:border-b-0"
     >
       <button
         id={buttonId}
@@ -27,13 +27,15 @@ function FAQAccordion({ item, index }: { item: FAQItem; index: number }) {
         aria-expanded={isOpen}
         aria-controls={panelId}
         className="w-full py-4 sm:py-5 flex items-center justify-between text-left group cursor-pointer"
+        aria-label={item.question}
       >
-        <span className="text-sm sm:text-base font-medium text-white group-hover:text-[var(--accent)] transition-colors pr-4">
+        <span className="text-sm sm:text-base font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors pr-4">
           {item.question}
         </span>
         <ChevronDown
           size={18}
-          className={`text-[var(--text-secondary)] shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-[var(--text-muted)] shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+          aria-hidden="true"
         />
       </button>
       <AnimatePresence>
@@ -48,7 +50,7 @@ function FAQAccordion({ item, index }: { item: FAQItem; index: number }) {
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed pb-4 sm:pb-5">
+            <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed pb-4 sm:pb-5">
               {item.answer}
             </p>
           </motion.div>
@@ -101,7 +103,7 @@ export function FAQSection() {
   ];
 
   return (
-    <section className="py-16 sm:py-24 px-4 sm:px-6 relative z-10">
+    <section id="faq-section" className="py-16 sm:py-24 px-4 sm:px-6 relative z-10">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <motion.div
@@ -110,17 +112,7 @@ export function FAQSection() {
           viewport={{ once: true }}
           className="text-center mb-10 sm:mb-12"
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-6"
-          >
-            <span className="text-xs sm:text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-              FAQ
-            </span>
-          </motion.div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[var(--text-primary)] mb-3">
             {t('landing.faqTitle')}
           </h2>
           <p className="text-sm sm:text-base text-[var(--text-secondary)]">
@@ -129,7 +121,7 @@ export function FAQSection() {
         </motion.div>
 
         {/* FAQ List */}
-        <div className="bg-[var(--card)]/30 border border-white/5 rounded-xl sm:rounded-2xl p-5 sm:p-8">
+        <div className="bg-[var(--surface)]/30 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl p-5 sm:p-8">
           {faqs.map((faq, i) => (
             <FAQAccordion key={i} item={faq} index={i} />
           ))}

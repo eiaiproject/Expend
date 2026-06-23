@@ -57,20 +57,10 @@ export function SocialProofSection() {
       >
         {/* Header */}
         <div className="text-center mb-10 sm:mb-12">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-full mb-6"
-          >
-            <span className="text-xs sm:text-sm font-semibold text-[var(--accent)] uppercase tracking-wider">
-              {t('landing.trustedBy')}
-            </span>
-          </motion.div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] mb-4">
             {t('landing.trustedTitle')}
           </h2>
-          <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-xl mx-auto">
+          <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-xl mx-auto">
             {t('landing.trustStatement')}
           </p>
         </div>
@@ -84,12 +74,12 @@ export function SocialProofSection() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="bg-[var(--card)]/50 border border-white/5 rounded-xl sm:rounded-2xl p-5 sm:p-6 text-center hover:border-[var(--accent)]/20 transition-all duration-300 group"
+              className="bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl p-5 sm:p-6 text-center hover:border-[var(--accent)]/20 transition-all duration-300 group"
             >
               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 {proof.icon}
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-white mb-1">
+              <p className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] mb-1">
                 {proof.value}
               </p>
               <p className="text-[10px] sm:text-xs text-[var(--text-secondary)] uppercase tracking-wider font-medium">
@@ -113,10 +103,10 @@ export function SocialProofSection() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.4 + i * 0.1 }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--card)]/30 border border-white/5 rounded-full"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--surface)]/30 border border-[var(--border-subtle)] rounded-full"
             >
               {item.icon}
-              <span className="text-xs sm:text-sm text-white/80 font-medium">{item.text}</span>
+              <span className="text-xs sm:text-sm text-[var(--text-primary)] font-medium">{item.text}</span>
             </motion.div>
           ))}
         </motion.div>

@@ -28,10 +28,10 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall }: {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-6 sm:mb-8"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-full mb-6 sm:mb-8"
         >
-          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-xs sm:text-sm text-white/70">{t('landing.badge')}</span>
+          <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+          <span className="text-xs sm:text-sm text-[var(--text-muted)]">{t('landing.badge')}</span>
         </motion.div>
 
         {/* Title */}
@@ -39,7 +39,7 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall }: {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          className="text-6xl sm:text-8xl md:text-9xl font-normal tracking-tight mb-4 sm:mb-6 text-white px-4" style={{ fontFamily: 'var(--font-display)' }}
+          className="text-6xl sm:text-8xl md:text-9xl font-normal tracking-tight mb-4 sm:mb-6 text-[var(--text-primary)] px-4" style={{ fontFamily: 'var(--font-display)' }}
         >
           Expend
         </motion.h1>
@@ -63,13 +63,13 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall }: {
         >
           <button
             onClick={onEnter}
-            className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-[var(--accent)] text-white rounded-full font-semibold text-base sm:text-lg hover:bg-[var(--accent)]/90 transition-all active:scale-95 cursor-pointer"
+            className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base sm:text-lg hover:bg-[var(--accent)]/90 transition-all active:scale-95 cursor-pointer"
           >
             {t('landing.startTracking')}
           </button>
           <button
             onClick={onTryWeb}
-            className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-white/10 border border-white/20 text-white rounded-full font-medium text-base sm:text-lg hover:bg-white/15 transition-all active:scale-95 cursor-pointer"
+            className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-[var(--surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] rounded-full font-medium text-base sm:text-lg hover:bg-[var(--surface-elevated)] transition-all active:scale-95 cursor-pointer"
           >
             {t('landing.tryWithoutSetup')}
           </button>
@@ -85,11 +85,11 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall }: {
             href="https://github.com/eiaiproject/Expend.git"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-white/50 hover:text-white/80 transition-colors text-sm cursor-pointer"
+            className="inline-flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-sm cursor-pointer"
           >
             <Github size={16} />
             <span>{t('landing.source')}</span>
-            <span className="text-white/30">|</span>
+            <span className="text-[var(--border-subtle)]">|</span>
             <span>{t('landing.openSource')}</span>
           </a>
         </motion.div>
@@ -104,9 +104,9 @@ export function HeroSection({ onTryWeb, onEnter, onScrollToInstall }: {
       >
         <div className="relative">
           {/* Phone Frame */}
-          <div className="relative bg-[var(--card)] rounded-[1.25rem] sm:rounded-[1.5rem] p-3 sm:p-4 shadow-2xl shadow-black/50 border border-white/10">
+          <div className="relative bg-[var(--surface)] rounded-[1.25rem] sm:rounded-[1.5rem] p-3 sm:p-4 shadow-2xl shadow-black/50 border border-[var(--border-subtle)]">
             {/* Notch */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 sm:w-40 h-6 sm:h-7 bg-[var(--card)] rounded-b-2xl z-20" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 sm:w-40 h-6 sm:h-7 bg-[var(--surface)] rounded-b-2xl z-20" />
             
             {/* Screen */}
             <div className="bg-[var(--bg)] rounded-xl sm:rounded-[1.25rem] overflow-hidden">
