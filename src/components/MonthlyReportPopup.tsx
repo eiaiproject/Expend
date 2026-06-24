@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Download, TrendingUp, TrendingDown, Minus, ChevronRight, FileText, Loader2 } from 'lucide-react';
+import { X, Download, Loader2, AlertTriangle, CheckCircle, Lightbulb, HelpCircle, Check } from 'lucide-react';
 import { 
   MonthlyReportData, 
   generateMonthlyReport, 
@@ -27,7 +27,10 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const reportRef = useRef<HTMLDivElement>(null);
+  const [isDownloaded, setIsDownloaded] = useState(false);
+  const [showHealthInfo, setShowHealthInfo] = useState(false);
+  const [showUndoToast, setShowUndoToast] = useState(false);
+  const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadReportData = useCallback(async () => {
     setIsLoading(true);
@@ -36,8 +39,7 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
       const locale = i18n.language || 'id';
       const data = await generateMonthlyReport(locale);
       setReportData(data);
-    } catch (err) {
-      console.error('Error loading report:', err);
+    } catch {
       setError(t('Error loading report'));
     } finally {
       setIsLoading(false);
@@ -59,31 +61,45 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
       const locale = i18n.language || 'id';
       await generateSimplePDF(reportData, locale, theme);
       markReportDownloaded();
-      onClose();
-    } catch (err) {
-      console.error('Error generating PDF:', err);
+      setIsDownloaded(true);
+      setTimeout(() => onClose(), 1200);
+    } catch {
       setError(t('Error generating PDF'));
     } finally {
       setIsGeneratingPDF(false);
     }
   };
 
-  const handleDismiss = () => {
+  const handleDismiss = useCallback(() => {
     dismissMonthlyReport();
-    onClose();
-  };
+    setShowUndoToast(true);
+    dismissTimerRef.current = setTimeout(() => {
+      setShowUndoToast(false);
+      onClose();
+    }, 4000);
+  }, [onClose]);
 
-  const displayCurrency = (amount: number) => {
-    return formatCurrency(amount);
-  };
+  const handleUndoDismiss = useCallback(() => {
+    if (dismissTimerRef.current) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
+    }
+    setShowUndoToast(false);
+  }, []);
 
-  const getTrendIcon = (change: number) => {
-    if (change > 0) return <TrendingUp className="w-4 h-4 text-red-500" />;
-    if (change < 0) return <TrendingDown className="w-4 h-4 text-green-500" />;
-    return <Minus className="w-4 h-4 text-gray-500" />;
-  };
 
-  if (!isOpen) return null;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'Enter' && !isGeneratingPDF && !isDownloaded && reportData && !(e.target instanceof HTMLButtonElement)) {
+        handleDownload();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, isGeneratingPDF, isDownloaded, reportData, handleDownload]);
 
   return (
     <AnimatePresence>
@@ -92,46 +108,41 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-          onClick={handleDismiss}
+          onClick={onClose}
         >
           <motion.div
             ref={dialogRef}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-lg max-h-[90vh] overflow-hidden bg-[var(--card)] rounded-2xl shadow-2xl border border-[var(--border)]"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+            className="relative w-full max-w-lg max-h-[90vh] overflow-hidden bg-[var(--card)] rounded-xl shadow-lg border border-[var(--border)]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label={t('Monthly Report')}
           >
             {/* Header */}
-            <div className="relative bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
+              <div>
+                <h2 className="text-lg font-bold">{t('Monthly Report')}</h2>
+                <p className="text-sm text-[var(--text-secondary)]">
+                  {getPreviousMonthName(i18n.language)} {new Date().getFullYear() - (new Date().getMonth() === 0 ? 1 : 0)}
+                </p>
+              </div>
               <button
-                onClick={handleDismiss}
-                className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-                aria-label={t('Close')}
+                onClick={() => { dismissMonthlyReport(); onClose(); }}
+                className="p-3 rounded-lg hover:bg-[var(--hover)] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                aria-label={t('Dismiss')}
               >
                 <X className="w-5 h-5" />
               </button>
-              
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-white/20 rounded-xl">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold">{t('Monthly Report')}</h2>
-                  <p className="text-white/80 text-sm">
-                    {getPreviousMonthName(i18n.language)} {new Date().getFullYear() - (new Date().getMonth() === 0 ? 1 : 0)}
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto max-h-[calc(90vh-200px)] p-6">
+            <div className="overflow-y-auto max-h-[calc(90vh-140px)] p-5" aria-live="polite">
               {isLoading ? (
                 <div className="space-y-4">
                   <Skeleton className="h-24 w-full rounded-xl" />
@@ -140,75 +151,90 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
                 </div>
               ) : error ? (
                 <div className="text-center py-8">
-                  <p className="text-red-500 mb-4">{error}</p>
+                  <p className="text-[var(--color-error, #EF4444)] mb-4">{error}</p>
                   <button
                     onClick={loadReportData}
-                    className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity"
+                    className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
                   >
                     {t('Try Again')}
                   </button>
                 </div>
               ) : !reportData ? (
                 <div className="text-center py-8">
-                  <div className="text-6xl mb-4">📊</div>
-                  <p className="text-[var(--text-secondary)]">{t('No data for last month')}</p>
+                  <p className="font-medium text-[var(--text-primary)]">{t('No expenses recorded')}</p>
+                  <p className="text-sm text-[var(--text-secondary)] mt-1">{t('Start tracking to see your monthly report')}</p>
                 </div>
               ) : (
-                <div ref={reportRef} className="space-y-6">
+                <div className="space-y-6">
                   {/* Health Score */}
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-4">
-                      <div 
-                        className="relative w-20 h-20 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: reportData.healthColor + '20' }}
-                      >
-                        <svg className="absolute inset-0 w-full h-full -rotate-90">
-                          <circle
-                            cx="40"
-                            cy="40"
-                            r="36"
-                            fill="none"
-                            stroke={reportData.healthColor + '30'}
-                            strokeWidth="8"
-                          />
-                          <circle
-                            cx="40"
-                            cy="40"
-                            r="36"
-                            fill="none"
-                            stroke={reportData.healthColor}
-                            strokeWidth="8"
-                            strokeDasharray={`${(reportData.healthScore / 100) * 226} 226`}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <span className="text-2xl font-bold" style={{ color: reportData.healthColor }}>
-                          {reportData.healthScore}
-                        </span>
+                  <div className="flex items-center gap-4 p-4 bg-[var(--surface)] rounded-lg border border-[var(--border)]">
+                    <div 
+                      className="relative w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: reportData.healthColor + '15' }}
+                    >
+                      <svg className="absolute inset-0 w-full h-full -rotate-90">
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r="28"
+                          fill="none"
+                          stroke={reportData.healthColor + '20'}
+                          strokeWidth="5"
+                        />
+                        <motion.circle
+                          cx="32"
+                          cy="32"
+                          r="28"
+                          fill="none"
+                          stroke={reportData.healthColor}
+                          strokeWidth="5"
+                          strokeLinecap="round"
+                          strokeDasharray="176"
+                          initial={{ strokeDashoffset: 176 }}
+                          animate={{ strokeDashoffset: 176 - (reportData.healthScore / 100) * 176 }}
+                          transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1], delay: 0.2 }}
+                        />
+                      </svg>
+                      <span className="text-xl font-bold tabular-nums" style={{ color: reportData.healthColor }}>
+                        {reportData.healthScore}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs text-[var(--text-secondary)]">{t('Health')}</p>
+                        <button
+                          onClick={() => setShowHealthInfo(!showHealthInfo)}
+                          className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                          aria-label={t('Health score info')}
+                        >
+                          <HelpCircle className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <div>
-                        <p className="text-sm text-[var(--text-secondary)]">{t('Financial Health')}</p>
-                        <p className="text-lg font-bold" style={{ color: reportData.healthColor }}>
-                          {reportData.healthLabel}
+                      <p className="font-medium text-sm" style={{ color: reportData.healthColor }}>
+                        {reportData.healthLabel}
+                      </p>
+                      {showHealthInfo && (
+                        <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                          {t('Health score based on category diversification and spending consistency')}. {t('Score improves with more categories, balanced spending, and consistent tracking.')}
                         </p>
-                      </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Summary Card */}
-                  <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-5 border border-red-200 dark:border-red-800">
-                    <p className="text-xs text-red-600 dark:text-red-400 mb-2 uppercase tracking-wide">{t('Total Expenses')}</p>
-                    <p className="text-2xl font-bold text-red-700 dark:text-red-300">
-                      {displayCurrency(reportData.totalExpense)}
+                  {/* Total */}
+                  <div className="text-center py-2">
+                    <p className="text-xs text-[var(--text-secondary)] mb-0.5">{t('Total Expenses')}</p>
+                    <p className="text-xl font-semibold tabular-nums text-[var(--text-primary)]">
+                      {formatCurrency(reportData.totalExpense)}
                     </p>
                   </div>
 
-                  {/* Top Categories */}
-                  <div className="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)]">
-                    <h3 className="font-bold mb-4 flex items-center gap-2">
-                      <span>📊</span> {t('Top Categories')}
+                  {/* Categories */}
+                  <div>
+                    <h3 className="font-medium text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-2">
+                      {t('Top Categories')}
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                       {reportData.categoryBreakdown.slice(0, 5).map((cat, index) => (
                         <div key={cat.categoryId} className="flex items-center gap-3">
                           <div 
@@ -219,12 +245,12 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-medium truncate">{cat.categoryName}</span>
-                              <span className="text-sm font-bold">{displayCurrency(cat.total)}</span>
+                              <span className="text-sm truncate">{cat.categoryName}</span>
+                              <span className="text-sm font-semibold tabular-nums">{formatCurrency(cat.total)}</span>
                             </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div className="w-full bg-[var(--border)] rounded-full h-1.5">
                               <div 
-                                className="h-2 rounded-full transition-all duration-500"
+                                className="h-1.5 rounded-full"
                                 style={{ 
                                   width: `${cat.percentage}%`,
                                   backgroundColor: cat.categoryColor 
@@ -232,7 +258,7 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
                               />
                             </div>
                           </div>
-                          <span className="text-xs text-[var(--text-secondary)] w-12 text-right">
+                          <span className="text-xs text-[var(--text-secondary)] w-12 text-right tabular-nums">
                             {cat.percentage.toFixed(1)}%
                           </span>
                         </div>
@@ -242,28 +268,24 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
 
                   {/* Insights */}
                   {reportData.insights.length > 0 && (
-                    <div className="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)]">
-                      <h3 className="font-bold mb-4 flex items-center gap-2">
-                        <span>💡</span> {t('Insights & Recommendations')}
+                    <div>
+                      <h3 className="font-medium text-xs text-[var(--text-secondary)] uppercase tracking-wide mb-2">
+                        {t('Insights')}
                       </h3>
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {reportData.insights.map((insight, index) => (
                           <div 
                             key={index}
-                            className={`p-3 rounded-lg border ${
-                              insight.type === 'warning' 
-                                ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
-                                : insight.type === 'success'
-                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                            }`}
+                            className="flex items-start gap-2 py-2"
                           >
-                            <div className="flex items-start gap-2">
-                              <span className="text-lg">{insight.icon}</span>
-                              <div>
-                                <p className="font-medium text-sm">{insight.title}</p>
-                                <p className="text-xs text-[var(--text-secondary)] mt-1">{insight.description}</p>
-                              </div>
+                            <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center mt-0.5">
+                              {insight.type === 'warning' ? <AlertTriangle className="w-4 h-4 text-[var(--color-warning, #F59E0B)]" /> :
+                               insight.type === 'success' ? <CheckCircle className="w-4 h-4 text-[var(--color-success, #10B981)]" /> :
+                               <Lightbulb className="w-4 h-4 text-[var(--color-info, #3B82F6)]" />}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm">{insight.title}</p>
+                              <p className="text-xs text-[var(--text-secondary)] break-words">{insight.description}</p>
                             </div>
                           </div>
                         ))}
@@ -271,15 +293,15 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
                     </div>
                   )}
 
-                  {/* Quick Stats */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-[var(--card)] rounded-xl p-4 border border-[var(--border)]">
-                      <p className="text-xs text-[var(--text-secondary)] mb-1">{t('Avg Daily')}</p>
-                      <p className="font-bold">{displayCurrency(reportData.avgDailyExpense)}</p>
+                  {/* Stats */}
+                  <div className="pt-3 mt-1 border-t border-[var(--border)] space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[var(--text-secondary)]">{t('Daily Average')}</span>
+                      <span className="tabular-nums">{formatCurrency(reportData.avgDailyExpense)}</span>
                     </div>
-                    <div className="bg-[var(--card)] rounded-xl p-4 border border-[var(--border)]">
-                      <p className="text-xs text-[var(--text-secondary)] mb-1">{t('Transactions')}</p>
-                      <p className="font-bold">{reportData.transactionCount}</p>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[var(--text-secondary)]">{t('Transactions')}</span>
+                      <span className="tabular-nums">{reportData.transactionCount}</span>
                     </div>
                   </div>
                 </div>
@@ -288,13 +310,18 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
 
             {/* Footer */}
             {!isLoading && reportData && (
-              <div className="p-4 border-t border-[var(--border)] bg-[var(--card)]">
+              <div className="p-4 border-t border-[var(--border)]">
                 <button
                   onClick={handleDownload}
-                  disabled={isGeneratingPDF}
-                  className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isGeneratingPDF || isDownloaded}
+                  className="w-full py-3 bg-[var(--accent)] text-white font-medium rounded-lg flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
                 >
-                  {isGeneratingPDF ? (
+                  {isDownloaded ? (
+                    <>
+                      <Check className="w-5 h-5" />
+                      {t('Downloaded')}
+                    </>
+                  ) : isGeneratingPDF ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
                       {t('Generating PDF...')}
@@ -309,6 +336,19 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
               </div>
             )}
           </motion.div>
+
+          {/* Undo Toast — outside dialog to prevent overlap */}
+          {showUndoToast && (
+            <div className="absolute bottom-4 left-4 right-4 max-w-lg mx-auto flex items-center justify-between p-3 bg-[var(--text-primary)] text-[var(--card)] rounded-lg shadow-lg z-50">
+              <span className="text-sm">{t('Report dismissed')}</span>
+              <button
+                onClick={handleUndoDismiss}
+                className="text-sm font-semibold underline hover:opacity-80 transition-opacity"
+              >
+                {t('Undo')}
+              </button>
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>
