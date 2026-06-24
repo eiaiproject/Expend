@@ -5,6 +5,20 @@ Local-first personal finance app for expense tracking, wallet management, and de
 [![Version](https://img.shields.io/badge/version-1.0.0-teal)](https://github.com/eiaiproject/Expend)
 [![License](https://img.shields.io/badge/license-MIT-blue)](#license)
 
+## Table of Contents
+- [Features](#features)
+- [Privacy](#privacy)
+- [Tech Stack](#tech-stack)
+- [Quick Start](#quick-start)
+- [Available Scripts](#available-scripts)
+- [Deployment](#deployment)
+- [Project Structure](#project-structure)
+- [Troubleshooting](#troubleshooting)
+- [Support](#support)
+- [Contributing](#contributing)
+- [Changelog](#changelog)
+- [License](#license)
+
 ## Quick Start
 
 ```bash
@@ -118,6 +132,20 @@ src/
 └── views/         # Page components
 ```
 
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| IndexedDB not available | Disable private/incognito mode |
+| PWA install not showing | Ensure HTTPS or localhost |
+| Service Worker not updating | Clear cache in DevTools → Application → Storage |
+| Charts not rendering | Check browser compatibility (Chrome 80+, Firefox 78+) |
+
+## Support
+
+- [GitHub Issues](https://github.com/eiaiproject/Expend/issues) — Bug reports & feature requests
+- [Discussions](https://github.com/eiaiproject/Expend/discussions) — Questions & community help
+
 ## Contributing
 
 1. Fork the repository
@@ -125,6 +153,10 @@ src/
 3. Commit changes (`git commit -m 'feat: add amazing'`)
 4. Push to branch (`git push origin feature/amazing`)
 5. Open a Pull Request
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## License
 
