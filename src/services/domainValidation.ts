@@ -23,10 +23,18 @@ export function validateTransaction(tx: Partial<Transaction>): ValidationError[]
   if (tx.description && tx.description.length > 160) {
     errors.push({ field: 'description', message: 'Description must be at most 160 characters.' });
   }
-  if (tx.amount == null || !Number.isFinite(tx.amount) || tx.amount <= 0) {
+  if (tx.amount == null || !Number.isFinite(tx.amount)) {
+    errors.push({ field: 'amount', message: 'Amount must be a finite number.' });
+  } else if (tx.type === 'balance_adjustment') {
+    // balance_adjustment: signed delta, may be positive or negative, but not zero
+    if (tx.amount === 0) {
+      errors.push({ field: 'amount', message: 'Balance adjustment amount must not be zero.' });
+    }
+  } else if (tx.amount <= 0) {
+    // expense, transfer_in, transfer_out: amount must be positive
     errors.push({ field: 'amount', message: 'Amount must be greater than 0.' });
   }
-  if (tx.amount != null && tx.amount > 1_000_000_000_000) {
+  if (tx.amount != null && Math.abs(tx.amount) > 1_000_000_000_000) {
     errors.push({ field: 'amount', message: 'Amount exceeds maximum allowed value.' });
   }
   if (!tx.date || !/^\d{4}-\d{2}-\d{2}$/.test(tx.date)) {

@@ -135,24 +135,31 @@ export default function StatsView() {
   }, [drillDownMonthKey, allTransactions]);
 
   const data = useMemo(() => {
-    const sums: Record<number, number> = {};
+    const catSums = new Map<number, number>();
+    let uncategorizedSum = 0;
     filteredTransactions.forEach(t => {
-      if (t.categoryId) {
-        sums[t.categoryId] = (sums[t.categoryId] || 0) + t.amount;
+      if (t.categoryId != null) {
+        catSums.set(t.categoryId, (catSums.get(t.categoryId) ?? 0) + t.amount);
+      } else {
+        uncategorizedSum += t.amount;
       }
     });
 
-    return Object.entries(sums)
-      .map(([catId, amount]) => {
-        const cat = categoryMap[parseInt(catId)];
-        return {
-          id: parseInt(catId),
-          name: cat?.name || t('Other'),
-          value: amount,
-          color: cat?.color || 'var(--text-secondary)'
-        };
-      })
-      .sort((a, b) => b.value - a.value);
+    const result: { id: number | null; name: string; value: number; color: string }[] = [];
+    for (const [catId, amount] of catSums) {
+      const cat = categoryMap[catId];
+      result.push({
+        id: catId,
+        name: cat?.name || t('Other'),
+        value: amount,
+        color: cat?.color || 'var(--text-secondary)' 
+      });
+    }
+    if (uncategorizedSum > 0) {
+      result.push({ id: null, name: t('Other'), value: uncategorizedSum, color: 'var(--text-secondary)' });
+    }
+
+    return result.sort((a, b) => b.value - a.value);
   }, [filteredTransactions, categoryMap, t]);
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
@@ -342,6 +349,7 @@ export default function StatsView() {
                     <button
                       type="button"
                       onClick={() => {
+                        if (item.id == null) return;
                         const cat = categoryMap[item.id];
                         if (cat) {
                           setDrillDownCategory({ id: item.id, name: item.name, color: item.color || cat.color });

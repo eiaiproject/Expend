@@ -23,6 +23,11 @@ describe('balanceUtils', () => {
       const delta = getBalanceDelta('balance_adjustment', 50000);
       expect(delta).toBe(50000);
     });
+
+    it('returns negative for negative balance_adjustment', () => {
+      const delta = getBalanceDelta('balance_adjustment', -50000);
+      expect(delta).toBe(-50000);
+    });
   });
 
   describe('recomputeWalletCurrentBalances', () => {

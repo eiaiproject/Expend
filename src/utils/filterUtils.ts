@@ -58,10 +58,16 @@ export function filterTransactions(transactions: Transaction[], criteria: Filter
     let amountMatch = true;
     const absAmount = Math.abs(tx.amount);
     if (minAmount && minAmount !== '') {
-      amountMatch = amountMatch && absAmount >= parseInt(minAmount, 10);
+      const minParsed = parseInt(minAmount, 10);
+      if (!isNaN(minParsed)) {
+        amountMatch = amountMatch && absAmount >= minParsed;
+      }
     }
     if (maxAmount && maxAmount !== '') {
-      amountMatch = amountMatch && absAmount <= parseInt(maxAmount, 10);
+      const maxParsed = parseInt(maxAmount, 10);
+      if (!isNaN(maxParsed)) {
+        amountMatch = amountMatch && absAmount <= maxParsed;
+      }
     }
 
     return typeMatch && categoryMatch && walletMatch && searchMatch && dateMatch && amountMatch;

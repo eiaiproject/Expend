@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback, type ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Transaction, type Wallet, type Category } from '../db/db';
 import { saveTransaction, saveTransfer } from '../services/transactionSaveService';
@@ -76,6 +77,7 @@ export function useTransactionForm({
   onClose,
   onConfirmCreateCategory,
 }: UseTransactionFormOptions): UseTransactionFormResult {
+  const { t } = useTranslation();
   const queriedWallets = useLiveQuery(() => db.wallets.toArray());
   const queriedCategories = useLiveQuery(() => db.categories.toArray());
   const queriedTransactions = useLiveQuery(
@@ -219,9 +221,13 @@ export function useTransactionForm({
     try {
       if (type === 'transfer') {
         if (parseInt(walletId, 10) === parseInt(toWalletId, 10)) {
+          const { toast } = await import('../components/Toaster');
+          toast.add(t('Cannot transfer to the same wallet.'));
           return false;
         }
         if (txToEdit && txToEdit.id) {
+          const { toast } = await import('../components/Toaster');
+          toast.add(t('Editing transfers is not supported in this version.'));
           return false;
         }
 
@@ -265,7 +271,9 @@ export function useTransactionForm({
       if (navigator.vibrate) navigator.vibrate(50);
       onClose();
       return true;
-    } catch {
+    } catch (err) {
+      const { toast } = await import('../components/Toaster');
+      toast.add(t('Action failed'));
       return false;
     } finally {
       setIsSubmitting(false);
@@ -273,7 +281,7 @@ export function useTransactionForm({
   }, [
     amount, description, date, walletId, toWalletId, type,
     categoryName, notes, txToEdit, categories, onClose,
-    onConfirmCreateCategory,
+    onConfirmCreateCategory, t,
   ]);
 
   return {

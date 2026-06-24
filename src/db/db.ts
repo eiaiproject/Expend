@@ -282,32 +282,26 @@ function createDebtPaymentStore(nativeDb: IDBDatabase): IDBObjectStore {
 /**
  * Pre-flight native IndexedDB repair for the legacy v1.0.0 debt schema.
  *
- * WHY VERSION 100?
- * The v1.0.0 release shipped with a schema that used `debt_payments` (snake_case)
- * instead of `debtPayments` (camelCase). Dexie could not handle this because its
- * version declarations expected `debtPayments`. This native repair runs BEFORE
- * Dexie opens the database:
- * 1. It probes the current native IndexedDB version.
- * 2. If the DB has the old `debt_payments` store and version < 100, it opens at
- *    version 100 to perform the migration (rename store, normalize records).
- * 3. After repair, native DB version is 100.
- * 4. Dexie then opens at version 10. Since 10 <= 100, IndexedDB simply opens
- *    the database without triggering any downgrade or upgrade — the existing
- *    stores from version 100 remain intact.
+ * VERSION STRATEGY:
+ * The repair sets the native DB version to REPAIR_VERSION (11), which is
+ * exactly 1 above the current Dexie maximum (10). This ensures:
  *
- * SAFETY:
- * - Version 100 will never conflict with Dexie's declared versions (currently 10).
- * - Dexie opens with version <= 100 → no downgrade attempted.
- * - If the database doesn't need repair, no version change occurs.
- * - Future Dexie upgrades (e.g., version 11) still work because 11 < 100.
+ * - After repair, Dexie opens at version 10 (< 11) → no upgrade triggered.
+ * - When Dexie is bumped to version 11 in the future, the DB is already
+ *   at version 11 → Dexie opens without upgrade (stores remain intact).
+ * - When Dexie is bumped to version 12, the DB at 11 < 12 → upgrade runs.
+ *
+ * UPGRADING: When adding a new Dexie version N, update REPAIR_VERSION to
+ * N + 1 so the repair always sets a version 1 above the new Dexie max.
  *
  * This function is idempotent: it only repairs if the legacy store exists.
  */
+const REPAIR_VERSION = 11;
+
 function repairLegacyDebtSchemaNative(): Promise<void> {
   if (typeof indexedDB === 'undefined') return Promise.resolve();
 
   const dbName = 'ExpendDB';
-  const latestNativeVersion = 100;
 
   const probe = new Promise<boolean>((resolve) => {
     const request = indexedDB.open(dbName);
@@ -321,7 +315,7 @@ function repairLegacyDebtSchemaNative(): Promise<void> {
     request.onsuccess = () => {
       const nativeDb = request.result;
       const needsRepair = !createdEmptyDatabase
-        && nativeDb.version < latestNativeVersion
+        && nativeDb.version < REPAIR_VERSION
         && nativeDb.objectStoreNames.contains('debt_payments');
       nativeDb.close();
       resolve(needsRepair);
@@ -332,7 +326,7 @@ function repairLegacyDebtSchemaNative(): Promise<void> {
     if (!needsRepair) return undefined;
 
     return new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open(dbName, latestNativeVersion);
+      const request = indexedDB.open(dbName, REPAIR_VERSION);
       let migrationError: unknown = null;
 
       request.onupgradeneeded = () => {

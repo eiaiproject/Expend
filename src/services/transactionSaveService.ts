@@ -1,6 +1,7 @@
 import { db, type Transaction } from '../db/db';
 import { generateTransferGroupId } from '../utils/cryptoUtils';
 import { getBalanceDelta } from '../utils/balanceUtils';
+import { validateTransaction } from './domainValidation';
 
 export interface SaveTransactionParams {
   amount: number;
@@ -21,6 +22,34 @@ export interface SaveTransferParams {
   notes: string;
 }
 
+/**
+ * Validate transfer-specific constraints that aren't covered by validateTransaction.
+ * Throws on invalid params.
+ */
+function validateTransferParams(params: SaveTransferParams): void {
+  if (!Number.isFinite(params.amount) || params.amount <= 0) {
+    throw new Error('Transfer amount must be greater than 0.');
+  }
+  if (params.amount > 1_000_000_000_000) {
+    throw new Error('Transfer amount exceeds maximum allowed value.');
+  }
+  if (!params.description || params.description.trim().length === 0) {
+    throw new Error('Transfer description must not be empty.');
+  }
+  if (!params.date || !/^\d{4}-\d{2}-\d{2}$/.test(params.date)) {
+    throw new Error('Transfer date must be YYYY-MM-DD format.');
+  }
+  if (!Number.isSafeInteger(params.fromWalletId) || params.fromWalletId <= 0) {
+    throw new Error('Source wallet must be selected.');
+  }
+  if (!Number.isSafeInteger(params.toWalletId) || params.toWalletId <= 0) {
+    throw new Error('Destination wallet must be selected.');
+  }
+  if (params.fromWalletId === params.toWalletId) {
+    throw new Error('Cannot transfer to the same wallet.');
+  }
+}
+
 
 
 /**
@@ -32,6 +61,20 @@ export async function saveTransaction(
   params: SaveTransactionParams,
   existingId?: number
 ): Promise<void> {
+  // Validate inputs at service boundary
+  const txErrors = validateTransaction({
+    type: params.type,
+    amount: params.amount,
+    description: params.description,
+    date: params.date,
+    walletId: params.walletId,
+    categoryId: params.categoryId,
+    notes: params.notes,
+  });
+  if (txErrors.length > 0) {
+    throw new Error(txErrors.map(e => e.message).join('; '));
+  }
+
   await db.transaction('rw', [db.transactions, db.wallets], async () => {
     if (existingId) {
       // Get old transaction to compute balance delta
@@ -108,6 +151,8 @@ export async function saveTransaction(
  * Also updates both wallets' currentBalance.
  */
 export async function saveTransfer(params: SaveTransferParams): Promise<void> {
+  validateTransferParams(params);
+
   await db.transaction('rw', [db.transactions, db.wallets], async () => {
     const transferGroupId = generateTransferGroupId();
 

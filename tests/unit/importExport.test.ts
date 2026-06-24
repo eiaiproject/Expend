@@ -289,6 +289,26 @@ describe('validateTransaction', () => {
     const errors = validateTransaction({ amount: 100, type: 'expense', date: '2025-01-15', walletId: 1, description: 'Valid' });
     expect(errors.length).toBe(0);
   });
+
+  it('accepts negative amount for balance_adjustment', () => {
+    const errors = validateTransaction({ amount: -50000, type: 'balance_adjustment', date: '2025-01-15', walletId: 1, description: 'Adjust' });
+    expect(errors.some(e => e.field === 'amount')).toBe(false);
+  });
+
+  it('accepts positive amount for balance_adjustment', () => {
+    const errors = validateTransaction({ amount: 50000, type: 'balance_adjustment', date: '2025-01-15', walletId: 1, description: 'Adjust' });
+    expect(errors.some(e => e.field === 'amount')).toBe(false);
+  });
+
+  it('rejects zero amount for balance_adjustment', () => {
+    const errors = validateTransaction({ amount: 0, type: 'balance_adjustment', date: '2025-01-15', walletId: 1, description: 'Adjust' });
+    expect(errors.some(e => e.field === 'amount')).toBe(true);
+  });
+
+  it('rejects negative amount for transfer_in', () => {
+    const errors = validateTransaction({ amount: -100, type: 'transfer_in', date: '2025-01-15', walletId: 1, description: 'Transfer' });
+    expect(errors.some(e => e.field === 'amount')).toBe(true);
+  });
 });
 
 describe('validateDebt', () => {

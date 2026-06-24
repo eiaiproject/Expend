@@ -143,8 +143,9 @@ export async function generateMonthlyReport(locale: string = 'id'): Promise<Mont
   });
   
   const dailyValues = Object.values(dailyExpenses).filter(v => v > 0);
-  const avgDailyExpense = dailyValues.length > 0 
-    ? totalExpense / dailyValues.length 
+  // avgDailyExpense = total / days in month (all calendar days, not just spending days)
+  const avgDailyExpense = daysInMonth > 0 
+    ? totalExpense / daysInMonth 
     : 0;
   
   // Find highest and lowest expense days

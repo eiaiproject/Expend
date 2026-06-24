@@ -109,8 +109,10 @@ export function useTransactionFilters(
       minAmount !== '' ||
       maxAmount !== '' ||
       startDate !== '' ||
-      endDate !== '';
-  }, [type, categories, wallets, minAmount, maxAmount, startDate, endDate]);
+      endDate !== '' ||
+      searchTerm !== '' ||
+      quickFilter !== null;
+  }, [type, categories, wallets, minAmount, maxAmount, startDate, endDate, searchTerm, quickFilter]);
 
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
