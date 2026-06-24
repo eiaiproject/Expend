@@ -4,45 +4,16 @@ import i18n from '../i18n/init';
 import { getTransactionsByDateRange } from './transactionService';
 
 export interface MonthlyReportData {
-  // Period info
-  month: number; // 0-11
+  month: number;
   year: number;
   monthName: string;
-  
-  // Summary
   totalExpense: number;
-  
-  // Daily stats
   avgDailyExpense: number;
-  highestDayExpense: number;
-  lowestDayExpense: number;
-  highestDayDate: string;
-  lowestDayDate: string;
-  
-  // Category breakdown
   categoryBreakdown: CategoryBreakdownItem[];
-  
-  // Top expenses
-  topExpenses: Transaction[];
-  
-  // Health score (0-100)
   healthScore: number;
   healthLabel: string;
   healthColor: string;
-  
-  // Insights
   insights: InsightItem[];
-  
-  // Comparison with previous month
-  previousMonthComparison: {
-    expenseChange: number; // percentage
-    hasData: boolean;
-  };
-  
-  // Daily trend (for chart)
-  dailyTrend: DailyTrendItem[];
-  
-  // Transaction count
   transactionCount: number;
 }
 
@@ -62,11 +33,7 @@ export interface InsightItem {
   description: string;
 }
 
-export interface DailyTrendItem {
-  day: number;
-  date: string;
-  amount: number;
-}
+
 
 /**
  * Get the previous month's date range.
@@ -97,10 +64,9 @@ function formatDate(date: Date): string {
  * Get month name based on locale.
  */
 function getMonthName(month: number, locale: string = 'id'): string {
-  const months = locale === 'id' 
-    ? ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-    : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  return months[month] ?? 'Unknown';
+  // Use Intl for proper locale handling
+  const date = new Date(2024, month, 1);
+  return new Intl.DateTimeFormat(locale, { month: 'long' }).format(date);
 }
 
 /**
@@ -142,30 +108,9 @@ export async function generateMonthlyReport(locale: string = 'id'): Promise<Mont
     dailyExpenses[day] = (dailyExpenses[day] || 0) + t.amount;
   });
   
-  const dailyValues = Object.values(dailyExpenses).filter(v => v > 0);
-  // avgDailyExpense = total / days in month (all calendar days, not just spending days)
   const avgDailyExpense = daysInMonth > 0 
     ? totalExpense / daysInMonth 
     : 0;
-  
-  // Find highest and lowest expense days
-  let highestDay = 1;
-  let lowestDay = 1;
-  let highestAmount = 0;
-  let lowestAmount = Infinity;
-  
-  Object.entries(dailyExpenses).forEach(([day, amount]) => {
-    if (amount > highestAmount) {
-      highestAmount = amount;
-      highestDay = parseInt(day);
-    }
-    if (amount > 0 && amount < lowestAmount) {
-      lowestAmount = amount;
-      lowestDay = parseInt(day);
-    }
-  });
-  
-  if (lowestAmount === Infinity) lowestAmount = 0;
   
   // Category breakdown
   const categoryTotals: Record<number, { total: number; count: number }> = {};
@@ -183,7 +128,7 @@ export async function generateMonthlyReport(locale: string = 'id'): Promise<Mont
       const cat = categoryMap[parseInt(catId)];
       return {
         categoryId: parseInt(catId),
-        categoryName: cat?.name || 'Lainnya',
+        categoryName: cat?.name || i18n.t('Other'),
         categoryColor: cat?.color || '#6B7280',
         total: data.total,
         percentage: totalExpense > 0 ? (data.total / totalExpense) * 100 : 0,
@@ -192,47 +137,17 @@ export async function generateMonthlyReport(locale: string = 'id'): Promise<Mont
     })
     .sort((a, b) => b.total - a.total);
   
-  // Top 5 expenses
-  const topExpenses = [...expenses]
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 5);
-  
-  // Daily trend
-  const dailyTrend: DailyTrendItem[] = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    dailyTrend.push({
-      day: d,
-      date: `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
-      amount: dailyExpenses[d] || 0,
-    });
-  }
-  
-  // Previous month comparison
-  const prevMonthStart = new Date(year, month - 1, 1);
-  const prevMonthEnd = new Date(year, month, 0, 23, 59, 59);
-  const prevMonthExpenses = await getTransactionsByDateRange(
-    formatDate(prevMonthStart),
-    formatDate(prevMonthEnd),
-    'expense',
-  );
-  
-  const prevMonthTotal = prevMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
-  const expenseChange = prevMonthTotal > 0 
-    ? ((totalExpense - prevMonthTotal) / prevMonthTotal) * 100 
-    : 0;
+
   
   // Health score calculation
   const healthScore = calculateHealthScore(totalExpense, expenses, categoryBreakdown);
   const healthLabel = getHealthLabel(healthScore);
   const healthColor = getHealthColor(healthScore);
   
-  // Generate insights
   const insights = generateInsights(
     totalExpense, 
     categoryBreakdown, 
-    avgDailyExpense, 
-    expenseChange,
-    prevMonthTotal > 0
+    avgDailyExpense
   );
   
   return {
@@ -241,21 +156,11 @@ export async function generateMonthlyReport(locale: string = 'id'): Promise<Mont
     monthName: getMonthName(month, locale),
     totalExpense,
     avgDailyExpense,
-    highestDayExpense: highestAmount,
-    lowestDayExpense: lowestAmount,
-    highestDayDate: `${year}-${String(month + 1).padStart(2, '0')}-${String(highestDay).padStart(2, '0')}`,
-    lowestDayDate: `${year}-${String(month + 1).padStart(2, '0')}-${String(lowestDay).padStart(2, '0')}`,
     categoryBreakdown,
-    topExpenses,
     healthScore,
     healthLabel,
     healthColor,
     insights,
-    previousMonthComparison: {
-      expenseChange,
-      hasData: prevMonthTotal > 0,
-    },
-    dailyTrend,
     transactionCount: expenses.length,
   };
 }
@@ -307,11 +212,12 @@ function getHealthLabel(score: number): string {
  * Get health color based on score.
  */
 function getHealthColor(score: number): string {
-  if (score >= 80) return '#10B981'; // Green
-  if (score >= 60) return '#3B82F6'; // Blue
-  if (score >= 40) return '#F59E0B'; // Yellow
-  if (score >= 20) return '#F97316'; // Orange
-  return '#EF4444'; // Red
+  // Returns CSS variable names for theme consistency
+  if (score >= 80) return 'var(--color-success, #10B981)';
+  if (score >= 60) return 'var(--color-info, #3B82F6)';
+  if (score >= 40) return 'var(--color-warning, #F59E0B)';
+  if (score >= 20) return 'var(--color-warning, #F97316)';
+  return 'var(--color-error, #EF4444)';
 }
 
 /**
@@ -320,64 +226,30 @@ function getHealthColor(score: number): string {
 function generateInsights(
   totalExpense: number,
   categoryBreakdown: CategoryBreakdownItem[],
-  avgDailyExpense: number,
-  expenseChange: number,
-  hasComparison: boolean
+  avgDailyExpense: number
 ): InsightItem[] {
+  const t = i18n.t.bind(i18n);
   const insights: InsightItem[] = [];
   
-  const t = i18n.t.bind(i18n);
-  
-  // Top spending category insight
   if (categoryBreakdown.length > 0) {
     const top = categoryBreakdown[0];
     if (top && top.percentage > 40) {
       insights.push({
         type: 'warning',
-        icon: '',
+        icon: '!',
         title: t('Insight Expense Concentration'),
         description: t('Insight Expense Concentration Desc', { name: top.categoryName, pct: top.percentage.toFixed(0) }),
       });
     } else if (top) {
       insights.push({
         type: 'success',
-        icon: '',
+        icon: '+',
         title: t('Insight Good Diversification'),
         description: t('Insight Good Diversification Desc', { count: categoryBreakdown.length }),
       });
     }
   }
   
-  // Month-over-month comparison
-  if (hasComparison) {
-    if (expenseChange > 20) {
-      insights.push({
-        type: 'warning',
-        icon: '',
-        title: t('Insight Expenses Up'),
-        description: t('Insight Expenses Up Desc', { pct: expenseChange.toFixed(0) }),
-      });
-    } else if (expenseChange < -10) {
-      insights.push({
-        type: 'success',
-        icon: '',
-        title: t('Insight Expenses Down'),
-        description: t('Insight Expenses Down Desc', { pct: Math.abs(expenseChange).toFixed(0) }),
-      });
-    }
-  }
-  
-  // Average daily spending tip
-  if (avgDailyExpense > 0) {
-    insights.push({
-      type: 'tip',
-      icon: '',
-      title: t('Insight Daily Average'),
-      description: t('Insight Daily Average Desc', { amount: avgDailyExpense.toLocaleString('id-ID') }),
-    });
-  }
-  
-  // Category-specific recommendations
   const foodCategory = categoryBreakdown.find(c => 
     c.categoryName.toLowerCase().includes('food') || 
     c.categoryName.toLowerCase().includes('makan')
@@ -385,13 +257,22 @@ function generateInsights(
   if (foodCategory && foodCategory.percentage > 30) {
     insights.push({
       type: 'tip',
-      icon: '',
+      icon: '~',
       title: t('Insight Food Saving Tip'),
       description: t('Insight Food Saving Tip Desc', { pct: foodCategory.percentage.toFixed(0) }),
     });
   }
   
-  return insights.slice(0, 5); // Max 5 insights
+  if (avgDailyExpense > 0) {
+    insights.push({
+      type: 'tip',
+      icon: '*',
+      title: t('Insight Daily Average'),
+      description: t('Insight Daily Average Desc', { amount: avgDailyExpense.toLocaleString('id-ID') }),
+    });
+  }
+  
+  return insights.slice(0, 5);
 }
 
 /**
@@ -401,39 +282,47 @@ function generateInsights(
  * 2. User hasn't dismissed/skipped the report for this month yet
  */
 export function shouldShowMonthlyReport(): boolean {
-  const now = new Date();
-  const dayOfMonth = now.getDate();
-  
-  // Show on days 1-3 of the month
-  if (dayOfMonth > 3) return false;
-  
-  // Check if user has already seen/dismissed for this month
-  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const dismissedKey = `expend_report_dismissed_${currentMonthKey}`;
-  const downloadedKey = `expend_report_downloaded_${currentMonthKey}`;
-  
-  if (localStorage.getItem(dismissedKey) === 'true') return false;
-  if (localStorage.getItem(downloadedKey) === 'true') return false;
-  
-  return true;
+  try {
+    const now = new Date();
+    const dayOfMonth = now.getDate();
+    
+    // Show on days 1-3 of the month
+    if (dayOfMonth > 3) return false;
+    
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const dismissedKey = `expend_report_dismissed_${currentMonthKey}`;
+    const downloadedKey = `expend_report_downloaded_${currentMonthKey}`;
+    
+    if (localStorage.getItem(dismissedKey) === 'true') return false;
+    if (localStorage.getItem(downloadedKey) === 'true') return false;
+    
+    return true;
+  } catch {
+    // Private browsing or storage full — don't block app
+    return false;
+  }
 }
 
 /**
  * Mark the report as dismissed for the current month.
  */
 export function dismissMonthlyReport(): void {
-  const now = new Date();
-  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  localStorage.setItem(`expend_report_dismissed_${currentMonthKey}`, 'true');
+  try {
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    localStorage.setItem(`expend_report_dismissed_${currentMonthKey}`, 'true');
+  } catch { /* storage unavailable */ }
 }
 
 /**
  * Mark the report as downloaded for the current month.
  */
 export function markReportDownloaded(): void {
-  const now = new Date();
-  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  localStorage.setItem(`expend_report_downloaded_${currentMonthKey}`, 'true');
+  try {
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    localStorage.setItem(`expend_report_downloaded_${currentMonthKey}`, 'true');
+  } catch { /* storage unavailable */ }
 }
 
 /**
