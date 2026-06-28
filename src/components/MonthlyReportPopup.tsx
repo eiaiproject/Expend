@@ -52,7 +52,7 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
     }
   }, [isOpen, loadReportData]);
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     if (!reportData) return;
     
     setIsGeneratingPDF(true);
@@ -68,7 +68,7 @@ export function MonthlyReportPopup({ isOpen, onClose }: MonthlyReportPopupProps)
     } finally {
       setIsGeneratingPDF(false);
     }
-  };
+  }, [reportData, i18n.language, theme, t, onClose]);
 
   const handleDismiss = useCallback(() => {
     dismissMonthlyReport();
