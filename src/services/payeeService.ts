@@ -76,16 +76,21 @@ export async function getPayeeStatsFromTransactions(): Promise<PayeeStats[]> {
   const results: PayeeStats[] = [];
 
   for (const [name, data] of payeeMap.entries()) {
-    const lastTransactionDate = data.dates.sort().reverse()[0];
+    const lastTransactionDate = data.dates.sort().reverse()[0] || '1970-01-01';
     
-    const mostCommonCategory = Object.entries(data.categories)
-      .reduce((a, b) => (a[1] > b[1] ? a : b), [null, 0])[0] 
-      ? parseInt(Object.entries(data.categories).reduce((a, b) => (a[1] > b[1] ? a : b))[0])
-      : null;
+    const categoryEntries = Object.entries(data.categories);
+    let mostCommonCategory: number | null = null;
+    if (categoryEntries.length > 0) {
+      const [catId] = categoryEntries.reduce((a, b) => (a[1] > b[1] ? a : b));
+      mostCommonCategory = parseInt(catId);
+    }
 
-    const mostCommonWallet = parseInt(
-      Object.entries(data.wallets).reduce((a, b) => (a[1] > b[1] ? a : b))[0]
-    );
+    const walletEntries = Object.entries(data.wallets);
+    let mostCommonWallet: number = 1;
+    if (walletEntries.length > 0) {
+      const [walletId] = walletEntries.reduce((a, b) => (a[1] > b[1] ? a : b));
+      mostCommonWallet = parseInt(walletId);
+    }
 
     results.push({
       name,

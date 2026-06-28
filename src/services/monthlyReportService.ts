@@ -9,6 +9,8 @@ export interface MonthlyReportData {
   monthName: string;
   totalExpense: number;
   avgDailyExpense: number;
+  highestDayExpense: number;
+  lowestDayExpense: number;
   categoryBreakdown: CategoryBreakdownItem[];
   healthScore: number;
   healthLabel: string;
@@ -111,6 +113,10 @@ export async function generateMonthlyReport(locale: string = 'id'): Promise<Mont
   const avgDailyExpense = daysInMonth > 0 
     ? totalExpense / daysInMonth 
     : 0;
+
+  const dailyExpenseValues = Object.values(dailyExpenses);
+  const highestDayExpense = dailyExpenseValues.length > 0 ? Math.max(...dailyExpenseValues) : 0;
+  const lowestDayExpense = dailyExpenseValues.length > 0 ? Math.min(...dailyExpenseValues) : 0;
   
   // Category breakdown
   const categoryTotals: Record<number, { total: number; count: number }> = {};
@@ -156,6 +162,8 @@ export async function generateMonthlyReport(locale: string = 'id'): Promise<Mont
     monthName: getMonthName(month, locale),
     totalExpense,
     avgDailyExpense,
+    highestDayExpense: dailyExpenseValues.length > 0 ? Math.max(...dailyExpenseValues) : 0,
+    lowestDayExpense: dailyExpenseValues.length > 0 ? Math.min(...dailyExpenseValues) : 0,
     categoryBreakdown,
     healthScore,
     healthLabel,

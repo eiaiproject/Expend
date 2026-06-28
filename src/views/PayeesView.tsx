@@ -94,7 +94,10 @@ export default function PayeesView() {
               ))}
             </div>
           ) : (
-            <EmptyState title={t('No transactions found')} />
+            <EmptyState 
+            title={t('No transactions found')} 
+            description={t('No transactions found for this merchant')}
+          />
           )}
         </div>
       </div>

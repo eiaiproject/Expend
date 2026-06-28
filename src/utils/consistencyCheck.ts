@@ -55,6 +55,7 @@ async function checkWalletBalanceMismatches(issues: IntegrityIssue[]): Promise<v
   for (let i = 0; i < wallets.length; i++) {
     const wallet = wallets[i];
     const recomputedWallet = recomputed[i];
+    if (!wallet || !recomputedWallet) continue;
     const actual = wallet.currentBalance ?? wallet.initialBalance;
     const expected = recomputedWallet.currentBalance ?? recomputedWallet.initialBalance;
 

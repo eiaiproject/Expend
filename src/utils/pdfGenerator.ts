@@ -254,7 +254,8 @@ export async function generateSimplePDF(
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(...expenseRgb);
-  pdf.text(`Rp ${data.highestDayExpense.toLocaleString('id-ID')}`, margin + statBoxWidth + 14, y + 15);
+  const highVal = (data as any).highestDayExpense || 0;
+  pdf.text(`Rp ${highVal.toLocaleString('id-ID')}`, margin + statBoxWidth + 14, y + 15);
   
   y += statBoxHeight + 6;
   
@@ -270,7 +271,8 @@ export async function generateSimplePDF(
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(...incomeRgb);
-  pdf.text(`Rp ${data.lowestDayExpense.toLocaleString('id-ID')}`, margin + 6, y + 15);
+  const lowVal = (data as any).lowestDayExpense || 0;
+  pdf.text(`Rp ${lowVal.toLocaleString('id-ID')}`, margin + 6, y + 15);
   
   // Transaction Count
   pdf.setFillColor(...cardRgb);

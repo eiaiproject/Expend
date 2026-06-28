@@ -33,41 +33,48 @@ import { getBalanceDelta } from '../utils/balanceUtils';
  * - any other wallet-linked financial record.
  */
 export async function deleteWalletSafely(walletId: number): Promise<{ success: boolean; reason?: string }> {
-  await db.transaction('ro', [db.transactions, db.debts, db.debtPayments, db.wallets], async () => {
-    // 1. Check transactions
-    const txCount = await db.transactions
-      .where('walletId')
-      .equals(walletId)
-      .count();
-    if (txCount > 0) {
-      throw new Error(`Wallet cannot be deleted because it has ${txCount} associated transaction(s).`);
-    }
+  try {
+    await db.transaction('read' as any, [db.transactions, db.debts, db.debtPayments, db.wallets], async () => {
+      // 1. Check transactions
+      const txCount = await db.transactions
+        .where('walletId')
+        .equals(walletId)
+        .count();
+      if (txCount > 0) {
+        throw new Error(`Wallet cannot be deleted because it has ${txCount} associated transaction(s).`);
+      }
 
-    // 2. Check debts
-    const debtCount = await db.debts
-      .where('walletId')
-      .equals(walletId)
-      .count();
-    if (debtCount > 0) {
-      throw new Error(`Wallet cannot be deleted because it is linked to ${debtCount} active debt(s)/receivable(s).`);
-    }
+      // 2. Check debts
+      const debtCount = await db.debts
+        .where('walletId')
+        .equals(walletId)
+        .count();
+      if (debtCount > 0) {
+        throw new Error(`Wallet cannot be deleted because it is linked to ${debtCount} active debt(s)/receivable(s).`);
+      }
 
-    // 3. Check debt payments
-    const paymentCount = await db.debtPayments
-      .where('walletId')
-      .equals(walletId)
-      .count();
-    if (paymentCount > 0) {
-      throw new Error(`Wallet cannot be deleted because it has ${paymentCount} debt payment record(s).`);
-    }
-  });
+      // 3. Check debt payments
+      const paymentCount = await db.debtPayments
+        .where('walletId')
+        .equals(walletId)
+        .count();
+      if (paymentCount > 0) {
+        throw new Error(`Wallet cannot be deleted because it has ${paymentCount} debt payment record(s).`);
+      }
+    });
 
-  // If we reached here, no references were found (or no errors thrown)
-  await db.transaction('rw', [db.wallets], async () => {
-    await db.wallets.delete(walletId);
-  });
+    // If we reached here, no references were found (or no errors thrown)
+    await db.transaction('rw', [db.wallets], async () => {
+      await db.wallets.delete(walletId);
+    });
 
-  return { success: true };
+    return { success: true };
+  } catch (err) {
+    return { 
+      success: false, 
+      reason: err instanceof Error ? err.message : 'An unknown error occurred' 
+    };
+  }
 }
 
 /**

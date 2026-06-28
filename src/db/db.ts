@@ -66,10 +66,81 @@ export interface DebtPayment {
   createdAt: string;
 }
 
+import Dexie, { type EntityTable } from 'dexie';
+import { CURATED_PALETTE } from '../utils/constants';
+import { generateTransferGroupId } from '../utils/cryptoUtils';
+import { getTodayStr } from '../utils/dateUtils';
+
+export interface Wallet {
+  id?: number;
+  name: string;
+  currency: string;
+  lastUpdated: string;
+  initialBalance: number;
+  currentBalance?: number; // Computed incrementally for fast reads
+}
+
+export interface Category {
+  id?: number;
+  name: string;
+  icon: string;
+  color: string;
+  budget?: number;
+}
+
+export interface Transaction {
+  id?: number;
+  walletId: number;
+  categoryId: number | null; // null for balance_adjustment
+  date: string; // YYYY-MM-DD format 
+  description: string;
+  type: 'expense' | 'balance_adjustment' | 'transfer_in' | 'transfer_out';
+  amount: number;
+  notes?: string;
+  transferGroupId?: string; // links paired transfer_in/transfer_out transactions
+}
+
+export type DebtType = 'payable' | 'receivable';
+export type DebtStatus = 'open' | 'partial' | 'paid' | 'overdue' | 'written_off';
+
+export interface Debt {
+  id: string;
+  type: DebtType;
+  personName: string;
+  title?: string;
+  principalAmount: number;
+  remainingAmount: number;
+  walletId: number;
+  startDate: string;
+  dueDate?: string | null;
+  status?: DebtStatus;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt?: string | null;
+}
+
+export type DebtPaymentType = 'initial' | 'repayment' | 'adjustment' | 'write_off';
+
+export interface DebtPayment {
+  id: string;
+  debtId: string;
+  amount: number;
+  date: string;
+  walletId: number;
+  type: DebtPaymentType;
+  notes?: string;
+  linkedTransactionId?: number | null;
+  createdAt: string;
+}
+
 export interface Setting {
   key: string;
   value: unknown;
 }
+
+// Defined the TransactionMode type to match Dexie's expectations if not exported
+type TransactionMode = 'read' | 'rw';
 
 type LegacyDebtRecord = Partial<Debt> & {
   id?: string | number;
