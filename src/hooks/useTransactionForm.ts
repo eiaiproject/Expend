@@ -5,6 +5,7 @@ import { db, type Transaction, type Wallet, type Category } from '../db/db';
 import { saveTransaction, saveTransfer } from '../services/transactionSaveService';
 import { resolveCategory } from '../services/categoryService';
 import { getTodayStr } from '../utils/dateUtils';
+import { getPayeeSuggestions } from '../services/payeeService';
 
 const EMPTY_WALLETS: Wallet[] = [];
 const EMPTY_CATEGORIES: Category[] = [];
@@ -114,12 +115,18 @@ export function useTransactionForm({
   const initializedKeyRef = useRef<string | null>(null);
 
   // Filter description suggestions
-  const filteredDescriptionSuggestions = useMemo(() => {
-    if (!description.trim()) return recentDescriptions.slice(0, 5);
-    const lower = description.toLowerCase();
-    return recentDescriptions
-      .filter((d) => d.toLowerCase().includes(lower))
-      .slice(0, 5);
+  const [filteredDescriptionSuggestions, setFilteredDescriptionSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const updateSuggestions = async () => {
+      if (!description.trim()) {
+        setFilteredDescriptionSuggestions(recentDescriptions.slice(0, 5));
+        return;
+      }
+      const suggestions = await getPayeeSuggestions(description);
+      setFilteredDescriptionSuggestions(suggestions.slice(0, 5));
+    };
+    updateSuggestions();
   }, [description, recentDescriptions]);
 
   // Initialize form when opened or txToEdit changes

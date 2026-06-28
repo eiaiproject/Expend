@@ -434,35 +434,7 @@ function recomputeWalletBalancesWithDebts(
   debts: readonly Debt[],
   debtPayments: readonly DebtPayment[],
 ): Wallet[] {
-  const walletsWithTransactionBalances = recomputeWalletCurrentBalances(wallets, transactions);
-  const balanceByWallet = new Map<number, number>();
-  for (const wallet of walletsWithTransactionBalances) {
-    if (wallet.id != null) {
-      balanceByWallet.set(wallet.id, wallet.currentBalance ?? wallet.initialBalance);
-    }
-  }
-
-  const debtById = new Map(debts.map((debt) => [debt.id, debt]));
-  for (const payment of debtPayments) {
-    const debt = debtById.get(payment.debtId);
-    if (!debt) continue;
-
-    let delta = 0;
-    if (payment.type === 'initial') {
-      delta = debt.type === 'payable' ? payment.amount : -payment.amount;
-    } else if (payment.type === 'repayment') {
-      delta = debt.type === 'payable' ? -payment.amount : payment.amount;
-    }
-
-    if (delta !== 0) {
-      balanceByWallet.set(payment.walletId, (balanceByWallet.get(payment.walletId) ?? 0) + delta);
-    }
-  }
-
-  return walletsWithTransactionBalances.map((wallet) => ({
-    ...wallet,
-    currentBalance: wallet.id == null ? wallet.currentBalance : balanceByWallet.get(wallet.id) ?? wallet.currentBalance,
-  }));
+  return recomputeWalletCurrentBalances(wallets, transactions, debts, debtPayments);
 }
 
 export function sanitizeImportData(json: unknown): ExportData {
@@ -595,7 +567,13 @@ export function sanitizeImportData(json: unknown): ExportData {
  * Normalizes transfer pairs after import.
  */
 export async function importData(data: ExportData): Promise<void> {
+  const validationErrors = validateImportData(data);
+  if (validationErrors.length > 0) {
+    throw new Error(`Import validation failed: ${validationErrors.join('; ')}`);
+  }
+
   const sanitizedData = sanitizeImportData(data);
+  // ... (rest of the function)
 
   await db.transaction('rw', [db.wallets, db.categories, db.transactions, db.debts, db.debtPayments, db.settings], async () => {
     const localSecurity = await db.settings.get('security');

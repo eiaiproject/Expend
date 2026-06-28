@@ -56,6 +56,7 @@ Thumbs.db
 # Preview/Development files
 preview-*.html
 test-*.ts
+@PRODUCT.md
 
 # Wrangler files
 .wrangler

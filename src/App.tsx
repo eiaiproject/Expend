@@ -9,6 +9,7 @@ const DebtsView = lazy(() => import('./views/DebtsView'));
 const StatsView = lazy(() => import('./views/StatsView'));
 const SettingsView = lazy(() => import('./views/SettingsView'));
 const CategoriesView = lazy(() => import('./views/CategoriesView'));
+const PayeesView = lazy(() => import('./views/PayeesView'));
 
 import { TransactionFormSheet } from './components/TransactionFormSheet';
 import { ActionPickerSheet } from './components/ActionPickerSheet';
@@ -256,6 +257,7 @@ function RoutesWithSuspense() {
           <Route path="/stats" element={<StatsView />} />
           <Route path="/settings" element={<SettingsView />} />
           <Route path="/categories" element={<CategoriesView />} />
+          <Route path="/payees" element={<PayeesView />} />
           <Route path="*" element={<NotFoundView />} />
         </Routes>
       </Suspense>

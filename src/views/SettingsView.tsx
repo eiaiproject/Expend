@@ -9,7 +9,21 @@ import { Link } from 'react-router-dom';
 import { toast } from '../components/Toaster';
 import { confirm } from '../components/ConfirmDialog';
 import { AnimatePresence, motion } from 'motion/react';
-import { generateExport, importData, validateImportData, MAX_IMPORT_FILE_SIZE, downloadBlob, sanitizeCsvRows } from '../services/importExportService';
+import { 
+  generateExport, 
+  importData, 
+  validateImportData, 
+  MAX_IMPORT_FILE_SIZE, 
+  downloadBlob, 
+  sanitizeCsvRows 
+} from '../services/importExportService';
+import { 
+  exportTransactionsCsv, 
+  exportDebtsCsv, 
+  exportDebtPaymentsCsv,
+  parseTransactionsCsv,
+  importCsvTransactions
+} from '../services/csvService';
 import { STORAGE_KEYS } from '../utils/constants';
 import { useInstallPrompt } from '../utils/pwaUtils';
 import { getTodayStr } from '../utils/dateUtils';
@@ -22,6 +36,7 @@ import { PinSetupModal } from '../components/settings/PinSetupModal';
 export default function SettingsView() {
   const { t, i18n } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [showChangePin, setShowChangePin] = useState(false);
   const [showDisableConfirm, setShowDisableConfirm] = useState(false);
@@ -45,11 +60,54 @@ export default function SettingsView() {
   };
 
   const handleExportCSV = async () => {
-    const Papa = (await import('papaparse')).default;
-    const txs = await db.transactions.toArray();
-    const csv = Papa.unparse(sanitizeCsvRows(txs));
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    downloadBlob(blob, `expend_export_${getTodayStr()}.csv`);
+    await exportTransactionsCsv();
+  };
+
+  const handleExportDebtsCsv = async () => {
+    await exportDebtsCsv();
+  };
+
+  const handleExportPaymentsCsv = async () => {
+    await exportDebtPaymentsCsv();
+  };
+
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > MAX_IMPORT_FILE_SIZE) {
+      toast.add(t('Import Invalid'));
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      const { rows, errors } = await parseTransactionsCsv(file);
+      
+      if (errors.length > 0) {
+        const errorSummary = errors.length === 1 
+          ? errors[0] 
+          : `${errors[0]} (+${errors.length - 1} more)`;
+        toast.add(`${t('Import Invalid')} ${errorSummary}`);
+        // In a real app, we'd show a preview modal here.
+        // For now, we'll only import if there are NO errors.
+        if (errors.length > 0) {
+          e.target.value = '';
+          return;
+        }
+      }
+
+      const confirmed = await confirm({ title: t('Import CSV'), message: t('Import Confirm'), variant: 'default' });
+      if (confirmed) {
+        await importCsvTransactions(rows);
+        toast.add(t('Import Success Reload'));
+        window.setTimeout(() => window.location.reload(), 600);
+      }
+    } catch (err) {
+      toast.add(t('Import Error'));
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const handleExportJSON = async () => {
@@ -222,20 +280,38 @@ export default function SettingsView() {
               </div>
             </div>
              <button onClick={handleExportCSV} className="w-full flex items-center gap-3 p-4 border-b border-[var(--border)] text-left hover:bg-[var(--card)] transition-colors">
-              <Download size={20} /> {t('Export CSV')}
+              <Download size={20} /> {t('Export Transactions CSV')}
+            </button>
+            <button onClick={handleExportDebtsCsv} className="w-full flex items-center gap-3 p-4 border-b border-[var(--border)] text-left hover:bg-[var(--card)] transition-colors">
+              <Download size={20} /> {t('Export Debts CSV')}
+            </button>
+            <button onClick={handleExportPaymentsCsv} className="w-full flex items-center gap-3 p-4 border-b border-[var(--border)] text-left hover:bg-[var(--card)] transition-colors">
+              <Download size={20} /> {t('Export Payments CSV')}
             </button>
             <button onClick={handleExportJSON} className="w-full flex items-center gap-3 p-4 border-b border-[var(--border)] text-left hover:bg-[var(--card)] transition-colors">
               <Download size={20} /> {t('Export JSON')}
             </button>
-            <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-3 p-4 text-orange-500 text-left hover:bg-[var(--card)] transition-colors">
-              <Upload size={20} /> {t('Import JSON')}
-            </button>
+            <div className="flex gap-2 p-4">
+              <button onClick={() => fileInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-3 p-3 text-orange-500 hover:bg-[var(--card)] transition-colors rounded-xl border border-orange-500/20">
+                <Upload size={20} /> {t('Import JSON')}
+              </button>
+              <button onClick={() => csvInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-3 p-3 text-orange-500 hover:bg-[var(--card)] transition-colors rounded-xl border border-orange-500/20">
+                <Upload size={20} /> {t('Import CSV')}
+              </button>
+            </div>
             <input 
               type="file" 
               accept=".json" 
               className="hidden" 
               ref={fileInputRef}
               onChange={handleImportJSON}
+            />
+            <input 
+              type="file" 
+              accept=".csv" 
+              className="hidden" 
+              ref={csvInputRef}
+              onChange={handleImportCSV}
             />
             <button onClick={handleResetLocalData} className="w-full flex items-center gap-3 p-4 text-red-500 text-left hover:bg-[var(--card)] transition-colors border-t border-[var(--border)]">
               <Trash2 size={20} /> {t('Reset Local Data')}

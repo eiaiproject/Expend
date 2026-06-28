@@ -1,0 +1,36 @@
+name: CI Quality Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run QA Automated
+        # Menjalankan lint, typecheck, unit tests, build, dan e2e tests
+        run: npm run qa:automated
+
+      - name: Deploy to Cloudflare Pages
+        # Step ini hanya berjalan jika job quality-gate berhasil dan berada di branch main
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: expend # Sesuaikan dengan nama project di Cloudflare
+          directory: dist
