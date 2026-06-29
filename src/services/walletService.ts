@@ -15,64 +15,115 @@
  *   amount is a SIGNED delta. Positive = increase, negative = decrease.
  *   The UI sends absolute balance and we compute the signed delta internally.
  */
-import { db, type Transaction, type Wallet } from '../db/db';
+import { db } from '../db/db';
 import { getBalanceDelta } from '../utils/balanceUtils';
 
 /**
  * Delete a wallet safely inside a single Dexie transaction.
  *
- * Steps:
- * 1. Check if the wallet is referenced by any financial record.
- * 2. If referenced, block deletion and return the list of references.
- * 3. If not referenced, delete the wallet.
- * 
- * Blocking references:
- * - transactions
- * - debts
- * - debtPayments
- * - any other wallet-linked financial record.
+ * Blocking references (always block deletion):
+ * - debts (irreversible lend/borrow ledger)
+ * - debtPayments (cashflow history against wallet)
+ * - non-transfer transactions (expenses, balance adjustments, etc.)
+ *
+ * Transfer pairs (transfer_in / transfer_out) are unwound atomically:
+ * - the orphaned side is removed from the other wallet
+ * - the other wallet's currentBalance is recomputed
+ *
+ * Result: deletion only succeeds when there are no irreversible references
+ * that would leave dangling financial history.
  */
 export async function deleteWalletSafely(walletId: number): Promise<{ success: boolean; reason?: string }> {
   try {
-    await db.transaction('read' as any, [db.transactions, db.debts, db.debtPayments, db.wallets], async () => {
-      // 1. Check transactions
-      const txCount = await db.transactions
-        .where('walletId')
-        .equals(walletId)
-        .count();
-      if (txCount > 0) {
-        throw new Error(`Wallet cannot be deleted because it has ${txCount} associated transaction(s).`);
-      }
+    // 1. Always block debts (active loan ledger)
+    const debtCount = await db.debts
+      .where('walletId')
+      .equals(walletId)
+      .and(d => !d.archivedAt)
+      .count();
+    if (debtCount > 0) {
+      return {
+        success: false,
+        reason: `Wallet cannot be deleted because it is linked to ${debtCount} active debt(s)/receivable(s).`,
+      };
+    }
 
-      // 2. Check debts
-      const debtCount = await db.debts
-        .where('walletId')
-        .equals(walletId)
-        .count();
-      if (debtCount > 0) {
-        throw new Error(`Wallet cannot be deleted because it is linked to ${debtCount} active debt(s)/receivable(s).`);
-      }
+    // 2. Always block debt payments (cashflow history)
+    const paymentCount = await db.debtPayments
+      .where('walletId')
+      .equals(walletId)
+      .count();
+    if (paymentCount > 0) {
+      return {
+        success: false,
+        reason: `Wallet cannot be deleted because it has ${paymentCount} debt payment record(s).`,
+      };
+    }
 
-      // 3. Check debt payments
-      const paymentCount = await db.debtPayments
-        .where('walletId')
-        .equals(walletId)
-        .count();
-      if (paymentCount > 0) {
-        throw new Error(`Wallet cannot be deleted because it has ${paymentCount} debt payment record(s).`);
-      }
-    });
+    // 3. Inspect transactions. Non-transfer transactions block deletion;
+    //    transfer_in/out pairs are unwound with their counterparts.
+    const walletTxs = await db.transactions
+      .where('walletId')
+      .equals(walletId)
+      .toArray();
 
-    // If we reached here, no references were found (or no errors thrown)
-    await db.transaction('rw', [db.wallets], async () => {
+    const nonTransferTxs = walletTxs.filter(t => t.type !== 'transfer_in' && t.type !== 'transfer_out');
+    if (nonTransferTxs.length > 0) {
+      return {
+        success: false,
+        reason: `Wallet cannot be deleted because it has ${nonTransferTxs.length} associated transaction(s).`,
+      };
+    }
+
+    // 4. Find paired transfers in OTHER wallets and collect affected wallet ids.
+    const pairedAffectedWalletIds = new Set<number>();
+    const pairsToDelete = new Set<number>();
+
+    for (const tx of walletTxs) {
+      if (tx.id != null) pairsToDelete.add(tx.id);
+      const groupId = tx.transferGroupId;
+      if (!groupId) continue;
+      const counterpart = await db.transactions
+        .where('transferGroupId')
+        .equals(groupId)
+        .and(t => t.id !== tx.id)
+        .first();
+      if (counterpart && counterpart.id != null) {
+        pairsToDelete.add(counterpart.id);
+        if (counterpart.walletId !== walletId) {
+          pairedAffectedWalletIds.add(counterpart.walletId);
+        }
+      }
+    }
+
+    // 5. Atomic delete + balance recompute
+    await db.transaction('rw', [db.transactions, db.wallets], async () => {
+      if (pairsToDelete.size > 0) {
+        await db.transactions.bulkDelete(Array.from(pairsToDelete));
+      }
+      // Recompute balances for every wallet that lost transactions.
+      const walletsToRecompute = new Set<number>([walletId, ...pairedAffectedWalletIds]);
+      for (const id of walletsToRecompute) {
+        const wallet = await db.wallets.get(id);
+        if (!wallet) continue;
+        const txs = await db.transactions.where('walletId').equals(id).toArray();
+        let balance = wallet.initialBalance;
+        for (const t of txs) {
+          balance += getBalanceDelta(t.type, t.amount);
+        }
+        await db.wallets.update(id, {
+          currentBalance: balance,
+          lastUpdated: new Date().toISOString(),
+        });
+      }
       await db.wallets.delete(walletId);
     });
 
     return { success: true };
   } catch (err) {
-    return { 
-      success: false, 
-      reason: err instanceof Error ? err.message : 'An unknown error occurred' 
+    return {
+      success: false,
+      reason: err instanceof Error ? err.message : 'An unknown error occurred',
     };
   }
 }
