@@ -145,6 +145,9 @@ export function TransactionCard({
         )}
         role="button"
         tabIndex={0}
+        data-testid="transaction-row"
+        data-tx-id={tx.id}
+        data-tx-type={tx.type}
         onKeyDown={handleKeyDown}
         onClick={() => {
           if (isSelectionMode) {

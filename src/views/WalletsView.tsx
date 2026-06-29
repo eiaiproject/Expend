@@ -88,11 +88,12 @@ export default function WalletsView() {
       }
 
       const initialBalance = parseInt(newWalletBal.replace(/[^0-9]/g, ''), 10) || 0;
-      
+
       await db.wallets.add({
         name: newWalletName.trim(),
         currency: 'IDR',
         initialBalance,
+        currentBalance: initialBalance, // ponytail: same as onboarding — keep currentBalance queryable post-create
         lastUpdated: new Date().toISOString()
       });
       setNewWalletName('');
@@ -304,7 +305,7 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
   };
 
   return (
-    <div className={`bg-[var(--card)] rounded-[16px] p-5 shadow-sm border relative overflow-hidden ${isStale ? 'border-amber-500/30' : 'border-[var(--border)]'}`}>
+    <div data-wallet-card={wallet.name} data-testid="wallet-card" className={`bg-[var(--card)] rounded-[16px] p-5 shadow-sm border relative overflow-hidden ${isStale ? 'border-amber-500/30' : 'border-[var(--border)]'}`}>
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3 w-full">
           <div className="p-2 bg-[var(--bg)] rounded-lg text-[var(--accent)] shrink-0">
@@ -367,7 +368,7 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
       </div>
 
       <div className="mb-4">
-        <p className="font-mono text-2xl font-bold">
+        <p className="font-mono text-2xl font-bold" data-testid="wallet-balance">
           {formatCurrency(balance)}
         </p>
         {spendingTrend && (
