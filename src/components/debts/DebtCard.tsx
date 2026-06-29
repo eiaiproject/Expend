@@ -52,6 +52,9 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
     <div
       role="button"
       tabIndex={0}
+      data-testid="debt-row"
+      data-debt-id={debt.id}
+      data-debt-type={debt.type}
       onClick={onClick}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {

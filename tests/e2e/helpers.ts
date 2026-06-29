@@ -8,6 +8,8 @@
  * - Complete onboarding with a wallet + a category, in a stable way.
  * - Read IndexedDB directly from the page context for assertions.
  * - Generate unique names so parallel browser projects don't collide.
+ * - Wrap balance-mutating flows with stable helpers so tests assert
+ *   exact numeric state without coupling to UI details.
  *
  * ponytail: no framework deps, no extra Playwright fixture plumbing.
  * Everything exposes plain functions that take a Playwright `Page` or
@@ -28,7 +30,7 @@ export function uniqueName(prefix: string): string {
  * Wipe localStorage, sessionStorage, Cache Storage, and the app's
  * IndexedDB databases (ExpendDB + any legacy stores).
  */
-export async function clearAllStorage(page: Page): Promise<void> {
+export async function clearAppStorage(page: Page): Promise<void> {
   await page.context().clearCookies();
   // Storage APIs + Cache API need a real page context.
   await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -66,12 +68,15 @@ export async function clearAllStorage(page: Page): Promise<void> {
   }, { dbName: DB_NAME });
 }
 
+/** @deprecated Alias for clearAppStorage kept for existing imports. */
+export const clearAllStorage = clearAppStorage;
+
 /**
  * Land the app from a clean slate. Returns when the splash is replaced
  * by either the landing view or the onboarding wizard / main app shell.
  */
 export async function visitApp(page: Page): Promise<void> {
-  await clearAllStorage(page);
+  await clearAppStorage(page);
   await page.goto('/');
   await page.waitForLoadState('networkidle');
   // The Security bootstrap shows a spinner first. Wait for it to clear.
@@ -111,6 +116,170 @@ export async function readTable<T = unknown>(
       };
     });
   }, { table });
+}
+
+/**
+ * Read the entire IndexedDB into one serializable object. Useful for
+ * snapshot diffs and to avoid round-tripping per-table reads.
+ */
+export async function readDb(page: Page): Promise<{
+  wallets: unknown[];
+  categories: unknown[];
+  transactions: unknown[];
+  debts: unknown[];
+  debtPayments: unknown[];
+  settings: unknown[];
+}> {
+  // ponytail: open one IDB connection for all reads so the page sees a
+  // consistent snapshot across tables (a fresh connection per table can
+  // race with a Dexie write microtask).
+  return page.evaluate(async () => {
+    return new Promise<{
+      wallets: unknown[];
+      categories: unknown[];
+      transactions: unknown[];
+      debts: unknown[];
+      debtPayments: unknown[];
+      settings: unknown[];
+    }>((resolve) => {
+      const request = indexedDB.open('ExpendDB');
+      request.onerror = () => resolve({ wallets: [], categories: [], transactions: [], debts: [], debtPayments: [], settings: [] });
+      request.onsuccess = () => {
+        const db = request.result;
+        const out: { wallets: unknown[]; categories: unknown[]; transactions: unknown[]; debts: unknown[]; debtPayments: unknown[]; settings: unknown[] } = {
+          wallets: [], categories: [], transactions: [], debts: [], debtPayments: [], settings: [],
+        };
+        const tables = ['wallets', 'categories', 'transactions', 'debts', 'debtPayments', 'settings'] as const;
+        const tx = db.transaction(tables, 'readonly');
+        let pending = tables.length;
+        for (const t of tables) {
+          if (!db.objectStoreNames.contains(t)) {
+            pending -= 1;
+            continue;
+          }
+          const req = tx.objectStore(t).getAll();
+          req.onsuccess = () => {
+            out[t] = (req.result ?? []) as unknown[];
+            pending -= 1;
+            if (pending === 0) {
+              db.close();
+              resolve(out);
+            }
+          };
+          req.onerror = () => {
+            pending -= 1;
+            if (pending === 0) {
+              db.close();
+              resolve(out);
+            }
+          };
+        }
+        if (pending === 0) {
+          db.close();
+          resolve(out);
+        }
+      };
+    });
+  });
+}
+
+export async function readWalletByName(
+  page: Page,
+  walletName: string,
+): Promise<(Record<string, unknown> & { id?: number; name?: string; currentBalance?: number; initialBalance?: number }) | undefined> {
+  return page.evaluate(async ({ walletName }) => {
+    return new Promise<(Record<string, unknown> & { id?: number; name?: string; currentBalance?: number; initialBalance?: number }) | undefined>((resolve) => {
+      const request = indexedDB.open('ExpendDB');
+      request.onerror = () => resolve(undefined);
+      request.onsuccess = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('wallets')) {
+          db.close();
+          resolve(undefined);
+          return;
+        }
+        const tx = db.transaction('wallets', 'readonly');
+        const req = tx.objectStore('wallets').getAll();
+        req.onsuccess = () => {
+          db.close();
+          const wallets = (req.result ?? []) as Array<Record<string, unknown> & { id?: number; name?: string; currentBalance?: number; initialBalance?: number }>;
+          resolve(wallets.find((w) => w.name === walletName));
+        };
+        req.onerror = () => { db.close(); resolve(undefined); };
+      };
+    });
+  }, { walletName });
+}
+
+export async function readTransactions(page: Page): Promise<Array<Record<string, unknown> & { id?: number; description?: string; type?: string; amount?: number; walletId?: number; transferGroupId?: string }>> {
+  return readTable(page, 'transactions') as Promise<Array<Record<string, unknown> & { id?: number; description?: string; type?: string; amount?: number; walletId?: number; transferGroupId?: string }>>;
+}
+
+export async function readDebts(page: Page): Promise<Array<Record<string, unknown> & { id?: string; personName?: string; type?: string; principalAmount?: number; remainingAmount?: number; walletId?: number; status?: string }>> {
+  return readTable(page, 'debts') as Promise<Array<Record<string, unknown> & { id?: string; personName?: string; type?: string; principalAmount?: number; remainingAmount?: number; walletId?: number; status?: string }>>;
+}
+
+export async function readDebtPayments(page: Page): Promise<Array<Record<string, unknown> & { id?: string; debtId?: string; type?: string; amount?: number; walletId?: number }>> {
+  return readTable(page, 'debtPayments') as Promise<Array<Record<string, unknown> & { id?: string; debtId?: string; type?: string; amount?: number; walletId?: number }>>;
+}
+
+/**
+ * Return the wallet's effective current balance (currentBalance when set,
+ * otherwise initialBalance — mirrors the UI's fallback). Numeric.
+ */
+export async function getWalletCurrentBalance(page: Page, walletName: string): Promise<number> {
+  const wallet = await readWalletByName(page, walletName);
+  if (!wallet) throw new Error(`Wallet not found in DB: ${walletName}`);
+  const cur = Number(wallet.currentBalance);
+  if (Number.isFinite(cur)) return cur;
+  return Number(wallet.initialBalance ?? 0);
+}
+
+/**
+ * Assert wallet.currentBalance (DB) equals expected.
+ * Accepts a tolerance for currency rounding when needed.
+ */
+export async function expectWalletBalance(
+  page: Page,
+  walletName: string,
+  expectedAmount: number,
+  tolerance = 0,
+): Promise<void> {
+  const wallet = await readWalletByName(page, walletName);
+  if (!wallet) throw new Error(`Wallet not found in DB: ${walletName}`);
+  // Use currentBalance first (DB truth). Fall back to initialBalance for
+  // freshly-created wallets where currentBalance may not have been set.
+  const stored = Number(wallet.currentBalance);
+  const actual = Number.isFinite(stored) ? stored : Number(wallet.initialBalance ?? 0);
+  if (Math.abs(actual - expectedAmount) > tolerance) {
+    throw new Error(
+      `Wallet "${walletName}" balance mismatch: expected ${expectedAmount}, got ${actual}. DB row: ${JSON.stringify(wallet)}`,
+    );
+  }
+}
+
+/**
+ * Assert the visible UI balance for a wallet matches expected.
+ * Looks for the rendered amount inside the wallet card; falls back to
+ * scanning the wallets list page for the formatted number.
+ */
+export async function expectVisibleWalletBalance(
+  page: Page,
+  walletName: string,
+  expectedAmount: number,
+): Promise<void> {
+  const expected = expectedAmount.toLocaleString('id-ID');
+  const card = page.locator(`[data-wallet-card="${walletName}"]`);
+  if (await card.count() > 0) {
+    await card.first().scrollIntoViewIfNeeded();
+    await card.first().getByText(expected).first().waitFor({ state: 'visible', timeout: 5_000 });
+    return;
+  }
+  // Fallback: search for "<wallet name>" near the formatted amount.
+  await page.goto('/wallets');
+  await page.waitForLoadState('networkidle');
+  const card2 = page.locator(`[data-wallet-card="${walletName}"]`);
+  await card2.first().getByText(expected).first().waitFor({ state: 'visible', timeout: 5_000 });
 }
 
 /**
@@ -184,6 +353,35 @@ export async function completeOnboarding(page: Page, options: OnboardOptions): P
 }
 
 /**
+ * Create a wallet from the /wallets view (after onboarding or alongside
+ * already-existing wallets).
+ */
+export async function createWallet(
+  page: Page,
+  name: string,
+  balance = '',
+): Promise<void> {
+  if (!page.url().includes('/wallets')) {
+    await page.goto('/wallets');
+    await page.waitForLoadState('networkidle');
+  }
+
+  await page.getByRole('button', { name: /add wallet/i }).first().click();
+  const inputs = page.locator('input');
+  await inputs.nth(0).fill(name);
+  if (balance) {
+    await inputs.nth(1).fill(balance);
+  }
+  await page.getByRole('button', { name: /^save$/i }).first().click();
+
+  await page.waitForFunction(
+    (label) => document.body.innerText.includes(label),
+    name,
+    { timeout: 5_000 },
+  );
+}
+
+/**
  * Create an expense transaction through the TransactionFormSheet.
  * Caller must have already onboarded with at least one wallet + category.
  */
@@ -216,6 +414,8 @@ export async function createExpense(
 
   await page.getByRole('button', { name: /^save$/i }).first().click();
   await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+  // ponytail: see createDebt — let the IDB tx flush before caller reads.
+  await page.waitForTimeout(500);
 }
 
 export async function createTransfer(
@@ -234,18 +434,28 @@ export async function createTransfer(
 
   await page.getByRole('button', { name: /^save$/i }).first().click();
   await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+  // ponytail: see createDebt — let the IDB tx flush before caller reads.
+  await page.waitForTimeout(500);
 }
 
+/**
+ * Create a debt from /debts (the /debts page's own Record Debt button).
+ * Uses the DebtFormSheet's two-step flow (type → details).
+ */
 export async function createDebt(
   page: Page,
   opts: { personName: string; amount: string; walletName: string; type?: 'payable' | 'receivable' },
 ): Promise<void> {
-  await openActionPicker(page);
-  await clickPickerAction(page, /record debt/i);
+  if (!page.url().includes('/debts')) {
+    await page.goto('/debts');
+    await page.waitForLoadState('networkidle');
+  }
+  await page.getByRole('button', { name: /record debt/i }).first().click();
   await page.waitForSelector('h3:has-text("I Owe Money")', { timeout: 10_000 });
 
   const typeLabel = opts.type === 'receivable' ? /i lent money/i : /i owe money/i;
   await page.getByRole('button', { name: typeLabel }).first().click();
+
   await page.waitForSelector('input[required][type="text"]', { timeout: 10_000 });
 
   const personInput = page.locator('input[required][type="text"]').first();
@@ -254,42 +464,197 @@ export async function createDebt(
   const amountInput = page.locator('form input[inputmode="numeric"]').first();
   await amountInput.fill(opts.amount);
 
-  if (opts.walletName) {
-    const walletSelect = page.locator('form select').first();
-    await walletSelect.selectOption({ label: opts.walletName });
-  }
+  // Wallet: pick by label within the open DebtFormSheet
+  await pickWalletFromSelect(page, opts.walletName);
 
-  await page.getByRole('button', { name: /save payable|save receivable|^save$/i }).first().click();
+  // Submit button text depends on debt type
+  const submitLabel = opts.type === 'receivable' ? /save receivable/i : /save payable/i;
+  await page.getByRole('button', { name: submitLabel }).first().click();
+
+  // Wait for sheet to close
   await page.waitForFunction(
     () => !document.querySelector('form input[inputmode="numeric"]'),
     undefined,
     { timeout: 10_000 },
   );
+
+  // ponytail: a fresh IDB connection opened from page.evaluate right after
+  // the submit click can race with Dexie's transaction commit microtask.
+  // Yield to let the wallet update fully settle before the caller reads it.
+  await page.waitForTimeout(500);
 }
 
-export async function createWallet(
+/**
+ * Record a debt repayment against a given debt (looked up by person name).
+ * Opens the debt detail sheet from /debts, then opens the payment sheet.
+ */
+export async function recordDebtPayment(
   page: Page,
-  name: string,
-  balance = '',
+  opts: { personName: string; amount: string; walletName?: string; quickRatio?: 0.25 | 0.5 | 0.75 | 1 },
+): Promise<void> {
+  if (!page.url().includes('/debts')) {
+    await page.goto('/debts');
+    await page.waitForLoadState('networkidle');
+  }
+
+  // Locate the debt card by its person name and click it.
+  const card = page.locator(`text=${opts.personName}`).first();
+  await card.scrollIntoViewIfNeeded();
+  await card.click();
+
+  // Wait for the detail sheet to render and click the "Pay debt" /
+  // "Receive payment" CTA. This button is inside the detail sheet, NOT
+  // a menu, so we can locate it via the dialog itself.
+  const detailDialog = page.getByRole('dialog');
+  await detailDialog.waitFor({ state: 'visible', timeout: 5_000 });
+  const payButton = detailDialog.getByRole('button', { name: /pay debt|receive payment/i }).first();
+  await payButton.click();
+
+  // Payment sheet is rendered on top of the detail sheet.
+  const paymentDialog = page.getByRole('dialog');
+  await paymentDialog.waitFor({ state: 'visible', timeout: 5_000 });
+
+  if (opts.quickRatio !== undefined) {
+    const label = opts.quickRatio === 1 ? /pay in full/i : new RegExp(`^${Math.round(opts.quickRatio * 100)}%$`);
+    await paymentDialog.getByRole('button', { name: label }).first().click();
+  } else {
+    await paymentDialog.locator('input[inputmode="numeric"]').first().fill(opts.amount);
+  }
+
+  if (opts.walletName) {
+    const selects = paymentDialog.locator('select');
+    const count = await selects.count();
+    for (let i = 0; i < count; i++) {
+      const sel = selects.nth(i);
+      const options = await sel.evaluate((el: HTMLSelectElement) =>
+        Array.from(el.options).map((o) => ({ value: o.value, label: o.textContent?.trim() ?? '' })),
+      );
+      const match = options.find((o) => o.label === opts.walletName);
+      if (match) {
+        await sel.selectOption({ value: match.value });
+        break;
+      }
+    }
+  }
+
+  // Submit button reuses the sheet title — fall back to role+name match.
+  const submitButton = paymentDialog.getByRole('button', { name: /pay debt|receive payment/i }).first();
+  await submitButton.click();
+
+  // Wait for payment sheet to close.
+  await page.waitForFunction(
+    () => document.querySelectorAll('[role="dialog"]').length === 0
+      || !document.querySelector('form input[inputmode="numeric"]'),
+    undefined,
+    { timeout: 10_000 },
+  );
+}
+
+/**
+ * Open the "Update Balance" sheet for a wallet and set an absolute value.
+ * The sheet creates a `balance_adjustment` transaction whose signed
+ * delta brings the balance to the requested target.
+ */
+export async function adjustWalletBalance(
+  page: Page,
+  opts: { walletName: string; newBalance: string },
 ): Promise<void> {
   if (!page.url().includes('/wallets')) {
     await page.goto('/wallets');
     await page.waitForLoadState('networkidle');
   }
+  // Find the wallet card and click "Update Balance" (or "Update Now" if stale).
+  const card = page.locator(`[data-wallet-card="${opts.walletName}"]`).first();
+  await card.scrollIntoViewIfNeeded();
+  await card.getByRole('button', { name: /update balance|update now/i }).first().click();
 
-  await page.getByRole('button', { name: /add wallet/i }).first().click();
-  const inputs = page.locator('input');
-  await inputs.nth(0).fill(name);
-  if (balance) {
-    await inputs.nth(1).fill(balance);
-  }
-  await page.getByRole('button', { name: /^save$/i }).first().click();
+  const numericInput = card.locator('input[inputmode="numeric"]').first();
+  await numericInput.fill(opts.newBalance);
+  await card.getByRole('button', { name: /^save$/i }).first().click();
 
+  // Wait for the input to disappear (sheet closes).
   await page.waitForFunction(
-    (label) => document.body.innerText.includes(label),
-    name,
-    { timeout: 5_000 },
+    () => !document.querySelector('[role="dialog"] input[inputmode="numeric"]'),
+    undefined,
+    { timeout: 10_000 },
   );
+  // ponytail: see createDebt — let the IDB tx flush before caller reads.
+  await page.waitForTimeout(500);
+}
+
+/**
+ * Find a transaction by description (exact) and click the kebab menu,
+ * then click "Delete" in the menu. Falls back to the swipe-action
+ * Delete button if the kebab menu does not open (some test environments
+ * have a flaky interaction between motion.drag and the menu toggle).
+ */
+export async function deleteTransactionByDescription(
+  page: Page,
+  description: string,
+): Promise<void> {
+  const row = page.locator('[data-testid="transaction-row"]').filter({
+    has: page.locator(`p`, { hasText: new RegExp(`^\\s*${escapeRegex(description)}\\s*$`) }),
+  }).first();
+  await row.scrollIntoViewIfNeeded();
+
+  // First try the kebab menu — the cleaner path.
+  const kebab = row.getByRole('button', { name: /open transaction actions|transaction actions/i }).first();
+  await kebab.click();
+  const menu = page.getByRole('menu');
+  const menuVisible = await menu.isVisible({ timeout: 2_000 }).catch(() => false);
+  if (menuVisible) {
+    await menu.getByRole('menuitem', { name: /^delete/i }).click();
+  } else {
+    // Fallback: the row's swipe-action bar exposes a Delete button.
+    // motion.drag anchors it visible on click. We just click Delete directly.
+    await row.getByRole('button', { name: /^delete$/i }).first().click();
+  }
+  await page.waitForFunction(
+    (label) => !document.body.innerText.includes(label),
+    description,
+    { timeout: 10_000 },
+  );
+}
+
+/**
+ * Find a transaction by description and open it for edit. Caller fills
+ * form fields and saves. Returns when the form re-opens in edit mode.
+ */
+export async function openTransactionForEdit(
+  page: Page,
+  description: string,
+): Promise<void> {
+  await page.goto('/');
+  const row = page.locator('[data-testid="transaction-row"]').filter({
+    has: page.locator(`p`, { hasText: new RegExp(`^\\s*${escapeRegex(description)}\\s*$`) }),
+  }).first();
+  await row.scrollIntoViewIfNeeded();
+
+  const kebab = row.getByRole('button', { name: /open transaction actions|transaction actions/i }).first();
+  await kebab.click();
+  const menu = page.getByRole('menu');
+  const menuVisible = await menu.isVisible({ timeout: 2_000 }).catch(() => false);
+  if (menuVisible) {
+    await menu.getByRole('menuitem', { name: /^edit/i }).click();
+  } else {
+    await row.getByRole('button', { name: /^edit$/i }).first().click();
+  }
+  await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+}
+
+/**
+ * Click the UNDO button on the most recently shown undo toast. Useful
+ * for restore-after-delete flows.
+ */
+export async function clickUndoToast(page: Page, messagePattern = /deleted/i): Promise<boolean> {
+  const toastContainer = page.locator('[role="status"], [aria-live="polite"]').first();
+  // The toaster renders a button labeled "UNDO".
+  const undoButton = page.getByRole('button', { name: /^undo$/i }).first();
+  if (await undoButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    await undoButton.click();
+    return true;
+  }
+  return false;
 }
 
 /** Navigate to a route via the sidebar nav (visible on desktop viewports). */
@@ -334,7 +699,6 @@ async function clickPickerAction(page: Page, label: RegExp): Promise<void> {
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: label }).first().click();
 }
-
 
 async function pickWalletFromSelect(page: Page, walletName: string): Promise<void> {
   const selects = page.locator('form select');

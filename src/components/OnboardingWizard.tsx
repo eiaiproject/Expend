@@ -38,10 +38,12 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
     try {
       // Create wallet
       if (walletName.trim()) {
+        const parsedBalance = parseInt(walletBalance.replace(/[^0-9]/g, '') || '0', 10);
         await db.wallets.add({
           name: walletName.trim(),
           currency: 'IDR',
-          initialBalance: parseInt(walletBalance.replace(/[^0-9]/g, '') || '0', 10),
+          initialBalance: parsedBalance,
+          currentBalance: parsedBalance, // ponytail: keeps initial balance queryable from DB without recompute
           lastUpdated: new Date().toISOString(),
         });
       }

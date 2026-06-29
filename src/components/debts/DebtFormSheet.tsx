@@ -81,11 +81,14 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
     setNotes('');
   }, [debtToEdit, isOpen, wallets]);
 
+  // ponytail: fallback for new debts whose wallets list resolves after
+  // the form opens. Skipped entirely for edits so we never overwrite the
+  // authoritative debtToEdit.walletId. Fixes silent wallet reassignment.
   useEffect(() => {
-    if (isOpen && !walletId && wallets[0]?.id != null) {
+    if (isOpen && !walletId && !debtToEdit && wallets[0]?.id != null) {
       setWalletId(String(wallets[0].id));
     }
-  }, [isOpen, walletId, wallets]);
+  }, [isOpen, walletId, wallets, debtToEdit]);
 
   const selectedWallet = useMemo(
     () => wallets.find((wallet) => wallet.id === Number(walletId)),

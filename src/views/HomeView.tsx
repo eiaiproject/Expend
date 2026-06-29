@@ -118,6 +118,7 @@ export default function HomeView() {
           name: t('Main Wallet'),
           currency: 'IDR',
           initialBalance: 0,
+          currentBalance: 0,
           lastUpdated: new Date().toISOString()
         });
       }
