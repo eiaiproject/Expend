@@ -11,7 +11,6 @@ import { confirm } from '../components/ConfirmDialog';
 import { toast } from '../components/Toaster';
 import { CURATED_PALETTE } from '../utils/constants';
 import { formatAmountLocal } from '../utils/formatUtils';
-import { motion, AnimatePresence } from 'motion/react';
 import { EmptyState } from '../components/EmptyState';
 
 interface CategoryWithSpending {
@@ -230,7 +229,7 @@ export default function CategoriesView() {
   };
 
   return (
-    <div className="p-4 space-y-6 pb-24">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -275,23 +274,23 @@ export default function CategoriesView() {
       )}
 
       {/* Add Category Form */}
-      <AnimatePresence>
+      <>
         {showAddForm && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+          <div
             className="bg-[var(--card)] rounded-xl border border-[var(--border)] overflow-hidden"
           >
             <div className="p-4 space-y-4">
               <h3 className="font-bold text-sm">{t('New Category')}</h3>
               <input
                 ref={newCategoryInputRef}
+                id="new-category-name"
                 type="text"
+                name="categoryName"
+                autoComplete="off"
                 placeholder={t('Category Name')}
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]"
+                className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               />
               <div>
                 <label className="text-xs font-medium text-[var(--text-secondary)] mb-2 block">{t('Color')}</label>
@@ -299,10 +298,9 @@ export default function CategoriesView() {
                   {CURATED_PALETTE.map((color) => (
                     <button
                       key={color}
-                      onClick={() => setNewColor(color)}
-                      className={cn(
-                        'w-7 h-7 rounded-full transition-all',
-                        newColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--card)] ring-[var(--accent)] scale-110' : 'hover:scale-110'
+                      onClick={() => setNewColor(color)}                        className={cn(
+                          'w-8 h-8 rounded-full transition-colors border border-[var(--border)]',
+                          newColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--card)] ring-[var(--accent)] scale-110' : 'hover:scale-110'
                       )}
                       style={{ backgroundColor: color }}
                       aria-label={t('Select color {{color}}', { color })}
@@ -324,7 +322,7 @@ export default function CategoriesView() {
                       setNewBudget(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
                     }}
                     placeholder="0"
-                    className="w-full pl-10 pr-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm font-mono focus:outline-none focus:border-[var(--accent)]"
+                    className="w-full pl-10 pr-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm font-mono focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
                   />
                 </div>
               </div>
@@ -337,9 +335,9 @@ export default function CategoriesView() {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
 
       {/* Category List */}
       <div className="space-y-3">
@@ -364,7 +362,7 @@ export default function CategoriesView() {
             return (
               <div
                 key={cat.id}
-                className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4 space-y-3"
+                className="bg-[var(--card)] rounded-[16px] border border-[var(--border)] p-4 space-y-3"
               >
                 {isEditing ? (
                   /* Edit Mode */
@@ -374,16 +372,16 @@ export default function CategoriesView() {
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:border-[var(--accent)]"
+                      className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
                     />
                     <div className="flex flex-wrap gap-2">
                       {CURATED_PALETTE.map((color) => (
                         <button
                           key={color}
                           onClick={() => setEditColor(color)}
-                          className={cn(
-                            'w-6 h-6 rounded-full transition-all',
-                            editColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--card)] ring-[var(--accent)] scale-110' : 'hover:scale-110'
+                        className={cn(
+                          'w-8 h-8 rounded-full transition-colors border border-[var(--border)]',
+                          editColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--card)] ring-[var(--accent)] scale-110' : 'hover:scale-110'
                           )}
                           style={{ backgroundColor: color }}
                           aria-label={t('Select color {{color}}', { color })}
@@ -402,7 +400,7 @@ export default function CategoriesView() {
                           setEditBudget(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
                         }}
                         placeholder={t('Budget placeholder')}
-                        className="w-full pl-10 pr-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm font-mono focus:outline-none focus:border-[var(--accent)]"
+                        className="w-full pl-10 pr-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm font-mono focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
                       />
                     </div>
                     <div className="flex justify-end gap-2">
@@ -474,14 +472,12 @@ export default function CategoriesView() {
                             aria-valuenow={Math.round(progress)}
                             aria-label={t('Budget progress for {{name}}: {{percent}}%', { name: cat.name, percent: Math.round(progress) })}
                           >
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${progress}%` }}
-                              transition={{ duration: 0.8, ease: 'easeOut' }}
+                            <div
                               className={cn(
                                 'h-full rounded-full',
                                 isOverBudget ? 'bg-red-500' : isNearLimit ? 'bg-yellow-500' : 'bg-[var(--accent)]'
                               )}
+                              style={{ width: `${progress}%` }}
                             />
                           </div>
                           <div className="flex items-center justify-between">

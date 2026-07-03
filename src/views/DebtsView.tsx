@@ -159,7 +159,7 @@ export default function DebtsView() {
   };
 
   return (
-    <div className="p-4 space-y-6 pb-24">
+    <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{t('Debts')}</h1>
@@ -262,7 +262,7 @@ export default function DebtsView() {
           placeholder={t('Search debt')}
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] py-3 pl-10 pr-12 placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] py-3 pl-10 pr-12 placeholder:text-[var(--text-secondary)] focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
         />
         {searchTerm && (
           <button
@@ -276,15 +276,16 @@ export default function DebtsView() {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('Filter Type')}>
         {FILTERS.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => setFilter(item.id)}
-            aria-pressed={filter === item.id}
+            role="radio"
+            aria-checked={filter === item.id}
             className={cn(
-              'rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-all active:scale-95',
+              'rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors active:scale-95',
               filter === item.id
                 ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                 : 'border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] hover:bg-[var(--bg)]',

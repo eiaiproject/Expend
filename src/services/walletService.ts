@@ -167,36 +167,3 @@ export async function adjustWalletBalance(
     });
   });
 }
-
-/**
- * Recompute a single wallet's balance from scratch.
- * Used as safety net after mutations.
- */
-export async function recomputeWalletBalance(walletId: number): Promise<void> {
-  const wallet = await db.wallets.get(walletId);
-  if (!wallet) return;
-
-  const txs = await db.transactions
-    .where('walletId')
-    .equals(walletId)
-    .toArray();
-
-  let balance = wallet.initialBalance;
-  for (const tx of txs) {
-    balance += getBalanceDelta(tx.type, tx.amount);
-  }
-
-  await db.wallets.update(walletId, {
-    currentBalance: balance,
-    lastUpdated: new Date().toISOString(),
-  });
-}
-
-/**
- * Recompute balances for multiple wallets.
- */
-export async function recomputeWalletBalances(walletIds: number[]): Promise<void> {
-  for (const id of walletIds) {
-    await recomputeWalletBalance(id);
-  }
-}

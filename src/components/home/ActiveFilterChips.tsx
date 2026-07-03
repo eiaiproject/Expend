@@ -1,7 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
-import { motion } from 'motion/react';
-import type { Transaction } from '../../db/db';
 
 interface FilterState {
   type: 'all' | 'expense' | 'balance_adjustment';
@@ -50,18 +48,17 @@ export function ActiveFilterChips({
   if (!hasActiveFilters) return null;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className="flex flex-wrap gap-1.5"
     >
       {filters.type !== 'all' && (
         <button
+          type="button"
           onClick={() => filterActions.setType('all')}
           className="flex items-center gap-1 px-2.5 py-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full text-[11px] font-medium border border-[var(--accent)]/20 active:scale-95 transition-transform"
         >
           {filters.type === 'expense' ? t('Expense') : t('Adjustment')}
-          <X size={11} />
+          <X size={11} aria-hidden="true" />
         </button>
       )}
       
@@ -70,13 +67,14 @@ export function ActiveFilterChips({
         if (!cat) return null;
         return (
           <button
+            type="button"
             key={`cat-${catId}`}
             onClick={() => filterActions.setCategories(filters.categories.filter(c => c !== catId))}
             className="flex items-center gap-1 px-2.5 py-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full text-[11px] font-medium border border-[var(--accent)]/20 active:scale-95 transition-transform"
           >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color || 'var(--accent)' }} />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color || 'var(--accent)' }} aria-hidden="true" />
             {cat.name}
-            <X size={11} />
+            <X size={11} aria-hidden="true" />
           </button>
         );
       })}
@@ -86,42 +84,46 @@ export function ActiveFilterChips({
         if (!w) return null;
         return (
           <button
+            type="button"
             key={`wallet-${wId}`}
             onClick={() => filterActions.setWallets(filters.wallets.filter(f => f !== wId))}
             className="flex items-center gap-1 px-2.5 py-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full text-[11px] font-medium border border-[var(--accent)]/20 active:scale-95 transition-transform"
           >
             {w.name}
-            <X size={11} />
+            <X size={11} aria-hidden="true" />
           </button>
         );
       })}
       
       {(filters.minAmount || filters.maxAmount) && (
         <button
+          type="button"
           onClick={() => { filterActions.setMinAmount(''); filterActions.setMaxAmount(''); }}
-          className="flex items-center gap-1 px-2.5 py-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full text-[11px] font-medium border border-[var(--accent)]/20 active:scale-95 transition-transform"
+          className="flex items-center gap-1 px-2.5 py-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full text-[11px] font-mono font-medium border border-[var(--accent)]/20 active:scale-95 transition-transform"
         >
           Rp{filters.minAmount ? parseInt(filters.minAmount).toLocaleString('id-ID') : '0'}–{filters.maxAmount ? parseInt(filters.maxAmount).toLocaleString('id-ID') : '∞'}
-          <X size={11} />
+          <X size={11} aria-hidden="true" />
         </button>
       )}
       
       {(filters.startDate || filters.endDate) && (
         <button
+          type="button"
           onClick={() => { filterActions.setStartDate(''); filterActions.setEndDate(''); }}
-          className="flex items-center gap-1 px-2.5 py-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full text-[11px] font-medium border border-[var(--accent)]/20 active:scale-95 transition-transform"
+          className="flex items-center gap-1 px-2.5 py-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full text-[11px] font-mono font-medium border border-[var(--accent)]/20 active:scale-95 transition-transform"
         >
           {filters.startDate || '…'} ~ {filters.endDate || '…'}
-          <X size={11} />
+          <X size={11} aria-hidden="true" />
         </button>
       )}
       
       <button
+        type="button"
         onClick={filterActions.clearAllFilters}
         className="flex items-center gap-1 px-2.5 py-1 bg-[var(--bg)] text-[var(--text-secondary)] rounded-full text-[11px] font-medium border border-[var(--border)] hover:text-[var(--expense)] transition-colors active:scale-95"
       >
-        <X size={11} /> {t('Reset')}
+        <X size={11} aria-hidden="true" /> {t('Reset')}
       </button>
-    </motion.div>
+    </div>
   );
 }

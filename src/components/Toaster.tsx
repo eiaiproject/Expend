@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 
 export interface ToastMessage {
@@ -49,13 +48,10 @@ export function Toaster() {
 
   return (
     <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-max max-w-[90vw]" aria-live="polite" role="status">
-      <AnimatePresence>
+      <>
         {toasts.map(toast => (
-          <motion.div
+          <div
             key={toast.id}
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
             className="bg-[var(--text-primary)] text-[var(--bg)] px-4 py-3 rounded-lg shadow-xl flex items-center gap-4 text-sm font-medium"
           >
             <span>{toast.message}</span>
@@ -71,9 +67,9 @@ export function Toaster() {
                 {t('UNDO')}
               </button>
             )}
-          </motion.div>
+          </div>
         ))}
-      </AnimatePresence>
+      </>
     </div>
   );
 }

@@ -22,6 +22,62 @@ export function displayDateFull(dateStr: string, locale?: string): string {
   return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
+function localeTag(locale?: string): string {
+  return locale?.toLowerCase().startsWith('id') ? 'id-ID' : 'en-US';
+}
+
+function toDate(value: string | Date): Date {
+  return typeof value === 'string' ? parseDate(value) : value;
+}
+
+export function displayDateShort(value: string | Date, locale?: string): string {
+  return new Intl.DateTimeFormat(localeTag(locale), {
+    day: '2-digit',
+    month: 'short',
+  }).format(toDate(value));
+}
+
+export function displayDateMedium(value: string | Date, locale?: string): string {
+  return new Intl.DateTimeFormat(localeTag(locale), {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(toDate(value));
+}
+
+export function displayDateLong(value: string | Date, locale?: string): string {
+  return new Intl.DateTimeFormat(localeTag(locale), {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(toDate(value));
+}
+
+export function displayMonthShort(value: string | Date, locale?: string): string {
+  return new Intl.DateTimeFormat(localeTag(locale), { month: 'short' }).format(toDate(value));
+}
+
+export function toDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function toMonthKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+
+export function daysBetweenDateOnly(left: string | Date, right: string | Date): number {
+  const a = toDate(left);
+  const b = toDate(right);
+  const aMidnight = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+  const bMidnight = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  return Math.round((aMidnight - bMidnight) / 86_400_000);
+}
+
 // ─── Local date string helpers ──────────────────────────────────
 // These use the local timezone consistently so business logic
 // (daily grouping, budget boundaries) is immune to UTC shifts.

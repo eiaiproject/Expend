@@ -47,7 +47,7 @@ function ErrorFallback() {
     </p>
       <button 
         onClick={() => window.location.reload()}
-        className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg font-medium active:scale-95 transition-all"
+        className="px-6 py-2 bg-[var(--accent-fill)] text-[var(--accent-ink)] rounded-lg font-medium active:scale-95 transition-colors"
       >
         {t('Error Reload')}
       </button>

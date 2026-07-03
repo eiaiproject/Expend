@@ -1,12 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
-import { differenceInCalendarDays, format } from 'date-fns';
-import { id as localeId } from 'date-fns/locale';
 import { type Debt, type DebtPayment, type Wallet } from '../../db/db';
 import { calculateDebtStatus, isDebtClosed } from '../../services/debtService';
 import { cn } from '../../utils/cn';
 import { formatCurrency } from '../../utils/formatUtils';
-import { getTodayStr, parseDate } from '../../utils/dateUtils';
+import { daysBetweenDateOnly, displayDateShort, getTodayStr } from '../../utils/dateUtils';
 
 interface DebtCardProps {
   debt: Debt;
@@ -17,22 +15,20 @@ interface DebtCardProps {
   onPayment: () => void;
 }
 
-function getDueLabel(debt: Debt, t: (key: string, options?: Record<string, string | number>) => string): string {
+function getDueLabel(debt: Debt, t: (key: string, options?: Record<string, string | number>) => string, locale?: string): string {
   if (!debt.dueDate) return t('No due date label');
 
-  const today = parseDate(getTodayStr());
-  const dueDate = parseDate(debt.dueDate);
-  const diff = differenceInCalendarDays(dueDate, today);
+  const diff = daysBetweenDateOnly(debt.dueDate, getTodayStr());
 
   if (diff < 0) return t('Overdue days', { days: Math.abs(diff) });
   if (diff === 0) return t('Due today');
   if (diff === 1) return t('Due tomorrow');
   if (diff <= 7) return t('Due in days', { days: diff });
-  return format(dueDate, 'dd MMM', { locale: localeId });
+  return displayDateShort(debt.dueDate, locale);
 }
 
 export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, onPayment }: DebtCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const status = calculateDebtStatus(debt, payments);
   const isPayable = debt.type === 'payable';
   const paidRatio = debt.principalAmount > 0
@@ -63,7 +59,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
         }
       }}
       className={cn(
-        'w-full cursor-pointer rounded-[16px] border bg-[var(--card)] p-4 text-left shadow-sm transition-all active:scale-[0.98] hover:border-[var(--accent)]/40',
+        'w-full cursor-pointer rounded-[16px] border bg-[var(--card)] p-4 text-left shadow-sm transition-[border-color,box-shadow] active:scale-[0.98] hover:border-[var(--accent)]/40',
         status === 'overdue' ? 'border-red-500/30' : 'border-[var(--border)]',
       )}
     >
@@ -112,7 +108,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--text-secondary)]">
             <span>{statusLabel}</span>
             <span aria-hidden="true">•</span>
-            <span className={status === 'overdue' ? 'text-red-500' : undefined}>{getDueLabel(debt, t)}</span>
+            <span className={status === 'overdue' ? 'text-red-500' : undefined}>{getDueLabel(debt, t, i18n.language)}</span>
           </div>
 
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--text-secondary)]">

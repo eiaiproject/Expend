@@ -1,6 +1,5 @@
 import { useId, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 
 interface SettingsAccordionProps {
   title: string;
@@ -30,21 +29,18 @@ export function SettingsAccordion({ title, defaultOpen = false, children }: Sett
           aria-hidden="true"
         />
       </button>
-      <AnimatePresence initial={false}>
+      <>
         {isOpen && (
-          <motion.div
+          <div
             id={contentId}
             role="region"
             aria-labelledby={triggerId}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden bg-[var(--bg)] border-t border-[var(--border)]"
           >
             {children}
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
     </section>
   );
 }

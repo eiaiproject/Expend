@@ -1,5 +1,4 @@
 import { useEffect, useId, type ReactNode } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../hooks/useFocusTrap';
@@ -19,7 +18,7 @@ interface BottomSheetShellProps {
 
 /**
  * Reusable bottom sheet wrapper that handles:
- * - AnimatePresence enter/exit animation
+ * - Backdrop overlay shell
  * - Backdrop overlay with click-to-close
  * - Escape key to close
  * - Focus trap
@@ -59,42 +58,38 @@ export function BottomSheetShell({
   }, [isOpen, onClose]);
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+        <div
+          key="sheet-root"
+          className="fixed inset-0 pointer-events-none"
+          style={{ zIndex }}
+        >
+          <div
             onClick={onClose}
-            className="fixed inset-0 bg-black/50"
-            style={{ zIndex }}
+            className="absolute inset-0 bg-black/50 pointer-events-auto"
             role="presentation"
           />
-          <motion.div
+          <div
             ref={dialogRef}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className={`fixed bottom-0 left-0 w-full bg-[var(--card)] rounded-t-2xl flex flex-col ${heightClass}`}
-            style={{ zIndex }}
+            className={`absolute inset-x-0 bottom-0 bg-[var(--card)] rounded-t-2xl flex flex-col pointer-events-auto ${heightClass}`}
             role="dialog"
             aria-modal="true"
-            aria-labelledby={titleId}
+            aria-labelledby={ariaLabel ? undefined : titleId}
+            aria-label={ariaLabel}
           >
             <div className="flex items-center justify-between p-4 border-b border-[var(--border)] shrink-0">
               <h2 id={titleId} className="text-lg font-bold">{title}</h2>
-              <button onClick={onClose} className="p-2 rounded-full bg-[var(--bg)]" aria-label={t('Close')}>
-                <X size={20} />
+              <button type="button" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--bg)] transition-colors hover:bg-[var(--border)]" aria-label={t('Close')}>
+                <X size={20} aria-hidden="true" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain pb-[env(safe-area-inset-bottom,0px)]">
               {children}
             </div>
-          </motion.div>
-        </>
+          </div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

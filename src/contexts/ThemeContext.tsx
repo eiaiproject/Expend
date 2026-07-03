@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { db } from '../db/db';
-import { THEME_META_COLORS } from '../utils/brandColors';
 
 type Theme = 'dark' | 'light';
+const THEME_META_COLORS = { light: '#F2F4EE', dark: '#1A1E16' } as const;
 
 interface ThemeContextType {
   theme: Theme;

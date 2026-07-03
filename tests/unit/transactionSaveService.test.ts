@@ -3,8 +3,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '@/db/db';
-import { saveTransaction, saveTransfer, deleteTransaction } from '@/services/transactionSaveService';
-import { getBalanceDelta } from '@/utils/balanceUtils';
+import { saveTransaction, saveTransfer } from '@/services/transactionSaveService';
 
 beforeEach(async () => {
   await db.transactions.clear();
@@ -157,63 +156,5 @@ describe('saveTransfer validation', () => {
     expect(txs.length).toBe(2);
     expect(txs.some(t => t.type === 'transfer_out' && t.walletId === w1)).toBe(true);
     expect(txs.some(t => t.type === 'transfer_in' && t.walletId === w2)).toBe(true);
-  });
-});
-
-describe('deleteTransaction', () => {
-  it('deletes expense and reverses wallet balance', async () => {
-    const walletId = await createTestWallet();
-    const catId = await createTestCategory();
-
-    await saveTransaction({
-      amount: 50_000,
-      description: 'Lunch',
-      date: '2025-01-15',
-      walletId,
-      categoryId: catId,
-      notes: '',
-      type: 'expense',
-    });
-
-    const tx = await db.transactions.where('walletId').equals(walletId).first();
-    expect(tx).toBeDefined();
-
-    await deleteTransaction(tx!.id!);
-
-    const wallet = await db.wallets.get(walletId);
-    expect(wallet?.currentBalance).toBe(1_000_000);
-
-    const remaining = await db.transactions.where('walletId').equals(walletId).toArray();
-    expect(remaining.length).toBe(0);
-  });
-
-  it('deletes transfer pair and reverses both wallets', async () => {
-    const w1 = await createTestWallet('A');
-    const w2 = await createTestWallet('B', 500_000);
-
-    await saveTransfer({
-      amount: 100_000,
-      description: 'Transfer',
-      date: '2025-01-15',
-      fromWalletId: w1,
-      toWalletId: w2,
-      notes: '',
-    });
-
-    const outTx = await db.transactions
-      .where('type').equals('transfer_out')
-      .and(t => t.walletId === w1)
-      .first();
-    expect(outTx).toBeDefined();
-
-    await deleteTransaction(outTx!.id!);
-
-    const walletA = await db.wallets.get(w1);
-    const walletB = await db.wallets.get(w2);
-    expect(walletA?.currentBalance).toBe(1_000_000);
-    expect(walletB?.currentBalance).toBe(500_000);
-
-    const remaining = await db.transactions.toArray();
-    expect(remaining.length).toBe(0);
   });
 });

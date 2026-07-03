@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { type ReactNode } from 'react';
 import {
@@ -25,16 +24,12 @@ interface FeatureItem {
 
 function FeatureCard({ icon, title, description, stats, index }: FeatureItem & { index: number }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.6, delay: (index % 4) * 0.1 }}
-      className="relative group"
+    <div
+      className="relative group h-full"
     >
-      <div className="p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-[var(--surface)]/50 border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 transition-all duration-300 h-full">
+      <div className="p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-[var(--surface)]/50 border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 transition-colors duration-300 h-full flex flex-col">
         {/* Icon */}
-        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 group-hover:bg-[var(--accent)]/20 transition-all duration-300">
+        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 group-hover:bg-[var(--accent)]/20 transition-[transform,background-color] duration-300">
           {icon}
         </div>
 
@@ -48,16 +43,15 @@ function FeatureCard({ icon, title, description, stats, index }: FeatureItem & {
 
         {/* Stats Badge */}
         {stats && (
-          <div className="mt-4 sm:mt-5 inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--accent)]/10 rounded-full">
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+          <div className="mt-auto pt-5 inline-flex w-fit items-center gap-2 px-3 py-1.5 bg-[var(--accent)]/10 rounded-full">
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
             <span className="text-xs sm:text-sm font-medium text-[var(--accent)]">{stats}</span>
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
-
 
 export function FeaturesSection() {
   const { t } = useTranslation();
@@ -140,87 +134,95 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section id="features-section" className="py-16 sm:py-24 px-4 sm:px-6 max-w-6xl mx-auto relative z-10">
+    <section
+      id="features-section"
+      className="scroll-mt-24 pt-12 pb-20 sm:pt-20 sm:pb-28 px-4 sm:px-6 max-w-6xl mx-auto relative z-10"
+    >
       {/* Section Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="text-center mb-12 sm:mb-16"
+      <div
+        className="text-center mb-14 sm:mb-16"
       >
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] mb-4">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] mb-4 text-balance">
           {t('landing.featuresTitle')}
         </h2>
-        <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-2xl mx-auto text-pretty">
           {t('landing.featuresSubtitle')}
         </p>
-      </motion.div>
+      </div>
 
-      {/* Core Features - Privacy & Performance */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="mb-4"
-      >
-        <div className="flex items-center gap-3 mb-6 sm:mb-8">
-          <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
-            <Shield size={16} className="text-[var(--accent)]" />
+      <div className="space-y-14 sm:space-y-16">
+        {/* Core Features - Privacy & Performance */}
+        <div>
+          <div className="flex items-center gap-3 mb-6 sm:mb-8">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
+              <Shield size={16} className="text-[var(--accent)]" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
+              {t('landing.featuresCoreTitle')}
+            </h3>
           </div>
-          <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
-            {t('landing.featuresCoreTitle')}
-          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            {coreFeatures.map((f, i) => (
+              <FeatureCard
+                key={i}
+                index={i}
+                icon={f.icon}
+                title={f.title}
+                description={f.description}
+                stats={f.stats}
+              />
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-          {coreFeatures.map((f, i) => (
-            <FeatureCard key={i} index={i} icon={f.icon} title={f.title} description={f.description} stats={f.stats} />
-          ))}
-        </div>
-      </motion.div>
 
-      {/* Finance Features */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="mb-4"
-      >
-        <div className="flex items-center gap-3 mb-6 sm:mb-8">
-          <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
-            <Wallet size={16} className="text-[var(--accent)]" />
+        {/* Finance Features */}
+        <div>
+          <div className="flex items-center gap-3 mb-6 sm:mb-8">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
+              <Wallet size={16} className="text-[var(--accent)]" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
+              {t('landing.featuresFinanceTitle')}
+            </h3>
           </div>
-          <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
-            {t('landing.featuresFinanceTitle')}
-          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            {financeFeatures.map((f, i) => (
+              <FeatureCard
+                key={i}
+                index={i}
+                icon={f.icon}
+                title={f.title}
+                description={f.description}
+                stats={f.stats}
+              />
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-          {financeFeatures.map((f, i) => (
-            <FeatureCard key={i} index={i} icon={f.icon} title={f.title} description={f.description} stats={f.stats} />
-          ))}
-        </div>
-      </motion.div>
 
-      {/* Insight & Security Features */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="mb-4"
-      >
-        <div className="flex items-center gap-3 mb-6 sm:mb-8">
-          <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
-            <BarChart3 size={16} className="text-[var(--accent)]" />
+        {/* Insight & Security Features */}
+        <div>
+          <div className="flex items-center gap-3 mb-6 sm:mb-8">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
+              <BarChart3 size={16} className="text-[var(--accent)]" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
+              {t('landing.featuresInsightTitle')}
+            </h3>
           </div>
-          <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
-            {t('landing.featuresInsightTitle')}
-          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            {insightFeatures.map((f, i) => (
+              <FeatureCard
+                key={i}
+                index={i}
+                icon={f.icon}
+                title={f.title}
+                description={f.description}
+                stats={f.stats}
+              />
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-          {insightFeatures.map((f, i) => (
-            <FeatureCard key={i} index={i} icon={f.icon} title={f.title} description={f.description} stats={f.stats} />
-          ))}
-        </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

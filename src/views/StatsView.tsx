@@ -1,33 +1,131 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar } from 'recharts';
-import { format, startOfMonth, eachDayOfInterval, subDays, subMonths } from 'date-fns';
-import { id as localeId } from 'date-fns/locale';
 import { Skeleton } from '../components/Skeleton';
-import { useTheme } from '../contexts/ThemeContext';
-import { parseDate } from '../utils/dateUtils';
+import { displayDateShort, displayMonthShort, getMonthPrefix, normaliseDate, parseDate, toDateKey, toMonthKey } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/formatUtils';
 import { DrillDownModal } from '../components/DrillDownModal';
 import { EmptyState } from '../components/EmptyState';
 import { BarChart3 } from 'lucide-react';
 
+type TrendPoint = { date: string; amount: number };
+type MonthPoint = { month: string; amount: number; monthIndex: number; year: number };
+type CategoryPoint = { id: number | null; name: string; value: number; color: string };
+
+function addDays(date: Date, days: number): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+}
+
+function startOfMonthDate(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function addMonths(date: Date, months: number): Date {
+  return new Date(date.getFullYear(), date.getMonth() + months, 1);
+}
+
+function eachDay(start: Date, end: Date): Date[] {
+  const days: Date[] = [];
+  for (let day = new Date(start); day <= end; day = addDays(day, 1)) {
+    days.push(day);
+  }
+  return days;
+}
+
+function MiniBarChart({ data, onSelect }: { data: MonthPoint[]; onSelect: (item: MonthPoint) => void }) {
+  const max = Math.max(1, ...data.map(item => item.amount));
+
+  return (
+    <div className="grid h-full grid-cols-6 gap-2 px-1 pb-1 pt-2">
+      {data.map(item => {
+        const height = item.amount > 0 ? Math.max(8, (item.amount / max) * 100) : 3;
+        return (
+          <button
+            key={`${item.year}-${item.monthIndex}`}
+            type="button"
+            onClick={() => onSelect(item)}
+            className="grid min-w-0 grid-rows-[1fr_auto] gap-2 rounded-md px-1 py-1 text-center hover:bg-[var(--bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            aria-label={`${item.month}: ${formatCurrency(item.amount)}`}
+            title={formatCurrency(item.amount)}
+          >
+            <span className="flex items-end justify-center rounded bg-[var(--bg)]">
+              <span
+                className="w-full max-w-8 rounded-t bg-[var(--accent)] transition-[height]"
+                style={{ height: `${height}%` }}
+              />
+            </span>
+            <span className="truncate font-mono text-[10px] text-[var(--text-secondary)]">{item.month}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function MiniLineChart({ data }: { data: TrendPoint[] }) {
+  const width = 320;
+  const height = 150;
+  const pad = 10;
+  const max = Math.max(1, ...data.map(item => item.amount));
+  const step = data.length > 1 ? (width - pad * 2) / (data.length - 1) : 0;
+  const points = data
+    .map((item, index) => {
+      const x = pad + index * step;
+      const y = height - pad - (item.amount / max) * (height - pad * 2);
+      return `${x},${y}`;
+    })
+    .join(' ');
+  const labels = data.filter((_, index) => index === 0 || index === data.length - 1 || index === Math.floor((data.length - 1) / 2));
+
+  return (
+    <div className="grid h-full grid-rows-[1fr_auto] gap-2">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full" role="presentation" aria-hidden="true">
+        {[0.25, 0.5, 0.75].map(line => (
+          <line
+            key={line}
+            x1={pad}
+            x2={width - pad}
+            y1={height * line}
+            y2={height * line}
+            stroke="var(--border)"
+            strokeDasharray="3 3"
+          />
+        ))}
+        <polyline fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" points={points} />
+      </svg>
+      <div className="flex justify-between gap-2 font-mono text-[10px] text-[var(--text-secondary)]">
+        {labels.map(item => (
+          <span key={item.date} className="truncate">{item.date}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CategoryDonut({ data }: { data: CategoryPoint[] }) {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  let cursor = 0;
+  const stops = total > 0
+    ? data.map(item => {
+      const start = cursor;
+      cursor += (item.value / total) * 100;
+      return `${item.color} ${start}% ${cursor}%`;
+    }).join(', ')
+    : 'var(--border) 0% 100%';
+
+  return (
+    <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+      <div className="h-44 w-44 rounded-full p-5" style={{ background: `conic-gradient(${stops})` }}>
+        <div className="h-full w-full rounded-full bg-[var(--card)]" />
+      </div>
+    </div>
+  );
+}
+
 export default function StatsView() {
   const { t, i18n } = useTranslation();
   const [period, setPeriod] = useState<'all' | 'month' | 'week'>('month');
-  const { theme } = useTheme();
-
-  const tooltipStyle = useMemo(() => ({
-    borderRadius: '8px',
-    border: 'none',
-    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-    fontSize: '12px',
-    backgroundColor: 'var(--card)',
-    color: 'var(--text-primary)',
-  }), []);
-
-  const formatTooltipValue = useCallback((value: unknown) => formatCurrency(Number(value ?? 0)), []);
 
   const allTransactions = useLiveQuery(() => db.transactions.toArray(), [], undefined);
   const transactions = useLiveQuery(() => db.transactions.where('type').equals('expense').toArray(), [], undefined);
@@ -48,16 +146,18 @@ export default function StatsView() {
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
     const now = new Date();
+    const todayKey = toDateKey(now);
+    const thisMonthKey = toMonthKey(now);
+    const weekAgoKey = toDateKey(addDays(now, -6));
+
     return transactions.filter(t => {
       if (period === 'all') return true;
-      const tDate = parseDate(t.date);
+      const transactionDate = normaliseDate(t.date);
       if (period === 'month') {
-        return tDate.getUTCMonth() === now.getUTCMonth() && tDate.getUTCFullYear() === now.getUTCFullYear();
+        return getMonthPrefix(transactionDate) === thisMonthKey;
       }
       if (period === 'week') {
-        const weekAgo = subDays(now, 6);
-        const weekAgoStart = new Date(weekAgo.getFullYear(), weekAgo.getMonth(), weekAgo.getDate());
-        return tDate >= weekAgoStart && tDate <= now;
+        return transactionDate >= weekAgoKey && transactionDate <= todayKey;
       }
       return true;
     });
@@ -70,9 +170,8 @@ export default function StatsView() {
     if (!transactions) return { byDate, byMonth };
 
     for (const transaction of transactions) {
-      const parsed = parseDate(transaction.date);
-      const dateKey = format(parsed, 'yyyy-MM-dd');
-      const monthKey = format(parsed, 'yyyy-MM');
+      const dateKey = normaliseDate(transaction.date);
+      const monthKey = getMonthPrefix(dateKey);
 
       byDate.set(dateKey, (byDate.get(dateKey) ?? 0) + transaction.amount);
       byMonth.set(monthKey, (byMonth.get(monthKey) ?? 0) + transaction.amount);
@@ -87,28 +186,30 @@ export default function StatsView() {
     let days: Date[] = [];
     
     if (period === 'week') {
-      days = eachDayOfInterval({ start: subDays(now, 6), end: now });
+      days = eachDay(addDays(now, -6), now);
     } else if (period === 'month') {
-      days = eachDayOfInterval({ start: startOfMonth(now), end: now });
+      days = eachDay(startOfMonthDate(now), now);
     } else {
-      days = eachDayOfInterval({ start: subDays(now, 29), end: now });
+      days = eachDay(addDays(now, -29), now);
     }
 
     return days.map(day => ({
-      date: format(day, 'dd MMM', { locale: i18n.language === 'id' ? localeId : undefined }),
-      amount: expenseAggregates.byDate.get(format(day, 'yyyy-MM-dd')) ?? 0
+      date: displayDateShort(day, i18n.language),
+      amount: expenseAggregates.byDate.get(toDateKey(day)) ?? 0
     }));
   }, [transactions, period, i18n.language, expenseAggregates]);
 
   const monthlyComparisonData = useMemo(() => {
     if (!transactions) return [];
     const now = new Date();
-    const last6Months = Array.from({ length: 6 }).map((_, i) => startOfMonth(subMonths(now, 5 - i)));
+    const last6Months = Array.from({ length: 6 }).map((_, i) => addMonths(startOfMonthDate(now), i - 5));
     
     return last6Months.map(monthStart => {
       return {
-        month: format(monthStart, 'MMM', { locale: i18n.language === 'id' ? localeId : undefined }),
-        amount: expenseAggregates.byMonth.get(format(monthStart, 'yyyy-MM')) ?? 0
+        month: displayMonthShort(monthStart, i18n.language),
+        amount: expenseAggregates.byMonth.get(toMonthKey(monthStart)) ?? 0,
+        monthIndex: monthStart.getMonth(),
+        year: monthStart.getFullYear(),
       };
     });
   }, [transactions, i18n.language, expenseAggregates]);
@@ -145,7 +246,7 @@ export default function StatsView() {
       }
     });
 
-    const result: { id: number | null; name: string; value: number; color: string }[] = [];
+    const result: CategoryPoint[] = [];
     for (const [catId, amount] of catSums) {
       const cat = categoryMap[catId];
       result.push({
@@ -177,7 +278,7 @@ export default function StatsView() {
     : t('No transactions in this view');
 
   return (
-    <div className="p-4 space-y-6 pb-24">
+    <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t('Stats')}</h1>
 
       {hasNoData && (
@@ -188,12 +289,13 @@ export default function StatsView() {
         />
       )}
 
-      <div className="flex bg-[var(--card)] rounded-lg p-1 border border-[var(--border)]" aria-label={t('Filter Date Range')}>
+      <div className="flex bg-[var(--card)] rounded-lg p-1 border border-[var(--border)]" role="radiogroup" aria-label={t('Filter Date Range')}>
         {(['week', 'month', 'all'] as const).map(p => (
           <button
             key={p}
             onClick={() => setPeriod(p)}
-            aria-pressed={period === p}
+            role="radio"
+            aria-checked={period === p}
             className={`flex-1 py-1.5 text-sm rounded-md font-medium capitalize ${
               period === p ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'
             }`}
@@ -204,93 +306,41 @@ export default function StatsView() {
       </div>
 
       {/* Monthly Comparison Chart */}
-      <div className="bg-[var(--card)] p-4 rounded-xl shadow-sm border border-[var(--border)]">
+      <div className="bg-[var(--card)] p-4 rounded-[16px] shadow-sm border border-[var(--border)]">
         <h2 className="text-sm font-bold mb-4 text-[var(--text-secondary)] uppercase tracking-wider">{t('Monthly Comparison')}</h2>
         <p className="sr-only">{monthlyComparisonSummary}</p>
         <div className="h-48" role="img" aria-label={monthlyComparisonSummary}>
           {isLoading ? (
             <Skeleton className="w-full h-full rounded-lg" />
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyComparisonData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                <XAxis 
-                  dataKey="month" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
-                />
-                <YAxis hide />
-                <Tooltip 
-                  formatter={formatTooltipValue}
-                  contentStyle={tooltipStyle}
-                  cursor={{ fill: 'var(--accent)', opacity: 0.1 }}
-                />
-                <Bar 
-                  dataKey="amount" 
-                  fill="var(--accent)" 
-                  radius={[4, 4, 0, 0]} 
-                  barSize={30}
-                  onClick={(entry: unknown) => {
-                    const e = entry as { month?: string; payload?: typeof monthlyComparisonData[number] } | undefined;
-                    if (e?.month && e?.payload) {
-                      const idx = monthlyComparisonData.indexOf(e.payload);
-                      if (idx >= 0) {
-                        const monthStart = subMonths(new Date(), 5 - idx);
-                        setDrillDownMonthKey({
-                          label: e.month,
-                          monthIndex: monthStart.getMonth(),
-                          year: monthStart.getFullYear(),
-                        });
-                      }
-                    }
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <MiniBarChart
+              data={monthlyComparisonData}
+              onSelect={(item) => {
+                setDrillDownMonthKey({
+                  label: item.month,
+                  monthIndex: item.monthIndex,
+                  year: item.year,
+                });
+              }}
+            />
           )}
         </div>
       </div>
 
       {/* Trend Chart */}
-      <div className="bg-[var(--card)] p-4 rounded-xl shadow-sm border border-[var(--border)]">
+      <div className="bg-[var(--card)] p-4 rounded-[16px] shadow-sm border border-[var(--border)]">
         <h2 className="text-sm font-bold mb-4 text-[var(--text-secondary)] uppercase tracking-wider">{t('Spending Trend')} ({period === 'all' ? t('Last 30 Days') : period === 'month' ? t('This Month') : t('This Week')})</h2>
         <p className="sr-only">{trendSummary}</p>
         <div className="h-48" role="img" aria-label={trendSummary}>
           {isLoading ? (
             <Skeleton className="w-full h-full rounded-lg" />
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                <XAxis 
-                  dataKey="date" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
-                  minTickGap={20}
-                />
-                <YAxis hide />
-                <Tooltip 
-                  formatter={formatTooltipValue}
-                  contentStyle={tooltipStyle}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="amount" 
-                  stroke="var(--accent)" 
-                  strokeWidth={3} 
-                  dot={false}
-                  activeDot={{ r: 6, fill: 'var(--accent)', stroke: 'var(--card)', strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <MiniLineChart data={trendData} />
           )}
         </div>
       </div>
 
-      <div className="bg-[var(--card)] p-4 rounded-xl shadow-sm border border-[var(--border)]">
+      <div className="bg-[var(--card)] p-4 rounded-[16px] shadow-sm border border-[var(--border)]">
         <p className="sr-only">{categorySummary}</p>
         <div className="h-64 relative" role="img" aria-label={categorySummary}>
           {isLoading ? (
@@ -298,36 +348,7 @@ export default function StatsView() {
               <Skeleton className="w-40 h-40 rounded-full" />
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={90}
-                  paddingAngle={2}
-                  dataKey="value"
-                  stroke="none"
-                  onClick={(entry: unknown) => {
-                    const e = entry as { id?: number; name?: string; color?: string } | undefined;
-                    if (e?.id) {
-                      const cat = categoryMap[e.id];
-                      setDrillDownCategory({ id: e.id, name: e.name || '', color: e.color || cat?.color || 'var(--text-secondary)' });
-                    }
-                  }}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} cursor="pointer" />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={formatTooltipValue}
-                  contentStyle={tooltipStyle}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <CategoryDonut data={data} />
           )}
           {!isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

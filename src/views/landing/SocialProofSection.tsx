@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { Lock, Globe, Code, CreditCard, CheckCircle2, Zap, Shield, Wifi } from 'lucide-react';
 
@@ -48,19 +47,16 @@ export function SocialProofSection() {
   ];
 
   return (
-    <section className="py-16 sm:py-24 px-4 sm:px-6 relative z-10">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+    <section className="py-20 sm:py-28 px-4 sm:px-6 relative z-10">
+      <div
         className="max-w-5xl mx-auto"
       >
         {/* Header */}
         <div className="text-center mb-10 sm:mb-12">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] mb-4 text-balance">
             {t('landing.trustedTitle')}
           </h2>
-          <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-xl mx-auto">
+          <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-xl mx-auto text-pretty">
             {t('landing.trustStatement')}
           </p>
         </div>
@@ -68,13 +64,9 @@ export function SocialProofSection() {
         {/* Proof Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-10 sm:mb-12">
           {proofs.map((proof, i) => (
-            <motion.div
+            <div
               key={i}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl p-5 sm:p-6 text-center hover:border-[var(--accent)]/20 transition-all duration-300 group"
+              className="bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl p-5 sm:p-6 text-center hover:border-[var(--accent)]/20 transition-colors duration-300 group h-full min-h-[156px]"
             >
               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 {proof.icon}
@@ -85,32 +77,27 @@ export function SocialProofSection() {
               <p className="text-[10px] sm:text-xs text-[var(--text-secondary)] uppercase tracking-wider font-medium">
                 {proof.label}
               </p>
-            </motion.div>
+            </div>
           ))}
         </div>
 
         {/* Highlight Badges */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+        <div
           className="flex flex-wrap justify-center gap-3 sm:gap-4"
         >
           {highlights.map((item, i) => (
-            <motion.div
+            <div
               key={i}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.4 + i * 0.1 }}
               className="flex items-center gap-2 px-4 py-2.5 bg-[var(--surface)]/30 border border-[var(--border-subtle)] rounded-full"
             >
               {item.icon}
-              <span className="text-xs sm:text-sm text-[var(--text-primary)] font-medium">{item.text}</span>
-            </motion.div>
+              <span className="text-xs sm:text-sm text-[var(--text-primary)] font-medium">
+                {item.text}
+              </span>
+            </div>
           ))}
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </section>
   );
 }

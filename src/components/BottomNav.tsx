@@ -8,7 +8,7 @@ export function BottomNav({ onAddClick }: { onAddClick: () => void }) {
   const { t } = useTranslation();
 
   return (
-    <div className="fixed bottom-0 left-0 w-full h-[64px] bg-[var(--card)] border-t border-[var(--border)] flex items-center z-40 md:hidden"
+    <nav className="fixed bottom-0 left-0 w-full h-[64px] bg-[var(--card)] border-t border-[var(--border)] flex items-center z-40 md:hidden overscroll-contain"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <NavItem to="/" end icon={<Home size={24} />} label={t('Home')} />
       <NavItem to="/wallets" icon={<Wallet size={24} />} label={t('Wallets')} />
@@ -18,14 +18,15 @@ export function BottomNav({ onAddClick }: { onAddClick: () => void }) {
 
       {/* FAB - according to PRD: 56x56, Accent color, right 16px, above bottom nav 16px */}
       <button
+        type="button"
         onClick={onAddClick}
-        className="fixed right-[16px] w-[56px] h-[56px] rounded-[16px] bg-[var(--accent)] text-white flex items-center justify-center shadow-lg shadow-[var(--accent)]/30 active:scale-95 hover:scale-105 transition-transform z-50 md:hidden"
+        className="fixed right-[16px] w-[56px] h-[56px] rounded-[16px] bg-[var(--accent-fill)] text-[var(--accent-ink)] flex items-center justify-center shadow-lg shadow-[var(--accent-fill)]/30 active:scale-95 hover:scale-105 transition-transform z-50 md:hidden touch-manipulation"
         style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 16px)' }}
         aria-label={t('Add Transaction')}
       >
-        <Plus size={32} />
+        <Plus size={32} aria-hidden="true" />
       </button>
-    </div>
+    </nav>
   );
 }
 
@@ -41,7 +42,7 @@ function NavItem({ to, end: isEnd, icon, label }: { to: string; end?: boolean; i
         )
       }
     >
-      {icon}
+      <span aria-hidden="true">{icon}</span>
       <span className="text-[10px] font-medium">{label}</span>
     </NavLink>
   );

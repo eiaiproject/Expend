@@ -107,30 +107,6 @@ export async function getPayeeStatsFromTransactions(): Promise<PayeeStats[]> {
 }
 
 /**
- * Returns a list of suggested payees based on a query.
- */
-export async function getPayeeSuggestions(query: string): Promise<string[]> {
-  if (!query.trim()) return [];
-  
-  const transactions = await db.transactions
-    .where('type')
-    .equals('expense')
-    .toArray();
-
-  const payees = new Set<string>();
-  const normalizedQuery = query.toLowerCase().trim();
-
-  for (const tx of transactions) {
-    const desc = tx.description;
-    if (desc.toLowerCase().includes(normalizedQuery)) {
-      payees.add(normalizePayeeName(desc));
-    }
-  }
-
-  return Array.from(payees).slice(0, 10);
-}
-
-/**
  * Filters transactions by a specific payee name.
  */
 export async function filterTransactionsByPayee(payeeName: string): Promise<Transaction[]> {

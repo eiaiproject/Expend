@@ -4,14 +4,14 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { Search, ArrowLeft, Filter, TrendingUp, ShoppingBag, Calendar, Wallet } from 'lucide-react';
 import { formatCurrency } from '../utils/formatUtils';
-import { format } from 'date-fns';
+import { displayDateMedium } from '../utils/dateUtils';
 import { cn } from '../utils/cn';
 import { getPayeeStatsFromTransactions, filterTransactionsByPayee, PayeeStats } from '../services/payeeService';
 import { TransactionCard } from '../components/home/TransactionCard';
 import { EmptyState } from '../components/EmptyState';
 
 export default function PayeesView() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPayee, setSelectedPayee] = useState<PayeeStats | null>(null);
 
@@ -65,7 +65,7 @@ export default function PayeesView() {
           </div>
           <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1">
             <p className="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider">{t('Last Date')}</p>
-            <p className="text-sm font-medium">{format(new Date(selectedPayee.lastTransactionDate), 'dd MMM yyyy')}</p>
+            <p className="text-sm font-medium">{displayDateMedium(selectedPayee.lastTransactionDate, i18n.language)}</p>
           </div>
         </div>
 
@@ -83,13 +83,10 @@ export default function PayeesView() {
                   hideAmount={false}
                   isSelectionMode={false}
                   isSelected={false}
-                  isActionOpen={false}
                   onSelect={() => {}}
                   onClick={() => {}}
                   onEdit={() => {}}
                   onDelete={() => {}}
-                  onActionOpen={() => {}}
-                  onActionClose={() => {}}
                 />
               ))}
             </div>
@@ -105,7 +102,7 @@ export default function PayeesView() {
   }
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{t('Recipients & Merchants')}</h1>
       </div>
@@ -117,7 +114,7 @@ export default function PayeesView() {
           placeholder={t('Search Merchant')} 
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)] transition-all"
+          className="w-full pl-10 pr-4 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
         />
       </div>
 
@@ -133,21 +130,20 @@ export default function PayeesView() {
             <button
               key={payee.name}
               onClick={() => setSelectedPayee(payee)}
-              className="w-full flex items-center justify-between p-4 bg-[var(--card)] border border-[var(--border)] rounded-2xl hover:border-[var(--accent)] transition-all active:scale-[0.98] text-left group"
+              className="w-full flex items-center justify-between p-4 bg-[var(--card)] border border-[var(--border)] rounded-[16px] hover:border-[var(--accent)]/40 transition-[border-color,box-shadow] active:scale-[0.98] text-left group"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="p-2 bg-[var(--bg)] rounded-xl text-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-white transition-colors">
-                  <ShoppingBag size={20} />
+                  <ShoppingBag size={20} aria-hidden="true" />
                 </div>
                 <div>
                   <p className="font-bold">{payee.name}</p>
-                  <p className="text-xs text-[var(--text-secondary]">
+                  <p className="text-xs text-[var(--text-secondary)]">
                     {payee.transactionCount} {t('Txs')} • {t('Avg')} {formatCurrency(payee.averageAmount)}
                   </p>
                 </div>
-              </div>
-              <div className="text-right">
-                <p className="font-mono font-bold text-red-500">{formatCurrency(payee.totalExpense)}</p>
+              </div>                <div className="text-right shrink-0">
+                <p className="font-mono font-bold text-[var(--expense)]">{formatCurrency(payee.totalExpense)}</p>
                 <p className="text-[10px] text-[var(--text-secondary)] uppercase font-bold">{t('Total Spent')}</p>
               </div>
             </button>

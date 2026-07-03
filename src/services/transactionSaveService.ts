@@ -1,7 +1,6 @@
 import { db, type Transaction } from '../db/db';
 import { generateTransferGroupId } from '../utils/cryptoUtils';
 import { getBalanceDelta } from '../utils/balanceUtils';
-import { validateTransaction } from './domainValidation';
 
 export interface SaveTransactionParams {
   amount: number;
@@ -20,6 +19,47 @@ export interface SaveTransferParams {
   fromWalletId: number;
   toWalletId: number;
   notes: string;
+}
+
+interface ValidationError {
+  message: string;
+}
+
+function validateTransaction(tx: Partial<Transaction>): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (!tx.description || tx.description.trim().length === 0) {
+    errors.push({ message: 'Description must not be empty.' });
+  }
+  if (tx.description && tx.description.length > 160) {
+    errors.push({ message: 'Description must be at most 160 characters.' });
+  }
+  if (tx.amount == null || !Number.isFinite(tx.amount)) {
+    errors.push({ message: 'Amount must be a finite number.' });
+  } else if (tx.type === 'balance_adjustment') {
+    if (tx.amount === 0) {
+      errors.push({ message: 'Balance adjustment amount must not be zero.' });
+    }
+  } else if (tx.amount <= 0) {
+    errors.push({ message: 'Amount must be greater than 0.' });
+  }
+  if (tx.amount != null && Math.abs(tx.amount) > 1_000_000_000_000) {
+    errors.push({ message: 'Amount exceeds maximum allowed value.' });
+  }
+  if (!tx.date || !/^\d{4}-\d{2}-\d{2}$/.test(tx.date)) {
+    errors.push({ message: 'Date must be YYYY-MM-DD format.' });
+  }
+  if (tx.walletId == null || !Number.isSafeInteger(tx.walletId) || tx.walletId <= 0) {
+    errors.push({ message: 'Wallet must be selected.' });
+  }
+  if (!tx.type) {
+    errors.push({ message: 'Transaction type is required.' });
+  }
+  if (tx.notes !== undefined && tx.notes !== null && tx.notes.length > 1000) {
+    errors.push({ message: 'Notes must be at most 1000 characters.' });
+  }
+
+  return errors;
 }
 
 /**
@@ -49,8 +89,6 @@ function validateTransferParams(params: SaveTransferParams): void {
     throw new Error('Cannot transfer to the same wallet.');
   }
 }
-
-
 
 /**
  * Save a single transaction (expense or balance_adjustment).
@@ -194,47 +232,6 @@ export async function saveTransfer(params: SaveTransferParams): Promise<void> {
         currentBalance: (toWallet.currentBalance ?? toWallet.initialBalance) + params.amount,
         lastUpdated: new Date().toISOString(),
       });
-    }
-  });
-}
-
-/**
- * Delete a transaction and rollback wallet balance.
- * For transfers, deletes both paired transactions.
- */
-export async function deleteTransaction(txId: number): Promise<void> {
-  await db.transaction('rw', [db.transactions, db.wallets], async () => {
-    const tx = await db.transactions.get(txId);
-    if (!tx) return;
-
-    if (tx.type === 'transfer_out' || tx.type === 'transfer_in') {
-      // Transfer: delete both sides
-      const pair = await db.transactions
-        .where('transferGroupId')
-        .equals(tx.transferGroupId ?? '')
-        .toArray();
-      for (const p of pair) {
-        const delta = getBalanceDelta(p.type, p.amount);
-        const wallet = await db.wallets.get(p.walletId);
-        if (wallet) {
-          await db.wallets.update(p.walletId, {
-            currentBalance: (wallet.currentBalance ?? wallet.initialBalance) - delta,
-            lastUpdated: new Date().toISOString(),
-          });
-        }
-        await db.transactions.delete(p.id!);
-      }
-    } else {
-      // Single transaction
-      const delta = getBalanceDelta(tx.type, tx.amount);
-      const wallet = await db.wallets.get(tx.walletId);
-      if (wallet) {
-        await db.wallets.update(tx.walletId, {
-          currentBalance: (wallet.currentBalance ?? wallet.initialBalance) - delta,
-          lastUpdated: new Date().toISOString(),
-        });
-      }
-      await db.transactions.delete(txId);
     }
   });
 }

@@ -121,7 +121,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
               required
               value={amount}
               onChange={(event) => setAmount(formatAmountInput(event.target.value))}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-4 font-mono text-xl font-bold focus:outline-none focus:border-[var(--accent)]"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-4 font-mono text-xl font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               placeholder="0"
             />
           </div>
@@ -155,7 +155,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
               required
               value={walletId}
               onChange={(event) => setWalletId(event.target.value)}
-              className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-10 focus:outline-none focus:border-[var(--accent)]"
+              className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-10 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
             >
               <option value="" disabled>{t('Select wallet')}</option>
               {wallets.map((wallet) => (
@@ -188,7 +188,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
             type="text"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus:outline-none focus:border-[var(--accent)]"
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
           />
         </div>
 

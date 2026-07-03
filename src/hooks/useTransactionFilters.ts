@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { filterTransactions, FilterCriteria } from '../utils/filterUtils';
 import { getTodayStr, getWeekStartStr, normaliseDate } from '../utils/dateUtils';
 import type { Transaction, Category, Wallet } from '../db/db';
 
@@ -116,17 +115,25 @@ export function useTransactionFilters(
 
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
-    let results = filterTransactions(transactions, {
-      type,
-      categories,
-      wallets,
-      searchTerm: debouncedSearchTerm,
-      startDate,
-      endDate,
-      minAmount,
-      maxAmount,
-      categoryMap,
-      walletMap,
+    const normalizedSearch = debouncedSearchTerm.toLowerCase().trim();
+    let results = transactions.filter(tx => {
+      const txDate = normaliseDate(tx.date);
+      const absAmount = Math.abs(tx.amount);
+      const minParsed = minAmount ? parseInt(minAmount, 10) : NaN;
+      const maxParsed = maxAmount ? parseInt(maxAmount, 10) : NaN;
+
+      return (type === 'all' || tx.type === type) &&
+        (categories.length === 0 || (tx.categoryId != null && categories.includes(tx.categoryId))) &&
+        (wallets.length === 0 || wallets.includes(tx.walletId)) &&
+        (!startDate || txDate >= startDate) &&
+        (!endDate || txDate <= endDate) &&
+        (!Number.isFinite(minParsed) || absAmount >= minParsed) &&
+        (!Number.isFinite(maxParsed) || absAmount <= maxParsed) &&
+        (!normalizedSearch ||
+          tx.description.toLowerCase().includes(normalizedSearch) ||
+          (tx.notes?.toLowerCase().includes(normalizedSearch) ?? false) ||
+          (!!tx.categoryId && (categoryMap[tx.categoryId]?.name.toLowerCase().includes(normalizedSearch) ?? false)) ||
+          (walletMap[tx.walletId]?.name.toLowerCase().includes(normalizedSearch) ?? false));
     });
 
     // Apply quick filter on top of existing filters

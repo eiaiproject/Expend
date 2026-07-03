@@ -428,15 +428,6 @@ function readNullableDate(value: unknown): string | null {
   return isValidDateOnly(value) ? value : null;
 }
 
-function recomputeWalletBalancesWithDebts(
-  wallets: readonly Wallet[],
-  transactions: readonly Transaction[],
-  debts: readonly Debt[],
-  debtPayments: readonly DebtPayment[],
-): Wallet[] {
-  return recomputeWalletCurrentBalances(wallets, transactions, debts, debtPayments);
-}
-
 export function sanitizeImportData(json: unknown): ExportData {
   const data = json as unknown as Record<string, unknown>;
   const fallbackDate = getTodayStr();
@@ -577,7 +568,7 @@ export async function importData(data: ExportData): Promise<void> {
 
   await db.transaction('rw', [db.wallets, db.categories, db.transactions, db.debts, db.debtPayments, db.settings], async () => {
     const localSecurity = await db.settings.get('security');
-    const walletsWithBalances = recomputeWalletBalancesWithDebts(
+    const walletsWithBalances = recomputeWalletCurrentBalances(
       sanitizedData.wallets,
       sanitizedData.transactions,
       sanitizedData.debts,

@@ -158,7 +158,7 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
           onKeyDown={handleKeyDown}
           placeholder={placeholder || t('Type or select category')}
           className={cn(
-            "w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 pr-10 focus:outline-none focus:border-[var(--accent)]",
+            "w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 pr-10 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]",
             matchedCategory && "pl-10"
           )}
           autoComplete="off"

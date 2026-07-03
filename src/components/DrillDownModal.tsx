@@ -1,10 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
 import { Transaction } from '../db/db';
-import { format } from 'date-fns';
-import { parseDate } from '../utils/dateUtils';
+import { displayDateShort } from '../utils/dateUtils';
 import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface DrillDownModalProps {
@@ -30,21 +28,14 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
   }, [isOpen, onClose]);
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+        <div
           className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6"
           onClick={onClose}
         >
-          <motion.div
+          <div
             ref={dialogRef}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="w-full sm:max-w-lg bg-[var(--card)] rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
@@ -70,7 +61,7 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{tx.description}</p>
                         <p className="text-[11px] text-[var(--text-secondary)]">
-                          {format(parseDate(tx.date), 'dd MMM')} • {cat?.name || t('Other')}
+                          {displayDateShort(tx.date, i18n.language)} • {cat?.name || t('Other')}
                         </p>
                       </div>
                       <span className={`font-mono text-sm font-semibold ml-3 ${tx.type === 'expense' || (tx.type === 'balance_adjustment' && tx.amount < 0) ? 'text-[var(--expense)]' : 'text-[var(--accent)]'}`}>
@@ -86,9 +77,9 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
                 {transactions.length} {t('transactions')}
               </p>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

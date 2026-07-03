@@ -3,9 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
-import { Eye, EyeOff, Moon, Sun, ClipboardList, Filter, ArrowUpDown, Search, XCircle, X, Tag, Trash2, FileText, Handshake, MoreVertical } from 'lucide-react';
-import { format } from 'date-fns';
-import { id as localeId } from 'date-fns/locale';
+import { Eye, EyeOff, Moon, Sun, ClipboardList, Filter, ArrowUpDown, Search, XCircle, X, Tag, Trash2, Handshake, MoreVertical } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useTheme } from '../contexts/ThemeContext';
 import { TransactionDetailSheet } from '../components/TransactionDetailSheet';
@@ -17,12 +15,10 @@ import { buildDebtPaymentsMap, summarizeDebts } from '../services/debtService';
 
 
 import { Skeleton } from '../components/Skeleton';
-import { motion, AnimatePresence } from 'motion/react';
-import { getTodayStr, getYesterdayStr, getWeekStartStr, getMonthStartStr, normaliseDate } from '../utils/dateUtils';
+import { displayDateLong, getTodayStr, getYesterdayStr, getWeekStartStr, getMonthStartStr, normaliseDate } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/formatUtils';
 import { useTransactionFilters } from '../hooks/useTransactionFilters';
 import { useTransactionSelection } from '../hooks/useTransactionSelection';
-import { useTransactionSort } from '../hooks/useTransactionSort';
 
 // Home sub-components
 import { SummaryCard } from '../components/home/SummaryCard';
@@ -32,7 +28,6 @@ import { EmptyState } from '../components/EmptyState';
 
 const TransactionFormSheet = lazy(() => import('../components/TransactionFormSheet').then(m => ({ default: m.TransactionFormSheet })));
 const FilterSheet = lazy(() => import('../components/FilterSheet').then(m => ({ default: m.FilterSheet })));
-const MonthlyReportPopup = lazy(() => import('../components/MonthlyReportPopup').then(m => ({ default: m.MonthlyReportPopup })));
 
 const TRANSACTION_RENDER_PAGE_SIZE = 100;
 
@@ -45,14 +40,21 @@ export default function HomeView() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const [isReportOpen, setIsReportOpen] = useState(false);
   const [isOverflowOpen, setIsOverflowOpen] = useState(false);
   const [expensePeriod, setExpensePeriod] = useState<'month' | 'all'>('month');
   const [visibleTransactionCount, setVisibleTransactionCount] = useState(TRANSACTION_RENDER_PAGE_SIZE);
-  const [openActionTransactionId, setOpenActionTransactionId] = useState<number | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ field: string; order: 'asc' | 'desc' }>({
+    field: 'date',
+    order: 'desc',
+  });
 
-  // Custom hooks
-  const { sortConfig, toggleSortOrder } = useTransactionSort();
+  const toggleSortOrder = useCallback(() => {
+    setSortConfig(prev => ({
+      ...prev,
+      order: prev.order === 'desc' ? 'asc' : 'desc',
+    }));
+  }, []);
+
   const { isSelectionMode, selectedIds, enterSelectionMode, exitSelectionMode, toggleSelection, handleBulkDelete, isSelected } = useTransactionSelection(t);
 
   // Database queries
@@ -126,22 +128,9 @@ export default function HomeView() {
     initDefaults();
   }, [t]);
 
-  // Close swipe action on mode/sheet changes
-  useEffect(() => {
-    setOpenActionTransactionId(null);
-  }, [isSelectionMode]);
-
   useEffect(() => {
     setIsOverflowOpen(false);
   }, [isFilterOpen]);
-
-  useEffect(() => {
-    setOpenActionTransactionId(null);
-  }, [isFormOpen]);
-
-  useEffect(() => {
-    setOpenActionTransactionId(null);
-  }, [selectedTx]);
 
   // Keyboard shortcuts for the home view
   useEffect(() => {
@@ -242,14 +231,10 @@ export default function HomeView() {
 
   const showDebtSummaryCard = debtSummary.activeCount > 0 || debtSummary.attentionCount > 0;
 
-  // Close open swipe action when interacting with other UI
-  const closeOpenAction = useCallback(() => setOpenActionTransactionId(null), []);
-
   const handleEdit = useCallback((tx: Transaction) => {
-    closeOpenAction();
     setEditTx(tx);
     setIsFormOpen(true);
-  }, [closeOpenAction]);
+  }, []);
 
   const handleRepeat = useCallback((tx: Transaction) => {
     const { id: _id, transferGroupId: _tg, ...rest } = tx;
@@ -258,16 +243,15 @@ export default function HomeView() {
   }, []);
 
   const handleDelete = useCallback(async (tx: Transaction) => {
-    closeOpenAction();
     if (!tx.id) return;
     const backups = await deleteTransactionsWithPairs([tx.id]);
     toast.add(t('Transaction Deleted'), async () => {
       await restoreTransactions(backups);
     });
-  }, [t, closeOpenAction]);
+  }, [t]);
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
@@ -276,9 +260,7 @@ export default function HomeView() {
               Expend
             </h1>
             <p className="text-xs text-[var(--text-secondary)] mt-1">
-              {format(new Date(), 'd MMMM yyyy', { 
-                locale: i18n.language === 'id' ? localeId : undefined 
-              })}
+              {displayDateLong(new Date(), i18n.language)}
             </p>
           </div>
           
@@ -312,14 +294,6 @@ export default function HomeView() {
                       i
                     </div>
                     {t('Project Information')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setIsOverflowOpen(false); setIsReportOpen(true); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors"
-                  >
-                    <FileText size={16} className="text-[var(--text-secondary)]" />
-                    {t('Monthly Report')}
                   </button>
                 </div>
               </>
@@ -394,11 +368,13 @@ export default function HomeView() {
         <input 
           ref={searchRef}
           type="text" 
+          name="search"
+          autoComplete="off"
           aria-label={t('Search Placeholder')}
           placeholder={t('Search Placeholder')} 
           value={filters.searchTerm}
           onChange={(e) => filterActions.setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-12 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)] transition-all placeholder:text-[var(--text-secondary)]"
+          className="w-full pl-10 pr-12 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] placeholder:text-[var(--text-secondary)]"
         />
         {filters.searchTerm && (
           <button
@@ -432,7 +408,7 @@ export default function HomeView() {
               onClick={() => filterActions.setQuickFilter(filters.quickFilter === qf ? null : qf)}
               aria-pressed={filters.quickFilter === qf}
               className={cn(
-                "shrink-0 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border transition-all active:scale-95",
+                "shrink-0 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border transition-colors active:scale-95",
                 filters.quickFilter === qf
                   ? "bg-[var(--accent)] text-white border-[var(--accent)]"
                   : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
@@ -597,14 +573,10 @@ export default function HomeView() {
                   <span className="text-[10px] font-mono text-[var(--text-secondary)]/50">{group.transactions.length}</span>
                 </h3>
                 <div className="space-y-2">
-                  <AnimatePresence mode="popLayout">
+                  <>
                     {group.transactions.map(tx => (
-                      <motion.div
+                      <div
                         key={tx.id}
-                        layout
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
                       >
                         <TransactionCard
                           tx={tx}
@@ -614,18 +586,15 @@ export default function HomeView() {
                           hideAmount={hideAmount}
                           isSelectionMode={isSelectionMode}
                           isSelected={isSelected(tx.id!)}
-                          isActionOpen={openActionTransactionId === tx.id}
                           onSelect={toggleSelection}
                           onClick={() => setSelectedTx(tx)}
                           onEdit={() => handleEdit(tx)}
                           onDelete={() => handleDelete(tx)}
-                          onActionOpen={() => setOpenActionTransactionId(tx.id!)}
-                          onActionClose={() => setOpenActionTransactionId(null)}
                           onViewDetail={() => setSelectedTx(tx)}
                         />
-                      </motion.div>
+                      </div>
                     ))}
-                  </AnimatePresence>
+                  </>
                 </div>
               </div>
             ))}
@@ -659,12 +628,6 @@ export default function HomeView() {
         />
       </Suspense>
 
-      <Suspense fallback={null}>
-        <MonthlyReportPopup
-          isOpen={isReportOpen}
-          onClose={() => setIsReportOpen(false)}
-        />
-      </Suspense>
     </div>
   );
 }

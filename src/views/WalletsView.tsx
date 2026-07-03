@@ -7,9 +7,8 @@ import { Wallet as WalletIcon, AlertCircle, HelpCircle, Plus, Edit2, Check, X, T
 import { confirm } from '../components/ConfirmDialog';
 import { toast } from '../components/Toaster';
 import { deleteWalletSafely, adjustWalletBalance } from '../services/walletService';
-import { format, differenceInDays } from 'date-fns';
 import { formatAmountLocal, formatCurrency } from '../utils/formatUtils';
-import { getTodayStr } from '../utils/dateUtils';
+import { daysBetweenDateOnly, displayDateMedium, getTodayStr } from '../utils/dateUtils';
 import { WALLET_STALE_DAYS, SPENDING_TREND_RECENT_DAYS, SPENDING_TREND_PREVIOUS_DAYS } from '../utils/constants';
 import { EmptyState } from '../components/EmptyState';
 
@@ -105,21 +104,22 @@ export default function WalletsView() {
   };
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{t('Wallets')}</h1>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setShowHelp(!showHelp)}
-            className="p-2 border border-[var(--border)] bg-[var(--card)] rounded-full"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
             aria-label={t('Help')}
           >
             <HelpCircle size={20} />
           </button>
-          <button 
+          <button
+            type="button"
             onClick={() => setIsAddWalletOpen(true)}
-            className="p-2 bg-[var(--accent)] text-white rounded-full shadow"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow transition-colors hover:opacity-90"
             aria-label={t('Add Wallet')}
           >
             <Plus size={20} />
@@ -142,27 +142,39 @@ export default function WalletsView() {
       {isAddWalletOpen && (
         <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border)] shadow-sm space-y-4">
           <h2 className="font-bold">{t('New Wallet')}</h2>
-          <input 
-            type="text" 
-            placeholder={t('Name')}
-            value={newWalletName}
-            onChange={(e) => setNewWalletName(e.target.value)}
-            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2"
-          />
-          <input 
-            type="text" 
-            inputMode="numeric"
-            placeholder={t('Initial Balance')}
-            value={newWalletBal}
-            onChange={(e) => {
-               const val = e.target.value.replace(/[^0-9]/g, '');
-               setNewWalletBal(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
-            }}
-            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 font-mono"
-          />
+          <div>
+            <label htmlFor="new-wallet-name" className="block text-sm font-medium mb-1">{t('Name')}</label>
+            <input 
+              id="new-wallet-name"
+              type="text"
+              name="walletName"
+              autoComplete="off"
+              placeholder={t('e.g. Main Wallet')}
+              value={newWalletName}
+              onChange={(e) => setNewWalletName(e.target.value)}
+              className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
+            />
+          </div>
+          <div>
+            <label htmlFor="new-wallet-balance" className="block text-sm font-medium mb-1">{t('Initial Balance')}</label>
+            <input 
+              id="new-wallet-balance"
+              type="text"
+              inputMode="numeric"
+              name="initialBalance"
+              autoComplete="off"
+              placeholder="0"
+              value={newWalletBal}
+              onChange={(e) => {
+                 const val = e.target.value.replace(/[^0-9]/g, '');
+                 setNewWalletBal(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
+              }}
+              className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 font-mono focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
+            />
+          </div>
           <div className="flex justify-end gap-2">
-            <button onClick={() => setIsAddWalletOpen(false)} className="px-4 py-2 text-[var(--text-secondary)]">{t('Cancel')}</button>
-            <button onClick={handleAddWallet} className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg">{t('Save')}</button>
+            <button type="button" onClick={() => setIsAddWalletOpen(false)} className="px-4 py-2 text-[var(--text-secondary)]">{t('Cancel')}</button>
+            <button type="button" onClick={handleAddWallet} className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg">{t('Save')}</button>
           </div>
         </div>
       )}
@@ -200,7 +212,7 @@ export default function WalletsView() {
           wallets.map(wallet => {
             // Use pre-computed currentBalance from DB (set by transactionSaveService)
             const balance = wallet.currentBalance ?? wallet.initialBalance;
-            const isStale = differenceInDays(new Date(), new Date(wallet.lastUpdated)) >= WALLET_STALE_DAYS;
+            const isStale = daysBetweenDateOnly(new Date(), wallet.lastUpdated) >= WALLET_STALE_DAYS;
 
             return (
                <WalletCard 
@@ -226,9 +238,10 @@ interface WalletCardProps {
 }
 
 const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spendingTrend }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isUpdating, setIsUpdating] = useState(false);
   const [absoluteBalance, setAbsoluteBalance] = useState('');
+  const staleDays = daysBetweenDateOnly(new Date(), wallet.lastUpdated);
   
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState(wallet.name);
@@ -321,7 +334,7 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
-                    className="flex-1 min-w-0 bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-sm font-bold focus:outline-none focus:border-[var(--accent)]"
+                    className="flex-1 min-w-0 bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-sm font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
                   />
                   <button onClick={handleSaveName} className="p-1 text-green-500 hover:bg-green-500/10 rounded" aria-label={t('Save')}>
                     <Check size={18} />
@@ -338,14 +351,14 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
                   <div className="flex items-center">
                     <button 
                       onClick={() => setIsEditingName(true)} 
-                      className="p-1 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all shrink-0"
+                      className="p-1 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors shrink-0"
                       aria-label={t('Edit Wallet')}
                     >
                       <Edit2 size={14} />
                     </button>
                     <button 
                       onClick={handleDelete} 
-                      className="p-1 text-[var(--text-secondary)] hover:text-red-500 transition-all shrink-0 ml-1"
+                      className="p-1 text-[var(--text-secondary)] hover:text-red-500 transition-colors shrink-0 ml-1"
                       aria-label={t('Delete Wallet')}
                     >
                       <Trash2 size={14} />
@@ -355,11 +368,11 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
               )}
             </div>
             <p className="text-xs text-[var(--text-secondary)]">
-              {t('Last Update')}: {format(new Date(wallet.lastUpdated), 'dd MMM yyyy')}
+              {t('Last Update')}: {displayDateMedium(wallet.lastUpdated, i18n.language)}
               {isStale && (
                 <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 text-amber-600 text-[10px] font-semibold rounded">
                   <AlertCircle size={10} />
-                  {differenceInDays(new Date(), new Date(wallet.lastUpdated))}d {t('stale')}
+                  {staleDays}d {t('stale')}
                 </span>
               )}
             </p>
@@ -391,15 +404,16 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
       {isStale && !isUpdating && (
         <div className="mb-3 p-3 bg-amber-500/5 rounded-xl border border-amber-500/20">
           <p className="text-xs text-amber-700 font-medium text-center">
-            {t('Stale Wallet Prompt', { days: differenceInDays(new Date(), new Date(wallet.lastUpdated)) })}
+            {t('Stale Wallet Prompt', { days: staleDays })}
           </p>
         </div>
       )}
 
       {!isUpdating ? (
         <button 
+          type="button"
           onClick={() => setIsUpdating(true)}
-          className={`w-full py-2 rounded-lg font-medium border transition-all active:scale-95 ${
+          className={`w-full py-2 rounded-lg font-medium border transition-colors active:scale-95 ${
             isStale 
               ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600' 
               : 'bg-[var(--bg)] text-[var(--accent)] border-[var(--accent)]'
@@ -414,6 +428,8 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
           <input 
             type="text" 
             inputMode="numeric"
+            name="absoluteBalance"
+            autoComplete="off"
             value={absoluteBalance}
             onChange={(e) => {
                const val = e.target.value.replace(/[^0-9]/g, '');
@@ -424,8 +440,8 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
             ref={balanceInputRef}
           />
           <div className="flex justify-end gap-2">
-            <button onClick={() => setIsUpdating(false)} className="px-4 py-2 text-[var(--text-secondary)]">{t('Cancel')}</button>
-            <button onClick={handleUpdate} className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg">{t('Save')}</button>
+            <button type="button" onClick={() => setIsUpdating(false)} className="px-4 py-2 text-[var(--text-secondary)]">{t('Cancel')}</button>
+            <button type="button" onClick={handleUpdate} className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg">{t('Save')}</button>
           </div>
         </div>
       )}

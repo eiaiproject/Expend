@@ -1,47 +1,51 @@
-import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { PlusSquare, Share, ArrowRight, Download, ChevronRight } from 'lucide-react';
 import { isIOSDevice } from '../../utils/pwaUtils';
 import { APP_VERSION } from '../../utils/constants';
 
-export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: {
+export function InstallSection({
+  onTryWeb,
+  deferredPrompt,
+  showInstallPrompt,
+}: {
   onTryWeb: () => void;
-  deferredPrompt: { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> } | null;
+  deferredPrompt: {
+    prompt: () => Promise<void>;
+    userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  } | null;
   showInstallPrompt: () => Promise<void>;
 }) {
   const { t } = useTranslation();
   const isIOS = isIOSDevice();
 
   return (
-    <section id="install-section" className="py-16 sm:py-24 px-4 sm:px-6 relative z-10">
+    <section
+      id="install-section"
+      className="scroll-mt-24 py-20 sm:py-28 px-4 sm:px-6 relative z-10"
+    >
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+        <div
           className="text-center mb-10 sm:mb-14"
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4 text-[var(--text-primary)]">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4 text-[var(--text-primary)] text-balance">
             {t('landing.installTitle')}
           </h2>
-          <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-xl mx-auto text-pretty">
             {t('landing.installSubtitle')}
           </p>
-        </motion.div>
+        </div>
 
         {/* Install Button or Manual Steps */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+        <div
           className="text-center mb-10 sm:mb-14"
         >
           {deferredPrompt ? (
             <div className="space-y-4">
               <button
+                type="button"
                 onClick={showInstallPrompt}
-                className="px-10 sm:px-12 py-4 sm:py-5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base sm:text-lg hover:bg-[var(--accent)]/90 transition-all active:scale-95 cursor-pointer inline-flex items-center gap-3"
+                className="px-10 sm:px-12 py-4 sm:py-5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base sm:text-lg hover:bg-[var(--accent)]/90 transition-colors active:scale-95 cursor-pointer inline-flex items-center gap-3"
               >
                 <Download size={20} />
                 {t('landing.installButton')}
@@ -53,11 +57,10 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
           ) : (
             <div className="space-y-4">
               <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-lg mx-auto">
-                {isIOS
-                  ? t('landing.iosManualStep')
-                  : t('landing.browserInstallOption')}
+                {isIOS ? t('landing.iosManualStep') : t('landing.browserInstallOption')}
               </p>
               <button
+                type="button"
                 onClick={onTryWeb}
                 className="text-sm sm:text-base font-semibold text-[var(--accent)] hover:underline cursor-pointer"
               >
@@ -65,17 +68,13 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
               </button>
             </div>
           )}
-        </motion.div>
+        </div>
 
         {/* Visual Steps */}
         <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
           {/* Step 1 */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl p-6 sm:p-8 relative overflow-hidden group hover:border-[var(--accent)]/20 transition-all"
+          <div
+            className="bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl p-6 sm:p-8 relative overflow-hidden group hover:border-[var(--accent)]/20 transition-colors h-full"
           >
             {/* Step Number */}
             <div className="absolute top-4 sm:top-6 right-4 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
@@ -101,7 +100,9 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
 
             {/* Visual Indicator */}
             <div className="mt-5 sm:mt-6 flex items-center gap-3">
-              <div className={`p-2.5 sm:p-3 rounded-xl ${isIOS ? 'bg-[#007AFF]/10' : 'bg-white/5'}`}>
+              <div
+                className={`p-2.5 sm:p-3 rounded-xl ${isIOS ? 'bg-[#007AFF]/10' : 'bg-white/5'}`}
+              >
                 {isIOS ? (
                   <Share size={20} className="text-[#007AFF]" />
                 ) : (
@@ -112,15 +113,11 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
                 {isIOS ? t('landing.step1IosVisual') : t('landing.step1BrowserVisual')}
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Step 2 */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl p-6 sm:p-8 relative overflow-hidden group hover:border-[var(--accent)]/20 transition-all"
+          <div
+            className="bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl p-6 sm:p-8 relative overflow-hidden group hover:border-[var(--accent)]/20 transition-colors h-full"
           >
             {/* Step Number */}
             <div className="absolute top-4 sm:top-6 right-4 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
@@ -149,20 +146,17 @@ export function InstallSection({ onTryWeb, deferredPrompt, showInstallPrompt }: 
                 {t('landing.step2Visual')}
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Additional Info */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
+        <div
           className="mt-8 sm:mt-10 text-center"
         >
           <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
             {t('landing.installNote')}
           </p>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
@@ -179,24 +173,34 @@ export function LandingFooter() {
     <footer className="py-12 sm:py-16 px-4 sm:px-6 relative z-10 border-t border-white/5">
       <div className="max-w-4xl mx-auto">
         {/* Logo & Tagline */}
-        <div
+        <button
+          type="button"
           onClick={scrollToTop}
-          className="text-center cursor-pointer mb-8 sm:mb-10 group"
+          className="block w-full text-center cursor-pointer mb-8 sm:mb-10 group"
         >
-          <h2 className="text-2xl sm:text-3xl tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+          <h2
+            className="text-2xl sm:text-3xl tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors mb-2"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
             Expend
           </h2>
           <p className="text-sm sm:text-base text-[var(--text-secondary)] font-light">
             {t('landing.footerTagline')}
           </p>
-        </div>
+        </button>
 
         {/* Quick Links */}
         <div className="flex justify-center flex-wrap gap-6 sm:gap-8 mb-8 sm:mb-10">
-          <a href="#features-section" className="text-xs sm:text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+          <a
+            href="#features-section"
+            className="text-xs sm:text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          >
             {t('landing.footerFeatures')}
           </a>
-          <a href="#install-section" className="text-xs sm:text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+          <a
+            href="#install-section"
+            className="text-xs sm:text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          >
             {t('landing.footerInstall')}
           </a>
           <a

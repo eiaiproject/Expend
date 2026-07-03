@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useSecurity } from '../../contexts/SecurityContext';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { Lock, X } from 'lucide-react';
-import { motion } from 'motion/react';
 
 interface VerifyCurrentPinModalProps {
   isOpen: boolean;
@@ -61,10 +60,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
 
   return (
     <div ref={dialogRef} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" role="dialog" aria-modal="true" aria-label={t('Enter your current PIN')}>
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
+      <div
         className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-6"
       >
         <div className="text-center space-y-2">
@@ -84,7 +80,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
           ))}
         </div>
 
-        {error && <p className="text-center text-sm text-red-500">{t('Incorrect PIN')}</p>}
+        {error && <p className="text-center text-sm text-red-500" aria-live="polite">{t('Incorrect PIN')}</p>}
 
         <input
           ref={inputRef}
@@ -102,35 +98,38 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
             <button
               key={num}
               onClick={() => { if (pin.length < pinLength) setPin(prev => prev + num); }}
-              className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-lg font-medium hover:bg-[var(--card)] active:scale-95 transition-all"
+              className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-lg font-mono font-medium hover:bg-[var(--card)] active:scale-95 transition-colors"
             >{num}</button>
           ))}
           <button
+            type="button"
             onClick={() => setPin(prev => prev.slice(0, -1))}
-            className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--card)] active:scale-95 transition-all"
+            className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--card)] active:scale-95 transition-colors"
             aria-label={t('Delete digit')}
           >
             <X size={20} />
           </button>
           <button
+            type="button"
             onClick={() => { if (pin.length < pinLength) setPin(prev => prev + '0'); }}
-            className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-lg font-medium hover:bg-[var(--card)] active:scale-95 transition-all"
+            className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-lg font-mono font-medium hover:bg-[var(--card)] active:scale-95 transition-colors"
           >0</button>
         </div>
 
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors">
+          <button type="button" onClick={onClose} className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors">
             {t('Cancel')}
           </button>
           <button
+            type="button"
             onClick={handleVerify}
             disabled={pin.length < pinLength || loading}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-all"
+            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-colors"
           >
             {loading ? t('Verifying...') : t('Confirm')}
           </button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

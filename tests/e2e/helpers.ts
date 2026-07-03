@@ -583,10 +583,8 @@ export async function adjustWalletBalance(
 }
 
 /**
- * Find a transaction by description (exact) and click the kebab menu,
- * then click "Delete" in the menu. Falls back to the swipe-action
- * Delete button if the kebab menu does not open (some test environments
- * have a flaky interaction between motion.drag and the menu toggle).
+ * Find a transaction by description (exact), open the kebab menu,
+ * then click "Delete" in the menu.
  */
 export async function deleteTransactionByDescription(
   page: Page,
@@ -601,14 +599,8 @@ export async function deleteTransactionByDescription(
   const kebab = row.getByRole('button', { name: /open transaction actions|transaction actions/i }).first();
   await kebab.click();
   const menu = page.getByRole('menu');
-  const menuVisible = await menu.isVisible({ timeout: 2_000 }).catch(() => false);
-  if (menuVisible) {
-    await menu.getByRole('menuitem', { name: /^delete/i }).click();
-  } else {
-    // Fallback: the row's swipe-action bar exposes a Delete button.
-    // motion.drag anchors it visible on click. We just click Delete directly.
-    await row.getByRole('button', { name: /^delete$/i }).first().click();
-  }
+  await menu.waitFor({ state: 'visible', timeout: 2_000 });
+  await menu.getByRole('menuitem', { name: /^delete/i }).click();
   await page.waitForFunction(
     (label) => !document.body.innerText.includes(label),
     description,
@@ -697,7 +689,9 @@ async function openActionPicker(page: Page): Promise<void> {
 
 async function clickPickerAction(page: Page, label: RegExp): Promise<void> {
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('button', { name: label }).first().click();
+  const action = dialog.getByRole('button', { name: label }).first();
+  await action.waitFor({ state: 'visible', timeout: 5_000 });
+  await action.click();
 }
 
 async function pickWalletFromSelect(page: Page, walletName: string): Promise<void> {
@@ -723,4 +717,90 @@ async function pickTransferWalletFromSelect(page: Page, index: number, walletNam
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// ===================== Service-level helpers =====================
+// These bypass the ActionPickerSheet UI to set up state directly via
+// the app's service layer. Use them when the test's subject under
+// test is NOT the picker flow itself.
+
+/**
+ * Run the app's `importData()` service from the browser context.
+ * This exercises the full validation → sanitize → recompute → bulkPut
+ * pipeline, unlike raw IDB manipulation.
+ */
+export async function importDataViaService(page: Page, payload: unknown): Promise<void> {
+  await page.evaluate(async (data) => {
+    const { importData } = await import('/src/services/importExportService.ts');
+    await importData(data as never);
+  }, payload);
+  // Let Dexie flush the recomputed wallet balances.
+  await page.waitForTimeout(500);
+}
+
+/**
+ * Create a transfer pair via the app's `saveTransfer()` service.
+ * Bypasses the ActionPickerSheet + TransactionFormSheet UI.
+ */
+export async function createTransferViaService(
+  page: Page,
+  opts: { fromWallet: string; toWallet: string; amount: number; description: string; date?: string },
+): Promise<void> {
+  await page.evaluate(async (args) => {
+    const dbModule = await import('/src/db/db.ts');
+    const txModule = await import('/src/services/transactionSaveService.ts');
+
+    const wallets = await dbModule.db.wallets.toArray();
+    const from = wallets.find((w) => w.name === args.fromWallet);
+    const to = wallets.find((w) => w.name === args.toWallet);
+    if (!from?.id || !to?.id) throw new Error(`Wallet not found: ${args.fromWallet} or ${args.toWallet}`);
+
+    await txModule.saveTransfer({
+      fromWalletId: from.id,
+      toWalletId: to.id,
+      amount: args.amount,
+      description: args.description,
+      date: args.date ?? '2025-01-15',
+      notes: '',
+    });
+  }, opts);
+  // Let Dexie flush.
+  await page.waitForTimeout(500);
+}
+
+/**
+ * Create an expense via the app's `saveTransaction()` service.
+ * Bypasses the ActionPickerSheet + TransactionFormSheet UI.
+ */
+export async function createExpenseViaService(
+  page: Page,
+  opts: { walletName: string; amount: number; description: string; categoryName?: string; date?: string },
+): Promise<void> {
+  await page.evaluate(async (args) => {
+    const dbModule = await import('/src/db/db.ts');
+    const txModule = await import('/src/services/transactionSaveService.ts');
+
+    const wallets = await dbModule.db.wallets.toArray();
+    const wallet = wallets.find((w) => w.name === args.walletName);
+    if (!wallet?.id) throw new Error(`Wallet not found: ${args.walletName}`);
+
+    let categoryId: number | null = null;
+    if (args.categoryName) {
+      const cats = await dbModule.db.categories.toArray();
+      const cat = cats.find((c) => c.name === args.categoryName);
+      categoryId = cat?.id ?? null;
+    }
+
+    await txModule.saveTransaction({
+      walletId: wallet.id,
+      amount: args.amount,
+      description: args.description,
+      date: args.date ?? '2025-01-15',
+      categoryId,
+      notes: '',
+      type: 'expense',
+    });
+  }, opts);
+  // Let Dexie flush.
+  await page.waitForTimeout(500);
 }

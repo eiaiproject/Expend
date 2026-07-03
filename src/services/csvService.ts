@@ -1,15 +1,7 @@
-import { 
-  db, 
-  type Transaction, 
-  type Wallet, 
-  type Category, 
-  type Debt, 
-  type DebtPayment 
-} from '../db/db';
+import { db } from '../db/db';
 import Papa from 'papaparse';
-import { sanitizeCsvField } from './importExportService';
-import { normaliseDate } from '../utils/dateUtils';
-import { getTodayStr } from '../utils/dateUtils';
+import { sanitizeCsvRows } from './importExportService';
+import { getTodayStr, normaliseDate } from '../utils/dateUtils';
 import { downloadBlob } from '../utils/downloadUtils';
 import { VALID_TX_TYPES } from '../utils/constants';
 
@@ -67,13 +59,7 @@ export async function exportTransactionsCsv(): Promise<void> {
     type: tx.type,
   }));
 
-  const csv = Papa.unparse(rows.map(row => {
-    const sanitized: any = {};
-    for (const key in row) {
-      sanitized[key] = sanitizeCsvField(row[key as keyof TransactionCsvRow]);
-    }
-    return sanitized;
-  }));
+  const csv = Papa.unparse(sanitizeCsvRows(rows));
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   downloadBlob(blob, `expend_transactions_${getTodayStr()}.csv`);
@@ -100,13 +86,7 @@ export async function exportDebtsCsv(): Promise<void> {
     notes: d.notes || '',
   }));
 
-  const csv = Papa.unparse(rows.map(row => {
-    const sanitized: any = {};
-    for (const key in row) {
-      sanitized[key] = sanitizeCsvField(row[key as keyof DebtCsvRow]);
-    }
-    return sanitized;
-  }));
+  const csv = Papa.unparse(sanitizeCsvRows(rows));
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   downloadBlob(blob, `expend_debts_${getTodayStr()}.csv`);
@@ -133,13 +113,7 @@ export async function exportDebtPaymentsCsv(): Promise<void> {
     notes: p.notes || '',
   }));
 
-  const csv = Papa.unparse(rows.map(row => {
-    const sanitized: any = {};
-    for (const key in row) {
-      sanitized[key] = sanitizeCsvField(row[key as keyof DebtPaymentCsvRow]);
-    }
-    return sanitized;
-  }));
+  const csv = Papa.unparse(sanitizeCsvRows(rows));
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   downloadBlob(blob, `expend_payments_${getTodayStr()}.csv`);
