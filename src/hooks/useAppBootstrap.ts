@@ -4,7 +4,6 @@ import i18n from '../i18n/init';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useIsStandalone } from '../utils/pwaUtils';
 import { STORAGE_KEYS } from '../utils/constants';
-import { shouldShowMonthlyReport } from '../services/monthlyReportService';
 
 /**
  * Manages the bootstrap state machine for the app:
@@ -19,7 +18,6 @@ export function useAppBootstrap() {
   const [hasOnboarded, setHasOnboarded] = useState(() => localStorage.getItem(STORAGE_KEYS.HAS_ONBOARDED) === 'true');
   const [onboardingCompleted, setOnboardingCompleted] = useState(() => localStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED) === 'true');
   const [isCheckingData, setIsCheckingData] = useState(true);
-  const [showMonthlyReport, setShowMonthlyReport] = useState(false);
   const dataCheckDone = useRef(false);
   const isStandalone = useIsStandalone();
 
@@ -51,14 +49,6 @@ export function useAppBootstrap() {
           setOnboardingCompleted(true);
           setBypassPwa(true);
           localStorage.setItem(STORAGE_KEYS.BYPASS_PWA, 'true');
-          
-          // Check if we should show monthly report
-          if (shouldShowMonthlyReport()) {
-            // Delay showing the report popup to avoid overwhelming the user
-            setTimeout(() => {
-              setShowMonthlyReport(true);
-            }, 1500);
-          }
         }
       } catch {
         // IndexedDB might not be available; fall through to normal flow
@@ -90,10 +80,6 @@ export function useAppBootstrap() {
     setOnboardingCompleted(true);
   }, []);
 
-  const handleCloseMonthlyReport = useCallback(() => {
-    setShowMonthlyReport(false);
-  }, []);
-
   return {
     // Gate states
     isCheckingData,
@@ -102,13 +88,11 @@ export function useAppBootstrap() {
     onboardingCompleted,
     isBannerDismissed,
     isStandalone,
-    showMonthlyReport,
     // Setters
     handleBypassPwa,
     handleDismissBanner,
     handleOnboarded,
     handleOnboardingComplete,
-    handleCloseMonthlyReport,
     setBypassPwa,
     setHasOnboarded,
     setOnboardingCompleted,

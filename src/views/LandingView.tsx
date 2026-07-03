@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useInstallPrompt } from '../utils/pwaUtils';
 import { useTranslation } from 'react-i18next';
 import { ArrowUp } from 'lucide-react';
@@ -24,46 +24,57 @@ function StickyNav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const scrollTo = useCallback((id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
-
   return (
     <>
       <nav
-        role="navigation"
         aria-label="Main"
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-[padding,background-color,border-color] duration-300 ${
           scrolled
             ? 'bg-[var(--bg)]/90 backdrop-blur-md border-b border-[var(--border-subtle)] py-3'
             : 'py-5'
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between">
-          <span className="text-lg font-bold tracking-tight text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
+          <span
+            className="text-lg font-bold tracking-tight text-[var(--text-primary)]"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
             Expend
           </span>
           <div className="hidden sm:flex items-center gap-6">
-            <button onClick={() => scrollTo('features-section')} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">
+            <a
+              href="#features-section"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
               {t('landing.footerFeatures')}
-            </button>
-            <button onClick={() => scrollTo('preview-section')} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">
+            </a>
+            <a
+              href="#preview-section"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
               {t('landing.previewTitle')}
-            </button>
-            <button onClick={() => scrollTo('install-section')} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">
+            </a>
+            <a
+              href="#install-section"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
               {t('landing.footerInstall')}
-            </button>
-            <button onClick={() => scrollTo('faq-section')} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">
+            </a>
+            <a
+              href="#faq-section"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
               FAQ
-            </button>
+            </a>
           </div>
         </div>
       </nav>
       {/* Back to top */}
       <button
+        type="button"
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         aria-label="Back to top"
-        className={`fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-[var(--accent)] text-white flex items-center justify-center shadow-lg transition-all duration-300 cursor-pointer ${
+        className={`fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-[var(--accent)] text-white flex items-center justify-center shadow-lg transition-[opacity,transform] duration-300 cursor-pointer ${
           showTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
@@ -73,12 +84,14 @@ function StickyNav() {
   );
 }
 
-export default function LandingView({ onTryWeb, onEnter }: { onTryWeb: () => void; onEnter?: () => void }) {
+export default function LandingView({
+  onTryWeb,
+  onEnter,
+}: {
+  onTryWeb: () => void;
+  onEnter?: () => void;
+}) {
   const { deferredPrompt, showInstallPrompt } = useInstallPrompt();
-
-  const scrollToInstall = () => {
-    document.getElementById('install-section')?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   return (
     <div className="bg-[var(--bg)] text-[var(--text-primary)] font-sans overflow-x-hidden">
@@ -93,11 +106,7 @@ export default function LandingView({ onTryWeb, onEnter }: { onTryWeb: () => voi
       <StickyNav />
 
       {/* Hero Section */}
-      <HeroSection
-        onTryWeb={onTryWeb}
-        onEnter={onEnter}
-        onScrollToInstall={scrollToInstall}
-      />
+      <HeroSection onTryWeb={onTryWeb} onEnter={onEnter} />
 
       {/* Features Section */}
       <FeaturesSection />

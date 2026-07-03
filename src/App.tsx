@@ -19,7 +19,6 @@ import { ConfirmDialogProvider } from './components/ConfirmDialog';
 import { LockScreen } from './components/LockScreen';
 import { SecurityProvider, useSecurity } from './contexts/SecurityContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { motion } from 'motion/react';
 import { Skeleton } from './components/Skeleton';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
 import './i18n/init';
@@ -28,7 +27,6 @@ import LandingView from './views/LandingView';
 import { SidebarNav } from './components/SidebarNav';
 import { Download, WifiOff, X } from 'lucide-react';
 import OnboardingWizard from './components/OnboardingWizard';
-const MonthlyReportPopup = lazy(() => import('./components/MonthlyReportPopup').then(m => ({ default: m.MonthlyReportPopup })));
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { isIOSDevice, useInstallPrompt, useOnlineStatus } from './utils/pwaUtils';
 import type { TransactionType } from './hooks/useTransactionForm';
@@ -50,12 +48,10 @@ function AppContent() {
     onboardingCompleted,
     isBannerDismissed,
     isStandalone,
-    showMonthlyReport,
     handleBypassPwa,
     handleDismissBanner,
     handleOnboarded,
     handleOnboardingComplete,
-    handleCloseMonthlyReport,
     setBypassPwa,
     setHasOnboarded,
   } = useAppBootstrap();
@@ -69,7 +65,8 @@ function AppContent() {
 
       if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
-        setIsActionPickerOpen(true);
+        setTxInitialType('expense');
+        setIsAddTxOpen(true);
       }
     };
     document.addEventListener('keydown', handler);
@@ -109,24 +106,14 @@ function AppContent() {
   // When locked, render only the LockScreen (routes/content not rendered)
   if (isLocked) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans flex flex-col"
-      >
+      <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans flex flex-col">
         <LockScreen />
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans flex flex-col"
-    >
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans flex flex-col">
       {/* Skip to content link for keyboard users */}
       <a
         href="#main-content"
@@ -136,9 +123,9 @@ function AppContent() {
       </a>
       {/* Render elegant installation banner on mobile web if not standalone and banner not dismissed */}
       {!isStandalone && !isBannerDismissed && (
-        <div className="md:hidden bg-[var(--accent)] text-white px-4 py-3 flex items-center justify-between gap-3 text-xs font-semibold shadow z-50 relative shrink-0">
+        <div className="md:hidden bg-[var(--accent-fill)] text-[var(--accent-ink)] px-4 py-3 flex items-center justify-between gap-3 text-xs font-semibold shadow z-50 relative shrink-0">
           <div className="flex min-w-0 items-center gap-2">
-            <Download size={14} className="shrink-0" />
+            <Download size={14} className="shrink-0" aria-hidden="true" />
             <span>
               {showIosInstallInstructions
                 ? t('Install Expend on iOS from Share > Add to Home Screen.')
@@ -147,25 +134,27 @@ function AppContent() {
           </div>
           {deferredPrompt && (
             <button
+              type="button"
               onClick={showInstallPrompt}
-              className="shrink-0 rounded-lg bg-white/20 px-3 py-1.5 font-semibold hover:bg-white/30"
+              className="shrink-0 rounded-lg bg-white/20 px-3 py-1.5 font-semibold hover:bg-white/30 transition-colors"
             >
               {t('Install')}
             </button>
           )}
           <button 
+            type="button"
             onClick={handleDismissBanner} 
-            className="shrink-0 p-1 rounded-full hover:bg-white/10 cursor-pointer"
+            className="shrink-0 p-1 rounded-full hover:bg-white/10 cursor-pointer transition-colors"
             aria-label={t('Close')}
           >
-            <X size={14} />
+            <X size={14} aria-hidden="true" />
           </button>
         </div>
       )}
 
       {!isOnline && (
         <div className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-b border-amber-500/20 px-4 py-2 text-xs font-medium flex items-center justify-center gap-2">
-          <WifiOff size={14} />
+          <WifiOff size={14} aria-hidden="true" />
           <span>{t('Offline Mode')}. {t('Data stored locally on this device.')}</span>
         </div>
       )}
@@ -178,7 +167,7 @@ function AppContent() {
         </div>
 
         {/* Main View Area */}
-        <main id="main-content" className="flex-1 pb-[80px] md:pb-6 md:px-6 md:py-8 max-w-4xl mx-auto w-full overflow-y-auto" tabIndex={-1}>
+        <main id="main-content" className="flex-1 min-w-0 w-full max-w-4xl mx-auto overflow-y-auto px-4 pt-5 pb-[calc(144px+env(safe-area-inset-bottom,0px))] md:px-6 md:py-8 md:pb-8" tabIndex={-1}>
           <RoutesWithSuspense />
         </main>
       </div>
@@ -216,12 +205,7 @@ function AppContent() {
         isOpen={isDebtFormOpen}
         onClose={() => setIsDebtFormOpen(false)}
       />
-
-      <MonthlyReportPopup
-        isOpen={showMonthlyReport}
-        onClose={handleCloseMonthlyReport}
-      />
-    </motion.div>
+    </div>
   );
 }
 
@@ -269,12 +253,12 @@ function NotFoundView() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6">
+    <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6 rounded-[16px] border border-[var(--border)] bg-[var(--card)] mt-4">
       <h1 className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">404</h1>
       <p className="mt-2 text-sm text-[var(--text-secondary)]">{t('Page not found')}</p>
       <Link
         to="/"
-        className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-[var(--accent)] px-5 text-sm font-bold text-white shadow-lg shadow-[var(--accent)]/20"
+        className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-[var(--accent-fill)] px-5 text-sm font-bold text-[var(--accent-ink)] shadow-lg shadow-[var(--accent-fill)]/20 transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--accent-fill)]/30"
       >
         {t('Back to Home')}
       </Link>

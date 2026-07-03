@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { BarChart3, PieChart, Wallet, TrendingUp, Search, Tags } from 'lucide-react';
 
@@ -12,33 +11,33 @@ interface PreviewCardProps {
 
 function PreviewCard({ icon, title, description, mockup, index }: PreviewCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.7, delay: index * 0.15 }}
-      className="group"
+    <div
+      className="group h-full"
     >
-      <div className="h-full bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl overflow-hidden hover:border-[var(--accent)]/20 transition-all duration-500 flex flex-col">
+      <div className="h-full min-h-[520px] bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl overflow-hidden hover:border-[var(--accent)]/20 transition-colors duration-500 flex flex-col">
         {/* Mockup Area */}
-        <div className="relative bg-[var(--bg)] p-4 sm:p-6 flex-1 flex items-start justify-center overflow-hidden">
+        <div className="relative bg-[var(--bg)] p-4 sm:p-6 h-[360px] sm:h-[380px] flex items-center justify-center overflow-hidden">
           {mockup}
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-[var(--card)]/80 via-transparent to-transparent pointer-events-none" />
         </div>
 
         {/* Content */}
-        <div className="p-5 sm:p-6 mt-auto h-[144px] sm:h-[156px] flex flex-col justify-center">
+        <div className="p-5 sm:p-6 mt-auto min-h-[156px] flex flex-col justify-center">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               {icon}
             </div>
-            <h3 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">{title}</h3>
+            <h3 className="text-base sm:text-lg font-bold text-[var(--text-primary)] text-balance">
+              {title}
+            </h3>
           </div>
-          <p className="text-sm text-[var(--text-secondary)] leading-relaxed line-clamp-2 pl-[52px]">{description}</p>
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed line-clamp-2 pl-[52px]">
+            {description}
+          </p>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -74,13 +73,17 @@ function DashboardMockup() {
       <div className="space-y-2">
         {['Lunch', 'Grab', 'Coffee'].map((name, i) => (
           <div key={i} className="bg-[var(--card)] rounded-xl p-2.5 flex items-center gap-2">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center ${i === 0 ? 'bg-red-400' : i === 1 ? 'bg-orange-400' : 'bg-amber-400'}`}>
+            <div
+              className={`w-7 h-7 rounded-full flex items-center justify-center ${i === 0 ? 'bg-red-400' : i === 1 ? 'bg-orange-400' : 'bg-amber-400'}`}
+            >
               <div className="w-2 h-2 bg-white/80 rounded-full" />
             </div>
             <div className="flex-1">
               <p className="text-[11px] font-medium text-white">{name}</p>
             </div>
-            <p className="text-[10px] font-bold text-red-400 font-mono">-{(45 - i * 10).toString()},000</p>
+            <p className="text-[10px] font-bold text-red-400 font-mono">
+              -{(45 - i * 10).toString()},000
+            </p>
           </div>
         ))}
       </div>
@@ -100,10 +103,45 @@ function StatsMockup() {
         <div className="flex items-center gap-4">
           <div className="relative w-20 h-20">
             <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-              <circle cx="18" cy="18" r="15.915" fill="none" stroke="#EF4444" strokeWidth="3" strokeDasharray="40 60" />
-              <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F97316" strokeWidth="3" strokeDasharray="25 75" strokeDashoffset="-40" />
-              <circle cx="18" cy="18" r="15.915" fill="none" stroke="#EAB308" strokeWidth="3" strokeDasharray="20 80" strokeDashoffset="-65" />
-              <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--accent)" strokeWidth="3" strokeDasharray="15 85" strokeDashoffset="-85" />
+              <circle
+                cx="18"
+                cy="18"
+                r="15.915"
+                fill="none"
+                stroke="#EF4444"
+                strokeWidth="3"
+                strokeDasharray="40 60"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="15.915"
+                fill="none"
+                stroke="#F97316"
+                strokeWidth="3"
+                strokeDasharray="25 75"
+                strokeDashoffset="-40"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="15.915"
+                fill="none"
+                stroke="#EAB308"
+                strokeWidth="3"
+                strokeDasharray="20 80"
+                strokeDashoffset="-65"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="15.915"
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth="3"
+                strokeDasharray="15 85"
+                strokeDashoffset="-85"
+              />
             </svg>
           </div>
           <div className="space-y-2 flex-1">
@@ -151,24 +189,33 @@ function WalletMockup() {
   return (
     <div className="w-full max-w-[280px] space-y-3">
       {[
-        { name: 'Main Wallet', balance: 'Rp 3.500.000', change: '+Rp 250.000', icon: 'W', trend: 'up' },
+        {
+          name: 'Main Wallet',
+          balance: 'Rp 3.500.000',
+          change: '+Rp 250.000',
+          icon: 'W',
+          trend: 'up',
+        },
         { name: 'Savings', balance: 'Rp 1.240.000', change: '+Rp 100.000', icon: 'S', trend: 'up' },
         { name: 'Cash', balance: 'Rp 500.000', change: '-Rp 50.000', icon: 'C', trend: 'down' },
       ].map((wallet, i) => (
-        <div key={i} className="bg-[var(--card)] rounded-2xl p-4 flex items-center gap-3 hover:border-[var(--accent)]/20 border border-transparent transition-all">
-          <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-sm font-bold text-[var(--accent)]">
+        <div
+          key={i}
+          className="bg-[var(--card)] rounded-2xl p-4 flex items-center gap-3 hover:border-[var(--accent)]/20 border border-transparent transition-colors"
+        >
+          <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-sm font-bold text-[var(--accent)] shrink-0">
             {wallet.icon}
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-white">{wallet.name}</p>
             <p className="text-[10px] text-white/50 mt-0.5">
               <span className={wallet.trend === 'up' ? 'text-green-400' : 'text-red-400'}>
                 {wallet.change}
-              </span>
-              {' '}this month
+              </span>{' '}
+              this month
             </p>
           </div>
-          <p className="text-sm font-bold text-white font-mono">{wallet.balance}</p>
+          <p className="text-sm font-bold text-white font-mono shrink-0">{wallet.balance}</p>
         </div>
       ))}
     </div>
@@ -203,22 +250,21 @@ export function PreviewSection() {
   ];
 
   return (
-    <section className="py-16 sm:py-24 px-4 sm:px-6 max-w-6xl mx-auto relative z-10">
+    <section
+      id="preview-section"
+      className="scroll-mt-24 py-20 sm:py-28 px-4 sm:px-6 max-w-6xl mx-auto relative z-10"
+    >
       {/* Section Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
+      <div
         className="text-center mb-12 sm:mb-16"
-        id="preview-section"
       >
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] mb-4">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] mb-4 text-balance">
           {t('landing.previewTitle')}
         </h2>
-        <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-2xl mx-auto text-pretty">
           {t('landing.previewSubtitle')}
         </p>
-      </motion.div>
+      </div>
 
       {/* Preview Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-stretch">

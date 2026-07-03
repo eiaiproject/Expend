@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 
 interface ConfirmDialogOptions {
@@ -78,12 +77,9 @@ export function ConfirmDialogProvider() {
   }, [handleClose]);
 
   return (
-    <AnimatePresence>
+    <>
       {currentDialog && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+        <div
           className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-6"
           onClick={() => handleClose(false)}
           onKeyDown={handleKeyDown}
@@ -91,12 +87,8 @@ export function ConfirmDialogProvider() {
           aria-modal="true"
           aria-label={currentDialog.title}
         >
-          <motion.div
+          <div
             ref={dialogRef}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -117,7 +109,7 @@ export function ConfirmDialogProvider() {
               <button
                 onClick={() => handleClose(true)}
                 className={(
-                  "flex-1 h-11 rounded-xl font-medium transition-all active:scale-95 " +
+                  "flex-1 h-11 rounded-xl font-medium transition-colors active:scale-95 " +
                   (currentDialog.variant === 'danger'
                     ? "bg-red-500 text-white hover:bg-red-600"
                     : "bg-[var(--accent)] text-white hover:opacity-90")
@@ -126,9 +118,9 @@ export function ConfirmDialogProvider() {
                 {currentDialog.confirmLabel || t('Confirm')}
               </button>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

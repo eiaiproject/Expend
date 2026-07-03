@@ -1,8 +1,17 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { db, type Setting } from '../db/db';
-import { getSecuritySettings, setSecuritySettings, type SecuritySettingsValue } from '../utils/settingsSchema';
 import { hashPin, verifyPin, verifyLegacySha256 } from '../utils/cryptoUtils';
 import { AUTO_LOCK_TIMEOUT_MS, STORAGE_KEYS } from '../utils/constants';
+
+interface SecuritySettingsValue {
+  enabled: boolean;
+  method: 'pin';
+  pinHash:
+    | string
+    | { hash: string; salt: string; iterations: number };
+  pinLength: number;
+  pin?: string;
+}
 
 interface SecurityContextType {
   isLocked: boolean;
@@ -60,7 +69,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   const loadSecuritySettings = async () => {
     const promise = (async () => {
       try {
-        const secVal = await getSecuritySettings();
+        const secVal = (await db.settings.get('security'))?.value as SecuritySettingsValue | undefined;
         // Validate state: ensure method and pinHash exist if security is enabled
         // Accept both PBKDF2 (pinHash) and legacy plaintext (pin) formats
         if (secVal?.enabled && secVal.method === 'pin' && (secVal.pinHash || secVal.pin)) {
@@ -73,7 +82,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
               pin: undefined,
               pinLength: secVal.pinLength || 4,
             };
-            await setSecuritySettings(updatedSettings);
+            await db.settings.put({ key: 'security', value: updatedSettings });
             return updatedSettings;
           }
           return secVal;
@@ -136,7 +145,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
         if (securitySettingsPromiseRef.current) {
           secVal = await securitySettingsPromiseRef.current ?? null;
         } else {
-          secVal = await getSecuritySettings() ?? null;
+          secVal = ((await db.settings.get('security'))?.value as SecuritySettingsValue | undefined) ?? null;
         }
         securitySettingsRef.current = secVal;
         if (!secVal?.pinHash) return false;
@@ -161,7 +170,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
               ...cachedVal,
               pinHash: newPinHash,
             };
-            await setSecuritySettings(updatedSettings);
+            await db.settings.put({ key: 'security', value: updatedSettings });
             securitySettingsRef.current = updatedSettings;
           }
 
@@ -196,12 +205,12 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   const setupPin = useCallback(async (pin: string) => {
     const pinHash = await hashPin(pin);
     const length = pin.length;
-    await setSecuritySettings({
+    await db.settings.put({ key: 'security', value: {
       enabled: true,
       method: 'pin',
       pinHash,
       pinLength: length,
-    });
+    } });
     setSecurityEnabled(true);
     setSecurityMethod('pin');
     setPinLength(length);

@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '@/db/db';
-import { deleteWalletSafely, adjustWalletBalance, recomputeWalletBalance } from '@/services/walletService';
+import { deleteWalletSafely, adjustWalletBalance } from '@/services/walletService';
 import { getBalanceDelta } from '@/utils/balanceUtils';
 
 // Each test gets a fresh DB via fake-indexeddb
@@ -294,25 +294,5 @@ describe('adjustWalletBalance', () => {
       .and(t => t.walletId === walletId)
       .toArray();
     expect(adjustments.length).toBe(0);
-  });
-});
-
-describe('recomputeWalletBalance', () => {
-  it('recomputes from transactions correctly', async () => {
-    const walletId = await db.wallets.add({
-      name: 'Cash', currency: 'IDR', initialBalance: 1000000,
-      lastUpdated: '2025-01-01T00:00:00.000Z',
-    });
-    await db.transactions.bulkAdd([
-      { walletId, categoryId: 1, date: '2025-01-01', description: 'E1', type: 'expense', amount: 100000 },
-      { walletId, categoryId: 1, date: '2025-01-02', description: 'TI', type: 'transfer_in', amount: 200000 },
-      { walletId, categoryId: null, date: '2025-01-03', description: 'TO', type: 'transfer_out', amount: 50000 },
-    ]);
-
-    await recomputeWalletBalance(walletId);
-
-    const wallet = await db.wallets.get(walletId);
-    // 1,000,000 - 100,000 + 200,000 - 50,000 = 1,050,000
-    expect(wallet?.currentBalance).toBe(1050000);
   });
 });

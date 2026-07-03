@@ -1,7 +1,6 @@
 import { useId, useRef, type KeyboardEvent } from 'react';
 import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
-import { motion } from 'motion/react';
 import { X, ArrowDownCircle, Repeat, Wallet as WalletIcon, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { type Transaction } from '../db/db';
@@ -117,7 +116,7 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
     >
       <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
         {/* Type Tabs */}
-        <div className="flex p-1 bg-[var(--bg)] rounded-xl border border-[var(--border)]">
+        <div className="flex p-1 bg-[var(--bg)] rounded-xl border border-[var(--border)]" role="radiogroup" aria-label={t('Transaction type')}>
           {[
             { id: 'expense', label: t('Expense'), icon: ArrowDownCircle },
             { id: 'transfer', label: t('Transfer'), icon: Repeat, disabled: wallets.length < 2 },
@@ -127,16 +126,17 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
               type="button"
               disabled={'disabled' in item ? item.disabled : false}
               onClick={() => actions.setType(item.id as 'expense' | 'transfer')}
-              aria-pressed={state.type === item.id}
+              role="radio"
+              aria-checked={state.type === item.id}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all",
+                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors",
                 state.type === item.id
-                  ? "bg-[var(--accent)] text-white shadow-sm"
+                  ? "bg-[var(--accent-fill)] text-[var(--accent-ink)] shadow-sm"
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
                 ('disabled' in item && item.disabled) && 'opacity-40 cursor-not-allowed'
               )}
             >
-              <item.icon size={16} />
+              <item.icon size={16} aria-hidden="true" />
               {item.label}
             </button>
           ))}
@@ -158,14 +158,12 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
               onChange={actions.handleAmountChange}
               onFocus={() => actions.setIsAmountFocused(true)}
               onBlur={() => setTimeout(() => actions.setIsAmountFocused(false), 200)}
-              className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl py-3 pl-12 pr-4 font-mono text-xl font-bold focus:outline-none focus:border-[var(--accent)]"
+              className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl py-3 pl-12 pr-4 font-mono text-xl font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               placeholder="0"
             />
           </div>
           {state.isAmountFocused && !state.amount && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
+            <div
               className="flex flex-wrap gap-2 mt-3"
             >
               {PRESET_AMOUNTS.map((preset) => (
@@ -173,7 +171,7 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
                   key={preset}
                   type="button"
                   onClick={() => actions.setAmount(preset.toLocaleString('id-ID'))}
-                  className="px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs font-mono font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-all active:scale-95"
+                  className="px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs font-mono font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95"
                 >
                   Rp {preset.toLocaleString('id-ID')}
                 </button>
@@ -187,11 +185,11 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
                   const numericInput = form?.querySelector<HTMLInputElement>('input[inputMode="numeric"]');
                   numericInput?.focus();
                 }}
-                className="px-3 py-1.5 bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 rounded-lg text-xs font-semibold flex items-center gap-1 hover:bg-[var(--accent)]/20 transition-all active:scale-95"
+                className="px-3 py-1.5 bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 rounded-lg text-xs font-semibold flex items-center gap-1 hover:bg-[var(--accent)]/20 transition-colors active:scale-95"
               >
                 <Plus size={12} /> {t('Custom')}
               </button>
-            </motion.div>
+            </div>
           )}
         </div>
 
@@ -208,23 +206,20 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
             onChange={(e) => handleDescriptionChange(e.target.value)}
             onFocus={() => actions.setShowDescriptionSuggestions(true)}
             onBlur={() => setTimeout(() => actions.setShowDescriptionSuggestions(false), 200)}
-            onKeyDown={handleDescriptionKeyDown}
-            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 pr-10 focus:outline-none focus:border-[var(--accent)]"
+            onKeyDown={handleDescriptionKeyDown}              className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 pr-10 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
           />
           {state.description && (
             <button
               type="button"
               onClick={() => { actions.setDescription(''); actions.setShowDescriptionSuggestions(false); }}
-              className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               aria-label={t('Clear')}
             >
-              <X size={16} />
+              <X size={16} aria-hidden="true" />
             </button>
           )}
           {state.showDescriptionSuggestions && state.filteredDescriptionSuggestions.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
+            <div
               className="absolute z-20 left-0 right-0 top-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden"
             >
               {state.filteredDescriptionSuggestions.map((desc, idx) => (
@@ -240,7 +235,7 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
                   {desc}
                 </button>
               ))}
-            </motion.div>
+            </div>
           )}
         </div>
 
@@ -277,13 +272,14 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
               {state.type === 'transfer' ? t('From Wallet') : t('Wallet')} *
             </label>
             <div className="relative">
-              <WalletIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} />
+              <WalletIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} aria-hidden="true" />
               <select
                 id={walletInputId}
+                name="walletId"
                 required
                 value={state.walletId}
                 onChange={(e) => actions.setWalletId(e.target.value)}
-                className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl pl-12 pr-10 py-3 focus:outline-none focus:border-[var(--accent)] appearance-none"
+                className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl pl-12 pr-10 py-3 text-[var(--text-primary)] focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] appearance-none"
               >
                 <option value="" disabled>{t('Select Wallet')}</option>
                 {wallets.map((w) => (
@@ -296,13 +292,14 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
             <div>
               <label htmlFor={toWalletInputId} className="block text-sm font-medium mb-1">{t('To Wallet')} *</label>
               <div className="relative">
-                <WalletIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} />
+                <WalletIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} aria-hidden="true" />
                 <select
                   id={toWalletInputId}
+                  name="toWalletId"
                   required
                   value={state.toWalletId}
                   onChange={(e) => actions.setToWalletId(e.target.value)}
-                  className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl pl-12 pr-10 py-3 focus:outline-none focus:border-[var(--accent)] appearance-none"
+                  className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl pl-12 pr-10 py-3 text-[var(--text-primary)] focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] appearance-none"
                 >
                   <option value="" disabled>{t('Select Destination Wallet')}</option>
                   {wallets.map((w) => (
@@ -318,11 +315,12 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
         <div>
           <label htmlFor={notesInputId} className="block text-sm font-medium mb-1">{t('Notes')}</label>
           <input
-            id={notesInputId}
+            id={notesInputId}              name="notes"
             type="text"
+            autoComplete="off"
             value={state.notes}
             onChange={(e) => actions.setNotes(e.target.value)}
-            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent)]"
+            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
           />
         </div>
 
@@ -331,7 +329,7 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
           <button
             type="submit"
             disabled={actions.isSubmitting}
-            className="w-full bg-[var(--accent)] text-white font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-[var(--accent)]/20 disabled:opacity-50"
+            className="w-full bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-[var(--accent-fill)]/20 disabled:opacity-50"
           >
             {t('Save')}
           </button>

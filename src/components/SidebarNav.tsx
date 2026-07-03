@@ -31,11 +31,12 @@ export function SidebarNav({ onAddClick }: { onAddClick: () => void }) {
 
       {/* Big Add Button at Sidebar Bottom */}
       <button
+        type="button"
         onClick={onAddClick}
-        className="w-full py-4 rounded-xl bg-[var(--accent)] text-white flex items-center justify-center gap-2 font-bold hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/10 group"
+        className="w-full py-4 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] flex items-center justify-start gap-2 font-bold hover:opacity-90 active:scale-95 transition-colors shadow-lg shadow-[var(--accent-fill)]/10 group touch-manipulation"
         aria-label={t('Add Transaction')}
       >
-        <Plus size={20} />
+        <Plus size={20} aria-hidden="true" />
         <span>{t('Add Transaction')}</span>
         <kbd className="ml-auto hidden lg:inline-flex items-center justify-center w-5 h-5 rounded border border-white/20 text-[9px] font-mono font-bold text-white/70">
           N
@@ -52,14 +53,14 @@ function SidebarItem({ to, end: isEnd, icon, label }: { to: string; end?: boolea
       end={isEnd}
       className={({ isActive }) =>
         cn(
-          "flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-sm transition-all",
+          "flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-sm transition-colors",
           isActive 
             ? "bg-[var(--accent)]/10 text-[var(--accent)] font-bold" 
             : "text-[var(--text-secondary)] hover:bg-[var(--border)]/30 hover:text-[var(--text-primary)]"
         )
       }
     >
-      {icon}
+      <span aria-hidden="true">{icon}</span>
       <span>{label}</span>
     </NavLink>
   );

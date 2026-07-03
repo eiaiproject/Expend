@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowDownLeft, ArrowUpRight, Wallet as WalletIcon } from 'lucide-react';
@@ -37,7 +37,9 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
   const { t } = useTranslation();
   const formId = useId();
   const queriedWallets = useLiveQuery(() => db.wallets.toArray(), [], undefined);
+  const queriedDebts = useLiveQuery(() => db.debts.toArray(), [], undefined);
   const wallets = queriedWallets ?? EMPTY_WALLETS;
+  const debts = queriedDebts ?? [];
   const isEdit = !!debtToEdit;
 
   const [step, setStep] = useState<'type' | 'details'>('type');
@@ -51,6 +53,9 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
   const [noDueDate, setNoDueDate] = useState(false);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPersonSuggestions, setShowPersonSuggestions] = useState(false);
+  const personInputRef = useRef<HTMLInputElement>(null);
+  const suggestionIndexRef = useRef(-1);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -94,6 +99,16 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
     () => wallets.find((wallet) => wallet.id === Number(walletId)),
     [walletId, wallets],
   );
+
+  const personSuggestions = useMemo(() => {
+    const query = personName.toLowerCase().trim();
+    const allNames = Array.from(new Set(debts.map(d => d.personName)));
+    return (
+      query
+        ? allNames.filter(name => name.toLowerCase().includes(query))
+        : allNames
+    ).slice(0, 10);
+  }, [personName, debts]);
 
   const rawAmount = parseAmount(amount);
   const isPayable = type === 'payable';
@@ -189,19 +204,62 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="px-3 py-4 space-y-5">
-          <div>
+          <div className="relative">
             <label htmlFor={`${formId}-person`} className="block text-sm font-medium mb-1">
               {isPayable ? t('From whom?') : t('To whom?')} *
             </label>
             <input
+              ref={personInputRef}
               id={`${formId}-person`}
               type="text"
               required
               value={personName}
-              onChange={(event) => setPersonName(event.target.value)}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus:outline-none focus:border-[var(--accent)]"
+              onChange={(event) => {
+                setPersonName(event.target.value);
+                setShowPersonSuggestions(true);
+              }}
+              onFocus={() => setShowPersonSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowPersonSuggestions(false), 150)}
+              onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+                if (!showPersonSuggestions || personSuggestions.length === 0) return;
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  suggestionIndexRef.current = Math.min(
+                    suggestionIndexRef.current + 1,
+                    personSuggestions.length - 1
+                  );
+                  setPersonName(personSuggestions[suggestionIndexRef.current]!);
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  suggestionIndexRef.current = Math.max(suggestionIndexRef.current - 1, 0);
+                  setPersonName(personSuggestions[suggestionIndexRef.current]!);
+                } else if (e.key === 'Enter' && suggestionIndexRef.current >= 0) {
+                  e.preventDefault();
+                  setPersonName(personSuggestions[suggestionIndexRef.current]!);
+                  setShowPersonSuggestions(false);
+                }
+              }}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               autoComplete="off"
             />
+            {showPersonSuggestions && personSuggestions.length > 0 && (
+              <ul className="absolute z-10 mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] py-1 shadow-lg max-h-48 overflow-auto">
+                {personSuggestions.map((name) => (
+                  <li key={name}>
+                    <button
+                      type="button"
+                      onMouseDown={() => {
+                        setPersonName(name);
+                        setShowPersonSuggestions(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--bg)] transition-colors"
+                    >
+                      {name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div>
@@ -213,7 +271,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
               type="text"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus:outline-none focus:border-[var(--accent)]"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               autoComplete="off"
             />
           </div>
@@ -233,7 +291,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
                 required
                 value={amount}
                 onChange={(event) => setAmount(formatAmountInput(event.target.value))}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-4 font-mono text-xl font-bold focus:outline-none focus:border-[var(--accent)]"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-4 font-mono text-xl font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
                 placeholder="0"
               />
             </div>
@@ -250,7 +308,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
                 required
                 value={walletId}
                 onChange={(event) => setWalletId(event.target.value)}
-                className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-10 focus:outline-none focus:border-[var(--accent)]"
+                className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-10 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               >
                 <option value="" disabled>{t('Select wallet')}</option>
                 {wallets.map((wallet) => (
@@ -300,7 +358,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
               id={`${formId}-notes`}
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              className="min-h-24 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus:outline-none focus:border-[var(--accent)]"
+              className="min-h-24 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
             />
           </div>
 

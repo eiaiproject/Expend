@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { MAX_PIN_LENGTH, MIN_PIN_LENGTH } from '../../utils/constants';
 import { Lock, X, Eye, EyeOff, Info } from 'lucide-react';
-import { motion } from 'motion/react';
 
 interface PinSetupModalProps {
   isOpen: boolean;
@@ -73,10 +72,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
 
   return (
     <div ref={dialogRef} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" role="dialog" aria-modal="true" aria-label={step === 1 ? t('Create PIN') : t('Confirm PIN')}>
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
+      <div
         className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-6"
       >
         <div className="text-center space-y-2">
@@ -104,7 +100,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
 
         {renderPinDots(step === 1 ? pin : confirmPin)}
 
-        {error && <p className="text-center text-sm text-red-500">{error}</p>}
+        {error && <p className="text-center text-sm text-red-500" aria-live="polite">{error}</p>}
         
         <input
           ref={inputRef}
@@ -135,37 +131,37 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
                   setter(value + num);
                 }
               }}
-              className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-lg font-medium hover:bg-[var(--card)] active:scale-95 transition-all"
+              className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-lg font-mono font-medium hover:bg-[var(--card)] active:scale-95 transition-colors"
             >
               {num}
             </button>
-          ))}
-          <button
-            onClick={() => setShowPin(!showPin)}
-            className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--card)] active:scale-95 transition-all"
+          ))}            <button
+              type="button"
+              onClick={() => setShowPin(!showPin)}
+              className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--card)] active:scale-95 transition-colors"
             aria-label={showPin ? t('Hide PIN') : t('Show PIN')}
           >
             {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
-          <button
-            onClick={() => {
-              const setter = step === 1 ? setPin : setConfirmPin;
-              setter((prev) => prev.slice(0, -1));
-            }}
-            className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--card)] active:scale-95 transition-all"
+          </button>            <button
+              type="button"
+              onClick={() => {
+                const setter = step === 1 ? setPin : setConfirmPin;
+                setter((prev) => prev.slice(0, -1));
+              }}
+              className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--card)] active:scale-95 transition-colors"
             aria-label={t('Delete digit')}
           >
             <X size={20} />
-          </button>
-          <button
-            onClick={() => {
-              const setter = step === 1 ? setPin : setConfirmPin;
-              const value = step === 1 ? pin : confirmPin;
-              if (value.length < MAX_PIN_LENGTH) {
-                setter(value + '0');
-              }
-            }}
-            className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-lg font-medium hover:bg-[var(--card)] active:scale-95 transition-all"
+          </button>            <button
+              type="button"
+              onClick={() => {
+                const setter = step === 1 ? setPin : setConfirmPin;
+                const value = step === 1 ? pin : confirmPin;
+                if (value.length < MAX_PIN_LENGTH) {
+                  setter(value + '0');
+                }
+              }}
+              className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-lg font-mono font-medium hover:bg-[var(--card)] active:scale-95 transition-colors"
           >
             0
           </button>
@@ -173,12 +169,14 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
 
         <div className="flex gap-3">
           <button
+            type="button"
             onClick={onClose}
             className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors"
           >
             {t('Cancel')}
           </button>
           <button
+            type="button"
             onClick={() => {
               if (step === 1) {
                 handleNextStep();
@@ -187,12 +185,12 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
               }
             }}
             disabled={step === 1 ? pin.length < MIN_PIN_LENGTH : confirmPin.length < MIN_PIN_LENGTH}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-all"
+            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-colors"
           >
             {step === 1 ? t('Next') : t('Confirm')}
           </button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

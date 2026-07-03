@@ -1,5 +1,5 @@
 /**
- * Tests for import/export roundtrip, domain validation, debt lifecycle,
+ * Tests for import/export roundtrip, debt lifecycle,
  * category deletion fallback, stats filtering, and monthly report.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -12,18 +12,14 @@ import {
   EXPORT_SCHEMA_VERSION,
 } from '@/services/importExportService';
 import {
-  validateTransaction,
-  validateDebt,
-  validateDebtPayment,
-  isValidTransactionType,
-} from '@/services/domainValidation';
-import {
   createDebt,
   recordDebtPayment,
   writeOffReceivable,
   markDebtPaidWithoutCashflow,
+  updateDebt,
 } from '@/services/debtService';
 import { recomputeWalletCurrentBalances } from '@/utils/balanceUtils';
+import { importCsvTransactions } from '@/services/csvService';
 
 beforeEach(async () => {
   await db.transactions.clear();
@@ -262,109 +258,85 @@ describe('import/export roundtrip', () => {
   });
 });
 
-// ===================== Domain Validation =====================
+// ===================== CSV Import Recompute =====================
 
-describe('validateTransaction', () => {
-  it('rejects zero amount', () => {
-    const errors = validateTransaction({ amount: 0, type: 'expense', date: '2025-01-15', walletId: 1, description: 'Test' });
-    expect(errors.some(e => e.field === 'amount')).toBe(true);
+describe('csvService.importCsvTransactions balance recomputation', () => {
+  it('recomputes wallet balance after importing CSV expense rows', async () => {
+    const walletId = await db.wallets.add({
+      name: 'Cash', currency: 'IDR', initialBalance: 1000000,
+      lastUpdated: '2025-01-01T00:00:00.000Z',
+    });
+    await db.wallets.update(walletId, { currentBalance: 1000000 });
+    const catId = await db.categories.add({ name: 'Food', icon: '🍔', color: '#FF0000' });
+
+    // Import two expense rows via the CSV service
+    await importCsvTransactions([
+      { date: '2025-01-15', walletId, categoryId: catId, description: 'Lunch', amount: 50000, type: 'expense', notes: '' },
+      { date: '2025-01-16', walletId, categoryId: catId, description: 'Dinner', amount: 75000, type: 'expense', notes: '' },
+    ]);
+
+    // initialBalance(1,000,000) + expense(-50,000) + expense(-75,000) = 875,000
+    const wallet = await db.wallets.get(walletId);
+    expect(wallet?.currentBalance).toBe(875_000);
+
+    const txs = await db.transactions.where('walletId').equals(walletId).toArray();
+    expect(txs.length).toBe(2);
+    expect(txs.every(t => t.type === 'expense')).toBe(true);
   });
 
-  it('rejects negative amount', () => {
-    const errors = validateTransaction({ amount: -100, type: 'expense', date: '2025-01-15', walletId: 1, description: 'Test' });
-    expect(errors.some(e => e.field === 'amount')).toBe(true);
+  // Service-level coverage only: parseTransactionsCsv() won't normally
+  // emit balance_adjustment, but importCsvTransactions() should still
+  // recompute correctly for any validated row set it is given.
+  it('applies signed balance_adjustment rows when importCsvTransactions receives pre-validated rows', async () => {
+    const walletId = await db.wallets.add({
+      name: 'Cash', currency: 'IDR', initialBalance: 500000,
+      lastUpdated: '2025-01-01T00:00:00.000Z',
+    });
+    await db.wallets.update(walletId, { currentBalance: 500000 });
+
+    await importCsvTransactions([
+      { date: '2025-01-15', walletId, categoryId: null, description: 'Top up', amount: 200000, type: 'balance_adjustment', notes: '' },
+    ]);
+
+    // initialBalance(500,000) + adjustment(+200,000) = 700,000
+    const wallet = await db.wallets.get(walletId);
+    expect(wallet?.currentBalance).toBe(700_000);
   });
 
-  it('rejects blank description', () => {
-    const errors = validateTransaction({ amount: 100, type: 'expense', date: '2025-01-15', walletId: 1, description: '  ' });
-    expect(errors.some(e => e.field === 'description')).toBe(true);
+  it('handles empty import gracefully', async () => {
+    const walletId = await db.wallets.add({
+      name: 'Cash', currency: 'IDR', initialBalance: 1000000,
+      lastUpdated: '2025-01-01T00:00:00.000Z',
+    });
+    await db.wallets.update(walletId, { currentBalance: 1000000 });
+
+    await importCsvTransactions([]);
+
+    const wallet = await db.wallets.get(walletId);
+    expect(wallet?.currentBalance).toBe(1_000_000);
   });
 
-  it('rejects invalid wallet ID', () => {
-    const errors = validateTransaction({ amount: 100, type: 'expense', date: '2025-01-15', walletId: 0, description: 'Test' });
-    expect(errors.some(e => e.field === 'walletId')).toBe(true);
-  });
+  it('handles transfers correctly during CSV import', async () => {
+    const w1 = await db.wallets.add({ name: 'A', currency: 'IDR', initialBalance: 1000000, lastUpdated: '2025-01-01T00:00:00.000Z' });
+    const w2 = await db.wallets.add({ name: 'B', currency: 'IDR', initialBalance: 500000, lastUpdated: '2025-01-01T00:00:00.000Z' });
+    await db.wallets.update(w1, { currentBalance: 1000000 });
+    await db.wallets.update(w2, { currentBalance: 500000 });
 
-  it('accepts valid transaction', () => {
-    const errors = validateTransaction({ amount: 100, type: 'expense', date: '2025-01-15', walletId: 1, description: 'Valid' });
-    expect(errors.length).toBe(0);
-  });
+    await importCsvTransactions([
+      { date: '2025-01-15', walletId: w1, categoryId: null, description: 'Transfer (Out)', amount: 100000, type: 'transfer_out', notes: '', transferGroupId: 'csv-group-1' },
+      { date: '2025-01-15', walletId: w2, categoryId: null, description: 'Transfer (In)', amount: 100000, type: 'transfer_in', notes: '', transferGroupId: 'csv-group-1' },
+    ]);
 
-  it('accepts negative amount for balance_adjustment', () => {
-    const errors = validateTransaction({ amount: -50000, type: 'balance_adjustment', date: '2025-01-15', walletId: 1, description: 'Adjust' });
-    expect(errors.some(e => e.field === 'amount')).toBe(false);
-  });
-
-  it('accepts positive amount for balance_adjustment', () => {
-    const errors = validateTransaction({ amount: 50000, type: 'balance_adjustment', date: '2025-01-15', walletId: 1, description: 'Adjust' });
-    expect(errors.some(e => e.field === 'amount')).toBe(false);
-  });
-
-  it('rejects zero amount for balance_adjustment', () => {
-    const errors = validateTransaction({ amount: 0, type: 'balance_adjustment', date: '2025-01-15', walletId: 1, description: 'Adjust' });
-    expect(errors.some(e => e.field === 'amount')).toBe(true);
-  });
-
-  it('rejects negative amount for transfer_in', () => {
-    const errors = validateTransaction({ amount: -100, type: 'transfer_in', date: '2025-01-15', walletId: 1, description: 'Transfer' });
-    expect(errors.some(e => e.field === 'amount')).toBe(true);
-  });
-});
-
-describe('validateDebt', () => {
-  it('rejects zero principal', () => {
-    const errors = validateDebt({ principalAmount: 0, type: 'payable', personName: 'Alice', walletId: 1, startDate: '2025-01-01' });
-    expect(errors.some(e => e.field === 'principalAmount')).toBe(true);
-  });
-
-  it('rejects negative principal', () => {
-    const errors = validateDebt({ principalAmount: -100, type: 'payable', personName: 'Alice', walletId: 1, startDate: '2025-01-01' });
-    expect(errors.some(e => e.field === 'principalAmount')).toBe(true);
-  });
-
-  it('rejects remaining > principal', () => {
-    const errors = validateDebt({ principalAmount: 100, remainingAmount: 200, type: 'payable', personName: 'Alice', walletId: 1, startDate: '2025-01-01' });
-    expect(errors.some(e => e.field === 'remainingAmount')).toBe(true);
-  });
-
-  it('rejects negative remaining', () => {
-    const errors = validateDebt({ principalAmount: 100, remainingAmount: -10, type: 'payable', personName: 'Alice', walletId: 1, startDate: '2025-01-01' });
-    expect(errors.some(e => e.field === 'remainingAmount')).toBe(true);
-  });
-
-  it('rejects blank person name', () => {
-    const errors = validateDebt({ principalAmount: 100, type: 'payable', personName: '', walletId: 1, startDate: '2025-01-01' });
-    expect(errors.some(e => e.field === 'personName')).toBe(true);
-  });
-});
-
-describe('validateDebtPayment', () => {
-  it('rejects zero payment', () => {
-    const errors = validateDebtPayment({ amount: 0, debtId: 'd1', walletId: 1, date: '2025-01-15' });
-    expect(errors.some(e => e.field === 'amount')).toBe(true);
-  });
-
-  it('rejects negative payment', () => {
-    const errors = validateDebtPayment({ amount: -100, debtId: 'd1', walletId: 1, date: '2025-01-15' });
-    expect(errors.some(e => e.field === 'amount')).toBe(true);
+    // A: 1,000,000 - 100,000 = 900,000
+    // B: 500,000 + 100,000 = 600,000
+    const walletA = await db.wallets.get(w1);
+    const walletB = await db.wallets.get(w2);
+    expect(walletA?.currentBalance).toBe(900_000);
+    expect(walletB?.currentBalance).toBe(600_000);
   });
 });
 
-describe('isValidTransactionType', () => {
-  it('accepts valid types', () => {
-    expect(isValidTransactionType('expense')).toBe(true);
-    expect(isValidTransactionType('transfer_in')).toBe(true);
-    expect(isValidTransactionType('transfer_out')).toBe(true);
-    expect(isValidTransactionType('balance_adjustment')).toBe(true);
-  });
-
-  it('rejects invalid types', () => {
-    expect(isValidTransactionType('income')).toBe(false);
-    expect(isValidTransactionType('')).toBe(false);
-  });
-});
-
-// ===================== Debt Lifecycle =====================
+// ===================== Debt Update After Repayment =====================
 
 describe('debt lifecycle', () => {
   it('payable debt creation increases wallet cash', async () => {
@@ -498,6 +470,51 @@ describe('debt lifecycle', () => {
     debt = await db.debts.get(debtId);
     expect(debt?.status).toBe('paid');
     expect(debt?.remainingAmount).toBe(0);
+  });
+
+  it('updateDebt after repayment is rejected', async () => {
+    const walletId = await db.wallets.add({
+      name: 'Cash', currency: 'IDR', initialBalance: 2000000,
+      lastUpdated: '2025-01-01T00:00:00.000Z',
+    });
+    await db.wallets.update(walletId, { currentBalance: 2000000 });
+
+    const wallet2Id = await db.wallets.add({
+      name: 'Bank', currency: 'IDR', initialBalance: 1000000,
+      lastUpdated: '2025-01-01T00:00:00.000Z',
+    });
+    await db.wallets.update(wallet2Id, { currentBalance: 1000000 });
+
+    const debtId = await createDebt({
+      type: 'payable', personName: 'Eve', principalAmount: 500000,
+      walletId, startDate: '2025-01-01',
+    });
+    // After creation: 2,000,000 + 500,000 = 2,500,000
+
+    // Make a partial repayment
+    await recordDebtPayment({ debtId, amount: 100000, walletId, date: '2025-01-10' });
+    // 2,500,000 - 100,000 = 2,400,000
+
+    const balanceBefore = (await db.wallets.get(walletId))?.currentBalance;
+
+    // Attempt to change the amount and wallet — should throw because there's a repayment
+    await expect(
+      updateDebt(debtId, {
+        personName: 'Eve',
+        principalAmount: 800000,
+        walletId: wallet2Id,
+        startDate: '2025-01-01',
+      })
+    ).rejects.toThrow(/repayment|payment|pembayaran/i);
+
+    // Balance unchanged
+    const balanceAfter = (await db.wallets.get(walletId))?.currentBalance;
+    expect(balanceAfter).toBe(balanceBefore);
+
+    // Debt amount unchanged
+    const debt = await db.debts.get(debtId);
+    expect(debt?.principalAmount).toBe(500000);
+    expect(debt?.remainingAmount).toBe(400000);
   });
 
   it('cannot pay more than remaining amount', async () => {

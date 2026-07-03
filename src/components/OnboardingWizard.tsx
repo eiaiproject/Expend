@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { toast } from './Toaster';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'motion/react';
 import { Wallet, Tag, Check, ArrowRight, ArrowLeft, Sparkles, Info } from 'lucide-react';
 import { db } from '../db/db';
 import { cn } from '../utils/cn';
@@ -76,16 +75,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
     }
   };
 
-  const stepVariants = {
-    enter: { opacity: 0, x: 40 },
-    center: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -40 },
-  };
-
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+    <div
       className="fixed inset-0 z-[100] bg-[var(--bg)] flex flex-col"
     >
       {/* Progress Bar */}
@@ -94,7 +85,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
           <div
             key={s}
             className={cn(
-              'flex-1 h-1 rounded-full transition-all duration-500',
+              'flex-1 h-1 rounded-full transition-[width,background-color] duration-500',
               s <= step ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
             )}
           />
@@ -102,16 +93,11 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
       </div>
 
       <div className="flex-1 flex flex-col px-6 overflow-y-auto">
-        <AnimatePresence mode="wait">
+        <>
           {/* Step 1: Create Wallet */}
           {step === 1 && (
-            <motion.div
+            <div
               key="step1"
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
               className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full space-y-6"
             >
               <div className="text-center space-y-3">
@@ -133,7 +119,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                     value={walletName}
                     onChange={(e) => setWalletName(e.target.value)}
                     placeholder={t('e.g. Main Wallet')}
-                    className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent)]"
+                    className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
                   />
                 </div>
                 <div>
@@ -149,23 +135,18 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                         setWalletBalance(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
                       }}
                       placeholder="0"
-                      className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl py-3 pl-10 pr-4 font-mono focus:outline-none focus:border-[var(--accent)]"
+                      className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl py-3 pl-10 pr-4 font-mono focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
                     />
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           )}
 
           {/* Step 2: Select Categories */}
           {step === 2 && (
-            <motion.div
+            <div
               key="step2"
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
               className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full space-y-6"
             >
               <div className="text-center space-y-3">
@@ -183,10 +164,12 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   const isSelected = selectedCategories.includes(cat.name);
                   return (
                     <button
+                      type="button"
                       key={cat.name}
+                      aria-pressed={isSelected}
                       onClick={() => toggleCategory(cat.name)}
                       className={cn(
-                        'flex items-center gap-3 p-4 rounded-xl border text-left transition-all',
+                        'flex items-center gap-3 p-4 rounded-xl border text-left transition-colors',
                         isSelected
                           ? 'bg-[var(--accent)]/10 border-[var(--accent)] text-[var(--accent)]'
                           : 'bg-[var(--card)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)]/50'
@@ -203,29 +186,21 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               <p className="text-center text-xs text-[var(--text-secondary)]">
                 {t('selected - you can skip and add later', { count: selectedCategories.length })}
               </p>
-            </motion.div>
+            </div>
           )}
 
           {/* Step 3: Done */}
           {step === 3 && (
-            <motion.div
+            <div
               key="step3"
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
               className="flex-1 flex flex-col justify-center items-center max-w-md mx-auto w-full space-y-6 text-center"
             >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', damping: 15, stiffness: 200, delay: 0.2 }}
+              <div
               >
                 <div className="w-20 h-20 mx-auto rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
                   <Sparkles size={40} className="text-[var(--accent)]" />
                 </div>
-              </motion.div>
+              </div>
 
               <div className="space-y-2">
                 <h1 className="text-2xl font-bold">{t("You're All Set!")}</h1>
@@ -264,15 +239,16 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </>
       </div>
 
       {/* Bottom Navigation */}
-      <div className="p-6 pb-10 flex gap-3">
+      <div className="p-6 pb-10 flex gap-3" style={{ paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom, 0px))' }}>
         {step > 1 && (
           <button
+            type="button"
             onClick={() => setStep(s => s - 1)}
             className="flex-1 h-12 rounded-xl border border-[var(--border)] font-medium flex items-center justify-center gap-2 hover:bg-[var(--card)] transition-colors"
           >
@@ -281,23 +257,25 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         )}
         {step < 3 ? (
             <button
+              type="button"
               onClick={() => setStep(s => s + 1)}
-              className="flex-1 h-12 rounded-xl bg-[var(--accent)] text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-95"
+              className="flex-1 h-12 rounded-xl bg-[var(--accent)] text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-colors active:scale-95"
             >
               {t('Next')}
               <ArrowRight size={18} />
             </button>
         ) : (
           <button
+            type="button"
             onClick={handleFinish}
             disabled={isSubmitting}
-            className="flex-1 h-12 rounded-xl bg-[var(--accent)] text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
+            className="flex-1 h-12 rounded-xl bg-[var(--accent)] text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-colors active:scale-95 disabled:opacity-50"
           >
             <Sparkles size={18} />
             {isSubmitting ? t('Setting up...') : t('Start Tracking')}
           </button>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }

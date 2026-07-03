@@ -40,9 +40,10 @@ export function ActionPickerSheet({
     lastAction = localStorage.getItem(LAST_ACTION_KEY);
   } catch { /* ignore */ }
 
-  const sorted = lastAction
-    ? [...actions].sort((a, b) => (a.key === lastAction ? -1 : b.key === lastAction ? 1 : 0))
-    : actions;
+  const sorted = [
+    actions[0]!, // Always pin Add Expense first
+    ...actions.slice(1).sort((a, b) => (a.key === lastAction ? -1 : b.key === lastAction ? 1 : 0)),
+  ];
 
   return (
     <BottomSheetShell
@@ -62,8 +63,7 @@ export function ActionPickerSheet({
             aria-label={action.label}
           >
             <div className="flex items-start gap-3">
-              <div className={`rounded-xl ${action.iconBg} p-2`}>
-                {action.icon}
+              <div className={`rounded-xl ${action.iconBg} p-2`}>                <span aria-hidden="true">{action.icon}</span>
               </div>
               <div>
                 <h3 className="font-bold">{action.title}</h3>

@@ -183,15 +183,3 @@ export function generateInsight(
 
   return null;
 }
-
-/**
- * Compute the total expense from a list of transactions (filtered).
- */
-export function computeTotalExpense(transactions: Transaction[]): number {
-  let total = 0;
-  for (const tx of transactions) {
-    if (tx.type === 'expense') total += tx.amount;
-  }
-  return total;
-}
-

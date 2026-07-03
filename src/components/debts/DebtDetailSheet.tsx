@@ -1,11 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { id as localeId } from 'date-fns/locale';
 import { type Debt, type DebtPayment, type Wallet } from '../../db/db';
 import { archiveDebt, calculateDebtStatus, isDebtClosed, markDebtPaidWithoutCashflow, writeOffReceivable } from '../../services/debtService';
 import { cn } from '../../utils/cn';
-import { parseDate } from '../../utils/dateUtils';
+import { displayDateMedium, displayDateShort } from '../../utils/dateUtils';
 import { formatCurrency } from '../../utils/formatUtils';
 import { BottomSheetShell } from '../BottomSheetShell';
 import { confirm } from '../ConfirmDialog';
@@ -56,7 +54,7 @@ export function DebtDetailSheet({
   onEdit,
   hideAmount = false,
 }: DebtDetailSheetProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   if (!debt) return null;
 
@@ -179,11 +177,11 @@ export function DebtDetailSheet({
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t('Loan date')}</p>
-              <p className="mt-1">{format(parseDate(debt.startDate), 'dd MMM yyyy', { locale: localeId })}</p>
+              <p className="mt-1">{displayDateMedium(debt.startDate, i18n.language)}</p>
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t('Due date')}</p>
-              <p className="mt-1">{debt.dueDate ? format(parseDate(debt.dueDate), 'dd MMM yyyy', { locale: localeId }) : t('No due date label')}</p>
+              <p className="mt-1">{debt.dueDate ? displayDateMedium(debt.dueDate, i18n.language) : t('No due date label')}</p>
             </div>
           </div>
 
@@ -250,7 +248,7 @@ export function DebtDetailSheet({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-sm font-bold">{format(parseDate(payment.date), 'dd MMM', { locale: localeId })} • {copy.label}</p>
+                        <p className="text-sm font-bold">{displayDateShort(payment.date, i18n.language)} • {copy.label}</p>
                         <p className="mt-1 text-xs text-[var(--text-secondary)]">
                           {walletMap[payment.walletId]?.name ?? t('Wallet not found')}
                         </p>

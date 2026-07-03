@@ -68,7 +68,7 @@ export function DatePicker({ id, value, onChange, label, required }: DatePickerP
             required={required}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-[var(--accent)] appearance-none text-sm"
+            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl pl-10 pr-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] appearance-none text-sm"
           />
         </div>
         <button

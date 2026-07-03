@@ -1,19 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowDownCircle, ArrowUpRight, ArrowDownLeft, RefreshCw, Edit2, Trash2, CheckCircle2, MoreVertical, Eye } from 'lucide-react';
-import { format } from 'date-fns';
-import { motion } from 'motion/react';
 import { cn } from '../../utils/cn';
 import { formatCurrencyValue } from '../../utils/formatUtils';
-import { parseDate } from '../../utils/dateUtils';
+import { displayDateShort } from '../../utils/dateUtils';
 import { SearchHighlight } from '../SearchHighlight';
 import type { Transaction, Category, Wallet } from '../../db/db';
-
-const ACTION_WIDTH = 128;
-const SWIPE_OPEN_THRESHOLD = -72;
-const SWIPE_CLOSE_THRESHOLD = 32;
-const SWIPE_OPEN_VELOCITY = -500;
-const SWIPE_CLOSE_VELOCITY = 500;
 
 interface TransactionCardProps {
   tx: Transaction;
@@ -23,13 +15,10 @@ interface TransactionCardProps {
   hideAmount: boolean;
   isSelectionMode: boolean;
   isSelected: boolean;
-  isActionOpen: boolean;
   onSelect: (id: number) => void;
   onClick: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onActionOpen: () => void;
-  onActionClose: () => void;
   onViewDetail?: () => void;
 }
 
@@ -41,16 +30,13 @@ export function TransactionCard({
   hideAmount,
   isSelectionMode,
   isSelected,
-  isActionOpen,
   onSelect,
   onClick,
   onEdit,
   onDelete,
-  onActionOpen,
-  onActionClose,
   onViewDetail,
 }: TransactionCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -78,67 +64,16 @@ export function TransactionCard({
         onSelect(tx.id!);
         return;
       }
-      if (!isActionOpen) {
-        onClick();
-      }
-    }
-    if (event.key === 'Escape' && isActionOpen) {
-      event.preventDefault();
-      onActionClose();
+      onClick();
     }
   };
 
   return (
     <div className="relative group overflow-hidden rounded-[16px]">
-      {/* Action Buttons Background */}
-      {!isSelectionMode && (
-        <div className="absolute inset-0 flex items-center justify-between px-4 z-0" aria-hidden={!isActionOpen}>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            tabIndex={isActionOpen ? 0 : -1}
-            className="bg-blue-500 text-white p-2 rounded-lg flex items-center gap-1 text-xs font-bold active:scale-95 transition-transform"
-            aria-label={t('Edit')}
-          >
-            <Edit2 size={16} /> {t('Edit')}
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            tabIndex={isActionOpen ? 0 : -1}
-            className="bg-red-500 text-white p-2 rounded-lg flex items-center gap-1 text-xs font-bold active:scale-95 transition-transform"
-            aria-label={t('Delete')}
-          >
-            <Trash2 size={16} /> {t('Delete')}
-          </button>
-        </div>
-      )}
-
-      {/* Transaction Card with Swipe */}
-      <motion.div
-        drag={isSelectionMode ? false : 'x'}
-        dragDirectionLock
-        dragElastic={0.08}
-        dragConstraints={{ left: -ACTION_WIDTH, right: 0 }}
-        animate={{ x: isActionOpen ? -ACTION_WIDTH : 0 }}
-        transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-        onDragStart={() => {
-          if (!isSelectionMode) onActionOpen();
-        }}
-        onDragEnd={(_, info) => {
-          if (isSelectionMode) return;
-          if (info.offset.x < SWIPE_OPEN_THRESHOLD || info.velocity.x < SWIPE_OPEN_VELOCITY) {
-            onActionOpen();
-            return;
-          }
-          if (info.offset.x > SWIPE_CLOSE_THRESHOLD || info.velocity.x > SWIPE_CLOSE_VELOCITY) {
-            onActionClose();
-            return;
-          }
-          if (!isActionOpen) onActionClose();
-        }}
+      {/* Transaction Card */}
+      <div
         className={cn(
-          "relative z-10 bg-[var(--card)] p-4 rounded-[16px] flex items-center shadow-sm border transition-all cursor-grab active:cursor-grabbing select-none",
+          "relative z-10 bg-[var(--card)] p-4 rounded-[16px] flex items-center shadow-sm border transition-[border-color,background-color,box-shadow] select-none",
           isSelectionMode 
             ? (isSelected ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/20" : "border-[var(--border)]") 
             : "border-[var(--border)]"
@@ -152,7 +87,7 @@ export function TransactionCard({
         onClick={() => {
           if (isSelectionMode) {
             onSelect(tx.id!);
-          } else if (!isActionOpen) {
+          } else {
             onClick();
           }
         }}
@@ -195,7 +130,7 @@ export function TransactionCard({
             </p>
           </div>
           <p className="text-[12px] text-[var(--text-secondary)]">
-            {tx.categoryId ? categoryMap[tx.categoryId]?.name : '-'} • {format(parseDate(tx.date), 'dd MMM')}
+            {tx.categoryId ? categoryMap[tx.categoryId]?.name : '-'} • {displayDateShort(tx.date, i18n.language)}
           </p>
           <div className="flex items-center gap-1 mt-0.5">
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--border)] text-[var(--text-primary)] font-medium">
@@ -287,7 +222,7 @@ export function TransactionCard({
             )}
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

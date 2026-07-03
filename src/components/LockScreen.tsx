@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSecurity } from '../contexts/SecurityContext';
 import { Lock, X } from 'lucide-react';
-import { motion } from 'motion/react';
 import { MAX_PIN_LENGTH } from '../utils/constants';
 
 export function LockScreen() {
@@ -51,10 +50,7 @@ export function LockScreen() {
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+    <div
       className="fixed inset-0 bg-[var(--bg)] z-50 flex flex-col items-center justify-center p-6"
     >
       <div className="w-full max-w-xs space-y-8">
@@ -100,7 +96,7 @@ export function LockScreen() {
               <button
                 key={num}
                 onClick={() => setPin(prev => prev.length < MAX_PIN_LENGTH ? prev + num : prev)}
-                className="h-14 rounded-xl bg-[var(--card)] border border-[var(--border)] text-lg font-medium hover:bg-[var(--bg)] active:scale-95 transition-all"
+                className="h-14 rounded-xl bg-[var(--card)] border border-[var(--border)] text-lg font-mono font-medium hover:bg-[var(--bg)] active:scale-95 transition-colors"
                 aria-label={t('Enter {{num}}', { num })}
               >
                 {num}
@@ -108,15 +104,17 @@ export function LockScreen() {
             ))}
             <div aria-hidden="true" />
             <button
+              type="button"
               onClick={() => setPin(prev => prev.slice(0, -1))}
-              className="h-14 rounded-xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--bg)] active:scale-95 transition-all"
+              className="h-14 rounded-xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--bg)] active:scale-95 transition-colors"
               aria-label={t('Delete')}
             >
               <X size={20} />
             </button>
             <button
+              type="button"
               onClick={() => setPin(prev => prev.length < MAX_PIN_LENGTH ? prev + '0' : prev)}
-              className="h-14 rounded-xl bg-[var(--card)] border border-[var(--border)] text-lg font-medium hover:bg-[var(--bg)] active:scale-95 transition-all"
+              className="h-14 rounded-xl bg-[var(--card)] border border-[var(--border)] text-lg font-mono font-medium hover:bg-[var(--bg)] active:scale-95 transition-colors"
               aria-label={t('Enter {{num}}', { num: '0' })}
             >
               0
@@ -125,9 +123,9 @@ export function LockScreen() {
         </div>
 
         {error && (
-          <p className="text-center text-sm text-red-500">{t('Incorrect PIN')}</p>
+          <p className="text-center text-sm text-red-500" aria-live="polite">{t('Incorrect PIN')}</p>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }

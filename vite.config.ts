@@ -4,9 +4,9 @@ import path from 'path';
 import { readFileSync } from 'fs';
 import {defineConfig} from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
-import { BRAND_COLOR } from './src/utils/brandColors';
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
+const BRAND_COLOR = '#7A9B6A';
 
 // Exclude Cloudflare plugin during `vite preview` so Playwright tests
 // run against Vite's built-in static server which properly supports
@@ -126,21 +126,6 @@ export default defineConfig(({mode}) => {
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
-    },
-    build: {
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom'],
-            'vendor-router': ['react-router-dom'],
-            'vendor-ui': ['lucide-react', 'motion/react', 'clsx', 'tailwind-merge'],
-            'vendor-charts': ['recharts'],
-            'vendor-date': ['date-fns'],
-            'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
-            'vendor-db': ['dexie', 'dexie-react-hooks'],
-          }
-        }
-      }
     },
   };
 });

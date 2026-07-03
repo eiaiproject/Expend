@@ -1,19 +1,22 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { Search, ArrowLeft, Filter, TrendingUp, ShoppingBag, Calendar, Wallet } from 'lucide-react';
+import { Search, ArrowLeft, ShoppingBag, Edit2, X } from 'lucide-react';
 import { formatCurrency } from '../utils/formatUtils';
-import { format } from 'date-fns';
-import { cn } from '../utils/cn';
+import { displayDateMedium } from '../utils/dateUtils';
 import { getPayeeStatsFromTransactions, filterTransactionsByPayee, PayeeStats } from '../services/payeeService';
 import { TransactionCard } from '../components/home/TransactionCard';
 import { EmptyState } from '../components/EmptyState';
+import { toast } from '../components/Toaster';
 
 export default function PayeesView() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPayee, setSelectedPayee] = useState<PayeeStats | null>(null);
+  const [renamingPayee, setRenamingPayee] = useState<PayeeStats | null>(null);
+  const [newPayeeName, setNewPayeeName] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   const payees = useLiveQuery(async () => {
     return await getPayeeStatsFromTransactions();
@@ -26,11 +29,39 @@ export default function PayeesView() {
     return payees.filter(p => p.name.toLowerCase().includes(lower));
   }, [payees, searchQuery]);
 
+  useEffect(() => {
+    if (renamingPayee && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [renamingPayee]);
+
+  const handleRename = async () => {
+    if (!renamingPayee || !newPayeeName.trim()) return;
+    const oldName = renamingPayee.name;
+    const trimmedName = newPayeeName.trim();
+    
+    if (oldName === trimmedName) {
+      setRenamingPayee(null);
+      return;
+    }
+
+    await db.transactions
+      .where('description')
+      .equals(oldName)
+      .modify({ description: trimmedName });
+    
+    toast.add(t('Renamed to') + ' ' + trimmedName);
+    setRenamingPayee(null);
+    setSelectedPayee(null);
+  };
+
   const selectedPayeeTransactions = useLiveQuery(async () => {
     if (!selectedPayee) return [];
     return await filterTransactionsByPayee(selectedPayee.name);
   }, [selectedPayee]);
 
+  // Detail view
   if (selectedPayee) {
     return (
       <div className="p-4 space-y-6">
@@ -65,7 +96,7 @@ export default function PayeesView() {
           </div>
           <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1">
             <p className="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider">{t('Last Date')}</p>
-            <p className="text-sm font-medium">{format(new Date(selectedPayee.lastTransactionDate), 'dd MMM yyyy')}</p>
+            <p className="text-sm font-medium">{displayDateMedium(selectedPayee.lastTransactionDate, i18n.language)}</p>
           </div>
         </div>
 
@@ -77,35 +108,44 @@ export default function PayeesView() {
                 <TransactionCard
                   key={tx.id}
                   tx={tx}
-                  categoryMap={{}} // Simplified for history view
-                  walletMap={{}} // Simplified for history view
+                  categoryMap={{}}
+                  walletMap={{}}
                   searchTerm=""
                   hideAmount={false}
                   isSelectionMode={false}
                   isSelected={false}
-                  isActionOpen={false}
                   onSelect={() => {}}
                   onClick={() => {}}
                   onEdit={() => {}}
                   onDelete={() => {}}
-                  onActionOpen={() => {}}
-                  onActionClose={() => {}}
                 />
               ))}
             </div>
           ) : (
             <EmptyState 
-            title={t('No transactions found')} 
-            description={t('No transactions found for this merchant')}
-          />
+              title={t('No transactions found')} 
+              description={t('No transactions found for this merchant')}
+            />
           )}
         </div>
+
+        <button
+          onClick={() => {
+            setRenamingPayee(selectedPayee);
+            setNewPayeeName(selectedPayee.name);
+          }}
+          className="w-full flex items-center justify-center gap-2 p-4 bg-[var(--card)] border border-[var(--border)] rounded-[16px] hover:border-[var(--accent)]/40 transition-colors"
+        >
+          <Edit2 size={18} />
+          <span className="font-medium">{t('Rename')}</span>
+        </button>
       </div>
     );
   }
 
+  // List view
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{t('Recipients & Merchants')}</h1>
       </div>
@@ -117,7 +157,7 @@ export default function PayeesView() {
           placeholder={t('Search Merchant')} 
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)] transition-all"
+          className="w-full pl-10 pr-4 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
         />
       </div>
 
@@ -133,27 +173,67 @@ export default function PayeesView() {
             <button
               key={payee.name}
               onClick={() => setSelectedPayee(payee)}
-              className="w-full flex items-center justify-between p-4 bg-[var(--card)] border border-[var(--border)] rounded-2xl hover:border-[var(--accent)] transition-all active:scale-[0.98] text-left group"
+              className="w-full flex items-center justify-between p-4 bg-[var(--card)] border border-[var(--border)] rounded-[16px] hover:border-[var(--accent)]/40 transition-[border-color,box-shadow] active:scale-[0.98] text-left group"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="p-2 bg-[var(--bg)] rounded-xl text-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-white transition-colors">
-                  <ShoppingBag size={20} />
+                  <ShoppingBag size={20} aria-hidden="true" />
                 </div>
                 <div>
                   <p className="font-bold">{payee.name}</p>
-                  <p className="text-xs text-[var(--text-secondary]">
+                  <p className="text-xs text-[var(--text-secondary)]">
                     {payee.transactionCount} {t('Txs')} • {t('Avg')} {formatCurrency(payee.averageAmount)}
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-mono font-bold text-red-500">{formatCurrency(payee.totalExpense)}</p>
+              <div className="text-right shrink-0">
+                <p className="font-mono font-bold text-[var(--expense)]">{formatCurrency(payee.totalExpense)}</p>
                 <p className="text-[10px] text-[var(--text-secondary)] uppercase font-bold">{t('Total Spent')}</p>
               </div>
             </button>
           ))
         )}
       </div>
+
+      {/* Rename Dialog */}
+      {renamingPayee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-[var(--card)] w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold">{t('Rename')}</h3>
+              <button onClick={() => setRenamingPayee(null)} className="p-1 rounded-full hover:bg-[var(--bg)]">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-[var(--text-secondary)]">
+              {t('All transactions with')} <span className="font-bold">{renamingPayee.name}</span> {t('will be renamed')}
+            </p>
+            <input
+              ref={renameInputRef}
+              type="text"
+              value={newPayeeName}
+              onChange={(e) => setNewPayeeName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setRenamingPayee(null)}
+                className="flex-1 py-3 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors"
+              >
+                {t('Cancel')}
+              </button>
+              <button
+                onClick={handleRename}
+                disabled={!newPayeeName.trim()}
+                className="flex-1 py-3 rounded-xl bg-[var(--accent)] text-white font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {t('Rename')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

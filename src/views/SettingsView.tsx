@@ -3,19 +3,17 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/db';
 import { useSecurity } from '../contexts/SecurityContext';
-import { Moon, Sun, Download, Upload, Shield, Lock, Trash2, Check, Coffee, Tag, Info } from 'lucide-react';
+import { Moon, Sun, Download, Upload, Shield, Lock, Trash2, Check, Coffee, Tag, Info, ShoppingBag } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { Link } from 'react-router-dom';
 import { toast } from '../components/Toaster';
 import { confirm } from '../components/ConfirmDialog';
-import { AnimatePresence, motion } from 'motion/react';
 import { 
   generateExport, 
   importData, 
   validateImportData, 
   MAX_IMPORT_FILE_SIZE, 
-  downloadBlob, 
-  sanitizeCsvRows 
+  downloadBlob,
 } from '../services/importExportService';
 import { 
   exportTransactionsCsv, 
@@ -225,7 +223,7 @@ export default function SettingsView() {
   };
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t('Settings')}</h1>
 
       <div className="space-y-4">
@@ -326,6 +324,17 @@ export default function SettingsView() {
             <div>
               <span className="font-medium">{t('Categories & Budgets')}</span>
               <p className="text-xs text-[var(--text-secondary)]">{t('Manage categories & budgets')}</p>
+            </div>
+          </Link>
+        </SettingsAccordion>
+
+        {/* Payees */}
+        <SettingsAccordion title={t('Recipients & Merchants')}>
+          <Link to="/payees" className="w-full flex items-center gap-3 p-4 hover:bg-[var(--card)] transition-colors">
+            <ShoppingBag size={20} />
+            <div>
+              <span className="font-medium">{t('Recipients & Merchants')}</span>
+              <p className="text-xs text-[var(--text-secondary)]">{t('Manage payees & rename')}</p>
             </div>
           </Link>
         </SettingsAccordion>
@@ -432,7 +441,7 @@ export default function SettingsView() {
               </p>
               <button
                 onClick={showInstallPrompt}
-                className="w-full py-3 bg-[var(--accent)] hover:opacity-90 text-white rounded-xl font-bold transition-all active:scale-95 shadow-md shadow-[var(--accent)]/20 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[var(--accent)] hover:opacity-90 text-white rounded-xl font-bold transition-colors active:scale-95 shadow-md shadow-[var(--accent)]/20 flex items-center justify-center gap-2"
               >
                 <Download size={18} />
                 {t('Install')}
@@ -443,8 +452,8 @@ export default function SettingsView() {
       )}
 
       {/* Support Section */}
-      <div className="mt-8 p-6 bg-orange-500/10 rounded-2xl border border-orange-500/20 flex flex-col items-center text-center gap-3">
-        <div className="p-3 bg-orange-500 rounded-full text-white shadow-lg">
+      <div className="mt-8 p-6 rounded-[16px] border border-[var(--border)] bg-[var(--card)] flex flex-col items-center text-center gap-3">
+        <div className="p-3 rounded-full bg-[var(--warning)]/10 text-[var(--warning)]">
           <Coffee size={24} />
         </div>
         <div>
@@ -459,7 +468,7 @@ export default function SettingsView() {
           href="https://trakteer.id/eiaiproject" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold transition-all active:scale-95 shadow-md shadow-orange-500/20"
+          className="w-full py-3 bg-[var(--accent)] hover:opacity-90 text-white rounded-xl font-bold transition-colors active:scale-95 shadow-md shadow-[var(--accent)]/20"
         >
           {t('Buy Me A Coffee')}
         </a>
@@ -487,20 +496,14 @@ export default function SettingsView() {
       />
 
       {/* Disable Confirm Modal */}
-      <AnimatePresence>
+      <>
         {showDisableConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
             className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6"
             onClick={() => setShowDisableConfirm(false)}
           >
-            <motion.div
+            <div
               ref={disableConfirmRef}
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
               className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-4"
               onClick={(e) => e.stopPropagation()}
             >
@@ -527,10 +530,10 @@ export default function SettingsView() {
                   {t('Disable')}
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
     </div>
   );
 }

@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { type ReactNode } from 'react';
 import { Code2, Smartphone, Database, Shield, BarChart3, Zap, Github } from 'lucide-react';
@@ -12,23 +11,23 @@ interface TechItem {
 
 function TechCard({ icon, name, description, color, index }: TechItem & { index: number }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="group"
+    <div
+      className="group h-full"
     >
-      <div className="flex items-start gap-4 p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--surface)]/30 border border-[var(--border-subtle)] hover:border-[var(--border-subtle)] transition-all duration-300">
-        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 ${color} group-hover:scale-110 transition-transform duration-300`}>
+      <div className="flex h-full items-start gap-4 p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-[var(--surface)]/30 border border-[var(--border-subtle)] hover:border-[var(--border-subtle)] transition-colors duration-300">
+        <div
+          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 ${color} group-hover:scale-110 transition-transform duration-300`}
+        >
           {icon}
         </div>
         <div className="min-w-0">
           <h4 className="text-sm sm:text-base font-bold text-[var(--text-primary)] mb-1">{name}</h4>
-          <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">{description}</p>
+          <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+            {description}
+          </p>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -75,21 +74,18 @@ export function TechStackSection() {
   ];
 
   return (
-    <section className="py-16 sm:py-24 px-4 sm:px-6 max-w-5xl mx-auto relative z-10">
+    <section className="py-20 sm:py-28 px-4 sm:px-6 max-w-5xl mx-auto relative z-10">
       {/* Section Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="text-center mb-12 sm:mb-16"
+      <div
+      className="text-center mb-12 sm:mb-16"
       >
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] mb-4">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] mb-4 text-balance">
           {t('landing.techTitle')}
         </h2>
-        <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-2xl mx-auto text-pretty">
           {t('landing.techSubtitle')}
         </p>
-      </motion.div>
+      </div>
 
       {/* Tech Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -99,23 +95,22 @@ export function TechStackSection() {
       </div>
 
       {/* GitHub CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="mt-10 sm:mt-12 text-center"
+      <div
+      className="mt-10 sm:mt-12 text-center"
       >
         <a
           href="https://github.com/eiaiproject/Expend.git"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-[var(--surface)] border border-[var(--border-subtle)] rounded-full text-[var(--text-primary)] font-semibold hover:bg-[var(--surface-elevated)] transition-all duration-300 group"
+          className="inline-flex items-center gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-[var(--surface)] border border-[var(--border-subtle)] rounded-full text-[var(--text-primary)] font-semibold hover:bg-[var(--surface-elevated)] transition-colors duration-300 group"
         >
-          <Github size={20} />
+          <Github size={20} aria-hidden="true" />
           <span>{t('landing.viewSource')}</span>
-          <span className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors">→</span>
+          <span className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors">
+            →
+          </span>
         </a>
-      </motion.div>
+      </div>
     </section>
   );
 }

@@ -139,20 +139,23 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets, act
       ariaLabel={t('Transaction Filter')}
     >
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-              {/* Filter Type */}
-              <div className="space-y-3">
+            {/* Filter Type */}
+              <div className="space-y-3" role="radiogroup" aria-label={t('Filter Type')}>
                 <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                   {t('Filter Type')}
                 </p>
                 <div className="grid grid-cols-1 gap-2">
                   {(['all', 'expense', 'balance_adjustment'] as const).map((type) => (
                     <button
+                      type="button"
                       key={type}
+                      role="radio"
+                      aria-checked={draft.type === type}
                       onClick={() => updateDraft({ type })}
                       className={cn(
                         "text-left px-4 py-3 rounded-xl text-sm transition-colors border flex items-center justify-between",
                         draft.type === type 
-                          ? "bg-[var(--accent)] text-white border-[var(--accent)]" 
+                          ? "bg-[var(--accent-fill)] text-[var(--accent-ink)] border-[var(--accent-fill)]" 
                           : "bg-[var(--bg)] text-[var(--text-primary)] border-[var(--border)] hover:border-[var(--accent)]"
                       )}
                     >
@@ -184,12 +187,14 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets, act
                     const isSelected = draft.categories.includes(cat.id);
                     return (
                       <button
+                        type="button"
                         key={cat.id}
+                        aria-pressed={isSelected}
                         onClick={() => cat.id != null && toggleCategory(cat.id)}
                         className={cn(
                           "text-left px-4 py-3 rounded-xl text-sm transition-colors border flex items-center justify-between gap-2",
                           isSelected 
-                            ? "bg-[var(--accent)] text-white border-[var(--accent)]" 
+                            ? "bg-[var(--accent-fill)] text-[var(--accent-ink)] border-[var(--accent-fill)]" 
                             : "bg-[var(--bg)] text-[var(--text-primary)] border-[var(--border)] hover:border-[var(--accent)]"
                         )}
                       >
@@ -225,12 +230,14 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets, act
                     const isSelected = draft.wallets.includes(w.id);
                     return (
                       <button
+                        type="button"
                         key={w.id}
+                        aria-pressed={isSelected}
                         onClick={() => w.id != null && toggleWallet(w.id)}
                         className={cn(
                           "text-left px-4 py-3 rounded-xl text-sm transition-colors border flex items-center justify-between gap-2",
                           isSelected 
-                            ? "bg-[var(--accent)] text-white border-[var(--accent)]" 
+                            ? "bg-[var(--accent-fill)] text-[var(--accent-ink)] border-[var(--accent-fill)]" 
                             : "bg-[var(--bg)] text-[var(--text-primary)] border-[var(--border)] hover:border-[var(--accent)]"
                         )}
                       >
@@ -251,31 +258,33 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets, act
                   {t('Amount Range')}
                 </p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-[var(--text-secondary)] font-bold uppercase ml-1">{t('Min')}</label>
+                  <div className="space-y-1">                      <label className="text-[10px] text-[var(--text-secondary)] font-bold uppercase ml-1" htmlFor="filter-min-amount">{t('Min')}</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[var(--text-secondary)]">{t('Currency Symbol')}</span>
                       <input 
-                        type="text" 
+                        id="filter-min-amount"
+                        name="minAmount"
+                        type="text"
                         inputMode="numeric"
                         value={formatAmountInput(draft.minAmount)}
                         onChange={(e) => handleAmountChange(e.target.value, 'minAmount')}
                         placeholder="0"
-                        className="w-full pl-8 pr-3 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm focus:outline-none focus:border-[var(--accent)] font-mono"
+                        className="w-full pl-8 pr-3 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] font-mono"
                       />
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-[var(--text-secondary)] font-bold uppercase ml-1">{t('Max')}</label>
+                  <div className="space-y-1">                      <label className="text-[10px] text-[var(--text-secondary)] font-bold uppercase ml-1" htmlFor="filter-max-amount">{t('Max')}</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[var(--text-secondary)]">{t('Currency Symbol')}</span>
                       <input 
-                        type="text" 
+                        id="filter-max-amount"
+                        name="maxAmount"
+                        type="text"
                         inputMode="numeric"
                         value={formatAmountInput(draft.maxAmount)}
                         onChange={(e) => handleAmountChange(e.target.value, 'maxAmount')}
                         placeholder="Unlimited"
-                        className="w-full pl-8 pr-3 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm focus:outline-none focus:border-[var(--accent)] font-mono"
+                        className="w-full pl-8 pr-3 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] font-mono"
                       />
                     </div>
                   </div>
@@ -289,25 +298,29 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets, act
                 </p>
                 <div className="grid grid-cols-1 gap-4 bg-[var(--bg)] p-4 rounded-2xl border border-[var(--border)]">
                   <div className="space-y-2">
-                    <label className="text-xs text-[var(--text-secondary)] flex items-center gap-2">
-                      <Calendar size={12} /> {t('Start Date')}
+                    <label className="text-xs text-[var(--text-secondary)] flex items-center gap-2" htmlFor="filter-start-date">
+                      <Calendar size={12} aria-hidden="true" /> {t('Start Date')}
                     </label>
                     <input 
-                      type="date" 
+                      id="filter-start-date"
+                      name="startDate"
+                      type="date"
                       value={draft.startDate}
                       onChange={(e) => updateDraft({ startDate: e.target.value })}
-                      className="w-full p-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none focus:border-[var(--accent)]"
+                      className="w-full p-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs text-[var(--text-secondary)] flex items-center gap-2">
-                      <Calendar size={12} /> {t('End Date')}
+                    <label className="text-xs text-[var(--text-secondary)] flex items-center gap-2" htmlFor="filter-end-date">
+                      <Calendar size={12} aria-hidden="true" /> {t('End Date')}
                     </label>
                     <input 
-                      type="date" 
+                      id="filter-end-date"
+                      name="endDate"
+                      type="date"
                       value={draft.endDate}
                       onChange={(e) => updateDraft({ endDate: e.target.value })}
-                      className="w-full p-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none focus:border-[var(--accent)]"
+                      className="w-full p-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
                     />
                   </div>
                   <button 
@@ -322,13 +335,15 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets, act
 
         <div className="p-4 border-t border-[var(--border)] space-y-2">
           <button
+            type="button"
             onClick={handleApply}
-            className="w-full bg-[var(--accent)] text-white font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-[var(--accent)]/20"
+            className="w-full bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-[var(--accent-fill)]/20"
           >
             {t('Apply Filter')} {draftActiveCount > 0 && `(${draftActiveCount})`}
           </button>
           {draftActiveCount > 0 && (
             <button
+              type="button"
               onClick={handleResetAll}
               className="w-full text-[var(--text-secondary)] font-bold py-3 rounded-xl active:scale-95 transition-transform text-sm"
             >

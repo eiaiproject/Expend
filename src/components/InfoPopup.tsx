@@ -19,10 +19,6 @@ export function InfoPopup({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 
   if (!isOpen) return null;
 
-  const buildDateLabel = __BUILD_DATE__
-    ? new Date(__BUILD_DATE__).toLocaleDateString('id-ID')
-    : '-';
-
   return (
     <div ref={dialogRef} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-label={t('Project Information')}>
       <div className="bg-[var(--card)] text-[var(--text-primary)] w-full max-w-[300px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
@@ -37,12 +33,12 @@ export function InfoPopup({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
           <div className="flex flex-col items-center gap-1">
             <span className="text-sm font-medium opacity-60">{t('Version')}</span>
             <span className="text-lg font-bold">{__APP_VERSION__}</span>
-            <span className="text-[10px] opacity-40">Build: {buildDateLabel}</span>
+
           </div>
 
           <div className="h-px w-full bg-[var(--border)]" />
 
-          <div className="w-full">
+          <div className="w-full hidden sm:block">
             <div className="flex items-center gap-2 mb-2">
               <Keyboard size={14} className="text-[var(--text-secondary)]" />
               <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t('Keyboard Shortcuts')}</span>
@@ -79,7 +75,7 @@ export function InfoPopup({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             href="https://trakteer.id/eiaiproject" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl flex items-center justify-center gap-2 font-medium transition-all active:scale-95 shadow-md"
+            className="w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl flex items-center justify-center gap-2 font-medium transition-colors active:scale-95 shadow-md"
           >
             <Coffee size={18} />
             {t('Buy Me A Coffee')}

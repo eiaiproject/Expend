@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   formatCurrency,
-  formatSignedCurrency,
   formatBalance,
   formatCurrencyValue,
-  formatCurrencyIntl,
   formatAmountLocal,
 } from '@/utils/formatUtils';
 
@@ -32,20 +30,6 @@ describe('formatUtils', () => {
     });
   });
 
-  describe('formatSignedCurrency', () => {
-    it('formats with positive sign', () => {
-      const result = formatSignedCurrency(100000, '+');
-      expect(result).toContain('+');
-      expect(result).toContain('100');
-    });
-
-    it('formats with negative sign', () => {
-      const result = formatSignedCurrency(100000, '-');
-      expect(result).toContain('-');
-      expect(result).toContain('100');
-    });
-  });
-
   describe('formatBalance', () => {
     it('formats positive balance without sign', () => {
       const result = formatBalance(100000);
@@ -65,14 +49,6 @@ describe('formatUtils', () => {
       const result = formatCurrencyValue(100000);
       expect(result).not.toContain('Rp');
       expect(result).toContain('100');
-    });
-  });
-
-  describe('formatCurrencyIntl', () => {
-    it('formats using Intl.NumberFormat', () => {
-      const result = formatCurrencyIntl(1000000);
-      expect(result).toContain('1');
-      expect(result).toContain('000');
     });
   });
 

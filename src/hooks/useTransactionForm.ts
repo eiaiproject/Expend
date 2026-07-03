@@ -5,7 +5,7 @@ import { db, type Transaction, type Wallet, type Category } from '../db/db';
 import { saveTransaction, saveTransfer } from '../services/transactionSaveService';
 import { resolveCategory } from '../services/categoryService';
 import { getTodayStr } from '../utils/dateUtils';
-import { getPayeeSuggestions } from '../services/payeeService';
+import { toast } from '../components/Toaster';
 
 const EMPTY_WALLETS: Wallet[] = [];
 const EMPTY_CATEGORIES: Category[] = [];
@@ -96,7 +96,7 @@ export function useTransactionForm({
           .filter((t) => t.type !== 'balance_adjustment')
           .map((t) => t.description.replace(/\s\((In|Out)\)$/, ''))
       )
-    ).slice(0, 100);
+    );
   }, [transactions]);
 
   // Form state
@@ -118,15 +118,13 @@ export function useTransactionForm({
   const [filteredDescriptionSuggestions, setFilteredDescriptionSuggestions] = useState<string[]>([]);
 
   useEffect(() => {
-    const updateSuggestions = async () => {
-      if (!description.trim()) {
-        setFilteredDescriptionSuggestions(recentDescriptions.slice(0, 5));
-        return;
-      }
-      const suggestions = await getPayeeSuggestions(description);
-      setFilteredDescriptionSuggestions(suggestions.slice(0, 5));
-    };
-    updateSuggestions();
+    const query = description.toLowerCase().trim();
+    setFilteredDescriptionSuggestions(
+      (query
+        ? recentDescriptions.filter(item => item.toLowerCase().includes(query))
+        : recentDescriptions
+      ).slice(0, 5)
+    );
   }, [description, recentDescriptions]);
 
   // Initialize form when opened or txToEdit changes
@@ -228,12 +226,10 @@ export function useTransactionForm({
     try {
       if (type === 'transfer') {
         if (parseInt(walletId, 10) === parseInt(toWalletId, 10)) {
-          const { toast } = await import('../components/Toaster');
           toast.add(t('Cannot transfer to the same wallet.'));
           return false;
         }
         if (txToEdit && txToEdit.id) {
-          const { toast } = await import('../components/Toaster');
           toast.add(t('Editing transfers is not supported in this version.'));
           return false;
         }
@@ -279,7 +275,6 @@ export function useTransactionForm({
       onClose();
       return true;
     } catch (err) {
-      const { toast } = await import('../components/Toaster');
       toast.add(t('Action failed'));
       return false;
     } finally {

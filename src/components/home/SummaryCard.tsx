@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { ArrowDownCircle } from 'lucide-react';
-import { motion } from 'motion/react';
 import { cn } from '../../utils/cn';
 import { formatCurrency, formatBalance } from '../../utils/formatUtils';
 import { Skeleton } from '../Skeleton';
@@ -37,12 +36,12 @@ export function SummaryCard({
     : null;
 
   return (
-    <div className="bg-[var(--accent)] rounded-[16px] p-6 text-white shadow-lg space-y-4">
+    <div className="bg-[var(--accent-fill)] rounded-[16px] p-6 text-[var(--accent-ink)] shadow-lg space-y-4">
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-white/80 text-sm font-medium">{t('Balance')}</p>
+          <p className="text-[var(--accent-ink)]/80 text-sm font-medium">{t('Balance')}</p>
           {isLoading ? (
-            <Skeleton className="h-9 w-40 bg-white/20 mt-1" />
+            <Skeleton className="h-9 w-40 bg-[var(--accent-ink)]/20 mt-1" />
           ) : (
             <p className="text-[28px] font-bold font-mono">
               {renderBalance(walletsTotal)}
@@ -53,9 +52,9 @@ export function SummaryCard({
       
       <div className="space-y-3">
         <div className="flex bg-black/25 rounded-xl p-3 items-center">
-          <ArrowDownCircle size={24} className="text-white mr-3" />
+          <ArrowDownCircle size={24} className="text-[var(--accent-ink)] mr-3" aria-hidden="true" />
           <div className="flex-1">
-            <p className="text-white/80 text-xs font-medium">{t('Total Expenses')}</p>
+            <p className="text-[var(--accent-ink)]/80 text-xs font-medium">{t('Total Expenses')}</p>
             <div className="flex mt-1 bg-black/25 rounded-lg p-0.5" role="radiogroup" aria-label={t('Expense period')}>
               <button
                 type="button"
@@ -63,10 +62,10 @@ export function SummaryCard({
                 aria-checked={expensePeriod === 'month'}
                 onClick={() => expensePeriod !== 'month' && onToggleExpensePeriod()}
                 className={cn(
-                  "flex-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all",
+                  "flex-1 px-2 py-1 rounded-md text-[10px] font-bold transition-colors",
                   expensePeriod === 'month'
-                    ? "bg-white text-[var(--accent)]"
-                    : "text-white/70 hover:text-white"
+                    ? "bg-[var(--accent-ink)] text-[var(--accent-fill)]"
+                    : "text-[var(--accent-ink)]/70 hover:text-[var(--accent-ink)]"
                 )}
               >
                 {t('This Month')}
@@ -77,17 +76,17 @@ export function SummaryCard({
                 aria-checked={expensePeriod === 'all'}
                 onClick={() => expensePeriod !== 'all' && onToggleExpensePeriod()}
                 className={cn(
-                  "flex-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all",
+                  "flex-1 px-2 py-1 rounded-md text-[10px] font-bold transition-colors",
                   expensePeriod === 'all'
-                    ? "bg-white text-[var(--accent)]"
-                    : "text-white/70 hover:text-white"
+                    ? "bg-[var(--accent-ink)] text-[var(--accent-fill)]"
+                    : "text-[var(--accent-ink)]/70 hover:text-[var(--accent-ink)]"
                 )}
               >
                 {t('All Time')}
               </button>
             </div>
             {isLoading ? (
-              <Skeleton className="h-6 w-32 bg-white/20 mt-1" />
+              <Skeleton className="h-6 w-32 bg-[var(--accent-ink)]/20 mt-1" />
             ) : (
               <p className="font-mono font-semibold">
                 {renderAmount(totalExpense)}
@@ -97,9 +96,7 @@ export function SummaryCard({
         </div>
 
         {smartInsight && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
+          <div
             className={cn(
               "px-3 py-2 rounded-lg bg-black/30 text-[11px] font-medium flex items-center gap-2 border border-white/20",
               smartInsight.color
@@ -107,17 +104,17 @@ export function SummaryCard({
           >
             <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
             {smartInsight.text}
-          </motion.div>
+          </div>
         )}
 
         {!isLoading && (
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-black/25 rounded-lg p-3 flex flex-col">
-              <span className="text-[10px] text-white/70 uppercase font-bold tracking-wider">{t('Today')}</span>
+              <span className="text-[10px] text-[var(--accent-ink)]/70 uppercase font-bold tracking-wider">{t('Today')}</span>
               <span className="text-sm font-mono font-bold mt-0.5">{renderAmount(dailySummary.today)}</span>
             </div>
             <div className="bg-black/25 rounded-lg p-3 flex flex-col">
-              <span className="text-[10px] text-white/70 uppercase font-bold tracking-wider">{t('Yesterday')}</span>
+              <span className="text-[10px] text-[var(--accent-ink)]/70 uppercase font-bold tracking-wider">{t('Yesterday')}</span>
               <span className="text-sm font-mono font-bold mt-0.5">{renderAmount(dailySummary.yesterday)}</span>
             </div>
           </div>
@@ -125,7 +122,7 @@ export function SummaryCard({
 
         {!isLoading && yesterdayDiff !== null && yesterdayDiff !== 0 && (
           <div className="bg-black/25 rounded-lg p-2 flex items-center justify-center">
-            <span className="text-[11px] text-white/80">
+            <span className="font-mono text-[11px] text-[var(--accent-ink)]/80">
               {yesterdayDiff > 0 ? (
                 <>
                   <span>+{Math.abs(yesterdayDiff).toFixed(0)}%</span>
@@ -143,7 +140,7 @@ export function SummaryCard({
 
         {!isLoading && yesterdayDiff === 0 && dailySummary.today > 0 && dailySummary.yesterday > 0 && (
           <div className="bg-black/25 rounded-lg p-2 flex items-center justify-center">
-            <span className="text-[11px] text-white/80">{t('Same as yesterday')}</span>
+            <span className="font-mono text-[11px] text-[var(--accent-ink)]/80">{t('Same as yesterday')}</span>
           </div>
         )}
       </div>

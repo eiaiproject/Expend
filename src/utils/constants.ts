@@ -25,9 +25,6 @@ export const DEFAULT_CATEGORIES = [
 /** App version displayed in InfoPopup and Settings. Derived from package.json via Vite define. */
 export const APP_VERSION = `v${__APP_VERSION__}`;
 
-/** Default currency used for all wallets. */
-export const DEFAULT_CURRENCY = 'IDR';
-
 /** Maximum PIN length. */
 export const MAX_PIN_LENGTH = 6;
 
@@ -63,12 +60,6 @@ export const MONTH_NAMES_EN = [
 export const MONTH_NAMES_ID = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-] as const;
-
-/** Short month names (abbreviated to 3 letters). */
-export const MONTH_NAMES_SHORT = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ] as const;
 
 /** LocalStorage keys for app state persistence. */
