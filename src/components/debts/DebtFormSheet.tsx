@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowDownLeft, ArrowUpRight, Wallet as WalletIcon } from 'lucide-react';
 import { db, type Debt, type DebtType, type Wallet } from '../../db/db';
-import { cn } from '../../utils/cn';
 import { createDebt, updateDebt } from '../../services/debtService';
 import { getTodayStr } from '../../utils/dateUtils';
 import { formatCurrency } from '../../utils/formatUtils';
