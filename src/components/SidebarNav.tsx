@@ -33,7 +33,7 @@ export function SidebarNav({ onAddClick }: { onAddClick: () => void }) {
       <button
         type="button"
         onClick={onAddClick}
-        className="w-full py-4 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] flex items-center justify-center gap-2 font-bold hover:opacity-90 active:scale-95 transition-colors shadow-lg shadow-[var(--accent-fill)]/10 group touch-manipulation"
+        className="w-full py-4 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] flex items-center justify-start gap-2 font-bold hover:opacity-90 active:scale-95 transition-colors shadow-lg shadow-[var(--accent-fill)]/10 group touch-manipulation"
         aria-label={t('Add Transaction')}
       >
         <Plus size={20} aria-hidden="true" />

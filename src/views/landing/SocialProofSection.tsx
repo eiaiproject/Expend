@@ -83,7 +83,7 @@ export function SocialProofSection() {
 
         {/* Highlight Badges */}
         <div
-          className="flex flex-wrap justify-center gap-3 sm:gap-4"
+          className="flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-4"
         >
           {highlights.map((item, i) => (
             <div

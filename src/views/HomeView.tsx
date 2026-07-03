@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
-import { Eye, EyeOff, Moon, Sun, ClipboardList, Filter, ArrowUpDown, Search, XCircle, X, Tag, Trash2, Handshake, MoreVertical } from 'lucide-react';
+import { Eye, EyeOff, Moon, Sun, ClipboardList, Filter, ArrowUpDown, Search, XCircle, X, Trash2, Handshake } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useTheme } from '../contexts/ThemeContext';
 import { TransactionDetailSheet } from '../components/TransactionDetailSheet';
@@ -40,7 +40,7 @@ export default function HomeView() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const [isOverflowOpen, setIsOverflowOpen] = useState(false);
+  
   const [expensePeriod, setExpensePeriod] = useState<'month' | 'all'>('month');
   const [visibleTransactionCount, setVisibleTransactionCount] = useState(TRANSACTION_RENDER_PAGE_SIZE);
   const [sortConfig, setSortConfig] = useState<{ field: string; order: 'asc' | 'desc' }>({
@@ -128,9 +128,7 @@ export default function HomeView() {
     initDefaults();
   }, [t]);
 
-  useEffect(() => {
-    setIsOverflowOpen(false);
-  }, [isFilterOpen]);
+
 
   // Keyboard shortcuts for the home view
   useEffect(() => {
@@ -264,41 +262,15 @@ export default function HomeView() {
             </p>
           </div>
           
-          <Link 
-            to="/categories"
+          <button
+            onClick={() => setIsInfoOpen(true)}
             className="ml-1 p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-lg hover:bg-[var(--card)]"
-            aria-label={t('Categories & Budgets')}
+            aria-label={t('Project Information')}
           >
-            <Tag size={18} />
-          </Link>
-          <div className="relative">
-            <button 
-              onClick={() => setIsOverflowOpen(!isOverflowOpen)}
-              className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-lg hover:bg-[var(--card)]"
-              aria-label={t('More')}
-              aria-expanded={isOverflowOpen}
-              aria-haspopup="true"
-            >
-              <MoreVertical size={18} />
-            </button>
-            {isOverflowOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsOverflowOpen(false)} />
-                <div className="absolute left-0 top-full mt-1 z-50 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg py-1 min-w-[180px]">
-                  <button
-                    type="button"
-                    onClick={() => { setIsOverflowOpen(false); setIsInfoOpen(true); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors"
-                  >
-                    <div className="w-5 h-5 rounded-full border border-[var(--border)] flex items-center justify-center text-[10px] font-bold text-[var(--text-secondary)]">
-                      i
-                    </div>
-                    {t('Project Information')}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+            <div className="w-[18px] h-[18px] rounded-full border border-current flex items-center justify-center text-[10px] font-bold">
+              i
+            </div>
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <button 
@@ -380,15 +352,17 @@ export default function HomeView() {
           <button
             type="button"
             onClick={() => filterActions.setSearchTerm('')}
-            className="absolute right-10 top-1/2 -translate-y-1/2 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             aria-label={t('Clear search')}
           >
             <XCircle size={16} />
           </button>
         )}
-        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:inline-flex items-center justify-center w-6 h-6 rounded border border-[var(--border)] bg-[var(--bg)] text-[10px] font-mono font-bold text-[var(--text-secondary)]">
-          /
-        </kbd>
+        {!filters.searchTerm && (
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:inline-flex items-center justify-center w-6 h-6 rounded border border-[var(--border)] bg-[var(--bg)] text-[10px] font-mono font-bold text-[var(--text-secondary)]">
+            /
+          </kbd>
+        )}
       </div>
 
       {/* Active Filter Chips */}

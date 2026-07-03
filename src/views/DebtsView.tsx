@@ -276,7 +276,7 @@ export default function DebtsView() {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('Filter Type')}>
+      <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap" role="radiogroup" aria-label={t('Filter Type')}>
         {FILTERS.map((item) => (
           <button
             key={item.id}

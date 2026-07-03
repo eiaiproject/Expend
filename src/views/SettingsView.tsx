@@ -3,7 +3,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/db';
 import { useSecurity } from '../contexts/SecurityContext';
-import { Moon, Sun, Download, Upload, Shield, Lock, Trash2, Check, Coffee, Tag, Info } from 'lucide-react';
+import { Moon, Sun, Download, Upload, Shield, Lock, Trash2, Check, Coffee, Tag, Info, ShoppingBag } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { Link } from 'react-router-dom';
 import { toast } from '../components/Toaster';
@@ -324,6 +324,17 @@ export default function SettingsView() {
             <div>
               <span className="font-medium">{t('Categories & Budgets')}</span>
               <p className="text-xs text-[var(--text-secondary)]">{t('Manage categories & budgets')}</p>
+            </div>
+          </Link>
+        </SettingsAccordion>
+
+        {/* Payees */}
+        <SettingsAccordion title={t('Recipients & Merchants')}>
+          <Link to="/payees" className="w-full flex items-center gap-3 p-4 hover:bg-[var(--card)] transition-colors">
+            <ShoppingBag size={20} />
+            <div>
+              <span className="font-medium">{t('Recipients & Merchants')}</span>
+              <p className="text-xs text-[var(--text-secondary)]">{t('Manage payees & rename')}</p>
             </div>
           </Link>
         </SettingsAccordion>

@@ -96,7 +96,7 @@ export function useTransactionForm({
           .filter((t) => t.type !== 'balance_adjustment')
           .map((t) => t.description.replace(/\s\((In|Out)\)$/, ''))
       )
-    ).slice(0, 100);
+    );
   }, [transactions]);
 
   // Form state

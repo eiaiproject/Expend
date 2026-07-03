@@ -69,6 +69,10 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   :root {
     color-scheme: dark;
     --bg: #1A1E16;

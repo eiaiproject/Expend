@@ -221,15 +221,6 @@ export function LandingFooter() {
           <span>{APP_VERSION}</span>
           <span className="hidden sm:inline">|</span>
           <span>{t('landing.footerCopyright')}</span>
-          <span className="hidden sm:inline">|</span>
-          <a
-            href="https://github.com/eiaiproject/Expend.git"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-[var(--text-primary)] transition-colors"
-          >
-            {t('landing.openSource')}
-          </a>
         </div>
       </div>
     </footer>

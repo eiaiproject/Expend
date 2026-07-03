@@ -2,8 +2,12 @@
 
 Local-first personal finance app for expense tracking, wallet management, and debt monitoring. Offline-capable, privacy-focused Progressive Web App.
 
-[![Version](https://img.shields.io/badge/version-1.0.0-teal)](https://github.com/eiaiproject/Expend)
+[![Version](https://img.shields.io/badge/version-1.4.0-teal)](https://github.com/eiaiproject/Expend)
 [![License](https://img.shields.io/badge/license-MIT-blue)](#license)
+
+## Demo
+
+🔗 [Live Demo](https://expend.pages.dev/)
 
 ## Table of Contents
 - [Features](#features)
@@ -157,6 +161,10 @@ src/
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+## Author
+
+**Anggie Irawan** — [anggieirawan.my.id](https://anggieirawan.my.id) — [GitHub](https://github.com/eiaiproject)
 
 ## License
 

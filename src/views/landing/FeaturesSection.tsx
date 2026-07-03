@@ -41,13 +41,15 @@ function FeatureCard({ icon, title, description, stats, index }: FeatureItem & {
           {description}
         </p>
 
-        {/* Stats Badge */}
-        {stats && (
-          <div className="mt-auto pt-5 inline-flex w-fit items-center gap-2 px-3 py-1.5 bg-[var(--accent)]/10 rounded-full">
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
-            <span className="text-xs sm:text-sm font-medium text-[var(--accent)]">{stats}</span>
-          </div>
-        )}
+        {/* Stats Badge - always render spacer for alignment */}
+        <div className="mt-auto pt-5">
+          {stats && (
+            <div className="inline-flex w-fit items-center gap-2 px-3 py-1.5 bg-[var(--accent)]/10 rounded-full">
+              <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+              <span className="text-xs sm:text-sm font-medium text-[var(--accent)]">{stats}</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
