@@ -651,6 +651,19 @@
     "Wallet delete blocked debt payments": "Wallet cannot be deleted because it has {{count}} debt payment record(s).",
     "Wallet delete blocked transactions": "Wallet cannot be deleted because it has {{count}} associated transaction(s).",
     "Wallet delete failed unknown": "Wallet could not be deleted.",
-    "Stale wallets show a warning after 30 days": "Stale wallets show a warning after 30 days"
+    "Stale wallets show a warning after 30 days": "Stale wallets show a warning after 30 days",
+    "Sort Payees": "Sort Payees",
+    "Payee Filter": "Payee Filter",
+    "Filter": "Filter",
+    "Sort": "Sort",
+    "Apply": "Apply",
+    "Highest First": "Highest First",
+    "Lowest First": "Lowest First",
+    "Newest First": "Newest First",
+    "Oldest First": "Oldest First",
+    "A to Z": "A to Z",
+    "Z to A": "Z to A",
+    "Total Spent Range": "Total Spent Range",
+    "Transaction Count Range": "Transaction Count Range"
   }
 }

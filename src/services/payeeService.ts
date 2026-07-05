@@ -12,6 +12,33 @@ export interface PayeeStats {
   mostCommonWallet: number;
 }
 
+export type PayeeSortField = 'name' | 'totalExpense' | 'transactionCount' | 'averageAmount' | 'lastTransactionDate';
+
+export interface PayeeSortConfig {
+  field: PayeeSortField;
+  order: 'asc' | 'desc';
+}
+
+export interface PayeeTransactionFilters {
+  categoryIds?: number[];
+  walletIds?: number[];
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface PayeeAggregateFilters {
+  minTotalExpense?: number;
+  maxTotalExpense?: number;
+  minTransactionCount?: number;
+  maxTransactionCount?: number;
+}
+
+export interface GetPayeeStatsOptions {
+  transactionFilters?: PayeeTransactionFilters;
+  aggregateFilters?: PayeeAggregateFilters;
+  sort?: PayeeSortConfig;
+}
+
 /**
  * Normalizes payee name for display.
  * - Trims whitespace
@@ -33,19 +60,37 @@ export function normalizePayeeKey(raw: string): string {
 /**
  * Generates a list of payees and their statistics from expense transactions.
  */
-export async function getPayeeStatsFromTransactions(): Promise<PayeeStats[]> {
-  const transactions = await db.transactions
+export async function getPayeeStatsFromTransactions(options?: GetPayeeStatsOptions): Promise<PayeeStats[]> {
+  const { transactionFilters, aggregateFilters, sort } = options ?? {};
+
+  // 1. Fetch expense transactions
+  let transactions = await db.transactions
     .where('type')
     .equals('expense')
     .toArray();
 
-  const categories = await db.categories.toArray();
-  const wallets = await db.wallets.toArray();
+  // 2. Apply transaction-level filters (before grouping)
+  if (transactionFilters) {
+    const { categoryIds, walletIds, startDate, endDate } = transactionFilters;
+    if (categoryIds && categoryIds.length > 0) {
+      transactions = transactions.filter(tx => tx.categoryId != null && categoryIds.includes(tx.categoryId));
+    }
+    if (walletIds && walletIds.length > 0) {
+      transactions = transactions.filter(tx => walletIds.includes(tx.walletId));
+    }
+    if (startDate) {
+      transactions = transactions.filter(tx => normaliseDate(tx.date) >= startDate);
+    }
+    if (endDate) {
+      transactions = transactions.filter(tx => normaliseDate(tx.date) <= endDate);
+    }
+  }
 
+  // 3. Group into payee stats
   const payeeMap = new Map<string, {
     name: string,
     total: number,
-    count: 0,
+    count: number,
     dates: string[],
     categories: Record<number, number>,
     wallets: Record<number, number>
@@ -109,17 +154,75 @@ export async function getPayeeStatsFromTransactions(): Promise<PayeeStats[]> {
     });
   }
 
-  return results.sort((a, b) => b.totalExpense - a.totalExpense);
+  // 4. Apply aggregate-level filters (after grouping)
+  let filtered = results;
+  if (aggregateFilters) {
+    const { minTotalExpense, maxTotalExpense, minTransactionCount, maxTransactionCount } = aggregateFilters;
+    if (minTotalExpense != null) {
+      filtered = filtered.filter(p => p.totalExpense >= minTotalExpense);
+    }
+    if (maxTotalExpense != null) {
+      filtered = filtered.filter(p => p.totalExpense <= maxTotalExpense);
+    }
+    if (minTransactionCount != null) {
+      filtered = filtered.filter(p => p.transactionCount >= minTransactionCount);
+    }
+    if (maxTransactionCount != null) {
+      filtered = filtered.filter(p => p.transactionCount <= maxTransactionCount);
+    }
+  }
+
+  // 5. Sort
+  if (sort) {
+    const { field, order } = sort;
+    const dir = order === 'asc' ? 1 : -1;
+    filtered.sort((a, b) => {
+      const aVal = a[field];
+      const bVal = b[field];
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return dir * aVal.localeCompare(bVal);
+      }
+      return dir * ((aVal as number) - (bVal as number));
+    });
+  } else {
+    filtered.sort((a, b) => b.totalExpense - a.totalExpense);
+  }
+
+  return filtered;
 }
 
 /**
  * Filters transactions by a specific payee name.
  */
-export async function filterTransactionsByPayee(payeeName: string): Promise<Transaction[]> {
+export async function filterTransactionsByPayee(
+  payeeName: string,
+  transactionFilters?: PayeeTransactionFilters,
+): Promise<Transaction[]> {
   const payeeKey = normalizePayeeKey(payeeName);
-  const transactions = await db.transactions
+  let transactions = await db.transactions
     .where('type')
     .equals('expense')
     .toArray();
-  return transactions.filter(tx => normalizePayeeKey(tx.description) === payeeKey);
+
+  // Filter by payee first
+  transactions = transactions.filter(tx => normalizePayeeKey(tx.description) === payeeKey);
+
+  // Apply additional transaction-level filters
+  if (transactionFilters) {
+    const { categoryIds, walletIds, startDate, endDate } = transactionFilters;
+    if (categoryIds && categoryIds.length > 0) {
+      transactions = transactions.filter(tx => tx.categoryId != null && categoryIds.includes(tx.categoryId));
+    }
+    if (walletIds && walletIds.length > 0) {
+      transactions = transactions.filter(tx => walletIds.includes(tx.walletId));
+    }
+    if (startDate) {
+      transactions = transactions.filter(tx => normaliseDate(tx.date) >= startDate);
+    }
+    if (endDate) {
+      transactions = transactions.filter(tx => normaliseDate(tx.date) <= endDate);
+    }
+  }
+
+  return transactions;
 }

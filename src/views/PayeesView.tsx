@@ -1,14 +1,28 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { Search, ArrowLeft, ShoppingBag, Edit2, X } from 'lucide-react';
+import { Search, ArrowLeft, ShoppingBag, Edit2, X, Filter, ArrowUpDown } from 'lucide-react';
+import { cn } from '../utils/cn';
 import { formatCurrency } from '../utils/formatUtils';
 import { displayDateMedium } from '../utils/dateUtils';
-import { getPayeeStatsFromTransactions, filterTransactionsByPayee, normalizePayeeKey, normalizePayeeName, PayeeStats } from '../services/payeeService';
+import { getPayeeStatsFromTransactions, filterTransactionsByPayee, normalizePayeeKey, normalizePayeeName, type PayeeStats, type PayeeSortConfig, type PayeeTransactionFilters, type PayeeAggregateFilters } from '../services/payeeService';
 import { TransactionCard } from '../components/home/TransactionCard';
 import { EmptyState } from '../components/EmptyState';
 import { toast } from '../components/Toaster';
+import { PayeeSortSheet } from '../components/PayeeSortSheet';
+import { PayeeFilterSheet, type PayeeFilterDraft } from '../components/PayeeFilterSheet';
+
+const EMPTY_FILTER_DRAFT: PayeeFilterDraft = {
+  categoryIds: [],
+  walletIds: [],
+  startDate: '',
+  endDate: '',
+  minTotalExpense: '',
+  maxTotalExpense: '',
+  minTransactionCount: '',
+  maxTransactionCount: '',
+};
 
 export default function PayeesView() {
   const { t, i18n } = useTranslation();
@@ -18,9 +32,55 @@ export default function PayeesView() {
   const [newPayeeName, setNewPayeeName] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
 
+  // Sort & filter state
+  const [sortConfig, setSortConfig] = useState<PayeeSortConfig>({ field: 'totalExpense', order: 'desc' });
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterDraft, setFilterDraft] = useState<PayeeFilterDraft>(EMPTY_FILTER_DRAFT);
+
+  // Build transaction-level filters from draft
+  const transactionFilters: PayeeTransactionFilters | undefined = useMemo(() => {
+    const hasTxFilter = filterDraft.categoryIds.length > 0 || filterDraft.walletIds.length > 0 || filterDraft.startDate || filterDraft.endDate;
+    if (!hasTxFilter) return undefined;
+    return {
+      categoryIds: filterDraft.categoryIds.length > 0 ? filterDraft.categoryIds : undefined,
+      walletIds: filterDraft.walletIds.length > 0 ? filterDraft.walletIds : undefined,
+      startDate: filterDraft.startDate || undefined,
+      endDate: filterDraft.endDate || undefined,
+    };
+  }, [filterDraft]);
+
+  // Build aggregate-level filters from draft
+  const aggregateFilters: PayeeAggregateFilters | undefined = useMemo(() => {
+    const hasAggFilter = filterDraft.minTotalExpense || filterDraft.maxTotalExpense || filterDraft.minTransactionCount || filterDraft.maxTransactionCount;
+    if (!hasAggFilter) return undefined;
+    return {
+      minTotalExpense: filterDraft.minTotalExpense ? parseInt(filterDraft.minTotalExpense, 10) : undefined,
+      maxTotalExpense: filterDraft.maxTotalExpense ? parseInt(filterDraft.maxTotalExpense, 10) : undefined,
+      minTransactionCount: filterDraft.minTransactionCount ? parseInt(filterDraft.minTransactionCount, 10) : undefined,
+      maxTransactionCount: filterDraft.maxTransactionCount ? parseInt(filterDraft.maxTransactionCount, 10) : undefined,
+    };
+  }, [filterDraft]);
+
+  const activeFilterCount = useMemo(() => (
+    filterDraft.categoryIds.length +
+    filterDraft.walletIds.length +
+    (filterDraft.startDate ? 1 : 0) +
+    (filterDraft.endDate ? 1 : 0) +
+    (filterDraft.minTotalExpense ? 1 : 0) +
+    (filterDraft.maxTotalExpense ? 1 : 0) +
+    (filterDraft.minTransactionCount ? 1 : 0) +
+    (filterDraft.maxTransactionCount ? 1 : 0)
+  ), [filterDraft]);
+
   const payees = useLiveQuery(async () => {
-    return await getPayeeStatsFromTransactions();
-  }, []);
+    return await getPayeeStatsFromTransactions({
+      transactionFilters,
+      aggregateFilters,
+      sort: sortConfig,
+    });
+  }, [sortConfig, transactionFilters, aggregateFilters]);
+
   const categories = useLiveQuery(() => db.categories.toArray(), [], []);
   const wallets = useLiveQuery(() => db.wallets.toArray(), [], []);
 
@@ -73,10 +133,19 @@ export default function PayeesView() {
     setSelectedPayee(null);
   };
 
+  // Pass transaction-level filters to detail view for consistency
   const selectedPayeeTransactions = useLiveQuery(async () => {
     if (!selectedPayee) return [];
-    return await filterTransactionsByPayee(selectedPayee.key);
-  }, [selectedPayee]);
+    return await filterTransactionsByPayee(selectedPayee.key, transactionFilters);
+  }, [selectedPayee, transactionFilters]);
+
+  const handleApplyFilter = useCallback((draft: PayeeFilterDraft) => {
+    setFilterDraft(draft);
+  }, []);
+
+  const handleApplySort = useCallback((config: PayeeSortConfig) => {
+    setSortConfig(config);
+  }, []);
 
   const renameDialog = renamingPayee ? (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -227,12 +296,42 @@ export default function PayeesView() {
         />
       </div>
 
+      {/* Sort & Filter buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setIsFilterOpen(true)}
+          className={cn(
+            "relative flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors text-sm font-medium",
+            activeFilterCount > 0
+              ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+              : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] active:bg-[var(--border)]"
+          )}
+          aria-label={t('Filter Type')}
+        >
+          <Filter size={14} />
+          <span>{t('Filter')}</span>
+          {activeFilterCount > 0 && (
+            <span className="ml-1 bg-white/20 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setIsSortOpen(true)}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] active:bg-[var(--border)] transition-colors text-sm font-medium"
+          aria-label={t('Sort Payees')}
+        >
+          <ArrowUpDown size={14} />
+          <span>{t('Sort')}</span>
+        </button>
+      </div>
+
       <div className="space-y-3">
         {filteredPayees.length === 0 ? (
           <EmptyState 
             icon={<ShoppingBag size={48} className="opacity-20" />}
             title={t('No Merchants Found')} 
-            description={t('Add some expense transactions to see your merchants here.')}
+            description={activeFilterCount > 0 ? t('Try changing your filter or search keywords.') : t('Add some expense transactions to see your merchants here.')}
           />
         ) : (
           filteredPayees.map(payee => (
@@ -260,6 +359,23 @@ export default function PayeesView() {
           ))
         )}
       </div>
+
+      <PayeeSortSheet
+        isOpen={isSortOpen}
+        onClose={() => setIsSortOpen(false)}
+        sortConfig={sortConfig}
+        onApply={handleApplySort}
+      />
+
+      <PayeeFilterSheet
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        draft={filterDraft}
+        onApply={handleApplyFilter}
+        categories={categories ?? []}
+        wallets={wallets ?? []}
+        activeFilterCount={activeFilterCount}
+      />
 
       {renameDialog}
     </div>

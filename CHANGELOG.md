@@ -2,6 +2,18 @@
 
 All notable changes to Expend are documented here.
 
+## 1.7.0 - 2026-07-05
+
+### Added
+
+- Sort & filter feature for Recipients & Merchants (Payees) view.
+- `PayeeSortSheet` bottom sheet with 10 sort options (Total Spent, Last Date, Count, Average, Name × asc/desc).
+- `PayeeFilterSheet` bottom sheet with category, wallet, date range, total spent range, and transaction count range filters.
+- `payeeService` refactored to accept `PayeeSortConfig`, `PayeeTransactionFilters`, and `PayeeAggregateFilters` options.
+- Transaction-level filters applied before grouping; aggregate filters applied after grouping for correct stats.
+- Detail view passes same transaction-level filters for consistency between card stats and history.
+- 14 new i18n translation keys for sort/filter UI (English and Indonesian).
+
 ## 1.6.0 - 2026-07-05
 
 ### Added

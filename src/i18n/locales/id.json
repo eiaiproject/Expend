@@ -652,6 +652,19 @@
     "Wallet delete blocked debt payments": "Dompet tidak bisa dihapus karena memiliki {{count}} catatan pembayaran utang/piutang.",
     "Wallet delete blocked transactions": "Dompet tidak bisa dihapus karena memiliki {{count}} transaksi terkait.",
     "Wallet delete failed unknown": "Dompet tidak bisa dihapus.",
-    "Stale wallets show a warning after 30 days": "Dompet yang lama tidak diperbarui menampilkan peringatan setelah 30 hari"
+    "Stale wallets show a warning after 30 days": "Dompet yang lama tidak diperbarui menampilkan peringatan setelah 30 hari",
+    "Sort Payees": "Urutkan Penerima",
+    "Payee Filter": "Filter Penerima",
+    "Filter": "Filter",
+    "Sort": "Urutkan",
+    "Apply": "Terapkan",
+    "Highest First": "Tertinggi Duluan",
+    "Lowest First": "Terendah Duluan",
+    "Newest First": "Terbaru Duluan",
+    "Oldest First": "Terlama Duluan",
+    "A to Z": "A ke Z",
+    "Z to A": "Z ke A",
+    "Total Spent Range": "Rentang Total Pengeluaran",
+    "Transaction Count Range": "Rentang Jumlah Transaksi"
   }
 }
