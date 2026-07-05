@@ -18,7 +18,7 @@ type QuickOption = {
 };
 
 export function DatePicker({ id, value, onChange, label, required }: DatePickerProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [showQuick, setShowQuick] = useState(false);
   const autoId = useId();
   const datePickerId = id || autoId;
@@ -46,7 +46,7 @@ export function DatePicker({ id, value, onChange, label, required }: DatePickerP
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('id-ID', { 
+    return d.toLocaleDateString(i18n.language?.startsWith('id') ? 'id-ID' : 'en-US', {
       weekday: 'short', 
       day: 'numeric', 
       month: 'short',

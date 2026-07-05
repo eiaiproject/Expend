@@ -26,9 +26,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
     }
   }, [step]);
 
-  const toggleCategory = (name: string) => {
+  const toggleCategory = (nameKey: string) => {
     setSelectedCategories(prev =>
-      prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+      prev.includes(nameKey) ? prev.filter(key => key !== nameKey) : [...prev, nameKey]
     );
   };
 
@@ -48,8 +48,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
       }
 
       const existingColors = await db.categories.toArray().then(cats => new Set(cats.map(c => c.color)));
-      for (const catName of selectedCategories) {
-        const cat = DEFAULT_CATEGORIES.find(c => c.name === catName);
+      for (const categoryKey of selectedCategories) {
+        const cat = DEFAULT_CATEGORIES.find(c => c.nameKey === categoryKey);
         const availableColors = [...CURATED_PALETTE].filter(c => !existingColors.has(c));
         const fallbackColor = (availableColors[Math.floor(Math.random() * availableColors.length)]
           ?? CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)])!;
@@ -58,7 +58,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         existingColors.add(color);
 
         await db.categories.add({
-          name: catName,
+          name: t(categoryKey),
           icon: '🏷️',
           color: color,
         });
@@ -161,13 +161,13 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
 
               <div className="grid grid-cols-2 gap-3">
                 {DEFAULT_CATEGORIES.map((cat) => {
-                  const isSelected = selectedCategories.includes(cat.name);
+                  const isSelected = selectedCategories.includes(cat.nameKey);
                   return (
                     <button
                       type="button"
-                      key={cat.name}
+                      key={cat.nameKey}
                       aria-pressed={isSelected}
-                      onClick={() => toggleCategory(cat.name)}
+                      onClick={() => toggleCategory(cat.nameKey)}
                       className={cn(
                         'flex items-center gap-3 p-4 rounded-xl border text-left transition-colors',
                         isSelected
@@ -176,7 +176,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                       )}
                     >
                       <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                      <span className="text-sm font-medium flex-1">{cat.name}</span>
+                      <span className="text-sm font-medium flex-1">{t(cat.nameKey)}</span>
                       {isSelected && <Check size={16} className="shrink-0" />}
                     </button>
                   );

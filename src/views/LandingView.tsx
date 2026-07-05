@@ -9,6 +9,7 @@ import { SocialProofSection } from './landing/SocialProofSection';
 import { TechStackSection } from './landing/TechStackSection';
 import { InstallSection, LandingFooter } from './landing/InstallSection';
 import { FAQSection } from './landing/FAQSection';
+import { StickyCta } from '../components/StickyCta';
 
 function StickyNav() {
   const { t } = useTranslation();
@@ -27,7 +28,7 @@ function StickyNav() {
   return (
     <>
       <nav
-        aria-label="Main"
+        aria-label={t('Main')}
         className={`fixed top-0 left-0 right-0 z-50 transition-[padding,background-color,border-color] duration-300 ${
           scrolled
             ? 'bg-[var(--bg)]/90 backdrop-blur-md border-b border-[var(--border-subtle)] py-3'
@@ -73,7 +74,7 @@ function StickyNav() {
       <button
         type="button"
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        aria-label="Back to top"
+        aria-label={t('Back to top')}
         className={`fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-[var(--accent)] text-white flex items-center justify-center shadow-lg transition-[opacity,transform] duration-300 cursor-pointer ${
           showTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
@@ -91,6 +92,7 @@ export default function LandingView({
   onTryWeb: () => void;
   onEnter?: () => void;
 }) {
+  const { t } = useTranslation();
   const { deferredPrompt, showInstallPrompt } = useInstallPrompt();
 
   return (
@@ -100,7 +102,7 @@ export default function LandingView({
         href="#features-section"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[var(--accent)] focus:text-white focus:rounded-lg focus:text-sm"
       >
-        Skip to content
+        {t('Skip to content')}
       </a>
 
       <StickyNav />
@@ -117,21 +119,24 @@ export default function LandingView({
       {/* Social Proof */}
       <SocialProofSection />
 
-      {/* Tech Stack */}
-      <TechStackSection />
-
-      {/* Install Section */}
+      {/* Install Section — primary CTA before developer detail */}
       <InstallSection
         onTryWeb={onTryWeb}
         deferredPrompt={deferredPrompt}
         showInstallPrompt={showInstallPrompt}
       />
 
+      {/* Tech Stack */}
+      <TechStackSection />
+
       {/* FAQ Section */}
       <FAQSection />
 
       {/* Footer */}
       <LandingFooter />
+
+      {/* Sticky CTA */}
+      <StickyCta />
     </div>
   );
 }

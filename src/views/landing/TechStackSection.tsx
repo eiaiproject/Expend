@@ -21,7 +21,7 @@ function TechCard({ icon, name, description, color, index }: TechItem & { index:
           {icon}
         </div>
         <div className="min-w-0">
-          <h4 className="text-sm sm:text-base font-bold text-[var(--text-primary)] mb-1">{name}</h4>
+          <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)] mb-1">{name}</h3>
           <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
             {description}
           </p>

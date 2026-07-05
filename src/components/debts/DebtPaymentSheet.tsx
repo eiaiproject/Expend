@@ -1,14 +1,16 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { AlertTriangle, Wallet as WalletIcon } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { db, type Debt, type Wallet } from '../../db/db';
 import { recordDebtPayment } from '../../services/debtService';
+import { getKnownErrorMessage, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '../../services/errors';
 import { getTodayStr } from '../../utils/dateUtils';
 import { formatCurrency } from '../../utils/formatUtils';
 import { BottomSheetShell } from '../BottomSheetShell';
 import { DatePicker } from '../DatePicker';
 import { toast } from '../Toaster';
+import { WalletSelect } from '../WalletSelect';
 
 interface DebtPaymentSheetProps {
   debt: Debt | null;
@@ -26,10 +28,6 @@ function parseAmount(value: string): number {
 function formatAmountInput(value: string): string {
   const raw = value.replace(/[^0-9]/g, '');
   return raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
-}
-
-function getErrorMessage(error: unknown, t: (key: string) => string): string {
-  return error instanceof Error ? error.message : t('Save payment failed');
 }
 
 export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: DebtPaymentSheetProps) {
@@ -61,7 +59,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
   const isPayable = debt.type === 'payable';
   const rawAmount = parseAmount(amount);
   const walletBalance = selectedWallet ? (selectedWallet.currentBalance ?? selectedWallet.initialBalance) : 0;
-  const showBalanceWarning = isPayable && rawAmount > walletBalance;
+  const hasInsufficientBalance = isPayable && rawAmount > 0 && selectedWallet != null && rawAmount > walletBalance;
   const title = isPayable ? t('Pay debt') : t('Receive payment');
 
   const setQuickAmount = (ratio: number) => {
@@ -84,7 +82,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
       toast.add(t('Payment recorded'));
       onClose();
     } catch (error) {
-      toast.add(getErrorMessage(error, t));
+      toast.add(getKnownErrorMessage(error, t, 'Save payment failed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -148,25 +146,17 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
           <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
             {isPayable ? t('Money from wallet') : t('Money into wallet')} *
           </label>
-          <div className="relative">
-            <WalletIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} />
-            <select
-              id={`${formId}-wallet`}
-              required
-              value={walletId}
-              onChange={(event) => setWalletId(event.target.value)}
-              className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-10 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-            >
-              <option value="" disabled>{t('Select wallet')}</option>
-              {wallets.map((wallet) => (
-                <option key={wallet.id} value={wallet.id}>{wallet.name}</option>
-              ))}
-            </select>
-          </div>
-          {showBalanceWarning && (
+          <WalletSelect
+            id={`${formId}-wallet`}
+            value={walletId}
+            wallets={wallets}
+            placeholder={t('Select wallet')}
+            onChange={setWalletId}
+          />
+          {hasInsufficientBalance && (
             <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300">
               <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-              <span>{t('Wallet balance low')}</span>
+              <span>{t(INSUFFICIENT_WALLET_BALANCE_MESSAGE)}</span>
             </div>
           )}
         </div>
@@ -195,7 +185,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
         <div className="pt-2 pb-6">
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || hasInsufficientBalance}
             className="w-full rounded-xl bg-[var(--accent)] py-4 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
           >
             {title}

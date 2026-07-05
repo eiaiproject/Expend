@@ -235,6 +235,7 @@ export default function HomeView() {
   }, []);
 
   const handleRepeat = useCallback((tx: Transaction) => {
+    if (tx.type !== 'expense') return;
     const { id: _id, transferGroupId: _tg, ...rest } = tx;
     setEditTx({ ...rest, date: getTodayStr() });
     setIsFormOpen(true);

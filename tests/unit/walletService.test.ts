@@ -77,7 +77,8 @@ describe('deleteWalletSafely', () => {
     await db.wallets.update(walletBId, { currentBalance: 600000 });
 
     // Delete Wallet A
-    await deleteWalletSafely(walletAId);
+    const result = await deleteWalletSafely(walletAId);
+    expect(result.success).toBe(true);
 
     // Wallet B must return to 500,000
     const walletB = await db.wallets.get(walletBId);
@@ -121,7 +122,8 @@ describe('deleteWalletSafely', () => {
     await db.wallets.update(walletBId, { currentBalance: 600000 });
 
     // Delete Wallet B
-    await deleteWalletSafely(walletBId);
+    const result = await deleteWalletSafely(walletBId);
+    expect(result.success).toBe(true);
 
     // Wallet A must return to 1,000,000
     const walletA = await db.wallets.get(walletAId);
@@ -132,7 +134,7 @@ describe('deleteWalletSafely', () => {
     expect(remainingA.length).toBe(0);
   });
 
-  it('Scenario C: Delete wallet with expenses only; other wallets unaffected', async () => {
+  it('Scenario C: Reject deleting wallet with expenses; other wallets unaffected', async () => {
     const walletAId = await db.wallets.add({
       name: 'Wallet A', currency: 'IDR', initialBalance: 1000000,
       lastUpdated: '2025-01-01T00:00:00.000Z',
@@ -159,12 +161,18 @@ describe('deleteWalletSafely', () => {
     });
     await db.wallets.update(walletBId, { currentBalance: 470000 });
 
-    // Delete Wallet A
-    await deleteWalletSafely(walletAId);
+    const result = await deleteWalletSafely(walletAId);
+    expect(result.success).toBe(false);
+    expect(result.reason).toMatch(/associated transaction/i);
 
     // Wallet B must be unaffected
     const walletB = await db.wallets.get(walletBId);
     expect(walletB?.currentBalance).toBe(470000);
+
+    // Wallet A must remain because expense history blocks deletion.
+    const walletA = await db.wallets.get(walletAId);
+    expect(walletA).toBeTruthy();
+    expect(walletA?.currentBalance).toBe(950000);
 
     // Wallet B transactions must remain
     const bTxs = await db.transactions.where('walletId').equals(walletBId).toArray();
@@ -207,7 +215,8 @@ describe('deleteWalletSafely', () => {
     await db.wallets.update(walletCId, { currentBalance: 500000 });
 
     // Delete Wallet A
-    await deleteWalletSafely(walletAId);
+    const result = await deleteWalletSafely(walletAId);
+    expect(result.success).toBe(true);
 
     // Wallet B returns to 500,000
     const walletB = await db.wallets.get(walletBId);

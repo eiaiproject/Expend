@@ -5,7 +5,7 @@ import { db } from '../db/db';
 import { Search, ArrowLeft, ShoppingBag, Edit2, X } from 'lucide-react';
 import { formatCurrency } from '../utils/formatUtils';
 import { displayDateMedium } from '../utils/dateUtils';
-import { getPayeeStatsFromTransactions, filterTransactionsByPayee, PayeeStats } from '../services/payeeService';
+import { getPayeeStatsFromTransactions, filterTransactionsByPayee, normalizePayeeName, PayeeStats } from '../services/payeeService';
 import { TransactionCard } from '../components/home/TransactionCard';
 import { EmptyState } from '../components/EmptyState';
 import { toast } from '../components/Toaster';
@@ -21,6 +21,22 @@ export default function PayeesView() {
   const payees = useLiveQuery(async () => {
     return await getPayeeStatsFromTransactions();
   }, []);
+  const categories = useLiveQuery(() => db.categories.toArray(), [], []);
+  const wallets = useLiveQuery(() => db.wallets.toArray(), [], []);
+
+  const categoryMap = useMemo(() => {
+    return (categories ?? []).reduce((acc, category) => {
+      if (category.id != null) acc[category.id] = category;
+      return acc;
+    }, {} as Record<number, import('../db/db').Category>);
+  }, [categories]);
+
+  const walletMap = useMemo(() => {
+    return (wallets ?? []).reduce((acc, wallet) => {
+      if (wallet.id != null) acc[wallet.id] = wallet;
+      return acc;
+    }, {} as Record<number, import('../db/db').Wallet>);
+  }, [wallets]);
 
   const filteredPayees = useMemo(() => {
     if (!payees) return [];
@@ -47,8 +63,9 @@ export default function PayeesView() {
     }
 
     await db.transactions
-      .where('description')
-      .equals(oldName)
+      .where('type')
+      .equals('expense')
+      .filter((tx) => normalizePayeeName(tx.description) === oldName)
       .modify({ description: trimmedName });
     
     toast.add(t('Renamed to') + ' ' + trimmedName);
@@ -60,6 +77,54 @@ export default function PayeesView() {
     if (!selectedPayee) return [];
     return await filterTransactionsByPayee(selectedPayee.name);
   }, [selectedPayee]);
+
+  const renameDialog = renamingPayee ? (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div
+        className="bg-[var(--card)] w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('Rename')}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold">{t('Rename')}</h3>
+          <button
+            onClick={() => setRenamingPayee(null)}
+            className="p-1 rounded-full hover:bg-[var(--bg)]"
+            aria-label={t('Close')}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <p className="text-sm text-[var(--text-secondary)]">
+          {t('All transactions with')} <span className="font-bold">{renamingPayee.name}</span> {t('will be renamed')}
+        </p>
+        <input
+          ref={renameInputRef}
+          type="text"
+          value={newPayeeName}
+          onChange={(e) => setNewPayeeName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
+        />
+        <div className="flex gap-3">
+          <button
+            onClick={() => setRenamingPayee(null)}
+            className="flex-1 py-3 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors"
+          >
+            {t('Cancel')}
+          </button>
+          <button
+            onClick={handleRename}
+            disabled={!newPayeeName.trim()}
+            className="flex-1 py-3 rounded-xl bg-[var(--accent)] text-white font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {t('Rename')}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   // Detail view
   if (selectedPayee) {
@@ -108,8 +173,8 @@ export default function PayeesView() {
                 <TransactionCard
                   key={tx.id}
                   tx={tx}
-                  categoryMap={{}}
-                  walletMap={{}}
+                  categoryMap={categoryMap}
+                  walletMap={walletMap}
                   searchTerm=""
                   hideAmount={false}
                   isSelectionMode={false}
@@ -139,6 +204,7 @@ export default function PayeesView() {
           <Edit2 size={18} />
           <span className="font-medium">{t('Rename')}</span>
         </button>
+        {renameDialog}
       </div>
     );
   }
@@ -195,45 +261,7 @@ export default function PayeesView() {
         )}
       </div>
 
-      {/* Rename Dialog */}
-      {renamingPayee && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-[var(--card)] w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold">{t('Rename')}</h3>
-              <button onClick={() => setRenamingPayee(null)} className="p-1 rounded-full hover:bg-[var(--bg)]">
-                <X size={20} />
-              </button>
-            </div>
-            <p className="text-sm text-[var(--text-secondary)]">
-              {t('All transactions with')} <span className="font-bold">{renamingPayee.name}</span> {t('will be renamed')}
-            </p>
-            <input
-              ref={renameInputRef}
-              type="text"
-              value={newPayeeName}
-              onChange={(e) => setNewPayeeName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => setRenamingPayee(null)}
-                className="flex-1 py-3 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors"
-              >
-                {t('Cancel')}
-              </button>
-              <button
-                onClick={handleRename}
-                disabled={!newPayeeName.trim()}
-                className="flex-1 py-3 rounded-xl bg-[var(--accent)] text-white font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {t('Rename')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {renameDialog}
     </div>
   );
 }

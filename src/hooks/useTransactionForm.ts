@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback, type ChangeEvent } f
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Transaction, type Wallet, type Category } from '../db/db';
-import { saveTransaction, saveTransfer } from '../services/transactionSaveService';
+import { INSUFFICIENT_WALLET_BALANCE_MESSAGE, saveTransaction, saveTransfer } from '../services/transactionSaveService';
 import { resolveCategory } from '../services/categoryService';
 import { getTodayStr } from '../utils/dateUtils';
 import { toast } from '../components/Toaster';
@@ -275,7 +275,11 @@ export function useTransactionForm({
       onClose();
       return true;
     } catch (err) {
-      toast.add(t('Action failed'));
+      if (err instanceof Error && err.message === INSUFFICIENT_WALLET_BALANCE_MESSAGE) {
+        toast.add(t(INSUFFICIENT_WALLET_BALANCE_MESSAGE));
+      } else {
+        toast.add(t('Action failed'));
+      }
       return false;
     } finally {
       setIsSubmitting(false);

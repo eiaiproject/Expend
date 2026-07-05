@@ -52,6 +52,10 @@ export default function SettingsView() {
   const { theme, setTheme } = useTheme();
   const { deferredPrompt, showInstallPrompt } = useInstallPrompt();
 
+  const getImportInvalidMessage = (count?: number) => (
+    count ? t('Import Invalid Count', { count }) : t('Import Invalid')
+  );
+
   const handleLangChange = async (lang: string) => {
     await i18n.changeLanguage(lang);
     await db.settings.put({ key: 'language', value: lang });
@@ -74,7 +78,7 @@ export default function SettingsView() {
     if (!file) return;
 
     if (file.size > MAX_IMPORT_FILE_SIZE) {
-      toast.add(t('Import Invalid'));
+      toast.add(getImportInvalidMessage());
       e.target.value = '';
       return;
     }
@@ -83,10 +87,8 @@ export default function SettingsView() {
       const { rows, errors } = await parseTransactionsCsv(file);
       
       if (errors.length > 0) {
-        const errorSummary = errors.length === 1 
-          ? errors[0] 
-          : `${errors[0]} (+${errors.length - 1} more)`;
-        toast.add(`${t('Import Invalid')} ${errorSummary}`);
+        console.warn('CSV import validation failed:', errors);
+        toast.add(getImportInvalidMessage(errors.length));
         // In a real app, we'd show a preview modal here.
         // For now, we'll only import if there are NO errors.
         if (errors.length > 0) {
@@ -119,7 +121,7 @@ export default function SettingsView() {
     if (!file) return;
 
     if (file.size > MAX_IMPORT_FILE_SIZE) {
-      toast.add(t('Import Invalid'));
+      toast.add(getImportInvalidMessage());
       e.target.value = '';
       return;
     }
@@ -131,10 +133,8 @@ export default function SettingsView() {
 
         const errors = validateImportData(json);
         if (errors.length > 0) {
-          const errorSummary = errors.length === 1 
-            ? errors[0] 
-            : `${errors[0]} (+${errors.length - 1} more)`;
-          toast.add(`${t('Import Invalid')} ${errorSummary}`);
+          console.warn('JSON import validation failed:', errors);
+          toast.add(getImportInvalidMessage(errors.length));
           return;
         }
 

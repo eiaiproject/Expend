@@ -1,7 +1,7 @@
 import { useId, useRef, type KeyboardEvent } from 'react';
 import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
-import { X, ArrowDownCircle, Repeat, Wallet as WalletIcon, Plus } from 'lucide-react';
+import { X, ArrowDownCircle, Repeat, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { type Transaction } from '../db/db';
 import { cn } from '../utils/cn';
@@ -10,6 +10,7 @@ import { useTransactionForm } from '../hooks/useTransactionForm';
 import { BottomSheetShell } from './BottomSheetShell';
 import { CategorySelect } from './CategorySelect';
 import { DatePicker } from './DatePicker';
+import { WalletSelect } from './WalletSelect';
 import type { TransactionType } from '../hooks/useTransactionForm';
 
 interface TransactionFormSheetProps {
@@ -21,6 +22,7 @@ interface TransactionFormSheetProps {
 
 export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 'expense' }: TransactionFormSheetProps) {
   const { t } = useTranslation();
+  const isEditingExistingTransaction = !!txToEdit?.id;
   const formId = useId();
   const amountInputId = `${formId}-amount`;
   const descriptionInputId = `${formId}-description`;
@@ -96,23 +98,15 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
       return;
     }
 
-    const success = await actions.handleSubmit();
-    if (!success && state.amount && state.description) {
-      // Only show error if form was filled (not validation empty)
-      if (state.type === 'transfer' && parseInt(state.walletId, 10) === parseInt(state.toWalletId, 10)) {
-        // Already toasted above
-      } else {
-        toast.add(t('Error'));
-      }
-    }
+    await actions.handleSubmit();
   };
 
   return (
     <BottomSheetShell
       isOpen={isOpen}
       onClose={onClose}
-      title={txToEdit ? t('Edit') : t('Add Transaction')}
-      ariaLabel={txToEdit ? t('Edit') : t('Add Transaction')}
+      title={isEditingExistingTransaction ? t('Edit') : t('Add Transaction')}
+      ariaLabel={isEditingExistingTransaction ? t('Edit') : t('Add Transaction')}
     >
       <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
         {/* Type Tabs */}
@@ -253,7 +247,7 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
           />
           {state.type !== 'transfer' && (
             <div>
-              <label htmlFor={categoryInputId} className="block text-sm font-medium mb-1">{t('Category')} *</label>
+              <label htmlFor={categoryInputId} className="block text-sm font-medium mb-1">{t('Category')}</label>
               <CategorySelect
                 id={categoryInputId}
                 categories={categories}
@@ -271,42 +265,24 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
             <label htmlFor={walletInputId} className="block text-sm font-medium mb-1">
               {state.type === 'transfer' ? t('From Wallet') : t('Wallet')} *
             </label>
-            <div className="relative">
-              <WalletIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} aria-hidden="true" />
-              <select
-                id={walletInputId}
-                name="walletId"
-                required
-                value={state.walletId}
-                onChange={(e) => actions.setWalletId(e.target.value)}
-                className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl pl-12 pr-10 py-3 text-[var(--text-primary)] focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] appearance-none"
-              >
-                <option value="" disabled>{t('Select Wallet')}</option>
-                {wallets.map((w) => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
-              </select>
-            </div>
+            <WalletSelect
+              id={walletInputId}
+              value={state.walletId}
+              wallets={wallets}
+              placeholder={t('Select Wallet')}
+              onChange={actions.setWalletId}
+            />
           </div>
           {state.type === 'transfer' && (
             <div>
               <label htmlFor={toWalletInputId} className="block text-sm font-medium mb-1">{t('To Wallet')} *</label>
-              <div className="relative">
-                <WalletIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} aria-hidden="true" />
-                <select
-                  id={toWalletInputId}
-                  name="toWalletId"
-                  required
-                  value={state.toWalletId}
-                  onChange={(e) => actions.setToWalletId(e.target.value)}
-                  className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl pl-12 pr-10 py-3 text-[var(--text-primary)] focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] appearance-none"
-                >
-                  <option value="" disabled>{t('Select Destination Wallet')}</option>
-                  {wallets.map((w) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
-              </div>
+              <WalletSelect
+                id={toWalletInputId}
+                value={state.toWalletId}
+                wallets={wallets}
+                placeholder={t('Select Destination Wallet')}
+                onChange={actions.setToWalletId}
+              />
             </div>
           )}
         </div>

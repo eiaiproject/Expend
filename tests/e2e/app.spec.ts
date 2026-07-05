@@ -76,6 +76,8 @@ test.describe('Scenario B — core routes render', () => {
     { name: 'Home', path: '/', link: /home/i, fallbackHeading: /(home|expend|welcome)/i },
     { name: 'Wallets', path: '/wallets', link: /wallets/i, fallbackHeading: /wallets/i },
     { name: 'Debts', path: '/debts', link: /(debts|receivables)/i, fallbackHeading: /(debt|receivable|hutang|piutang)/i },
+    { name: 'Payees', path: '/payees', link: /(recipients|merchants)/i, fallbackHeading: /(recipients|merchants|payees)/i },
+    { name: 'Categories', path: '/categories', link: /categories/i, fallbackHeading: /categories/i },
     { name: 'Stats', path: '/stats', link: /stats/i, fallbackHeading: /stats/i },
     { name: 'Settings', path: '/settings', link: /(settings|more)/i, fallbackHeading: /settings/i },
   ];
@@ -295,6 +297,88 @@ test.describe('Scenario F — accessibility invariants', () => {
     });
     const mainCount = await page.locator('main').count();
     expect(mainCount).toBeGreaterThanOrEqual(1);
+  });
+});
+
+test.describe('Scenario G — payee grouping and rename', () => {
+  test.beforeEach(async ({ page }) => {
+    await visitApp(page);
+    await completeOnboarding(page, {
+      walletName: uniqueName('PayeeCash'),
+      walletBalance: '500000',
+      categories: ['Food & Drinks'],
+    });
+  });
+
+  test('renames every expense in a normalized merchant group', async ({ page }) => {
+    const merchantA = uniqueName('starbucks').toLowerCase();
+    const merchantB = merchantA.toUpperCase();
+    const nextName = uniqueName('Sbux');
+
+    await page.goto('/');
+    await createExpense(page, {
+      amount: '20000',
+      description: merchantA,
+      categoryName: 'Food & Drinks',
+    });
+    await createExpense(page, {
+      amount: '30000',
+      description: merchantB,
+      categoryName: 'Food & Drinks',
+    });
+
+    await page.goto('/payees');
+    await page.getByRole('button', { name: new RegExp(merchantA, 'i') }).first().click();
+    await page.getByRole('button', { name: /^rename$/i }).click();
+
+    const dialog = page.getByRole('dialog', { name: /^rename$/i });
+    await dialog.locator('input').fill(nextName);
+    await dialog.getByRole('button', { name: /^rename$/i }).click();
+    await expect(dialog).toBeHidden();
+
+    const txs = await readTable<{ description: string; type: string }>(page, 'transactions');
+    const renamed = txs.filter((tx) => tx.type === 'expense' && tx.description === nextName);
+    expect(renamed).toHaveLength(2);
+    expect(txs.some((tx) => tx.description === merchantA || tx.description === merchantB)).toBe(false);
+  });
+});
+
+test.describe('Scenario H — PIN security', () => {
+  test.beforeEach(async ({ page }) => {
+    await visitApp(page);
+    await completeOnboarding(page, {
+      walletName: uniqueName('SecureCash'),
+      walletBalance: '0',
+      categories: [],
+    });
+  });
+
+  test('current PIN can be verified immediately after setup without reload', async ({ page }) => {
+    await page.goto('/settings');
+    await page.getByRole('button', { name: /^security$/i }).click();
+    await page.getByRole('button', { name: /set up pin/i }).click();
+
+    let dialog = page.getByRole('dialog', { name: /create pin/i });
+    for (const digit of ['1', '2', '3', '4']) {
+      await dialog.getByRole('button', { name: digit }).click();
+    }
+    await dialog.getByRole('button', { name: /^next$/i }).click();
+
+    dialog = page.getByRole('dialog', { name: /confirm pin/i });
+    for (const digit of ['1', '2', '3', '4']) {
+      await dialog.getByRole('button', { name: digit }).click();
+    }
+    await dialog.getByRole('button', { name: /^confirm$/i }).click();
+    await expect(dialog).toBeHidden();
+
+    await page.getByRole('button', { name: /change pin/i }).click();
+    const verifyDialog = page.getByRole('dialog', { name: /current pin/i });
+    for (const digit of ['1', '2', '3', '4']) {
+      await verifyDialog.getByRole('button', { name: digit }).click();
+    }
+    await verifyDialog.getByRole('button', { name: /^confirm$/i }).click();
+
+    await expect(page.getByRole('dialog', { name: /create pin/i })).toBeVisible();
   });
 });
 

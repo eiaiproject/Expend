@@ -6,6 +6,7 @@ import { Tag, Plus, Edit2, Trash2, Check, X, Save, ArrowLeft, HelpCircle } from 
 import { useNavigate } from 'react-router-dom';
 
 import { cn } from '../utils/cn';
+import { FALLBACK_CATEGORY_NAME, getCategoryDisplayName } from '../utils/categoryDisplay';
 import { getMonthStartStr, getNextMonthStartStr, normaliseDate } from '../utils/dateUtils';
 import { confirm } from '../components/ConfirmDialog';
 import { toast } from '../components/Toaster';
@@ -130,6 +131,11 @@ export default function CategoriesView() {
     try {
       const count = await db.transactions.where('categoryId').equals(id).count();
       const catToDelete = categories?.find(c => c.id === id);
+
+      if (catToDelete?.name === FALLBACK_CATEGORY_NAME && count > 0) {
+        toast.add(t('Fallback category delete blocked'));
+        return;
+      }
       
       if (count > 0) {
         const confirmed = await confirm({ 
@@ -139,12 +145,10 @@ export default function CategoriesView() {
         });
         if (!confirmed) return;
 
-        // Use canonical fallback name "__OTHER__" to avoid i18n-dependent identity
-        const FALLBACK_NAME = '__OTHER__';
         const FALLBACK_COLOR = '#64748B';
         
         // Find existing fallback category (by canonical name)
-        let otherCategory = categories?.find(c => c.name === FALLBACK_NAME);
+        let otherCategory = categories?.find(c => c.name === FALLBACK_CATEGORY_NAME);
         let otherCategoryId: number;
         
         // Store backup for undo
@@ -159,7 +163,7 @@ export default function CategoriesView() {
           } else {
             // Create fallback category inside the same transaction
             const newId = await db.categories.add({
-              name: FALLBACK_NAME,
+              name: FALLBACK_CATEGORY_NAME,
               icon: '🏷️',
               color: FALLBACK_COLOR,
             });
@@ -174,7 +178,9 @@ export default function CategoriesView() {
 
         // Show undo toast
         toast.add(
-          t('Category deleted. Transactions moved to {{name}}.', { name: otherCategory?.name ?? FALLBACK_NAME }),
+          t('Category deleted. Transactions moved to {{name}}.', {
+            name: getCategoryDisplayName(otherCategory?.name ?? FALLBACK_CATEGORY_NAME, t),
+          }),
           async () => {
             // Undo: restore category and reassign transactions back
             if (originalCategory && originalCategory.id != null) {
@@ -358,6 +364,8 @@ export default function CategoriesView() {
             const progress = hasBudget ? budgetProgress(cat.spendingThisMonth, cat.budget!) : 0;
             const isOverBudget = progress >= 100;
             const isNearLimit = progress >= 80 && !isOverBudget;
+            const displayName = getCategoryDisplayName(cat.name, t);
+            const isFallbackCategory = cat.name === FALLBACK_CATEGORY_NAME;
 
             return (
               <div
@@ -422,28 +430,30 @@ export default function CategoriesView() {
                           style={{ backgroundColor: cat.color }}
                         />
                         <div className="min-w-0">
-                          <h3 className="font-bold text-sm truncate">{cat.name}</h3>
+                          <h3 className="font-bold text-sm truncate">{displayName}</h3>
                           <p className="text-[11px] text-[var(--text-secondary)]">
                             {cat.txCount} {t('transactions')}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={() => handleStartEdit(cat)}
-                          className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-lg hover:bg-[var(--bg)]"
-                          aria-label={t('Edit')}
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(cat.id)}
-                          className="p-1.5 text-[var(--text-secondary)] hover:text-red-500 transition-colors rounded-lg hover:bg-[var(--bg)]"
-                          aria-label={t('Delete')}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                      {!isFallbackCategory && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleStartEdit(cat)}
+                            className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-lg hover:bg-[var(--bg)]"
+                            aria-label={t('Edit')}
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(cat.id)}
+                            className="p-1.5 text-[var(--text-secondary)] hover:text-red-500 transition-colors rounded-lg hover:bg-[var(--bg)]"
+                            aria-label={t('Delete')}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Spending & Budget Info */}
@@ -470,7 +480,7 @@ export default function CategoriesView() {
                             aria-valuemin={0}
                             aria-valuemax={100}
                             aria-valuenow={Math.round(progress)}
-                            aria-label={t('Budget progress for {{name}}: {{percent}}%', { name: cat.name, percent: Math.round(progress) })}
+                            aria-label={t('Budget progress for {{name}}: {{percent}}%', { name: displayName, percent: Math.round(progress) })}
                           >
                             <div
                               className={cn(

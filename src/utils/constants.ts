@@ -12,14 +12,14 @@ export const CURATED_PALETTE = [
 
 /** Default categories shown during onboarding. */
 export const DEFAULT_CATEGORIES = [
-  { name: 'Food & Drinks', color: '#EF4444' },
-  { name: 'Transportation', color: '#F97316' },
-  { name: 'Shopping', color: '#EAB308' },
-  { name: 'Entertainment', color: '#A855F7' },
-  { name: 'Bills & Subscriptions', color: '#06B6D4' },
-  { name: 'Healthcare', color: '#22C55E' },
-  { name: 'Education', color: '#3B82F6' },
-  { name: 'Other', color: '#64748B' },
+  { nameKey: 'Default Category Food & Drinks', color: '#EF4444' },
+  { nameKey: 'Default Category Transportation', color: '#F97316' },
+  { nameKey: 'Default Category Shopping', color: '#EAB308' },
+  { nameKey: 'Default Category Entertainment', color: '#A855F7' },
+  { nameKey: 'Default Category Bills & Subscriptions', color: '#06B6D4' },
+  { nameKey: 'Default Category Healthcare', color: '#22C55E' },
+  { nameKey: 'Default Category Education', color: '#3B82F6' },
+  { nameKey: 'Default Category Other', color: '#64748B' },
 ] as const;
 
 /** App version displayed in InfoPopup and Settings. Derived from package.json via Vite define. */

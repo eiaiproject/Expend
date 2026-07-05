@@ -94,6 +94,25 @@ test.describe('wallet balance smoke', () => {
     expect(pair[1].transferGroupId).toBe(pair[0].transferGroupId);
   });
 
+  test('transfer detail does not allow repeat without paired wallet context', async ({ page }) => {
+    const fromWallet = await onboard(page, uniqueName('RepeatFrom'), []);
+    const toWallet = uniqueName('RepeatTo');
+    const description = uniqueName('repeat-transfer');
+
+    await createWallet(page, toWallet, '100000');
+    await page.goto('/');
+    await createTransfer(page, {
+      amount: '50000',
+      description,
+      fromWallet,
+      toWallet,
+    });
+
+    await page.locator('[data-testid="transaction-row"]', { hasText: `${description} (Out)` }).first().click();
+    await expect(page.getByRole('dialog', { name: new RegExp(description, 'i') })).toBeVisible();
+    await expect(page.getByRole('button', { name: /repeat transaction/i })).toBeDisabled();
+  });
+
   test('payable debt cashflow and repayment update wallet and debt records', async ({ page }) => {
     const walletName = await onboard(page, uniqueName('Debt'), []);
     const personName = uniqueName('Alice');
@@ -167,7 +186,8 @@ test.describe('wallet balance smoke', () => {
     const originalId = before[0].id;
 
     await openTransactionForEdit(page, description);
-    await page.locator('form select[name="walletId"]').selectOption({ label: toWallet });
+    await page.locator('form [data-wallet-select]').first().getByRole('combobox').click();
+    await page.getByRole('option', { name: toWallet, exact: true }).click();
     await page.getByRole('button', { name: /^save$/i }).first().click();
     await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
     await page.waitForTimeout(500);
@@ -357,5 +377,41 @@ test.describe('wallet balance smoke', () => {
     expect(payments).toHaveLength(2);
     expect(payments.some((payment) => payment.type === 'initial' && Number(payment.amount) === 200_000)).toBe(true);
     expect(payments.some((payment) => payment.type === 'repayment' && Number(payment.amount) === 100_000)).toBe(true);
+  });
+
+  test('CSV import preserves existing debt cashflow while recomputing wallet balance', async ({ page }) => {
+    const walletName = await onboard(page, uniqueName('CsvDebt'), ['Food & Drinks']);
+    const personName = uniqueName('AliceCsv');
+
+    await createDebt(page, {
+      personName,
+      amount: '100000',
+      walletName,
+      type: 'payable',
+    });
+    await expectWalletBalance(page, walletName, BASE_BALANCE_NUM + 100_000);
+
+    const csv = [
+      'date,wallet,category,recipient,amount,notes,type',
+      `2025-01-15,${walletName},Food & Drinks,CSV Lunch,50000,,expense`,
+      '',
+    ].join('\n');
+
+    await page.goto('/settings');
+    await page.getByRole('button', { name: /^data$/i }).click();
+    await page.locator('input[type="file"][accept=".csv"]').setInputFiles({
+      name: 'expend-transactions.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(csv),
+    });
+    await page.getByRole('dialog', { name: /import csv/i })
+      .getByRole('button', { name: /confirm|konfirmasi/i })
+      .click();
+    await page.waitForTimeout(1_200);
+
+    await expectWalletBalance(page, walletName, BASE_BALANCE_NUM + 100_000 - 50_000);
+
+    const txs = await readTransactions(page);
+    expect(txs.some((tx) => tx.description === 'CSV Lunch' && Number(tx.amount) === 50_000)).toBe(true);
   });
 });

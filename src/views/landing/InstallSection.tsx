@@ -170,27 +170,27 @@ export function LandingFooter() {
   };
 
   return (
-    <footer className="py-12 sm:py-16 px-4 sm:px-6 relative z-10 border-t border-white/5">
+    <footer className="py-8 sm:py-12 px-4 sm:px-6 relative z-10 border-t border-[var(--border-subtle)]">
       <div className="max-w-4xl mx-auto">
         {/* Logo & Tagline */}
         <button
           type="button"
           onClick={scrollToTop}
-          className="block w-full text-center cursor-pointer mb-8 sm:mb-10 group"
+          className="block w-full text-center cursor-pointer mb-6 sm:mb-8 group"
         >
           <h2
-            className="text-2xl sm:text-3xl tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors mb-2"
+            className="text-xl sm:text-2xl tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors mb-1"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Expend
           </h2>
-          <p className="text-sm sm:text-base text-[var(--text-secondary)] font-light">
+          <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
             {t('landing.footerTagline')}
           </p>
         </button>
 
         {/* Quick Links */}
-        <div className="flex justify-center flex-wrap gap-6 sm:gap-8 mb-8 sm:mb-10">
+        <div className="flex justify-center flex-wrap gap-4 sm:gap-6 mb-6 sm:mb-8">
           <a
             href="#features-section"
             className="text-xs sm:text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
@@ -213,13 +213,10 @@ export function LandingFooter() {
           </a>
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-[var(--border-subtle)] mb-8 sm:mb-10" />
-
         {/* Bottom */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-xs text-[var(--text-secondary)]/60">
+        <div className="text-center text-xs text-[var(--text-muted)]">
           <span>{APP_VERSION}</span>
-          <span className="hidden sm:inline">|</span>
+          <span className="mx-2">·</span>
           <span>{t('landing.footerCopyright')}</span>
         </div>
       </div>

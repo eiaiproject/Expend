@@ -1,15 +1,17 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowDownLeft, ArrowUpRight, Wallet as WalletIcon } from 'lucide-react';
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { db, type Debt, type DebtType, type Wallet } from '../../db/db';
 import { createDebt, updateDebt } from '../../services/debtService';
+import { getKnownErrorMessage, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '../../services/errors';
 import { getTodayStr } from '../../utils/dateUtils';
 import { formatCurrency } from '../../utils/formatUtils';
 import { cn } from '../../utils/cn';
 import { BottomSheetShell } from '../BottomSheetShell';
 import { DatePicker } from '../DatePicker';
 import { toast } from '../Toaster';
+import { WalletSelect } from '../WalletSelect';
 
 interface DebtFormSheetProps {
   isOpen: boolean;
@@ -19,6 +21,7 @@ interface DebtFormSheetProps {
 }
 
 const EMPTY_WALLETS: Wallet[] = [];
+const EMPTY_DEBTS: Debt[] = [];
 
 function parseAmount(value: string): number {
   return parseInt(value.replace(/[^0-9]/g, ''), 10) || 0;
@@ -29,17 +32,13 @@ function formatAmountInput(value: string): string {
   return raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Save debt failed';
-}
-
 export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit = null }: DebtFormSheetProps) {
   const { t } = useTranslation();
   const formId = useId();
   const queriedWallets = useLiveQuery(() => db.wallets.toArray(), [], undefined);
   const queriedDebts = useLiveQuery(() => db.debts.toArray(), [], undefined);
   const wallets = queriedWallets ?? EMPTY_WALLETS;
-  const debts = queriedDebts ?? [];
+  const debts = queriedDebts ?? EMPTY_DEBTS;
   const isEdit = !!debtToEdit;
 
   const [step, setStep] = useState<'type' | 'details'>('type');
@@ -112,6 +111,8 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
 
   const rawAmount = parseAmount(amount);
   const isPayable = type === 'payable';
+  const walletBalance = selectedWallet ? (selectedWallet.currentBalance ?? selectedWallet.initialBalance) : 0;
+  const hasInsufficientBalance = !isEdit && !isPayable && rawAmount > 0 && selectedWallet != null && rawAmount > walletBalance;
   const titleText = isEdit
     ? (isPayable ? t('Edit Payable') : t('Edit Receivable'))
     : step === 'type'
@@ -154,7 +155,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
 
       onClose();
     } catch (error) {
-      toast.add(getErrorMessage(error));
+      toast.add(getKnownErrorMessage(error, t, 'Save debt failed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -301,21 +302,19 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
             <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
               {isPayable ? t('Money into wallet') : t('Money from wallet')} *
             </label>
-            <div className="relative">
-              <WalletIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} />
-              <select
-                id={`${formId}-wallet`}
-                required
-                value={walletId}
-                onChange={(event) => setWalletId(event.target.value)}
-                className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-10 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-              >
-                <option value="" disabled>{t('Select wallet')}</option>
-                {wallets.map((wallet) => (
-                  <option key={wallet.id} value={wallet.id}>{wallet.name}</option>
-                ))}
-              </select>
-            </div>
+            <WalletSelect
+              id={`${formId}-wallet`}
+              value={walletId}
+              wallets={wallets}
+              placeholder={t('Select wallet')}
+              onChange={setWalletId}
+            />
+            {hasInsufficientBalance && (
+              <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                <span>{t(INSUFFICIENT_WALLET_BALANCE_MESSAGE)}</span>
+              </div>
+            )}
           </div>
 
           <DatePicker
@@ -375,7 +374,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
           <div className="pt-2 pb-6">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || hasInsufficientBalance}
               className="w-full rounded-xl bg-[var(--accent)] py-4 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
             >
               {isEdit ? t('Save Changes') : isPayable ? t('Save Payable') : t('Save Receivable')}

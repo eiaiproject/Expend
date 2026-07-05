@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowDownCircle, ArrowUpRight, ArrowDownLeft, RefreshCw, Edit2, Trash2, CheckCircle2, MoreVertical, Eye } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { getCategoryDisplayName } from '../../utils/categoryDisplay';
 import { formatCurrencyValue } from '../../utils/formatUtils';
 import { displayDateShort } from '../../utils/dateUtils';
 import { SearchHighlight } from '../SearchHighlight';
@@ -41,6 +42,9 @@ export function TransactionCard({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const renderAmountValue = (amount: number) => formatCurrencyValue(amount, hideAmount);
+  const categoryName = tx.categoryId
+    ? getCategoryDisplayName(categoryMap[tx.categoryId]?.name, t) || '-'
+    : '-';
   
   const isExpenseOrTransferOut = tx.type === 'expense' || tx.type === 'transfer_out' || 
     (tx.type === 'balance_adjustment' && tx.amount < 0);
@@ -69,7 +73,7 @@ export function TransactionCard({
   };
 
   return (
-    <div className="relative group overflow-hidden rounded-[16px]">
+    <div className={cn("relative group rounded-[16px]", isMenuOpen && "z-40")}>
       {/* Transaction Card */}
       <div
         className={cn(
@@ -130,7 +134,7 @@ export function TransactionCard({
             </p>
           </div>
           <p className="text-[12px] text-[var(--text-secondary)]">
-            {tx.categoryId ? categoryMap[tx.categoryId]?.name : '-'} • {displayDateShort(tx.date, i18n.language)}
+            {categoryName} • {displayDateShort(tx.date, i18n.language)}
           </p>
           <div className="flex items-center gap-1 mt-0.5">
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--border)] text-[var(--text-primary)] font-medium">

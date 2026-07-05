@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Check, X } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { getCategoryDisplayName } from '../utils/categoryDisplay';
 import { Category } from '../db/db';
 
 interface CategorySelectProps {
@@ -23,6 +24,7 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
   const autoId = useId();
   const listboxId = `${autoId}-listbox`;
   const inputId = id || `${autoId}-input`;
+  const displayValue = getCategoryDisplayName(value, t);
 
   // Sync search with external value
   useEffect(() => {
@@ -46,20 +48,22 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
     if (!searchTerm.trim()) return categories;
     const lower = searchTerm.toLowerCase();
     return categories.filter(cat => 
-      cat.name.toLowerCase().includes(lower)
+      cat.name.toLowerCase().includes(lower) ||
+      getCategoryDisplayName(cat.name, t).toLowerCase().includes(lower)
     );
-  }, [categories, searchTerm]);
+  }, [categories, searchTerm, t]);
 
   // Check if exact match exists
   const hasExactMatch = useMemo(() => {
     return categories.some(cat => 
-      cat.name.toLowerCase() === searchTerm.toLowerCase().trim()
+      cat.name.toLowerCase() === searchTerm.toLowerCase().trim() ||
+      getCategoryDisplayName(cat.name, t).toLowerCase() === searchTerm.toLowerCase().trim()
     );
-  }, [categories, searchTerm]);
+  }, [categories, searchTerm, t]);
 
   const handleSelect = (category: Category) => {
     onChange(category.name);
-    setSearchTerm(category.name);
+    setSearchTerm(getCategoryDisplayName(category.name, t));
     setIsOpen(false);
     setActiveIndex(-1);
   };
@@ -152,7 +156,7 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
           id={inputId}
           ref={inputRef}
           type="text"
-          value={isOpen ? searchTerm : value}
+          value={isOpen ? searchTerm : displayValue}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onKeyDown={handleKeyDown}
@@ -227,7 +231,7 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
                   style={{ backgroundColor: category.color }}
                   aria-hidden="true"
                 />
-                <span className="flex-1 truncate">{category.name}</span>
+                <span className="flex-1 truncate">{getCategoryDisplayName(category.name, t)}</span>
                 {value.toLowerCase() === category.name.toLowerCase() && (
                   <Check size={16} className="text-[var(--accent)] shrink-0" aria-hidden="true" />
                 )}

@@ -205,12 +205,16 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   const setupPin = useCallback(async (pin: string) => {
     const pinHash = await hashPin(pin);
     const length = pin.length;
-    await db.settings.put({ key: 'security', value: {
+    const nextSettings: SecuritySettingsValue = {
       enabled: true,
       method: 'pin',
       pinHash,
       pinLength: length,
-    } });
+    };
+
+    await db.settings.put({ key: 'security', value: nextSettings });
+    securitySettingsRef.current = nextSettings;
+    securitySettingsPromiseRef.current = Promise.resolve(nextSettings);
     setSecurityEnabled(true);
     setSecurityMethod('pin');
     setPinLength(length);
@@ -220,6 +224,8 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   const disableSecurity = useCallback(async () => {
     await db.settings.delete('security');
     await db.settings.delete('lockout_record');
+    securitySettingsRef.current = null;
+    securitySettingsPromiseRef.current = Promise.resolve(null);
     setSecurityEnabled(false);
     setSecurityMethod(null);
     setIsLocked(false);

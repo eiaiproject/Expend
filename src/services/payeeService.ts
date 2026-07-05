@@ -110,6 +110,9 @@ export async function getPayeeStatsFromTransactions(): Promise<PayeeStats[]> {
  * Filters transactions by a specific payee name.
  */
 export async function filterTransactionsByPayee(payeeName: string): Promise<Transaction[]> {
-  const transactions = await db.transactions.toArray();
+  const transactions = await db.transactions
+    .where('type')
+    .equals('expense')
+    .toArray();
   return transactions.filter(tx => normalizePayeeName(tx.description) === payeeName);
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Calendar, Wallet as WalletIcon, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../utils/cn';
+import { getCategoryDisplayName } from '../utils/categoryDisplay';
 import { BottomSheetShell } from './BottomSheetShell';
 
 interface FilterSheetProps {
@@ -200,7 +201,7 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets, act
                       >
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                          {cat.name}
+                          {getCategoryDisplayName(cat.name, t)}
                         </div>
                         {isSelected && <Check size={16} />}
                       </button>
@@ -283,7 +284,7 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets, act
                         inputMode="numeric"
                         value={formatAmountInput(draft.maxAmount)}
                         onChange={(e) => handleAmountChange(e.target.value, 'maxAmount')}
-                        placeholder="Unlimited"
+                        placeholder={t('Unlimited')}
                         className="w-full pl-8 pr-3 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] font-mono"
                       />
                     </div>

@@ -18,6 +18,13 @@
 import { db } from '../db/db';
 import { getBalanceDelta } from '../utils/balanceUtils';
 
+export interface DeleteWalletResult {
+  success: boolean;
+  reason?: string;
+  reasonKey?: string;
+  reasonOptions?: Record<string, number | string>;
+}
+
 /**
  * Delete a wallet safely inside a single Dexie transaction.
  *
@@ -33,7 +40,7 @@ import { getBalanceDelta } from '../utils/balanceUtils';
  * Result: deletion only succeeds when there are no irreversible references
  * that would leave dangling financial history.
  */
-export async function deleteWalletSafely(walletId: number): Promise<{ success: boolean; reason?: string }> {
+export async function deleteWalletSafely(walletId: number): Promise<DeleteWalletResult> {
   try {
     // 1. Always block debts (active loan ledger)
     const debtCount = await db.debts
@@ -45,6 +52,8 @@ export async function deleteWalletSafely(walletId: number): Promise<{ success: b
       return {
         success: false,
         reason: `Wallet cannot be deleted because it is linked to ${debtCount} active debt(s)/receivable(s).`,
+        reasonKey: 'Wallet delete blocked active debts',
+        reasonOptions: { count: debtCount },
       };
     }
 
@@ -57,6 +66,8 @@ export async function deleteWalletSafely(walletId: number): Promise<{ success: b
       return {
         success: false,
         reason: `Wallet cannot be deleted because it has ${paymentCount} debt payment record(s).`,
+        reasonKey: 'Wallet delete blocked debt payments',
+        reasonOptions: { count: paymentCount },
       };
     }
 
@@ -72,6 +83,8 @@ export async function deleteWalletSafely(walletId: number): Promise<{ success: b
       return {
         success: false,
         reason: `Wallet cannot be deleted because it has ${nonTransferTxs.length} associated transaction(s).`,
+        reasonKey: 'Wallet delete blocked transactions',
+        reasonOptions: { count: nonTransferTxs.length },
       };
     }
 
@@ -124,6 +137,7 @@ export async function deleteWalletSafely(walletId: number): Promise<{ success: b
     return {
       success: false,
       reason: err instanceof Error ? err.message : 'An unknown error occurred',
+      reasonKey: 'Wallet delete failed unknown',
     };
   }
 }

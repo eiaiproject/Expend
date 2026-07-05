@@ -4,6 +4,7 @@ import { sanitizeCsvRows } from './importExportService';
 import { getTodayStr, normaliseDate } from '../utils/dateUtils';
 import { downloadBlob } from '../utils/downloadUtils';
 import { VALID_TX_TYPES } from '../utils/constants';
+import { recomputeWalletCurrentBalances } from '../utils/balanceUtils';
 
 export interface TransactionCsvRow {
   date: string;
@@ -13,6 +14,7 @@ export interface TransactionCsvRow {
   amount: string;
   notes: string;
   type: string;
+  transferGroupId: string;
 }
 
 export interface DebtCsvRow {
@@ -57,6 +59,7 @@ export async function exportTransactionsCsv(): Promise<void> {
     amount: tx.amount.toString(),
     notes: tx.notes || '',
     type: tx.type,
+    transferGroupId: tx.transferGroupId || '',
   }));
 
   const csv = Papa.unparse(sanitizeCsvRows(rows));
@@ -167,19 +170,24 @@ export async function parseTransactionsCsv(file: File): Promise<{ rows: any[]; e
             }
           }
 
-          const amount = parseFloat(amountStr);
-          if (isNaN(amount) || amount <= 0) {
-            errors.push(`Row ${rowNum}: Amount must be a positive number.`);
-            return;
-          }
-
-          if (!type || !VALID_TX_TYPES.includes(type as any)) {
+          if (!type || !VALID_TX_TYPES.includes(type as typeof VALID_TX_TYPES[number])) {
             errors.push(`Row ${rowNum}: Invalid type "${type}". Allowed: ${VALID_TX_TYPES.join(', ')}.`);
             return;
           }
 
-          if (type === 'income') {
-            errors.push(`Row ${rowNum}: Income type is not supported.`);
+          const amount = parseFloat(amountStr);
+          if (!Number.isFinite(amount)) {
+            errors.push(`Row ${rowNum}: Amount must be a valid number.`);
+            return;
+          }
+
+          if (type === 'balance_adjustment') {
+            if (amount === 0) {
+              errors.push(`Row ${rowNum}: Balance adjustment amount must not be zero.`);
+              return;
+            }
+          } else if (amount <= 0) {
+            errors.push(`Row ${rowNum}: Amount must be a positive number.`);
             return;
           }
 
@@ -191,6 +199,7 @@ export async function parseTransactionsCsv(file: File): Promise<{ rows: any[]; e
             amount,
             type,
             notes: row.notes || '',
+            transferGroupId: row.transferGroupId || undefined,
           });
         });
 
@@ -204,18 +213,22 @@ export async function parseTransactionsCsv(file: File): Promise<{ rows: any[]; e
  * Import validated CSV transactions.
  */
 export async function importCsvTransactions(rows: any[]): Promise<void> {
-  await db.transaction('rw', [db.transactions, db.wallets], async () => {
+  await db.transaction('rw', [db.transactions, db.wallets, db.debts, db.debtPayments], async () => {
     for (const row of rows) {
       await db.transactions.add(row);
     }
 
     const wallets = await db.wallets.toArray();
     const transactions = await db.transactions.toArray();
+    const debts = await db.debts.toArray();
+    const debtPayments = await db.debtPayments.toArray();
     
-    // Use the balance utils we just updated
-    const recomputed = (await import('../utils/balanceUtils')).recomputeWalletCurrentBalances(wallets, transactions);
+    const recomputed = recomputeWalletCurrentBalances(wallets, transactions, debts, debtPayments);
     for (const w of recomputed) {
-      await db.wallets.update(w.id!, { currentBalance: w.currentBalance });
+      await db.wallets.update(w.id!, {
+        currentBalance: w.currentBalance,
+        lastUpdated: new Date().toISOString(),
+      });
     }
   });
 }

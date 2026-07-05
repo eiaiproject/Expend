@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
 import { type Debt, type DebtPayment, type Wallet } from '../../db/db';
 import { archiveDebt, calculateDebtStatus, isDebtClosed, markDebtPaidWithoutCashflow, writeOffReceivable } from '../../services/debtService';
+import { getDisplayDebtPaymentNote, getKnownErrorMessage } from '../../services/errors';
 import { cn } from '../../utils/cn';
 import { displayDateMedium, displayDateShort } from '../../utils/dateUtils';
 import { formatCurrency } from '../../utils/formatUtils';
@@ -38,10 +39,6 @@ function paymentCopy(debt: Debt, payment: DebtPayment, t: (key: string) => strin
   }
 
   return { label: t('Marked paid'), sign: '', className: 'text-[var(--text-secondary)]' };
-}
-
-function getErrorMessage(error: unknown, t: (key: string) => string): string {
-  return error instanceof Error ? error.message : t('Action failed');
 }
 
 export function DebtDetailSheet({
@@ -81,7 +78,7 @@ export function DebtDetailSheet({
       await markDebtPaidWithoutCashflow(debt.id);
       toast.add(isPayable ? t('Payable marked paid') : t('Receivable marked paid'));
     } catch (error) {
-      toast.add(getErrorMessage(error, t));
+      toast.add(getKnownErrorMessage(error, t, 'Action failed'));
     }
   };
 
@@ -100,7 +97,7 @@ export function DebtDetailSheet({
       await writeOffReceivable(debt.id);
       toast.add(t('Receivable written off'));
     } catch (error) {
-      toast.add(getErrorMessage(error, t));
+      toast.add(getKnownErrorMessage(error, t, 'Action failed'));
     }
   };
 
@@ -118,7 +115,7 @@ export function DebtDetailSheet({
       toast.add(isPayable ? t('Payable deleted') : t('Receivable deleted'));
       onClose();
     } catch (error) {
-      toast.add(getErrorMessage(error, t));
+      toast.add(getKnownErrorMessage(error, t, 'Action failed'));
     }
   };
 
@@ -162,7 +159,7 @@ export function DebtDetailSheet({
           {!hideAmount && (
             <div className="mt-4">
               <div className="mb-1 flex justify-between text-xs text-[var(--text-secondary)]">
-                <span>{paidRatio.toFixed(0)}% {t('Part paid percent', { percent: paidRatio.toFixed(0) })}</span>
+                <span>{t('Part paid percent', { percent: paidRatio.toFixed(0) })}</span>
                 <span>{walletMap[debt.walletId]?.name ?? t('Wallet not found')}</span>
               </div>
               <div className="h-2 rounded-full bg-[var(--border)]">
@@ -258,7 +255,9 @@ export function DebtDetailSheet({
                       </p>
                     </div>
                     {payment.notes && (
-                      <p className="mt-2 text-xs text-[var(--text-secondary)]">{payment.notes}</p>
+                      <p className="mt-2 text-xs text-[var(--text-secondary)]">
+                        {getDisplayDebtPaymentNote(payment.notes, t)}
+                      </p>
                     )}
                   </div>
                 </div>

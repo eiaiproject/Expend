@@ -522,19 +522,7 @@ export async function recordDebtPayment(
   }
 
   if (opts.walletName) {
-    const selects = paymentDialog.locator('select');
-    const count = await selects.count();
-    for (let i = 0; i < count; i++) {
-      const sel = selects.nth(i);
-      const options = await sel.evaluate((el: HTMLSelectElement) =>
-        Array.from(el.options).map((o) => ({ value: o.value, label: o.textContent?.trim() ?? '' })),
-      );
-      const match = options.find((o) => o.label === opts.walletName);
-      if (match) {
-        await sel.selectOption({ value: match.value });
-        break;
-      }
-    }
+    await pickWalletFromSelect(page, opts.walletName);
   }
 
   // Submit button reuses the sheet title — fall back to role+name match.
@@ -695,6 +683,13 @@ async function clickPickerAction(page: Page, label: RegExp): Promise<void> {
 }
 
 async function pickWalletFromSelect(page: Page, walletName: string): Promise<void> {
+  const customSelect = page.locator('form [data-wallet-select]').first();
+  if (await customSelect.isVisible().catch(() => false)) {
+    await customSelect.getByRole('combobox').click();
+    await page.getByRole('option', { name: new RegExp(`^${escapeRegex(walletName)}$`) }).click();
+    return;
+  }
+
   const selects = page.locator('form select');
   const count = await selects.count();
   for (let i = 0; i < count; i++) {
@@ -711,6 +706,13 @@ async function pickWalletFromSelect(page: Page, walletName: string): Promise<voi
 }
 
 async function pickTransferWalletFromSelect(page: Page, index: number, walletName: string): Promise<void> {
+  const customSelect = page.locator('form [data-wallet-select]').nth(index);
+  if (await customSelect.isVisible().catch(() => false)) {
+    await customSelect.getByRole('combobox').click();
+    await page.getByRole('option', { name: new RegExp(`^${escapeRegex(walletName)}$`) }).click();
+    return;
+  }
+
   const selects = page.locator('form select');
   await selects.nth(index).selectOption({ label: walletName });
 }

@@ -51,15 +51,32 @@ export function HeroSection({ onTryWeb, onEnter }: { onTryWeb: () => void; onEnt
             <button
               type="button"
               onClick={onTryWeb}
-              className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-[var(--surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] rounded-full font-medium text-base sm:text-lg hover:bg-[var(--surface-elevated)] transition-colors active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-transparent border border-[var(--border-subtle)] text-[var(--text-muted)] rounded-full font-medium text-base sm:text-lg hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-colors active:scale-95 cursor-pointer"
             >
               {t('landing.tryWithoutSetup')}
             </button>
           </div>
 
+          {/* Trust Pills */}
+          <ul className="flex flex-wrap justify-center lg:justify-start gap-2 mb-6 sm:mb-8">
+            {[
+              [t('landing.featurePrivacyTitle'), '#faq-section'],
+              [t('landing.featureOfflineTitle'), '#faq-section'],
+              [t('landing.featureSecurityTitle'), '#faq-section'],
+            ].map(([label, href]) => (
+              <li key={label}>
+                <a
+                  href={href}
+                  className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface)]/40 px-3 py-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+
           {/* GitHub Link */}
-          <div
-          >
+          <div>
             <a
               href="https://github.com/eiaiproject/Expend.git"
               target="_blank"
@@ -78,6 +95,7 @@ export function HeroSection({ onTryWeb, onEnter }: { onTryWeb: () => void; onEnt
 
         {/* App Preview Mockup */}
         <div
+          aria-hidden="true"
           className="relative z-10 mx-auto w-full max-w-[320px] max-h-[260px] overflow-hidden sm:max-w-[360px] sm:max-h-[360px] lg:max-w-[380px] lg:max-h-none lg:justify-self-center"
         >
           <div className="relative">
@@ -106,20 +124,20 @@ export function HeroSection({ onTryWeb, onEnter }: { onTryWeb: () => void; onEnt
                       <h3 className="text-lg sm:text-xl font-bold tracking-tight uppercase text-white">
                         Expend
                       </h3>
-                      <p className="text-[10px] sm:text-xs text-white/50">29 May 2024</p>
+                      <p className="text-[10px] sm:text-xs text-white/50">{t('landing.demoDate')}</p>
                     </div>
                   </div>
 
                   {/* Balance Card */}
                   <div className="bg-[var(--accent)] rounded-2xl sm:rounded-3xl p-4 sm:p-5 mb-4 sm:mb-5">
-                    <p className="text-white/80 text-[10px] sm:text-xs font-medium mb-1">Balance</p>
+                    <p className="text-white/80 text-[10px] sm:text-xs font-medium mb-1">{t('Balance')}</p>
                     <p className="text-xl sm:text-2xl font-bold text-white font-mono">
                       Rp 5.240.000
                     </p>
                     <div className="flex gap-2 mt-3 sm:mt-4">
                       <div className="flex-1 bg-white/10 rounded-lg sm:rounded-xl p-2 sm:p-2.5">
                         <p className="text-[8px] sm:text-[9px] text-white/60 uppercase font-bold">
-                          Today
+                          {t('Today')}
                         </p>
                         <p className="text-xs sm:text-sm font-bold text-white font-mono">
                           Rp 150.000
@@ -127,7 +145,7 @@ export function HeroSection({ onTryWeb, onEnter }: { onTryWeb: () => void; onEnt
                       </div>
                       <div className="flex-1 bg-white/10 rounded-lg sm:rounded-xl p-2 sm:p-2.5">
                         <p className="text-[8px] sm:text-[9px] text-white/60 uppercase font-bold">
-                          Yesterday
+                          {t('Yesterday')}
                         </p>
                         <p className="text-xs sm:text-sm font-bold text-white font-mono">
                           Rp 85.000
@@ -140,21 +158,21 @@ export function HeroSection({ onTryWeb, onEnter }: { onTryWeb: () => void; onEnt
                   <div className="space-y-2 sm:space-y-2.5">
                     {[
                       {
-                        name: 'Lunch at Warung',
+                        name: t('landing.demoLunch'),
                         amount: '45.000',
                         time: '12:30',
                         color: 'bg-red-400',
                       },
                       {
-                        name: 'Grab to Office',
+                        name: t('landing.demoTransport'),
                         amount: '25.000',
                         time: '08:15',
                         color: 'bg-orange-400',
                       },
                       {
-                        name: 'Coffee Bean',
+                        name: t('landing.demoCoffee'),
                         amount: '35.000',
-                        time: 'Yesterday',
+                        time: t('Yesterday'),
                         color: 'bg-amber-400',
                       },
                     ].map((tx, i) => (

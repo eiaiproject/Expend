@@ -18,8 +18,9 @@ import {
   markDebtPaidWithoutCashflow,
   updateDebt,
 } from '@/services/debtService';
+import { INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '@/services/errors';
 import { recomputeWalletCurrentBalances } from '@/utils/balanceUtils';
-import { importCsvTransactions } from '@/services/csvService';
+import { importCsvTransactions, parseTransactionsCsv } from '@/services/csvService';
 
 beforeEach(async () => {
   await db.transactions.clear();
@@ -284,6 +285,54 @@ describe('csvService.importCsvTransactions balance recomputation', () => {
     expect(txs.every(t => t.type === 'expense')).toBe(true);
   });
 
+  it('preserves existing debt cashflow when recomputing after CSV import', async () => {
+    const walletId = await db.wallets.add({
+      name: 'Cash', currency: 'IDR', initialBalance: 1000000,
+      lastUpdated: '2025-01-01T00:00:00.000Z',
+    });
+    await db.wallets.update(walletId, { currentBalance: 1000000 });
+    const catId = await db.categories.add({ name: 'Food', icon: '🍔', color: '#FF0000' });
+
+    await createDebt({
+      type: 'payable',
+      personName: 'Alice',
+      principalAmount: 200000,
+      walletId,
+      startDate: '2025-01-01',
+    });
+
+    await importCsvTransactions([
+      { date: '2025-01-15', walletId, categoryId: catId, description: 'Lunch', amount: 50000, type: 'expense', notes: '' },
+    ]);
+
+    // initialBalance(1,000,000) + payable initial(+200,000) + expense(-50,000)
+    const wallet = await db.wallets.get(walletId);
+    expect(wallet?.currentBalance).toBe(1_150_000);
+  });
+
+  it('parses negative balance_adjustment rows from CSV', async () => {
+    await db.wallets.add({
+      name: 'Cash', currency: 'IDR', initialBalance: 1000000,
+      lastUpdated: '2025-01-01T00:00:00.000Z',
+    });
+
+    const file = new File([
+      'date,wallet,category,recipient,amount,notes,type\n',
+      '2025-01-15,Cash,,Balance Fix,-50000,,balance_adjustment\n',
+    ], 'transactions.csv', { type: 'text/csv' });
+
+    const { rows, errors } = await parseTransactionsCsv(file);
+
+    expect(errors).toEqual([]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      description: 'Balance Fix',
+      amount: -50_000,
+      type: 'balance_adjustment',
+      categoryId: null,
+    });
+  });
+
   // Service-level coverage only: parseTransactionsCsv() won't normally
   // emit balance_adjustment, but importCsvTransactions() should still
   // recompute correctly for any validated row set it is given.
@@ -397,41 +446,87 @@ describe('debt lifecycle', () => {
     expect(wallet?.currentBalance).toBe(500000);
   });
 
-  it('receivable debt payment increases wallet cash', async () => {
+  it('rejects receivable debt creation when wallet balance is insufficient', async () => {
     const walletId = await db.wallets.add({
-      name: 'Cash', currency: 'IDR', initialBalance: 500000,
+      name: 'Cash', currency: 'IDR', initialBalance: 100000,
       lastUpdated: '2025-01-01T00:00:00.000Z',
     });
-    await db.wallets.update(walletId, { currentBalance: 500000 });
+    await db.wallets.update(walletId, { currentBalance: 100000 });
+
+    await expect(
+      createDebt({
+        type: 'receivable', personName: 'Bob', principalAmount: 200000,
+        walletId, startDate: '2025-01-01',
+      })
+    ).rejects.toThrow(INSUFFICIENT_WALLET_BALANCE_MESSAGE);
+
+    const wallet = await db.wallets.get(walletId);
+    expect(wallet?.currentBalance).toBe(100000);
+    expect(await db.debts.count()).toBe(0);
+    expect(await db.debtPayments.count()).toBe(0);
+  });
+
+  it('receivable debt payment increases wallet cash', async () => {
+    const walletId = await db.wallets.add({
+      name: 'Cash', currency: 'IDR', initialBalance: 1500000,
+      lastUpdated: '2025-01-01T00:00:00.000Z',
+    });
+    await db.wallets.update(walletId, { currentBalance: 1500000 });
 
     const debtId = await createDebt({
       type: 'receivable', personName: 'Bob', principalAmount: 1000000,
       walletId, startDate: '2025-01-01',
     });
-    // After creation: 500,000 - 1,000,000 = -500,000
+    // After creation: 1,500,000 - 1,000,000 = 500,000
 
     await recordDebtPayment({ debtId, amount: 400000, walletId, date: '2025-01-15' });
 
     const wallet = await db.wallets.get(walletId);
-    // Receivable repayment: money comes back → -500,000 + 400,000 = -100,000
-    expect(wallet?.currentBalance).toBe(-100000);
+    // Receivable repayment: money comes back → 500,000 + 400,000 = 900,000
+    expect(wallet?.currentBalance).toBe(900000);
 
     const debt = await db.debts.get(debtId);
     expect(debt?.remainingAmount).toBe(600000);
   });
 
-  it('write-off does not create cashflow', async () => {
+  it('rejects payable debt payment when wallet balance is insufficient', async () => {
     const walletId = await db.wallets.add({
-      name: 'Cash', currency: 'IDR', initialBalance: 500000,
+      name: 'Cash', currency: 'IDR', initialBalance: 0,
       lastUpdated: '2025-01-01T00:00:00.000Z',
     });
-    await db.wallets.update(walletId, { currentBalance: 500000 });
+    await db.wallets.update(walletId, { currentBalance: 0 });
+
+    const debtId = await createDebt({
+      type: 'payable', personName: 'Alice', principalAmount: 100000,
+      walletId, startDate: '2025-01-01',
+    });
+    await db.wallets.update(walletId, { currentBalance: 50000 });
+
+    await expect(
+      recordDebtPayment({ debtId, amount: 80000, walletId, date: '2025-01-15' })
+    ).rejects.toThrow(INSUFFICIENT_WALLET_BALANCE_MESSAGE);
+
+    const wallet = await db.wallets.get(walletId);
+    expect(wallet?.currentBalance).toBe(50000);
+    const debt = await db.debts.get(debtId);
+    expect(debt?.remainingAmount).toBe(100000);
+    const payments = await db.debtPayments.where('debtId').equals(debtId).toArray();
+    expect(payments).toHaveLength(1);
+    expect(payments[0]?.type).toBe('initial');
+  });
+
+  it('write-off does not create cashflow', async () => {
+    const walletId = await db.wallets.add({
+      name: 'Cash', currency: 'IDR', initialBalance: 1500000,
+      lastUpdated: '2025-01-01T00:00:00.000Z',
+    });
+    await db.wallets.update(walletId, { currentBalance: 1500000 });
 
     const debtId = await createDebt({
       type: 'receivable', personName: 'Bob', principalAmount: 1000000,
       walletId, startDate: '2025-01-01',
     });
-    // After creation: -500,000
+    // After creation: 500,000
 
     const walletBefore = await db.wallets.get(walletId);
     const balanceBefore = walletBefore?.currentBalance;

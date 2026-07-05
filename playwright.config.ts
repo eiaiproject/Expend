@@ -1,11 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const e2ePort = Number(process.env.E2E_PORT ?? 4387);
+const e2eBaseUrl = `http://127.0.0.1:${e2ePort}`;
+
 /**
  * Playwright config for Expend E2E tests.
  *
- * - Runs against a production build served by `vite preview` (port 4173).
+ * - Runs against a production build served by `vite preview` on a
+ *   project-specific port (default 4387).
  * - The build is invoked as part of `webServer.command` so CI does not need
  *   a separate `npm run build` step.
+ * - Existing local servers are not reused by default; set E2E_REUSE_SERVER=1
+ *   only when you intentionally manage the server yourself.
  * - Storage state is isolated per-test via `tests/e2e/helpers.ts` rather than
  *   a persistent storageState file: IndexedDB cannot be cleared from disk.
  *
@@ -28,7 +34,7 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: e2eBaseUrl,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -58,9 +64,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4173 --strictPort',
-    url: 'http://127.0.0.1:4173',
-    reuseExistingServer: !process.env.CI,
+    command: `npm run build && npm run preview -- --host 127.0.0.1 --port ${e2ePort} --strictPort`,
+    url: e2eBaseUrl,
+    reuseExistingServer: process.env.E2E_REUSE_SERVER === '1',
     timeout: 180_000,
     stdout: 'pipe',
     stderr: 'pipe',

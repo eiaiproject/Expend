@@ -152,7 +152,7 @@ export function FeaturesSection() {
         </p>
       </div>
 
-      <div className="space-y-14 sm:space-y-16">
+      <div className="space-y-16 sm:space-y-20">
         {/* Core Features - Privacy & Performance */}
         <div>
           <div className="flex items-center gap-3 mb-6 sm:mb-8">
@@ -178,7 +178,7 @@ export function FeaturesSection() {
         </div>
 
         {/* Finance Features */}
-        <div>
+        <div className="border-t border-[var(--border-subtle)] pt-14 sm:pt-16">
           <div className="flex items-center gap-3 mb-6 sm:mb-8">
             <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
               <Wallet size={16} className="text-[var(--accent)]" />
@@ -202,7 +202,7 @@ export function FeaturesSection() {
         </div>
 
         {/* Insight & Security Features */}
-        <div>
+        <div className="border-t border-[var(--border-subtle)] pt-14 sm:pt-16">
           <div className="flex items-center gap-3 mb-6 sm:mb-8">
             <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
               <BarChart3 size={16} className="text-[var(--accent)]" />

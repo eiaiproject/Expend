@@ -36,7 +36,7 @@ export function InfoPopup({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 
           </div>
 
-          <div className="h-px w-full bg-[var(--border)]" />
+          <div className="hidden sm:block h-px w-full bg-[var(--border)]" />
 
           <div className="w-full hidden sm:block">
             <div className="flex items-center gap-2 mb-2">
@@ -63,7 +63,7 @@ export function InfoPopup({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             </div>
           </div>
 
-          <div className="h-px w-full bg-[var(--border)]" />
+          <div className="hidden sm:block h-px w-full bg-[var(--border)]" />
 
           <div className="flex flex-col items-center gap-2">
             <div className="flex items-center gap-2">

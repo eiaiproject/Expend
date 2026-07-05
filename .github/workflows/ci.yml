@@ -26,7 +26,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run QA Automated
-        # Runs: lint, typecheck, unit tests, production build, and E2E (chromium).
+        # Runs: strict lint, typecheck, i18n key check, unit tests, production build, and E2E (chromium).
         # `vite preview` is invoked by Playwright's webServer.command.
         run: npm run qa:automated
 

@@ -290,7 +290,7 @@ const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spend
     try {
       const result = await deleteWalletSafely(wallet.id!);
       if (!result.success) {
-        toast.add(result.reason || t('Error deleting wallet'));
+        toast.add(result.reasonKey ? t(result.reasonKey, result.reasonOptions) : result.reason || t('Error deleting wallet'));
       } else {
         toast.add(t('Wallet deleted successfully'));
       }

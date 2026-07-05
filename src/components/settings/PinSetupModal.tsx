@@ -7,7 +7,7 @@ import { Lock, X, Eye, EyeOff, Info } from 'lucide-react';
 interface PinSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (pin: string) => void;
+  onSuccess: (pin: string) => void | Promise<void>;
 }
 
 export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps) {
@@ -17,6 +17,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [showPin, setShowPin] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const dialogRef = useFocusTrap(isOpen);
@@ -27,14 +28,15 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
       setConfirmPin('');
       setStep(1);
       setError('');
+      setIsSubmitting(false);
     }
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && inputRef.current) {
+    if (isOpen && inputRef.current && !isSubmitting) {
       inputRef.current.focus();
     }
-  }, [isOpen, step]);
+  }, [isOpen, step, isSubmitting]);
 
   const handleNextStep = () => {
     if (pin.length >= MIN_PIN_LENGTH) {
@@ -43,13 +45,20 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
   };
 
   const handleConfirm = async () => {
+    if (isSubmitting) return;
     if (confirmPin !== pin) {
       setError(t('PINs do not match'));
       setConfirmPin('');
       return;
     }
-    onSuccess(pin);
-    onClose();
+    setIsSubmitting(true);
+    try {
+      await onSuccess(pin);
+      onClose();
+    } catch {
+      setError(t('Action failed'));
+      setIsSubmitting(false);
+    }
   };
 
   const handlePinChange = (value: string, setter: React.Dispatch<React.SetStateAction<string>>) => {
@@ -123,7 +132,9 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
         <div className="grid grid-cols-3 gap-3">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
             <button
+              type="button"
               key={num}
+              disabled={isSubmitting}
               onClick={() => {
                 const setter = step === 1 ? setPin : setConfirmPin;
                 const value = step === 1 ? pin : confirmPin;
@@ -137,6 +148,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
             </button>
           ))}            <button
               type="button"
+              disabled={isSubmitting}
               onClick={() => setShowPin(!showPin)}
               className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--card)] active:scale-95 transition-colors"
             aria-label={showPin ? t('Hide PIN') : t('Show PIN')}
@@ -144,6 +156,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
             {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>            <button
               type="button"
+              disabled={isSubmitting}
               onClick={() => {
                 const setter = step === 1 ? setPin : setConfirmPin;
                 setter((prev) => prev.slice(0, -1));
@@ -154,6 +167,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
             <X size={20} />
           </button>            <button
               type="button"
+              disabled={isSubmitting}
               onClick={() => {
                 const setter = step === 1 ? setPin : setConfirmPin;
                 const value = step === 1 ? pin : confirmPin;
@@ -171,6 +185,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
           <button
             type="button"
             onClick={onClose}
+            disabled={isSubmitting}
             className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors"
           >
             {t('Cancel')}
@@ -184,7 +199,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
                 handleConfirm();
               }
             }}
-            disabled={step === 1 ? pin.length < MIN_PIN_LENGTH : confirmPin.length < MIN_PIN_LENGTH}
+            disabled={isSubmitting || (step === 1 ? pin.length < MIN_PIN_LENGTH : confirmPin.length < MIN_PIN_LENGTH)}
             className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-colors"
           >
             {step === 1 ? t('Next') : t('Confirm')}

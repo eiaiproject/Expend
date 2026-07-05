@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import { CURATED_PALETTE } from '../utils/constants';
 import { generateTransferGroupId } from '../utils/cryptoUtils';
 import { getTodayStr } from '../utils/dateUtils';
+import { DEBT_PAYMENT_NOTE_KEYS } from '../services/errors';
 
 export interface Wallet {
   id?: number;
@@ -223,7 +224,7 @@ function normalizeLegacyDebtPayments(
         date: debt.startDate,
         walletId: debt.walletId,
         type: 'initial',
-        notes: debt.type === 'payable' ? 'Uang pinjaman diterima' : 'Pinjaman diberikan',
+        notes: debt.type === 'payable' ? DEBT_PAYMENT_NOTE_KEYS.loanReceived : DEBT_PAYMENT_NOTE_KEYS.loanGiven,
         linkedTransactionId: null,
         createdAt: debt.createdAt,
       } satisfies DebtPayment);
@@ -286,20 +287,21 @@ function createDebtPaymentStore(nativeDb: IDBDatabase): IDBObjectStore {
  * Pre-flight native IndexedDB repair for the legacy v1.0.0 debt schema.
  *
  * VERSION STRATEGY:
- * The repair sets the native DB version to REPAIR_VERSION (11), which is
- * exactly 1 above the current Dexie maximum (10). This ensures:
+ * Dexie maps db.version(N) to native IndexedDB version N * 10.
+ * The repair sets the native DB version to REPAIR_VERSION (110), which is
+ * exactly 10 above the current Dexie native maximum (100). This ensures:
  *
- * - After repair, Dexie opens at version 10 (< 11) → no upgrade triggered.
+ * - After repair, Dexie opens at native version 110 → no upgrade triggered.
  * - When Dexie is bumped to version 11 in the future, the DB is already
- *   at version 11 → Dexie opens without upgrade (stores remain intact).
- * - When Dexie is bumped to version 12, the DB at 11 < 12 → upgrade runs.
+ *   at native version 110 → Dexie opens without upgrade (stores remain intact).
+ * - When Dexie is bumped to version 12, the DB at 110 < 120 → upgrade runs.
  *
  * UPGRADING: When adding a new Dexie version N, update REPAIR_VERSION to
- * N + 1 so the repair always sets a version 1 above the new Dexie max.
+ * (N + 1) * 10 so the repair always sets one Dexie step above the new max.
  *
  * This function is idempotent: it only repairs if the legacy store exists.
  */
-const REPAIR_VERSION = 11;
+const REPAIR_VERSION = 110;
 
 function repairLegacyDebtSchemaNative(): Promise<void> {
   if (typeof indexedDB === 'undefined') return Promise.resolve();

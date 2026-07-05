@@ -1,4 +1,5 @@
 import { Transaction, Category } from '../db/db';
+import { getCategoryDisplayName } from '../utils/categoryDisplay';
 import { parseDate, getTodayStr, getYesterdayStr, getMonthStartStr, getNextMonthStartStr, normaliseDate } from '../utils/dateUtils';
 
 export interface BudgetStatus {
@@ -114,21 +115,22 @@ export function computeBudgetStatuses(
 export function generateInsight(
   transactions: Transaction[],
   categories: Category[],
-  t: (key: string) => string
+  t: (key: string, options?: Record<string, string | number>) => string
 ): SpendingInsight | null {
   // 1. Budget alerts
   const budgetStatuses = computeBudgetStatuses(transactions, categories);
   for (const bs of budgetStatuses) {
+    const categoryName = getCategoryDisplayName(bs.categoryName, t);
     if (bs.isOverBudget) {
       return {
-        text: `${t('Budget alert')}: ${bs.categoryName} ${t('exceeded budget')}!`,
+        text: `${t('Budget alert')}: ${categoryName} ${t('exceeded budget')}!`,
         type: 'warning',
         color: 'text-white',
       };
     }
     if (bs.isNearLimit) {
       return {
-        text: `${t('Budget alert')}: ${bs.categoryName} ${t('near budget limit')}.`,
+        text: `${t('Budget alert')}: ${categoryName} ${t('near budget limit')}.`,
         type: 'info',
         color: 'text-white',
       };
@@ -143,8 +145,8 @@ export function generateInsight(
     if (Math.abs(diff) > 10) {
       return {
         text: diff > 0
-          ? `${t('Spending up')} ${diff.toFixed(0)}% compared to yesterday.`
-          : `${t('Spending down')} ${Math.abs(diff).toFixed(0)}% compared to yesterday.`,
+          ? t('Spending up compared to yesterday', { percent: diff.toFixed(0) })
+          : t('Spending down compared to yesterday', { percent: Math.abs(diff).toFixed(0) }),
         type: diff > 0 ? 'warning' : 'success',
         color: 'text-white',
       };

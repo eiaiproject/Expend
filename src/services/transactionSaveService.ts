@@ -1,6 +1,10 @@
-import { db, type Transaction } from '../db/db';
+import { db, type Transaction, type Wallet } from '../db/db';
 import { generateTransferGroupId } from '../utils/cryptoUtils';
 import { getBalanceDelta } from '../utils/balanceUtils';
+import { INSUFFICIENT_WALLET_BALANCE_MESSAGE } from './errors';
+
+export { INSUFFICIENT_WALLET_BALANCE_MESSAGE } from './errors';
+const WALLET_NOT_FOUND_MESSAGE = 'Wallet not found.';
 
 export interface SaveTransactionParams {
   amount: number;
@@ -60,6 +64,16 @@ function validateTransaction(tx: Partial<Transaction>): ValidationError[] {
   }
 
   return errors;
+}
+
+function getWalletBalance(wallet: Wallet): number {
+  return wallet.currentBalance ?? wallet.initialBalance;
+}
+
+function assertWalletBalanceCanApplyDelta(wallet: Wallet, delta: number): void {
+  if (delta < 0 && getWalletBalance(wallet) + delta < 0) {
+    throw new Error(INSUFFICIENT_WALLET_BALANCE_MESSAGE);
+  }
 }
 
 /**
@@ -124,12 +138,12 @@ export async function saveTransaction(
         const diff = newDelta - oldDelta;
         if (diff !== 0) {
           const wallet = await db.wallets.get(params.walletId);
-          if (wallet) {
-            await db.wallets.update(params.walletId, {
-              currentBalance: (wallet.currentBalance ?? wallet.initialBalance) + diff,
-              lastUpdated: new Date().toISOString(),
-            });
-          }
+          if (!wallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
+          assertWalletBalanceCanApplyDelta(wallet, diff);
+          await db.wallets.update(params.walletId, {
+            currentBalance: getWalletBalance(wallet) + diff,
+            lastUpdated: new Date().toISOString(),
+          });
         }
       } else if (oldTx) {
         // Different wallet: revert old, apply new
@@ -143,12 +157,12 @@ export async function saveTransaction(
         }
         const newDelta = getBalanceDelta(params.type, params.amount);
         const newWallet = await db.wallets.get(params.walletId);
-        if (newWallet) {
-          await db.wallets.update(params.walletId, {
-            currentBalance: (newWallet.currentBalance ?? newWallet.initialBalance) + newDelta,
-            lastUpdated: new Date().toISOString(),
-          });
-        }
+        if (!newWallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
+        assertWalletBalanceCanApplyDelta(newWallet, newDelta);
+        await db.wallets.update(params.walletId, {
+          currentBalance: getWalletBalance(newWallet) + newDelta,
+          lastUpdated: new Date().toISOString(),
+        });
       }
       await db.transactions.update(existingId, {
         amount: params.amount,
@@ -160,6 +174,11 @@ export async function saveTransaction(
         type: params.type,
       });
     } else {
+      const wallet = await db.wallets.get(params.walletId);
+      if (!wallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
+      const delta = getBalanceDelta(params.type, params.amount);
+      assertWalletBalanceCanApplyDelta(wallet, delta);
+
       // Create new transaction
       await db.transactions.add({
         amount: params.amount,
@@ -171,14 +190,10 @@ export async function saveTransaction(
         type: params.type,
       });
       // Update wallet balance
-      const delta = getBalanceDelta(params.type, params.amount);
-      const wallet = await db.wallets.get(params.walletId);
-      if (wallet) {
-        await db.wallets.update(params.walletId, {
-          currentBalance: (wallet.currentBalance ?? wallet.initialBalance) + delta,
-          lastUpdated: new Date().toISOString(),
-        });
-      }
+      await db.wallets.update(params.walletId, {
+        currentBalance: getWalletBalance(wallet) + delta,
+        lastUpdated: new Date().toISOString(),
+      });
     }
   });
 }
@@ -193,6 +208,10 @@ export async function saveTransfer(params: SaveTransferParams): Promise<void> {
 
   await db.transaction('rw', [db.transactions, db.wallets], async () => {
     const transferGroupId = generateTransferGroupId();
+    const fromWallet = await db.wallets.get(params.fromWalletId);
+    const toWallet = await db.wallets.get(params.toWalletId);
+    if (!fromWallet || !toWallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
+    assertWalletBalanceCanApplyDelta(fromWallet, -params.amount);
 
     await db.transactions.add({
       amount: params.amount,
@@ -217,21 +236,15 @@ export async function saveTransfer(params: SaveTransferParams): Promise<void> {
     });
 
     // Update source wallet (debit)
-    const fromWallet = await db.wallets.get(params.fromWalletId);
-    if (fromWallet) {
-      await db.wallets.update(params.fromWalletId, {
-        currentBalance: (fromWallet.currentBalance ?? fromWallet.initialBalance) - params.amount,
-        lastUpdated: new Date().toISOString(),
-      });
-    }
+    await db.wallets.update(params.fromWalletId, {
+      currentBalance: getWalletBalance(fromWallet) - params.amount,
+      lastUpdated: new Date().toISOString(),
+    });
 
     // Update destination wallet (credit)
-    const toWallet = await db.wallets.get(params.toWalletId);
-    if (toWallet) {
-      await db.wallets.update(params.toWalletId, {
-        currentBalance: (toWallet.currentBalance ?? toWallet.initialBalance) + params.amount,
-        lastUpdated: new Date().toISOString(),
-      });
-    }
+    await db.wallets.update(params.toWalletId, {
+      currentBalance: getWalletBalance(toWallet) + params.amount,
+      lastUpdated: new Date().toISOString(),
+    });
   });
 }

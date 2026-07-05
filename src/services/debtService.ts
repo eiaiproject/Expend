@@ -1,5 +1,6 @@
-import { db, type Debt, type DebtPayment, type DebtStatus, type DebtType } from '../db/db';
+import { db, type Debt, type DebtPayment, type DebtStatus, type DebtType, type Wallet } from '../db/db';
 import { getTodayStr, normaliseDate } from '../utils/dateUtils';
+import { DEBT_ERROR_MESSAGES, DEBT_PAYMENT_NOTE_KEYS, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from './errors';
 
 export interface CreateDebtParams {
   type: DebtType;
@@ -70,33 +71,45 @@ function repaymentWalletDelta(type: DebtType, amount: number): number {
   return type === 'payable' ? -amount : amount;
 }
 
+function getWalletBalance(wallet: Wallet): number {
+  return wallet.currentBalance ?? wallet.initialBalance;
+}
+
+function assertWalletBalanceCanApplyDelta(wallet: Wallet, delta: number): void {
+  if (delta < 0 && getWalletBalance(wallet) + delta < 0) {
+    throw new Error(INSUFFICIENT_WALLET_BALANCE_MESSAGE);
+  }
+}
+
 function assertValidDebtInput(params: CreateDebtParams | UpdateDebtParams): void {
   if (!params.personName.trim()) {
-    throw new Error('Nama wajib diisi.');
+    throw new Error(DEBT_ERROR_MESSAGES.personNameRequired);
   }
   if (!Number.isFinite(params.principalAmount) || params.principalAmount <= 0) {
-    throw new Error('Nominal harus lebih besar dari 0.');
+    throw new Error(DEBT_ERROR_MESSAGES.amountRequired);
   }
   if (!Number.isSafeInteger(params.walletId) || params.walletId <= 0) {
-    throw new Error('Wallet wajib dipilih.');
+    throw new Error(DEBT_ERROR_MESSAGES.walletRequired);
   }
   if (!params.startDate) {
-    throw new Error('Tanggal pinjam wajib diisi.');
+    throw new Error(DEBT_ERROR_MESSAGES.startDateRequired);
   }
   const dueDate = normalizeDueDate(params.dueDate);
   if (dueDate && dueDate < normaliseDate(params.startDate)) {
-    throw new Error('Jatuh tempo tidak boleh sebelum tanggal pinjam.');
+    throw new Error(DEBT_ERROR_MESSAGES.dueDateBeforeStartDate);
   }
 }
 
 async function applyWalletDelta(walletId: number, delta: number): Promise<void> {
   const wallet = await db.wallets.get(walletId);
   if (!wallet) {
-    throw new Error('Wallet tidak ditemukan.');
+    throw new Error(DEBT_ERROR_MESSAGES.walletNotFound);
   }
 
+  assertWalletBalanceCanApplyDelta(wallet, delta);
+
   await db.wallets.update(walletId, {
-    currentBalance: (wallet.currentBalance ?? wallet.initialBalance) + delta,
+    currentBalance: getWalletBalance(wallet) + delta,
     lastUpdated: new Date().toISOString(),
   });
 }
@@ -186,7 +199,7 @@ export async function createDebt(params: CreateDebtParams): Promise<string> {
 
   await db.transaction('rw', [db.debts, db.debtPayments, db.wallets], async () => {
     const wallet = await db.wallets.get(params.walletId);
-    if (!wallet) throw new Error('Wallet tidak ditemukan.');
+    if (!wallet) throw new Error(DEBT_ERROR_MESSAGES.walletNotFound);
 
     const debt: Debt = {
       id: debtId,
@@ -217,7 +230,7 @@ export async function createDebt(params: CreateDebtParams): Promise<string> {
       date: normaliseDate(params.startDate),
       walletId: params.walletId,
       type: 'initial',
-      notes: params.type === 'payable' ? 'Uang pinjaman diterima' : 'Pinjaman diberikan',
+      notes: params.type === 'payable' ? DEBT_PAYMENT_NOTE_KEYS.loanReceived : DEBT_PAYMENT_NOTE_KEYS.loanGiven,
       linkedTransactionId: null,
       createdAt: now,
     };
@@ -235,7 +248,7 @@ export async function updateDebt(debtId: string, params: UpdateDebtParams): Prom
 
   await db.transaction('rw', [db.debts, db.debtPayments, db.wallets], async () => {
     const debt = await db.debts.get(debtId);
-    if (!debt || debt.archivedAt) throw new Error('Catatan tidak ditemukan.');
+    if (!debt || debt.archivedAt) throw new Error(DEBT_ERROR_MESSAGES.debtNotFound);
 
     const payments = await db.debtPayments.where('debtId').equals(debtId).toArray();
     const hasActivity = payments.some((payment) => payment.type !== 'initial');
@@ -243,7 +256,7 @@ export async function updateDebt(debtId: string, params: UpdateDebtParams): Prom
     const walletChanged = params.walletId !== debt.walletId;
 
     if (hasActivity && (amountChanged || walletChanged)) {
-      throw new Error('Nominal atau wallet tidak bisa diubah setelah ada pembayaran.');
+      throw new Error(DEBT_ERROR_MESSAGES.lockedAfterPayment);
     }
 
     if (!hasActivity && (amountChanged || walletChanged)) {
@@ -283,23 +296,23 @@ export async function updateDebt(debtId: string, params: UpdateDebtParams): Prom
 
 export async function recordDebtPayment(params: RecordDebtPaymentParams): Promise<void> {
   if (!Number.isFinite(params.amount) || params.amount <= 0) {
-    throw new Error('Nominal pembayaran harus lebih besar dari 0.');
+    throw new Error(DEBT_ERROR_MESSAGES.paymentAmountRequired);
   }
   if (!params.date) {
-    throw new Error('Tanggal pembayaran wajib diisi.');
+    throw new Error(DEBT_ERROR_MESSAGES.paymentDateRequired);
   }
 
   await db.transaction('rw', [db.debts, db.debtPayments, db.wallets], async () => {
     const debt = await db.debts.get(params.debtId);
-    if (!debt || debt.archivedAt) throw new Error('Catatan tidak ditemukan.');
+    if (!debt || debt.archivedAt) throw new Error(DEBT_ERROR_MESSAGES.debtNotFound);
 
     const existingPayments = await db.debtPayments.where('debtId').equals(params.debtId).toArray();
     const currentStatus = calculateDebtStatus(debt, existingPayments);
     if (isDebtClosed(currentStatus)) {
-      throw new Error('Catatan yang sudah lunas tidak bisa menerima pembayaran baru.');
+      throw new Error(DEBT_ERROR_MESSAGES.closedDebtPayment);
     }
     if (params.amount > debt.remainingAmount + MONEY_EPSILON) {
-      throw new Error('Nominal pembayaran tidak boleh melebihi sisa.');
+      throw new Error(DEBT_ERROR_MESSAGES.paymentExceedsRemaining);
     }
 
     const now = new Date().toISOString();
@@ -335,7 +348,7 @@ export async function recordDebtPayment(params: RecordDebtPaymentParams): Promis
 export async function markDebtPaidWithoutCashflow(debtId: string, notes?: string): Promise<void> {
   await db.transaction('rw', [db.debts, db.debtPayments], async () => {
     const debt = await db.debts.get(debtId);
-    if (!debt || debt.archivedAt) throw new Error('Catatan tidak ditemukan.');
+    if (!debt || debt.archivedAt) throw new Error(DEBT_ERROR_MESSAGES.debtNotFound);
 
     const existingPayments = await db.debtPayments.where('debtId').equals(debtId).toArray();
     const currentStatus = calculateDebtStatus(debt, existingPayments);
@@ -349,7 +362,7 @@ export async function markDebtPaidWithoutCashflow(debtId: string, notes?: string
       date: getTodayStr(),
       walletId: debt.walletId,
       type: 'adjustment',
-      notes: notes?.trim() || 'Ditandai lunas tanpa perubahan saldo wallet',
+      notes: notes?.trim() || DEBT_PAYMENT_NOTE_KEYS.markedPaidNoCashflow,
       linkedTransactionId: null,
       createdAt: now,
     });
@@ -364,8 +377,8 @@ export async function markDebtPaidWithoutCashflow(debtId: string, notes?: string
 export async function writeOffReceivable(debtId: string, notes?: string): Promise<void> {
   await db.transaction('rw', [db.debts, db.debtPayments], async () => {
     const debt = await db.debts.get(debtId);
-    if (!debt || debt.archivedAt) throw new Error('Catatan tidak ditemukan.');
-    if (debt.type !== 'receivable') throw new Error('Write off hanya tersedia untuk piutang.');
+    if (!debt || debt.archivedAt) throw new Error(DEBT_ERROR_MESSAGES.debtNotFound);
+    if (debt.type !== 'receivable') throw new Error(DEBT_ERROR_MESSAGES.writeOffOnlyReceivable);
 
     const existingPayments = await db.debtPayments.where('debtId').equals(debtId).toArray();
     const currentStatus = calculateDebtStatus(debt, existingPayments);
@@ -379,7 +392,7 @@ export async function writeOffReceivable(debtId: string, notes?: string): Promis
       date: getTodayStr(),
       walletId: debt.walletId,
       type: 'write_off',
-      notes: notes?.trim() || 'Piutang diikhlaskan tanpa perubahan saldo wallet',
+      notes: notes?.trim() || DEBT_PAYMENT_NOTE_KEYS.writtenOffNoCashflow,
       linkedTransactionId: null,
       createdAt: now,
     });

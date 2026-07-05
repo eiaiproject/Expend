@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { Skeleton } from '../components/Skeleton';
+import { getCategoryDisplayName } from '../utils/categoryDisplay';
 import { displayDateShort, displayMonthShort, getMonthPrefix, normaliseDate, parseDate, toDateKey, toMonthKey } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/formatUtils';
 import { DrillDownModal } from '../components/DrillDownModal';
@@ -251,7 +252,7 @@ export default function StatsView() {
       const cat = categoryMap[catId];
       result.push({
         id: catId,
-        name: cat?.name || t('Other'),
+        name: getCategoryDisplayName(cat?.name, t) || t('Other'),
         value: amount,
         color: cat?.color || 'var(--text-secondary)' 
       });
@@ -379,7 +380,7 @@ export default function StatsView() {
                       className="flex items-center gap-2 hover:underline text-left"
                     >
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} aria-hidden="true" />
-                      <span className="text-sm font-medium">{item.name === t('Other') ? t('Other') : item.name}</span>
+                      <span className="text-sm font-medium">{item.name}</span>
                     </button>
                     <div className="font-mono text-sm flex items-baseline">
                       <span>{formatCurrency(item.value)}</span>

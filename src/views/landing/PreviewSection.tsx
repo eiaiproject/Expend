@@ -42,19 +42,21 @@ function PreviewCard({ icon, title, description, mockup, index }: PreviewCardPro
 }
 
 function DashboardMockup() {
+  const { t } = useTranslation();
+
   return (
     <div className="w-full max-w-[280px] space-y-3">
       {/* Balance Card */}
       <div className="bg-[var(--accent)] rounded-2xl p-4">
-        <p className="text-white/70 text-[10px] font-medium mb-1">Balance</p>
+        <p className="text-white/70 text-[10px] font-medium mb-1">{t('Balance')}</p>
         <p className="text-xl font-bold text-white font-mono">Rp 5.240.000</p>
         <div className="flex gap-2 mt-3">
           <div className="flex-1 bg-white/10 rounded-lg p-2">
-            <p className="text-[8px] text-white/60 uppercase font-bold">Today</p>
+            <p className="text-[8px] text-white/60 uppercase font-bold">{t('Today')}</p>
             <p className="text-xs font-bold text-white font-mono">Rp 150.000</p>
           </div>
           <div className="flex-1 bg-white/10 rounded-lg p-2">
-            <p className="text-[8px] text-white/60 uppercase font-bold">Yesterday</p>
+            <p className="text-[8px] text-white/60 uppercase font-bold">{t('Yesterday')}</p>
             <p className="text-xs font-bold text-white font-mono">Rp 85.000</p>
           </div>
         </div>
@@ -65,13 +67,13 @@ function DashboardMockup() {
           <TrendingUp size={14} className="text-red-400" />
         </div>
         <div>
-          <p className="text-[10px] text-red-400 font-medium">Spending up</p>
-          <p className="text-[9px] text-white/50">+23% vs yesterday</p>
+          <p className="text-[10px] text-red-400 font-medium">{t('Spending up')}</p>
+          <p className="text-[9px] text-white/50">{t('landing.demoVsYesterday')}</p>
         </div>
       </div>
       {/* Quick Transactions */}
       <div className="space-y-2">
-        {['Lunch', 'Grab', 'Coffee'].map((name, i) => (
+        {[t('landing.demoLunchShort'), 'Grab', t('landing.demoCoffeeShort')].map((name, i) => (
           <div key={i} className="bg-[var(--card)] rounded-xl p-2.5 flex items-center gap-2">
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center ${i === 0 ? 'bg-red-400' : i === 1 ? 'bg-orange-400' : 'bg-amber-400'}`}
@@ -92,17 +94,19 @@ function DashboardMockup() {
 }
 
 function StatsMockup() {
+  const { t } = useTranslation();
+
   return (
     <div className="w-full max-w-[280px] space-y-3">
       {/* Pie Chart Mockup */}
       <div className="bg-[var(--card)] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[11px] font-bold text-white">Spending by Category</p>
+          <p className="text-[11px] font-bold text-white">{t('Spending by Category')}</p>
           <PieChart size={14} className="text-[var(--accent)]" />
         </div>
         <div className="flex items-center gap-4">
-          <div className="relative w-20 h-20">
-            <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+          <div className="relative w-20 h-20" role="img" aria-label={t('landing.previewCategoryAria')}>
+            <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90" aria-hidden="true">
               <circle
                 cx="18"
                 cy="18"
@@ -146,10 +150,10 @@ function StatsMockup() {
           </div>
           <div className="space-y-2 flex-1">
             {[
-              { name: 'Food', pct: '40%', color: 'bg-red-400' },
-              { name: 'Transport', pct: '25%', color: 'bg-orange-400' },
-              { name: 'Shopping', pct: '20%', color: 'bg-amber-400' },
-              { name: 'Other', pct: '15%', color: 'bg-[var(--accent)]' },
+              { name: t('Default Category Food & Drinks'), pct: '40%', color: 'bg-red-400' },
+              { name: t('Default Category Transportation'), pct: '25%', color: 'bg-orange-400' },
+              { name: t('Default Category Shopping'), pct: '20%', color: 'bg-amber-400' },
+              { name: t('Other'), pct: '15%', color: 'bg-[var(--accent)]' },
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${item.color}`} />
@@ -163,7 +167,7 @@ function StatsMockup() {
       {/* Bar Chart Mockup */}
       <div className="bg-[var(--card)] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[11px] font-bold text-white">Monthly Comparison</p>
+          <p className="text-[11px] font-bold text-white">{t('Monthly Comparison')}</p>
           <BarChart3 size={14} className="text-[var(--accent)]" />
         </div>
         <div className="flex items-end gap-1.5 h-16">
@@ -177,8 +181,8 @@ function StatsMockup() {
           ))}
         </div>
         <div className="flex justify-between mt-2">
-          <span className="text-[8px] text-white/40">Jan</span>
-          <span className="text-[8px] text-white/40">Dec</span>
+          <span className="text-[8px] text-white/40">{t('landing.monthJan')}</span>
+          <span className="text-[8px] text-white/40">{t('landing.monthDec')}</span>
         </div>
       </div>
     </div>
@@ -186,18 +190,20 @@ function StatsMockup() {
 }
 
 function WalletMockup() {
+  const { t } = useTranslation();
+
   return (
     <div className="w-full max-w-[280px] space-y-3">
       {[
         {
-          name: 'Main Wallet',
+          name: t('Main Wallet'),
           balance: 'Rp 3.500.000',
           change: '+Rp 250.000',
           icon: 'W',
           trend: 'up',
         },
-        { name: 'Savings', balance: 'Rp 1.240.000', change: '+Rp 100.000', icon: 'S', trend: 'up' },
-        { name: 'Cash', balance: 'Rp 500.000', change: '-Rp 50.000', icon: 'C', trend: 'down' },
+        { name: t('landing.demoSavings'), balance: 'Rp 1.240.000', change: '+Rp 100.000', icon: 'S', trend: 'up' },
+        { name: t('landing.demoCash'), balance: 'Rp 500.000', change: '-Rp 50.000', icon: 'C', trend: 'down' },
       ].map((wallet, i) => (
         <div
           key={i}
@@ -212,7 +218,7 @@ function WalletMockup() {
               <span className={wallet.trend === 'up' ? 'text-green-400' : 'text-red-400'}>
                 {wallet.change}
               </span>{' '}
-              this month
+              {t('This Month').toLowerCase()}
             </p>
           </div>
           <p className="text-sm font-bold text-white font-mono shrink-0">{wallet.balance}</p>

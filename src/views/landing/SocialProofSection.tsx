@@ -62,19 +62,16 @@ export function SocialProofSection() {
         </div>
 
         {/* Proof Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-10 sm:mb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 mb-10 sm:mb-12">
           {proofs.map((proof, i) => (
-            <div
-              key={i}
-              className="bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl p-5 sm:p-6 text-center hover:border-[var(--accent)]/20 transition-colors duration-300 group h-full min-h-[156px]"
-            >
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+            <div key={i} className="text-center group rounded-xl border border-[var(--border-subtle)] p-4 sm:p-6">
+              <div className="mb-2 sm:mb-3 text-[var(--accent)] opacity-60 group-hover:opacity-100 transition-opacity">
                 {proof.icon}
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] mb-1">
+              <p className="text-2xl sm:text-4xl font-bold tracking-tight text-[var(--text-primary)]">
                 {proof.value}
               </p>
-              <p className="text-[10px] sm:text-xs text-[var(--text-secondary)] uppercase tracking-wider font-medium">
+              <p className="mt-1 text-xs sm:text-sm text-[var(--text-secondary)] uppercase tracking-wider">
                 {proof.label}
               </p>
             </div>
@@ -82,18 +79,14 @@ export function SocialProofSection() {
         </div>
 
         {/* Highlight Badges */}
-        <div
-          className="flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-4"
-        >
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8">
           {highlights.map((item, i) => (
             <div
               key={i}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--surface)]/30 border border-[var(--border-subtle)] rounded-full"
+              className="flex items-center justify-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)]/30 px-3 py-1.5"
             >
               {item.icon}
-              <span className="text-xs sm:text-sm text-[var(--text-primary)] font-medium">
-                {item.text}
-              </span>
+              <span className="text-xs sm:text-sm font-medium text-[var(--text-primary)]">{item.text}</span>
             </div>
           ))}
         </div>
