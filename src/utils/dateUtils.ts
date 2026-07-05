@@ -6,8 +6,6 @@
  * prefer string-based helpers (getTodayStr, etc.) over Date objects
  * to avoid timezone-induced day shifting entirely.
  */
-import { MONTH_NAMES_EN, MONTH_NAMES_ID } from './constants';
-
 export function parseDate(dateStr: string): Date {
   const normalized = dateStr.includes('T') ? dateStr.split('T')[0]! : dateStr;
   return new Date(normalized + 'T12:00:00Z');
@@ -17,9 +15,10 @@ export function parseDate(dateStr: string): Date {
  * Format a transaction date for detail display (dd MMMM yyyy).
  */
 export function displayDateFull(dateStr: string, locale?: string): string {
-  const d = parseDate(dateStr);
-  const months = locale === 'id' ? MONTH_NAMES_ID : MONTH_NAMES_EN;
-  return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  return new Intl.DateTimeFormat(
+    locale?.toLowerCase().startsWith('id') ? 'id-ID' : 'en-GB',
+    { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' },
+  ).format(parseDate(dateStr));
 }
 
 function localeTag(locale?: string): string {
@@ -58,10 +57,7 @@ export function displayMonthShort(value: string | Date, locale?: string): string
 }
 
 export function toDateKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  return getTodayStr(date);
 }
 
 export function toMonthKey(date: Date): string {

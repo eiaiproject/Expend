@@ -2,6 +2,7 @@ import { db, type Transaction } from '../db/db';
 import { normaliseDate } from '../utils/dateUtils';
 
 export interface PayeeStats {
+  key: string;
   name: string;
   totalExpense: number;
   transactionCount: number;
@@ -12,20 +13,21 @@ export interface PayeeStats {
 }
 
 /**
- * Normalizes payee name for consistent grouping.
+ * Normalizes payee name for display.
  * - Trims whitespace
  * - Collapses repeated spaces
- * - Normalizes case for grouping but preserves a "nice" display name
+ * - Preserves user casing, including acronyms and brand casing
  */
 export function normalizePayeeName(raw: string): string {
   if (!raw) return '';
-  const trimmed = raw.trim().replace(/\s+/g, ' ');
-  // Simple title casing for display
-  return trimmed
-    .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  return raw.trim().replace(/\s+/g, ' ');
+}
+
+/**
+ * Normalizes payee name for case-insensitive grouping.
+ */
+export function normalizePayeeKey(raw: string): string {
+  return normalizePayeeName(raw).toLowerCase();
 }
 
 /**
@@ -41,6 +43,7 @@ export async function getPayeeStatsFromTransactions(): Promise<PayeeStats[]> {
   const wallets = await db.wallets.toArray();
 
   const payeeMap = new Map<string, {
+    name: string,
     total: number,
     count: 0,
     dates: string[],
@@ -49,11 +52,13 @@ export async function getPayeeStatsFromTransactions(): Promise<PayeeStats[]> {
   }>();
 
   for (const tx of transactions) {
-    const normalized = normalizePayeeName(tx.description);
-    if (!normalized) continue;
+    const name = normalizePayeeName(tx.description);
+    const key = normalizePayeeKey(tx.description);
+    if (!key) continue;
 
-    if (!payeeMap.has(normalized)) {
-      payeeMap.set(normalized, {
+    if (!payeeMap.has(key)) {
+      payeeMap.set(key, {
+        name,
         total: 0,
         count: 0,
         dates: [],
@@ -62,7 +67,7 @@ export async function getPayeeStatsFromTransactions(): Promise<PayeeStats[]> {
       });
     }
 
-    const stats = payeeMap.get(normalized)!;
+    const stats = payeeMap.get(key)!;
     stats.total += tx.amount;
     stats.count++;
     stats.dates.push(normaliseDate(tx.date));
@@ -75,7 +80,7 @@ export async function getPayeeStatsFromTransactions(): Promise<PayeeStats[]> {
 
   const results: PayeeStats[] = [];
 
-  for (const [name, data] of payeeMap.entries()) {
+  for (const [key, data] of payeeMap.entries()) {
     const lastTransactionDate = data.dates.sort().reverse()[0] || '1970-01-01';
     
     const categoryEntries = Object.entries(data.categories);
@@ -93,7 +98,8 @@ export async function getPayeeStatsFromTransactions(): Promise<PayeeStats[]> {
     }
 
     results.push({
-      name,
+      key,
+      name: data.name,
       totalExpense: data.total,
       transactionCount: data.count,
       averageAmount: data.total / data.count,
@@ -110,9 +116,10 @@ export async function getPayeeStatsFromTransactions(): Promise<PayeeStats[]> {
  * Filters transactions by a specific payee name.
  */
 export async function filterTransactionsByPayee(payeeName: string): Promise<Transaction[]> {
+  const payeeKey = normalizePayeeKey(payeeName);
   const transactions = await db.transactions
     .where('type')
     .equals('expense')
     .toArray();
-  return transactions.filter(tx => normalizePayeeName(tx.description) === payeeName);
+  return transactions.filter(tx => normalizePayeeKey(tx.description) === payeeKey);
 }

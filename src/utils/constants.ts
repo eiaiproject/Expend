@@ -50,18 +50,6 @@ export const MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024;
 /** Valid transaction types for import validation. */
 export const VALID_TX_TYPES = ['expense', 'balance_adjustment', 'transfer_in', 'transfer_out'] as const;
 
-/** Month names in English. */
-export const MONTH_NAMES_EN = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-] as const;
-
-/** Month names in Indonesian. */
-export const MONTH_NAMES_ID = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-] as const;
-
 /** LocalStorage keys for app state persistence. */
 export const STORAGE_KEYS = {
   BYPASS_PWA: 'expend_bypass_pwa',

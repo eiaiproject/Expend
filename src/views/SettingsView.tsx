@@ -12,8 +12,6 @@ import {
   generateExport, 
   importData, 
   validateImportData, 
-  MAX_IMPORT_FILE_SIZE, 
-  downloadBlob,
 } from '../services/importExportService';
 import { 
   exportTransactionsCsv, 
@@ -22,7 +20,8 @@ import {
   parseTransactionsCsv,
   importCsvTransactions
 } from '../services/csvService';
-import { STORAGE_KEYS } from '../utils/constants';
+import { MAX_IMPORT_FILE_SIZE, STORAGE_KEYS } from '../utils/constants';
+import { downloadBlob } from '../utils/downloadUtils';
 import { useInstallPrompt } from '../utils/pwaUtils';
 import { getTodayStr } from '../utils/dateUtils';
 

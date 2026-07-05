@@ -2,6 +2,26 @@
 
 All notable changes to Expend are documented here.
 
+## 1.6.0 - 2026-07-05
+
+### Added
+
+- `normalizePayeeKey()` for case-insensitive payee grouping and filtering.
+- Unit tests for `payeeService` including normalize, stats, and filter functions.
+
+### Changed
+
+- Moved `MAX_IMPORT_FILE_SIZE` and `downloadBlob` to canonical locations (`constants.ts` and `downloadUtils.ts`).
+- Simplified `displayDateFull` to use `Intl.DateTimeFormat` instead of manual month arrays.
+- Simplified `toDateKey` to reuse `getTodayStr`.
+- Simplified `clickUndoToast` helper by removing unused `messagePattern` parameter.
+
+### Removed
+
+- Deprecated `clearAllStorage`, `readDb`, `getWalletCurrentBalance`, `navigateViaSidebar`, and `importDataViaService` E2E helpers.
+- Deprecated `MONTH_NAMES_EN` and `MONTH_NAMES_ID` constants from `constants.ts`.
+- Re-exported `MAX_IMPORT_FILE_SIZE` and `downloadBlob` from `importExportService`.
+
 ## 1.5.1 - 2026-07-05
 
 ### Fixed

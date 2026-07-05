@@ -5,7 +5,7 @@ import { db } from '../db/db';
 import { Search, ArrowLeft, ShoppingBag, Edit2, X } from 'lucide-react';
 import { formatCurrency } from '../utils/formatUtils';
 import { displayDateMedium } from '../utils/dateUtils';
-import { getPayeeStatsFromTransactions, filterTransactionsByPayee, normalizePayeeName, PayeeStats } from '../services/payeeService';
+import { getPayeeStatsFromTransactions, filterTransactionsByPayee, normalizePayeeKey, normalizePayeeName, PayeeStats } from '../services/payeeService';
 import { TransactionCard } from '../components/home/TransactionCard';
 import { EmptyState } from '../components/EmptyState';
 import { toast } from '../components/Toaster';
@@ -54,10 +54,10 @@ export default function PayeesView() {
 
   const handleRename = async () => {
     if (!renamingPayee || !newPayeeName.trim()) return;
-    const oldName = renamingPayee.name;
-    const trimmedName = newPayeeName.trim();
+    const oldKey = renamingPayee.key;
+    const trimmedName = normalizePayeeName(newPayeeName);
     
-    if (oldName === trimmedName) {
+    if (renamingPayee.name === trimmedName) {
       setRenamingPayee(null);
       return;
     }
@@ -65,7 +65,7 @@ export default function PayeesView() {
     await db.transactions
       .where('type')
       .equals('expense')
-      .filter((tx) => normalizePayeeName(tx.description) === oldName)
+      .filter((tx) => normalizePayeeKey(tx.description) === oldKey)
       .modify({ description: trimmedName });
     
     toast.add(t('Renamed to') + ' ' + trimmedName);
@@ -75,7 +75,7 @@ export default function PayeesView() {
 
   const selectedPayeeTransactions = useLiveQuery(async () => {
     if (!selectedPayee) return [];
-    return await filterTransactionsByPayee(selectedPayee.name);
+    return await filterTransactionsByPayee(selectedPayee.key);
   }, [selectedPayee]);
 
   const renameDialog = renamingPayee ? (
@@ -237,7 +237,7 @@ export default function PayeesView() {
         ) : (
           filteredPayees.map(payee => (
             <button
-              key={payee.name}
+              key={payee.key}
               onClick={() => setSelectedPayee(payee)}
               className="w-full flex items-center justify-between p-4 bg-[var(--card)] border border-[var(--border)] rounded-[16px] hover:border-[var(--accent)]/40 transition-[border-color,box-shadow] active:scale-[0.98] text-left group"
             >

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   uniqueName,
   visitApp,
-  clearAllStorage,
+  clearAppStorage,
   dismissLanding,
   completeOnboarding,
   createExpense,
@@ -10,7 +10,6 @@ import {
   createDebt,
   createWallet,
   readTable,
-  navigateViaSidebar,
   assertAllButtonsAccessible,
 } from './helpers';
 
@@ -55,7 +54,7 @@ test.describe('Scenario A — first-run landing + onboarding', () => {
   });
 
   test('landing view has accessible "Skip to content" link', async ({ page }) => {
-    await clearAllStorage(page);
+    await clearAppStorage(page);
     await page.goto('/');
     const skipLink = page.locator('a[href="#features-section"], a[href="#main-content"]').first();
     await expect(skipLink).toHaveCount(1);

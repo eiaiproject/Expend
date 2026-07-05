@@ -9,14 +9,8 @@ import {
 } from '../db/db';
 import { findPairedTransfer, assignTransferGroupId } from '../utils/transferUtils';
 import { VALID_TX_TYPES, MAX_IMPORT_FILE_SIZE } from '../utils/constants';
-import { downloadBlob } from '../utils/downloadUtils';
 import { recomputeWalletCurrentBalances } from '../utils/balanceUtils';
 import { getTodayStr } from '../utils/dateUtils';
-
-/**
- * Maximum import file size (10 MB default).
- */
-export { MAX_IMPORT_FILE_SIZE };
 
 export const EXPORT_SCHEMA_VERSION = '2.1';
 
@@ -611,5 +605,3 @@ export async function importData(data: ExportData): Promise<void> {
     }
   });
 }
-
-export { downloadBlob };

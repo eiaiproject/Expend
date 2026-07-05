@@ -68,9 +68,6 @@ export async function clearAppStorage(page: Page): Promise<void> {
   }, { dbName: DB_NAME });
 }
 
-/** @deprecated Alias for clearAppStorage kept for existing imports. */
-export const clearAllStorage = clearAppStorage;
-
 /**
  * Land the app from a clean slate. Returns when the splash is replaced
  * by either the landing view or the onboarding wizard / main app shell.
@@ -118,71 +115,6 @@ export async function readTable<T = unknown>(
   }, { table });
 }
 
-/**
- * Read the entire IndexedDB into one serializable object. Useful for
- * snapshot diffs and to avoid round-tripping per-table reads.
- */
-export async function readDb(page: Page): Promise<{
-  wallets: unknown[];
-  categories: unknown[];
-  transactions: unknown[];
-  debts: unknown[];
-  debtPayments: unknown[];
-  settings: unknown[];
-}> {
-  // ponytail: open one IDB connection for all reads so the page sees a
-  // consistent snapshot across tables (a fresh connection per table can
-  // race with a Dexie write microtask).
-  return page.evaluate(async () => {
-    return new Promise<{
-      wallets: unknown[];
-      categories: unknown[];
-      transactions: unknown[];
-      debts: unknown[];
-      debtPayments: unknown[];
-      settings: unknown[];
-    }>((resolve) => {
-      const request = indexedDB.open('ExpendDB');
-      request.onerror = () => resolve({ wallets: [], categories: [], transactions: [], debts: [], debtPayments: [], settings: [] });
-      request.onsuccess = () => {
-        const db = request.result;
-        const out: { wallets: unknown[]; categories: unknown[]; transactions: unknown[]; debts: unknown[]; debtPayments: unknown[]; settings: unknown[] } = {
-          wallets: [], categories: [], transactions: [], debts: [], debtPayments: [], settings: [],
-        };
-        const tables = ['wallets', 'categories', 'transactions', 'debts', 'debtPayments', 'settings'] as const;
-        const tx = db.transaction(tables, 'readonly');
-        let pending = tables.length;
-        for (const t of tables) {
-          if (!db.objectStoreNames.contains(t)) {
-            pending -= 1;
-            continue;
-          }
-          const req = tx.objectStore(t).getAll();
-          req.onsuccess = () => {
-            out[t] = (req.result ?? []) as unknown[];
-            pending -= 1;
-            if (pending === 0) {
-              db.close();
-              resolve(out);
-            }
-          };
-          req.onerror = () => {
-            pending -= 1;
-            if (pending === 0) {
-              db.close();
-              resolve(out);
-            }
-          };
-        }
-        if (pending === 0) {
-          db.close();
-          resolve(out);
-        }
-      };
-    });
-  });
-}
-
 export async function readWalletByName(
   page: Page,
   walletName: string,
@@ -221,18 +153,6 @@ export async function readDebts(page: Page): Promise<Array<Record<string, unknow
 
 export async function readDebtPayments(page: Page): Promise<Array<Record<string, unknown> & { id?: string; debtId?: string; type?: string; amount?: number; walletId?: number }>> {
   return readTable(page, 'debtPayments') as Promise<Array<Record<string, unknown> & { id?: string; debtId?: string; type?: string; amount?: number; walletId?: number }>>;
-}
-
-/**
- * Return the wallet's effective current balance (currentBalance when set,
- * otherwise initialBalance — mirrors the UI's fallback). Numeric.
- */
-export async function getWalletCurrentBalance(page: Page, walletName: string): Promise<number> {
-  const wallet = await readWalletByName(page, walletName);
-  if (!wallet) throw new Error(`Wallet not found in DB: ${walletName}`);
-  const cur = Number(wallet.currentBalance);
-  if (Number.isFinite(cur)) return cur;
-  return Number(wallet.initialBalance ?? 0);
 }
 
 /**
@@ -626,8 +546,7 @@ export async function openTransactionForEdit(
  * Click the UNDO button on the most recently shown undo toast. Useful
  * for restore-after-delete flows.
  */
-export async function clickUndoToast(page: Page, messagePattern = /deleted/i): Promise<boolean> {
-  const toastContainer = page.locator('[role="status"], [aria-live="polite"]').first();
+export async function clickUndoToast(page: Page): Promise<boolean> {
   // The toaster renders a button labeled "UNDO".
   const undoButton = page.getByRole('button', { name: /^undo$/i }).first();
   if (await undoButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
@@ -635,12 +554,6 @@ export async function clickUndoToast(page: Page, messagePattern = /deleted/i): P
     return true;
   }
   return false;
-}
-
-/** Navigate to a route via the sidebar nav (visible on desktop viewports). */
-export async function navigateViaSidebar(page: Page, label: RegExp): Promise<void> {
-  const link = page.getByRole('link', { name: label });
-  await link.first().click();
 }
 
 /** All visible buttons in the current page should have an accessible name. */
@@ -725,20 +638,6 @@ function escapeRegex(s: string): string {
 // These bypass the ActionPickerSheet UI to set up state directly via
 // the app's service layer. Use them when the test's subject under
 // test is NOT the picker flow itself.
-
-/**
- * Run the app's `importData()` service from the browser context.
- * This exercises the full validation → sanitize → recompute → bulkPut
- * pipeline, unlike raw IDB manipulation.
- */
-export async function importDataViaService(page: Page, payload: unknown): Promise<void> {
-  await page.evaluate(async (data) => {
-    const { importData } = await import('/src/services/importExportService.ts');
-    await importData(data as never);
-  }, payload);
-  // Let Dexie flush the recomputed wallet balances.
-  await page.waitForTimeout(500);
-}
 
 /**
  * Create a transfer pair via the app's `saveTransfer()` service.
