@@ -80,7 +80,7 @@ export default function HomeView() {
     searchRef,
     activeCategories,
     activeWallets,
-  } = useTransactionFilters(transactions, sortConfig, categories, wallets);
+  } = useTransactionFilters(transactions, categories, wallets);
 
   const isLoading = transactions === undefined || categories === undefined || wallets === undefined;
 
@@ -465,15 +465,6 @@ export default function HomeView() {
               onClose={() => setIsFilterOpen(false)}
               categories={activeCategories || []}
               wallets={activeWallets || []}
-              activeFilterCount={
-                (filters.type !== 'all' ? 1 : 0) +
-                filters.categories.length +
-                filters.wallets.length +
-                (filters.startDate ? 1 : 0) +
-                (filters.endDate ? 1 : 0) +
-                (filters.minAmount ? 1 : 0) +
-                (filters.maxAmount ? 1 : 0)
-              }
               filters={{
                 type: filters.type,
                 setType: filterActions.setType,

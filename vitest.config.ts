@@ -6,8 +6,6 @@ export default defineConfig({
   plugins: [react()],
   define: {
     __APP_VERSION__: JSON.stringify('1.0.0'),
-    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
-    __GIT_HASH__: JSON.stringify('test'),
   },
   test: {
     globals: true,

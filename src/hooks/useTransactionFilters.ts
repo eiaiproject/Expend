@@ -39,7 +39,6 @@ export interface UseTransactionFiltersResult {
 
 export function useTransactionFilters(
   transactions: Transaction[] | undefined,
-  sortConfig: { field: string; order: 'asc' | 'desc' },
   allCategories: Category[] | undefined,
   allWallets: Wallet[] | undefined,
 ): UseTransactionFiltersResult {

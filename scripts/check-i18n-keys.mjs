@@ -4,8 +4,7 @@
  * Exit code 1 if any key is missing in either locale file.
  */
 import { readFileSync } from 'fs';
-import { globSync } from 'fs';
-import { readdirSync, statSync } from 'fs';
+import { readdirSync } from 'fs';
 import { join } from 'path';
 
 function getAllTsFiles(dir) {
@@ -57,16 +56,6 @@ for (const key of usedKeys) {
   if (!idKeys.has(key)) missingId.push(key);
 }
 
-// Check for stale keys (in locale but not used)
-const staleEn = [];
-const staleId = [];
-for (const key of enKeys) {
-  if (!usedKeys.has(key)) staleEn.push(key);
-}
-for (const key of idKeys) {
-  if (!usedKeys.has(key)) staleId.push(key);
-}
-
 let hasError = false;
 
 if (missingEn.length > 0) {
@@ -79,18 +68,6 @@ if (missingId.length > 0) {
   console.error(`❌ Missing ${missingId.length} key(s) in id.json:`);
   for (const k of missingId) console.error(`  - ${k}`);
   hasError = true;
-}
-
-if (staleEn.length > 0) {
-  console.log(`ℹ️  Stale (unused) ${staleEn.length} key(s) in en.json (informational):`);
-  for (const k of staleEn.slice(0, 10)) console.log(`  - ${k}`);
-  if (staleEn.length > 10) console.log(`  ... and ${staleEn.length - 10} more`);
-}
-
-if (staleId.length > 0) {
-  console.log(`ℹ️  Stale (unused) ${staleId.length} key(s) in id.json (informational):`);
-  for (const k of staleId.slice(0, 10)) console.log(`  - ${k}`);
-  if (staleId.length > 10) console.log(`  ... and ${staleId.length - 10} more`);
 }
 
 if (!hasError) {

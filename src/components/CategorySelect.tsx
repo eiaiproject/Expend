@@ -2,8 +2,14 @@ import { useState, useRef, useEffect, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Check, X } from 'lucide-react';
 import { cn } from '../utils/cn';
-import { getCategoryDisplayName } from '../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
 import { Category } from '../db/db';
+
+// ponytail: inline former getCategoryDisplayName helper
+const catName = (name: string | null | undefined, t: (k: string) => string): string => {
+  if (!name) return '';
+  return name === FALLBACK_CATEGORY_NAME ? t('Other') : name;
+};
 
 interface CategorySelectProps {
   id?: string;
@@ -24,7 +30,7 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
   const autoId = useId();
   const listboxId = `${autoId}-listbox`;
   const inputId = id || `${autoId}-input`;
-  const displayValue = getCategoryDisplayName(value, t);
+  const displayValue = catName(value, t);
 
   // Sync search with external value
   useEffect(() => {
@@ -49,7 +55,7 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
     const lower = searchTerm.toLowerCase();
     return categories.filter(cat => 
       cat.name.toLowerCase().includes(lower) ||
-      getCategoryDisplayName(cat.name, t).toLowerCase().includes(lower)
+      catName(cat.name, t).toLowerCase().includes(lower)
     );
   }, [categories, searchTerm, t]);
 
@@ -57,13 +63,13 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
   const hasExactMatch = useMemo(() => {
     return categories.some(cat => 
       cat.name.toLowerCase() === searchTerm.toLowerCase().trim() ||
-      getCategoryDisplayName(cat.name, t).toLowerCase() === searchTerm.toLowerCase().trim()
+      catName(cat.name, t).toLowerCase() === searchTerm.toLowerCase().trim()
     );
   }, [categories, searchTerm, t]);
 
   const handleSelect = (category: Category) => {
     onChange(category.name);
-    setSearchTerm(getCategoryDisplayName(category.name, t));
+    setSearchTerm(catName(category.name, t));
     setIsOpen(false);
     setActiveIndex(-1);
   };
@@ -231,7 +237,7 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
                   style={{ backgroundColor: category.color }}
                   aria-hidden="true"
                 />
-                <span className="flex-1 truncate">{getCategoryDisplayName(category.name, t)}</span>
+                <span className="flex-1 truncate">{catName(category.name, t)}</span>
                 {value.toLowerCase() === category.name.toLowerCase() && (
                   <Check size={16} className="text-[var(--accent)] shrink-0" aria-hidden="true" />
                 )}

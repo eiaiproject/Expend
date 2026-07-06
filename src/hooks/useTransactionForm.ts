@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Transaction, type Wallet, type Category } from '../db/db';
 import { INSUFFICIENT_WALLET_BALANCE_MESSAGE, saveTransaction, saveTransfer } from '../services/transactionSaveService';
-import { resolveCategory } from '../services/categoryService';
+import { CURATED_PALETTE } from '../utils/constants';
 import { getTodayStr } from '../utils/dateUtils';
 import { toast } from '../components/Toaster';
 
@@ -253,7 +253,17 @@ export function useTransactionForm({
           } else {
             const confirmed = await onConfirmCreateCategory(categoryName.trim());
             if (!confirmed) return false;
-            catId = await resolveCategory(categoryName.trim(), categories);
+            catId = await (async (name: string): Promise<number | null> => {
+              const existingCat = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
+              if (existingCat) return existingCat.id!;
+              const usedColors = categories.map((c) => c.color);
+              const available = CURATED_PALETTE.filter((c) => !usedColors.includes(c));
+              const color = available.length > 0
+                ? available[Math.floor(Math.random() * available.length)]!
+                : CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!;
+              const newId = await db.categories.add({ name, icon: '🏷️', color });
+              return newId ?? null;
+            })(categoryName.trim());
           }
         }
 

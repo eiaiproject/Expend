@@ -186,8 +186,7 @@ test.describe('wallet balance smoke', () => {
     const originalId = before[0].id;
 
     await openTransactionForEdit(page, description);
-    await page.locator('form [data-wallet-select]').first().getByRole('combobox').click();
-    await page.getByRole('option', { name: toWallet, exact: true }).click();
+    await page.locator('form select').first().selectOption({ label: toWallet });
     await page.getByRole('button', { name: /^save$/i }).first().click();
     await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
     await page.waitForTimeout(500);

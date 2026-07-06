@@ -596,13 +596,6 @@ async function clickPickerAction(page: Page, label: RegExp): Promise<void> {
 }
 
 async function pickWalletFromSelect(page: Page, walletName: string): Promise<void> {
-  const customSelect = page.locator('form [data-wallet-select]').first();
-  if (await customSelect.isVisible().catch(() => false)) {
-    await customSelect.getByRole('combobox').click();
-    await page.getByRole('option', { name: new RegExp(`^${escapeRegex(walletName)}$`) }).click();
-    return;
-  }
-
   const selects = page.locator('form select');
   const count = await selects.count();
   for (let i = 0; i < count; i++) {
@@ -619,13 +612,6 @@ async function pickWalletFromSelect(page: Page, walletName: string): Promise<voi
 }
 
 async function pickTransferWalletFromSelect(page: Page, index: number, walletName: string): Promise<void> {
-  const customSelect = page.locator('form [data-wallet-select]').nth(index);
-  if (await customSelect.isVisible().catch(() => false)) {
-    await customSelect.getByRole('combobox').click();
-    await page.getByRole('option', { name: new RegExp(`^${escapeRegex(walletName)}$`) }).click();
-    return;
-  }
-
   const selects = page.locator('form select');
   await selects.nth(index).selectOption({ label: walletName });
 }

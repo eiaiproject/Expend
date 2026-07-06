@@ -8,6 +8,7 @@ import { getKnownErrorMessage, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '../..
 import { getTodayStr } from '../../utils/dateUtils';
 import { formatCurrency } from '../../utils/formatUtils';
 import { cn } from '../../utils/cn';
+import { parseAmount, formatAmountInput } from '../../utils/formatUtils';
 import { BottomSheetShell } from '../BottomSheetShell';
 import { DatePicker } from '../DatePicker';
 import { toast } from '../Toaster';
@@ -22,15 +23,6 @@ interface DebtFormSheetProps {
 
 const EMPTY_WALLETS: Wallet[] = [];
 const EMPTY_DEBTS: Debt[] = [];
-
-function parseAmount(value: string): number {
-  return parseInt(value.replace(/[^0-9]/g, ''), 10) || 0;
-}
-
-function formatAmountInput(value: string): string {
-  const raw = value.replace(/[^0-9]/g, '');
-  return raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
-}
 
 export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit = null }: DebtFormSheetProps) {
   const { t } = useTranslation();

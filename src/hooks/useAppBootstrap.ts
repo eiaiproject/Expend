@@ -88,14 +88,9 @@ export function useAppBootstrap() {
     onboardingCompleted,
     isBannerDismissed,
     isStandalone,
-    // Setters
     handleBypassPwa,
     handleDismissBanner,
     handleOnboarded,
     handleOnboardingComplete,
-    setBypassPwa,
-    setHasOnboarded,
-    setOnboardingCompleted,
-    setIsBannerDismissed,
   } as const;
 }

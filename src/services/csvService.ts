@@ -1,7 +1,7 @@
 import { db } from '../db/db';
 import Papa from 'papaparse';
 import { sanitizeCsvRows } from './importExportService';
-import { getTodayStr, normaliseDate } from '../utils/dateUtils';
+import { getTodayStr } from '../utils/dateUtils';
 import { downloadBlob } from '../utils/downloadUtils';
 import { VALID_TX_TYPES } from '../utils/constants';
 import { recomputeWalletCurrentBalances } from '../utils/balanceUtils';

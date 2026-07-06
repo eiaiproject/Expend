@@ -1,6 +1,6 @@
 import { Transaction, Category } from '../db/db';
-import { getCategoryDisplayName } from '../utils/categoryDisplay';
-import { parseDate, getTodayStr, getYesterdayStr, getMonthStartStr, getNextMonthStartStr, normaliseDate } from '../utils/dateUtils';
+import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
+import { getTodayStr, getYesterdayStr, getMonthStartStr, getNextMonthStartStr, normaliseDate } from '../utils/dateUtils';
 
 export interface BudgetStatus {
   categoryId: number;
@@ -120,7 +120,7 @@ export function generateInsight(
   // 1. Budget alerts
   const budgetStatuses = computeBudgetStatuses(transactions, categories);
   for (const bs of budgetStatuses) {
-    const categoryName = getCategoryDisplayName(bs.categoryName, t);
+    const categoryName = bs.categoryName === FALLBACK_CATEGORY_NAME ? t('Other') : bs.categoryName;
     if (bs.isOverBudget) {
       return {
         text: `${t('Budget alert')}: ${categoryName} ${t('exceeded budget')}!`,

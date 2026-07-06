@@ -1,5 +1,4 @@
 import { db, Transaction } from '../db/db';
-import { generateTransferGroupId } from './cryptoUtils';
 
 /**
  * Find the paired transaction for a transfer_in or transfer_out.
@@ -98,7 +97,7 @@ export async function assignTransferGroupId(
   }
 
   // Neither has a groupId — generate a new one for both
-  const groupId = `backfill-${generateTransferGroupId()}`;
+  const groupId = `backfill-${crypto.randomUUID()}`;
   await Promise.all([
     tx.id ? db.transactions.update(tx.id, { transferGroupId: groupId }) : Promise.resolve(0),
     paired.id ? db.transactions.update(paired.id, { transferGroupId: groupId }) : Promise.resolve(0),

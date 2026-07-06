@@ -15,8 +15,7 @@ export default defineConfig(({mode}) => {
   return {
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
-      __BUILD_DATE__: JSON.stringify(process.env.BUILD_DATE || ''),
-      __GIT_HASH__: JSON.stringify(process.env.GIT_HASH || 'dev'),
+      __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
     },
     plugins: [react(), tailwindcss(), VitePWA({
       registerType: 'autoUpdate',
@@ -123,9 +122,6 @@ export default defineConfig(({mode}) => {
       alias: {
         '@': path.resolve(__dirname, './src'),
       },
-    },
-    server: {
-      hmr: process.env.DISABLE_HMR !== 'true',
     },
   };
 });

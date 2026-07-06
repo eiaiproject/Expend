@@ -1,9 +1,8 @@
 import { useState, useRef } from 'react';
-import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/db';
 import { useSecurity } from '../contexts/SecurityContext';
-import { Moon, Sun, Download, Upload, Shield, Lock, Trash2, Check, Coffee, Tag, Info, ShoppingBag } from 'lucide-react';
+import { Moon, Sun, Download, Upload, Lock, Trash2, Check, Coffee, Tag, Info, ShoppingBag } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { Link } from 'react-router-dom';
 import { toast } from '../components/Toaster';
@@ -36,11 +35,9 @@ export default function SettingsView() {
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [showChangePin, setShowChangePin] = useState(false);
-  const [showDisableConfirm, setShowDisableConfirm] = useState(false);
   
   const {
     securityEnabled,
-    securityMethod,
     isSecurityLoaded,
     setupPin,
     disableSecurity,
@@ -60,16 +57,12 @@ export default function SettingsView() {
     await db.settings.put({ key: 'language', value: lang });
   };
 
-  const handleExportCSV = async () => {
-    await exportTransactionsCsv();
-  };
-
-  const handleExportDebtsCsv = async () => {
-    await exportDebtsCsv();
-  };
-
-  const handleExportPaymentsCsv = async () => {
-    await exportDebtPaymentsCsv();
+  const handleExportAllCsv = async () => {
+    await Promise.all([
+      exportTransactionsCsv(),
+      exportDebtsCsv(),
+      exportDebtPaymentsCsv(),
+    ]);
   };
 
   const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -188,13 +181,6 @@ export default function SettingsView() {
     await setupPin(pin);
   };
 
-  const handleDisableSecurity = async () => {
-    await disableSecurity();
-    setShowDisableConfirm(false);
-  };
-
-  const disableConfirmRef = useFocusTrap(showDisableConfirm);
-
   // First verify current PIN before allowing change or disable
   const [pendingAction, setPendingAction] = useState<'changePin' | 'disableSecurity' | null>(null);
 
@@ -212,13 +198,23 @@ export default function SettingsView() {
     setPendingAction('disableSecurity');
   };
 
-  const handleVerified = () => {
-    if (pendingAction === 'changePin') {
-      setShowChangePin(true);
-    } else if (pendingAction === 'disableSecurity') {
-      setShowDisableConfirm(true);
-    }
+  const handleVerified = async () => {
+    const action = pendingAction;
     setPendingAction(null);
+
+    if (action === 'changePin') {
+      setShowChangePin(true);
+    } else if (action === 'disableSecurity') {
+      const confirmed = await confirm({
+        title: t('Disable Security'),
+        message: t('Are you sure you want to disable screen lock?'),
+        confirmLabel: t('Disable'),
+        variant: 'danger',
+      });
+      if (confirmed) {
+        await disableSecurity();
+      }
+    }
   };
 
   return (
@@ -276,14 +272,8 @@ export default function SettingsView() {
                 </div>
               </div>
             </div>
-             <button onClick={handleExportCSV} className="w-full flex items-center gap-3 p-4 border-b border-[var(--border)] text-left hover:bg-[var(--card)] transition-colors">
-              <Download size={20} /> {t('Export Transactions CSV')}
-            </button>
-            <button onClick={handleExportDebtsCsv} className="w-full flex items-center gap-3 p-4 border-b border-[var(--border)] text-left hover:bg-[var(--card)] transition-colors">
-              <Download size={20} /> {t('Export Debts CSV')}
-            </button>
-            <button onClick={handleExportPaymentsCsv} className="w-full flex items-center gap-3 p-4 border-b border-[var(--border)] text-left hover:bg-[var(--card)] transition-colors">
-              <Download size={20} /> {t('Export Payments CSV')}
+             <button onClick={handleExportAllCsv} className="w-full flex items-center gap-3 p-4 border-b border-[var(--border)] text-left hover:bg-[var(--card)] transition-colors">
+              <Download size={20} /> {t('Export All CSV')}
             </button>
             <button onClick={handleExportJSON} className="w-full flex items-center gap-3 p-4 border-b border-[var(--border)] text-left hover:bg-[var(--card)] transition-colors">
               <Download size={20} /> {t('Export JSON')}
@@ -494,45 +484,6 @@ export default function SettingsView() {
         onSuccess={handleSetupPin}
       />
 
-      {/* Disable Confirm Modal */}
-      <>
-        {showDisableConfirm && (
-          <div
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6"
-            onClick={() => setShowDisableConfirm(false)}
-          >
-            <div
-              ref={disableConfirmRef}
-              className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="w-12 h-12 mx-auto rounded-full bg-red-500/10 flex items-center justify-center">
-                <Shield size={24} className="text-red-500" />
-              </div>
-              <div className="text-center space-y-2">
-                <h2 className="text-lg font-bold">{t('Disable Security')}</h2>
-                <p className="text-sm text-[var(--text-secondary)]">
-                  {t('Are you sure you want to disable screen lock?')}
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDisableConfirm(false)}
-                  className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors"
-                >
-                  {t('Cancel')}
-                </button>
-                <button
-                  onClick={handleDisableSecurity}
-                  className="flex-1 h-11 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
-                >
-                  {t('Disable')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
     </div>
   );
 }

@@ -1,6 +1,5 @@
-import { db, type Transaction, type Wallet } from '../db/db';
-import { generateTransferGroupId } from '../utils/cryptoUtils';
-import { getBalanceDelta } from '../utils/balanceUtils';
+import { db, type Transaction } from '../db/db';
+import { assertWalletBalanceCanApplyDelta, getBalanceDelta, getWalletBalance } from '../utils/balanceUtils';
 import { INSUFFICIENT_WALLET_BALANCE_MESSAGE } from './errors';
 
 export { INSUFFICIENT_WALLET_BALANCE_MESSAGE } from './errors';
@@ -66,16 +65,6 @@ function validateTransaction(tx: Partial<Transaction>): ValidationError[] {
   return errors;
 }
 
-function getWalletBalance(wallet: Wallet): number {
-  return wallet.currentBalance ?? wallet.initialBalance;
-}
-
-function assertWalletBalanceCanApplyDelta(wallet: Wallet, delta: number): void {
-  if (delta < 0 && getWalletBalance(wallet) + delta < 0) {
-    throw new Error(INSUFFICIENT_WALLET_BALANCE_MESSAGE);
-  }
-}
-
 /**
  * Validate transfer-specific constraints that aren't covered by validateTransaction.
  * Throws on invalid params.
@@ -139,7 +128,7 @@ export async function saveTransaction(
         if (diff !== 0) {
           const wallet = await db.wallets.get(params.walletId);
           if (!wallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
-          assertWalletBalanceCanApplyDelta(wallet, diff);
+          assertWalletBalanceCanApplyDelta(wallet, diff, INSUFFICIENT_WALLET_BALANCE_MESSAGE);
           await db.wallets.update(params.walletId, {
             currentBalance: getWalletBalance(wallet) + diff,
             lastUpdated: new Date().toISOString(),
@@ -158,7 +147,7 @@ export async function saveTransaction(
         const newDelta = getBalanceDelta(params.type, params.amount);
         const newWallet = await db.wallets.get(params.walletId);
         if (!newWallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
-        assertWalletBalanceCanApplyDelta(newWallet, newDelta);
+        assertWalletBalanceCanApplyDelta(newWallet, newDelta, INSUFFICIENT_WALLET_BALANCE_MESSAGE);
         await db.wallets.update(params.walletId, {
           currentBalance: getWalletBalance(newWallet) + newDelta,
           lastUpdated: new Date().toISOString(),
@@ -177,7 +166,7 @@ export async function saveTransaction(
       const wallet = await db.wallets.get(params.walletId);
       if (!wallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
       const delta = getBalanceDelta(params.type, params.amount);
-      assertWalletBalanceCanApplyDelta(wallet, delta);
+      assertWalletBalanceCanApplyDelta(wallet, delta, INSUFFICIENT_WALLET_BALANCE_MESSAGE);
 
       // Create new transaction
       await db.transactions.add({
@@ -207,11 +196,11 @@ export async function saveTransfer(params: SaveTransferParams): Promise<void> {
   validateTransferParams(params);
 
   await db.transaction('rw', [db.transactions, db.wallets], async () => {
-    const transferGroupId = generateTransferGroupId();
+    const transferGroupId = crypto.randomUUID();
     const fromWallet = await db.wallets.get(params.fromWalletId);
     const toWallet = await db.wallets.get(params.toWalletId);
     if (!fromWallet || !toWallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
-    assertWalletBalanceCanApplyDelta(fromWallet, -params.amount);
+    assertWalletBalanceCanApplyDelta(fromWallet, -params.amount, INSUFFICIENT_WALLET_BALANCE_MESSAGE);
 
     await db.transactions.add({
       amount: params.amount,

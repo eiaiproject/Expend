@@ -374,7 +374,6 @@ export default function PayeesView() {
         onApply={handleApplyFilter}
         categories={categories ?? []}
         wallets={wallets ?? []}
-        activeFilterCount={activeFilterCount}
       />
 
       {renameDialog}

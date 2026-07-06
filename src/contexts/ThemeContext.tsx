@@ -6,7 +6,6 @@ const THEME_META_COLORS = { light: '#F2F4EE', dark: '#1A1E16' } as const;
 
 interface ThemeContextType {
   theme: Theme;
-  toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
 }
 
@@ -60,12 +59,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     await db.settings.put({ key: 'theme', value: newTheme });
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  }, [theme, setTheme]);
-
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

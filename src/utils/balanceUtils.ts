@@ -37,6 +37,16 @@ export function getDebtPaymentDelta(debtType: Debt['type'], paymentType: DebtPay
   return 0;
 }
 
+export function getWalletBalance(wallet: Wallet): number {
+  return wallet.currentBalance ?? wallet.initialBalance;
+}
+
+export function assertWalletBalanceCanApplyDelta(wallet: Wallet, delta: number, message: string): void {
+  if (delta < 0 && getWalletBalance(wallet) + delta < 0) {
+    throw new Error(message);
+  }
+}
+
 export function recomputeWalletCurrentBalances<T extends Wallet>(
   wallets: readonly T[],
   transactions: readonly Transaction[],

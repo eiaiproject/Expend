@@ -11,30 +11,14 @@ interface ConfirmDialogOptions {
 
 type Resolver = (value: boolean) => void;
 
-const dialogQueue: Array<{ opts: ConfirmDialogOptions & { id: number }; resolve: Resolver }> = [];
-let dialogCounter = 0;
-
-// State setter shared between ConfirmDialogProvider instances
-let setDialogState: React.Dispatch<React.SetStateAction<(ConfirmDialogOptions & { id: number }) | null>> | null = null;
-
-function processQueue() {
-  if (dialogQueue.length === 0) {
-    setDialogState?.(null);
-    return;
-  }
-  // Only show one dialog at a time
-  if (setDialogState) {
-    setDialogState(dialogQueue[0]!.opts);
-  }
-}
+let pendingResolve: Resolver | null = null;
+let setDialogState: React.Dispatch<React.SetStateAction<ConfirmDialogOptions | null>> | null = null;
 
 export const confirm = (options: ConfirmDialogOptions): Promise<boolean> => {
   return new Promise((resolve) => {
-    const id = ++dialogCounter;
-    dialogQueue.push({ opts: { ...options, id }, resolve });
-    if (dialogQueue.length === 1) {
-      processQueue();
-    }
+    pendingResolve?.(false);
+    pendingResolve = resolve;
+    setDialogState?.(options);
   });
 };
 
@@ -42,15 +26,15 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 
 export function ConfirmDialogProvider() {
   const { t } = useTranslation();
-  const [currentDialog, setCurrentDialog] = useState<(ConfirmDialogOptions & { id: number }) | null>(null);
+  const [currentDialog, setCurrentDialog] = useState<ConfirmDialogOptions | null>(null);
   const dialogRef = useFocusTrap(!!currentDialog);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setDialogState = setCurrentDialog;
-    // If there's already something in the queue, show it
-    processQueue();
     return () => {
+      pendingResolve?.(false);
+      pendingResolve = null;
       setDialogState = null;
     };
   }, []);
@@ -62,12 +46,9 @@ export function ConfirmDialogProvider() {
   }, [currentDialog]);
 
   const handleClose = useCallback((result: boolean) => {
-    const item = dialogQueue.shift();
-    if (item) {
-      item.resolve(result);
-    }
-    // Process next item in queue after a microtask to allow state to settle
-    setTimeout(processQueue, 0);
+    pendingResolve?.(result);
+    pendingResolve = null;
+    setCurrentDialog(null);
   }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {

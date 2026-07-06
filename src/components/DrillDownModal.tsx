@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
 import { Transaction } from '../db/db';
-import { getCategoryDisplayName } from '../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
 import { displayDateShort } from '../utils/dateUtils';
 import { X } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
@@ -62,7 +62,7 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{tx.description}</p>
                         <p className="text-[11px] text-[var(--text-secondary)]">
-                          {displayDateShort(tx.date, i18n.language)} • {getCategoryDisplayName(cat?.name, t) || t('Other')}
+                          {displayDateShort(tx.date, i18n.language)} • {(cat?.name === FALLBACK_CATEGORY_NAME ? t('Other') : cat?.name) || t('Other')}
                         </p>
                       </div>
                       <span className={`font-mono text-sm font-semibold ml-3 ${tx.type === 'expense' || (tx.type === 'balance_adjustment' && tx.amount < 0) ? 'text-[var(--expense)]' : 'text-[var(--accent)]'}`}>

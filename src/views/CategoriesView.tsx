@@ -6,7 +6,13 @@ import { Tag, Plus, Edit2, Trash2, Check, X, Save, ArrowLeft, HelpCircle } from 
 import { useNavigate } from 'react-router-dom';
 
 import { cn } from '../utils/cn';
-import { FALLBACK_CATEGORY_NAME, getCategoryDisplayName } from '../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
+
+// ponytail: inline former getCategoryDisplayName helper
+const catDisplayName = (name: string | null | undefined, t: (k: string) => string): string => {
+  if (!name) return '';
+  return name === FALLBACK_CATEGORY_NAME ? t('Other') : name;
+};
 import { getMonthStartStr, getNextMonthStartStr, normaliseDate } from '../utils/dateUtils';
 import { confirm } from '../components/ConfirmDialog';
 import { toast } from '../components/Toaster';
@@ -179,7 +185,7 @@ export default function CategoriesView() {
         // Show undo toast
         toast.add(
           t('Category deleted. Transactions moved to {{name}}.', {
-            name: getCategoryDisplayName(otherCategory?.name ?? FALLBACK_CATEGORY_NAME, t),
+            name: catDisplayName(otherCategory?.name ?? FALLBACK_CATEGORY_NAME, t),
           }),
           async () => {
             // Undo: restore category and reassign transactions back
@@ -364,7 +370,7 @@ export default function CategoriesView() {
             const progress = hasBudget ? budgetProgress(cat.spendingThisMonth, cat.budget!) : 0;
             const isOverBudget = progress >= 100;
             const isNearLimit = progress >= 80 && !isOverBudget;
-            const displayName = getCategoryDisplayName(cat.name, t);
+            const displayName = catDisplayName(cat.name, t);
             const isFallbackCategory = cat.name === FALLBACK_CATEGORY_NAME;
 
             return (

@@ -11,49 +11,37 @@ export function parseDate(dateStr: string): Date {
   return new Date(normalized + 'T12:00:00Z');
 }
 
-/**
- * Format a transaction date for detail display (dd MMMM yyyy).
- */
-export function displayDateFull(dateStr: string, locale?: string): string {
-  return new Intl.DateTimeFormat(
-    locale?.toLowerCase().startsWith('id') ? 'id-ID' : 'en-GB',
-    { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' },
-  ).format(parseDate(dateStr));
-}
-
-function localeTag(locale?: string): string {
-  return locale?.toLowerCase().startsWith('id') ? 'id-ID' : 'en-US';
+// ponytail: single locale helper replaces localeTag + separate displayDateFull default
+function fmtLocale(locale?: string, fallback = 'en-US'): string {
+  return locale?.toLowerCase().startsWith('id') ? 'id-ID' : fallback;
 }
 
 function toDate(value: string | Date): Date {
   return typeof value === 'string' ? parseDate(value) : value;
 }
 
+function formatDate(value: string | Date, opts: Intl.DateTimeFormatOptions, locale?: string, fallback?: string): string {
+  return new Intl.DateTimeFormat(fmtLocale(locale, fallback), opts).format(toDate(value));
+}
+
+export function displayDateFull(value: string | Date, locale?: string): string {
+  return formatDate(value, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }, locale, 'en-GB');
+}
+
 export function displayDateShort(value: string | Date, locale?: string): string {
-  return new Intl.DateTimeFormat(localeTag(locale), {
-    day: '2-digit',
-    month: 'short',
-  }).format(toDate(value));
+  return formatDate(value, { day: '2-digit', month: 'short' }, locale);
 }
 
 export function displayDateMedium(value: string | Date, locale?: string): string {
-  return new Intl.DateTimeFormat(localeTag(locale), {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(toDate(value));
+  return formatDate(value, { day: '2-digit', month: 'short', year: 'numeric' }, locale);
 }
 
 export function displayDateLong(value: string | Date, locale?: string): string {
-  return new Intl.DateTimeFormat(localeTag(locale), {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(toDate(value));
+  return formatDate(value, { day: 'numeric', month: 'long', year: 'numeric' }, locale);
 }
 
 export function displayMonthShort(value: string | Date, locale?: string): string {
-  return new Intl.DateTimeFormat(localeTag(locale), { month: 'short' }).format(toDate(value));
+  return formatDate(value, { month: 'short' }, locale);
 }
 
 export function toDateKey(date: Date): string {

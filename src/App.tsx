@@ -52,8 +52,6 @@ function AppContent() {
     handleDismissBanner,
     handleOnboarded,
     handleOnboardingComplete,
-    setBypassPwa,
-    setHasOnboarded,
   } = useAppBootstrap();
 
   // Keyboard shortcut: N to open Add Transaction

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowDownCircle, ArrowUpRight, ArrowDownLeft, RefreshCw, Edit2, Trash2, CheckCircle2, MoreVertical, Eye } from 'lucide-react';
 import { cn } from '../../utils/cn';
-import { getCategoryDisplayName } from '../../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../../utils/categoryDisplay';
 import { formatCurrencyValue } from '../../utils/formatUtils';
 import { displayDateShort } from '../../utils/dateUtils';
 import { SearchHighlight } from '../SearchHighlight';
@@ -43,7 +43,7 @@ export function TransactionCard({
 
   const renderAmountValue = (amount: number) => formatCurrencyValue(amount, hideAmount);
   const categoryName = tx.categoryId
-    ? getCategoryDisplayName(categoryMap[tx.categoryId]?.name, t) || '-'
+    ? (categoryMap[tx.categoryId]?.name === FALLBACK_CATEGORY_NAME ? t('Other') : categoryMap[tx.categoryId]?.name) || '-'
     : '-';
   
   const isExpenseOrTransferOut = tx.type === 'expense' || tx.type === 'transfer_out' || 

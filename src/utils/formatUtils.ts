@@ -46,9 +46,10 @@ export function formatCurrencyValue(amount: number, hideAmount = false): string 
   return NUMBER_FORMATTER.format(Math.abs(amount));
 }
 
-/**
- * Format amount without currency symbol (for inline display).
- */
+/** Format amount without currency symbol (for inline display). */
 export function formatAmountLocal(amount: number): string {
   return NUMBER_FORMATTER.format(amount);
 }
+
+// Re-export shared amount parsing/formatting helpers
+export { parseAmount, formatAmountInput } from './amountUtils';

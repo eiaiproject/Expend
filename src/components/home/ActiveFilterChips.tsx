@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
-import { getCategoryDisplayName } from '../../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../../utils/categoryDisplay';
 
 interface FilterState {
   type: 'all' | 'expense' | 'balance_adjustment';
@@ -74,7 +74,7 @@ export function ActiveFilterChips({
             className="flex items-center gap-1 px-2.5 py-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full text-[11px] font-medium border border-[var(--accent)]/20 active:scale-95 transition-transform"
           >
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color || 'var(--accent)' }} aria-hidden="true" />
-            {getCategoryDisplayName(cat.name, t)}
+            {cat.name === FALLBACK_CATEGORY_NAME ? t('Other') : cat.name}
             <X size={11} aria-hidden="true" />
           </button>
         );

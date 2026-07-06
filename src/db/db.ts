@@ -1,6 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { CURATED_PALETTE } from '../utils/constants';
-import { generateTransferGroupId } from '../utils/cryptoUtils';
 import { getTodayStr } from '../utils/dateUtils';
 import { DEBT_PAYMENT_NOTE_KEYS } from '../services/errors';
 
@@ -474,7 +473,7 @@ db.version(3).stores({
 
         const baseDescB = b.description.replace(/\s\((Out|In)\)$/, '');
         if (baseDescA === baseDescB) {
-          const groupId = `backfill-${generateTransferGroupId()}`;
+          const groupId = `backfill-${crypto.randomUUID()}`;
           await tx.table('transactions').update(a.id!, { transferGroupId: groupId });
           await tx.table('transactions').update(b.id!, { transferGroupId: groupId });
           paired.add(a.id!);

@@ -6,14 +6,11 @@ import { toast } from '../components/Toaster';
 export interface UseTransactionSelectionResult {
   isSelectionMode: boolean;
   selectedIds: number[];
-  selectedIdSet: Set<number>;
   enterSelectionMode: () => void;
   exitSelectionMode: () => void;
   toggleSelection: (id: number) => void;
-  selectAll: (ids: number[]) => void;
   handleBulkDelete: () => Promise<void>;
   isSelected: (id: number) => boolean;
-  selectedCount: number;
 }
 
 export function useTransactionSelection(t: (key: string) => string): UseTransactionSelectionResult {
@@ -41,10 +38,6 @@ export function useTransactionSelection(t: (key: string) => string): UseTransact
     });
   }, []);
 
-  const selectAll = useCallback((ids: number[]) => {
-    setSelectedIds(ids);
-  }, []);
-
   const isSelected = useCallback((id: number) => {
     return selectedIdSet.has(id);
   }, [selectedIdSet]);
@@ -64,13 +57,10 @@ export function useTransactionSelection(t: (key: string) => string): UseTransact
   return {
     isSelectionMode,
     selectedIds,
-    selectedIdSet,
     enterSelectionMode,
     exitSelectionMode,
     toggleSelection,
-    selectAll,
     handleBulkDelete,
     isSelected,
-    selectedCount: selectedIds.length,
   };
 }

@@ -16,7 +16,6 @@ interface SecuritySettingsValue {
 interface SecurityContextType {
   isLocked: boolean;
   securityEnabled: boolean;
-  securityMethod: 'pin' | null;
   pinLength: number;
   isSecurityLoaded: boolean;
   lock: () => void;
@@ -37,7 +36,6 @@ export function useSecurity() {
 export function SecurityProvider({ children }: { children: ReactNode }) {
   const [isLocked, setIsLocked] = useState(false); // Start unlocked; gate via isSecurityLoaded
   const [securityEnabled, setSecurityEnabled] = useState(false);
-  const [securityMethod, setSecurityMethod] = useState<'pin' | null>(null);
   const [pinLength, setPinLength] = useState(4);
   const [isSecurityLoaded, setIsSecurityLoaded] = useState(false);
   const lastActiveRef = useRef(Date.now());
@@ -107,12 +105,10 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
 
     if (result?.enabled && result.method === 'pin' && result.pinHash) {
       setSecurityEnabled(true);
-      setSecurityMethod(result.method);
       setPinLength(result.pinLength || 4);
       setIsLocked(true);
     } else {
       setSecurityEnabled(false);
-      setSecurityMethod(null);
       setPinLength(4);
       setIsLocked(false);
     }
@@ -127,7 +123,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const unlock = useCallback(async (pin?: string): Promise<boolean> => {
-    if (!securityMethod || !pin) return false;
+    if (!securityEnabled || !pin) return false;
 
     // Brute-force throttling: exponential backoff (persisted in IndexedDB)
     const now = Date.now();
@@ -137,64 +133,60 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    if (securityMethod === 'pin') {
-      // Use cached settings to avoid race condition (settings may change between read and verify)
-      let secVal = securitySettingsRef.current;
-      if (!secVal?.pinHash) {
-        // Fallback: wait for in-flight promise or reload
-        if (securitySettingsPromiseRef.current) {
-          secVal = await securitySettingsPromiseRef.current ?? null;
-        } else {
-          secVal = ((await db.settings.get('security'))?.value as SecuritySettingsValue | undefined) ?? null;
-        }
-        securitySettingsRef.current = secVal;
-        if (!secVal?.pinHash) return false;
+    // Use cached settings to avoid race condition (settings may change between read and verify)
+    let secVal = securitySettingsRef.current;
+    if (!secVal?.pinHash) {
+      // Fallback: wait for in-flight promise or reload
+      if (securitySettingsPromiseRef.current) {
+        secVal = await securitySettingsPromiseRef.current ?? null;
+      } else {
+        secVal = ((await db.settings.get('security'))?.value as SecuritySettingsValue | undefined) ?? null;
       }
+      securitySettingsRef.current = secVal;
+      if (!secVal?.pinHash) return false;
+    }
 
-      const cachedVal = secVal!;
-      const ph = cachedVal.pinHash;
-      
-      try {
-        const matched = typeof ph === 'string'
-          ? await verifyLegacySha256(pin, ph)
-          : await verifyPin(pin, ph.hash, ph.salt, ph.iterations);
-        if (matched) {
-          await db.settings.delete('lockout_record');
-          setIsLocked(false);
-          lastActiveRef.current = Date.now();
+    const cachedVal = secVal!;
+    const ph = cachedVal.pinHash;
 
-          // Upgrade legacy SHA-256 hash to PBKDF2 on successful unlock
-          if (typeof ph === 'string') {
-            const newPinHash = await hashPin(pin);
-            const updatedSettings: SecuritySettingsValue = {
-              ...cachedVal,
-              pinHash: newPinHash,
-            };
-            await db.settings.put({ key: 'security', value: updatedSettings });
-            securitySettingsRef.current = updatedSettings;
-          }
+    try {
+      const matched = typeof ph === 'string'
+        ? await verifyLegacySha256(pin, ph)
+        : await verifyPin(pin, ph.hash, ph.salt, ph.iterations);
+      if (matched) {
+        await db.settings.delete('lockout_record');
+        setIsLocked(false);
+        lastActiveRef.current = Date.now();
 
-          return true;
+        // Upgrade legacy SHA-256 hash to PBKDF2 on successful unlock
+        if (typeof ph === 'string') {
+          const newPinHash = await hashPin(pin);
+          const updatedSettings: SecuritySettingsValue = {
+            ...cachedVal,
+            pinHash: newPinHash,
+          };
+          await db.settings.put({ key: 'security', value: updatedSettings });
+          securitySettingsRef.current = updatedSettings;
         }
-      } catch (err) {
-        // Crypto subsystem failure (e.g., insecure context)
-        console.error('Security verification failed:', err);
-        return false;
-      }
 
-      // Failed attempt — apply exponential backoff (persisted to IndexedDB)
-      const newAttempts = lockoutData.attempts + 1;
-      const backoffMs = Math.min(1000 * Math.pow(2, newAttempts - 1), 60_000);
-      const newLockoutUntil = Date.now() + backoffMs;
-      await db.settings.put({
-        key: 'lockout_record',
-        value: { attempts: newAttempts, lockoutUntil: newLockoutUntil }
-      });
+        return true;
+      }
+    } catch (err) {
+      // Crypto subsystem failure (e.g., insecure context)
+      console.error('Security verification failed:', err);
       return false;
     }
 
+    // Failed attempt — apply exponential backoff (persisted to IndexedDB)
+    const newAttempts = lockoutData.attempts + 1;
+    const backoffMs = Math.min(1000 * Math.pow(2, newAttempts - 1), 60_000);
+    const newLockoutUntil = Date.now() + backoffMs;
+    await db.settings.put({
+      key: 'lockout_record',
+      value: { attempts: newAttempts, lockoutUntil: newLockoutUntil }
+    });
     return false;
-  }, [securityMethod]);
+  }, [securityEnabled]);
 
   const lock = useCallback(() => {
     if (securityEnabled) {
@@ -216,7 +208,6 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     securitySettingsRef.current = nextSettings;
     securitySettingsPromiseRef.current = Promise.resolve(nextSettings);
     setSecurityEnabled(true);
-    setSecurityMethod('pin');
     setPinLength(length);
     setIsLocked(false);
   }, []);
@@ -227,7 +218,6 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     securitySettingsRef.current = null;
     securitySettingsPromiseRef.current = Promise.resolve(null);
     setSecurityEnabled(false);
-    setSecurityMethod(null);
     setIsLocked(false);
   }, []);
 
@@ -236,7 +226,6 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       isLocked: isSecurityLoaded ? (securityEnabled ? isLocked : false) : true,
       pinLength,
       securityEnabled,
-      securityMethod,
       isSecurityLoaded,
       lock,
       unlock,

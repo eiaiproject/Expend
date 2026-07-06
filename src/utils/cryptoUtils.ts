@@ -8,17 +8,6 @@ function bufferToHex(buffer: ArrayBuffer): string {
     .join('');
 }
 
-/**
- * Generate a cryptographically secure transfer group ID.
- * Uses crypto.getRandomValues() instead of Math.random().
- */
-export function generateTransferGroupId(): string {
-  const arr = new Uint8Array(8);
-  crypto.getRandomValues(arr);
-  const hex = Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
-  return `${Date.now()}-${hex}`;
-}
-
 function hexToUint8Array(hex: string): Uint8Array {
   const length = hex.length / 2;
   const bytes = new Uint8Array(length);

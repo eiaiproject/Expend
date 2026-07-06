@@ -1,5 +1,6 @@
-import { db, type Debt, type DebtPayment, type DebtStatus, type DebtType, type Wallet } from '../db/db';
+import { db, type Debt, type DebtPayment, type DebtStatus, type DebtType } from '../db/db';
 import { getTodayStr, normaliseDate } from '../utils/dateUtils';
+import { assertWalletBalanceCanApplyDelta, getWalletBalance } from '../utils/balanceUtils';
 import { DEBT_ERROR_MESSAGES, DEBT_PAYMENT_NOTE_KEYS, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from './errors';
 
 export interface CreateDebtParams {
@@ -71,16 +72,6 @@ function repaymentWalletDelta(type: DebtType, amount: number): number {
   return type === 'payable' ? -amount : amount;
 }
 
-function getWalletBalance(wallet: Wallet): number {
-  return wallet.currentBalance ?? wallet.initialBalance;
-}
-
-function assertWalletBalanceCanApplyDelta(wallet: Wallet, delta: number): void {
-  if (delta < 0 && getWalletBalance(wallet) + delta < 0) {
-    throw new Error(INSUFFICIENT_WALLET_BALANCE_MESSAGE);
-  }
-}
-
 function assertValidDebtInput(params: CreateDebtParams | UpdateDebtParams): void {
   if (!params.personName.trim()) {
     throw new Error(DEBT_ERROR_MESSAGES.personNameRequired);
@@ -106,7 +97,7 @@ async function applyWalletDelta(walletId: number, delta: number): Promise<void> 
     throw new Error(DEBT_ERROR_MESSAGES.walletNotFound);
   }
 
-  assertWalletBalanceCanApplyDelta(wallet, delta);
+  assertWalletBalanceCanApplyDelta(wallet, delta, INSUFFICIENT_WALLET_BALANCE_MESSAGE);
 
   await db.wallets.update(walletId, {
     currentBalance: getWalletBalance(wallet) + delta,

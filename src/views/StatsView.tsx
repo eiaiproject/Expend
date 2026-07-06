@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { Skeleton } from '../components/Skeleton';
-import { getCategoryDisplayName } from '../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
 import { displayDateShort, displayMonthShort, getMonthPrefix, normaliseDate, parseDate, toDateKey, toMonthKey } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/formatUtils';
 import { DrillDownModal } from '../components/DrillDownModal';
@@ -252,7 +252,7 @@ export default function StatsView() {
       const cat = categoryMap[catId];
       result.push({
         id: catId,
-        name: getCategoryDisplayName(cat?.name, t) || t('Other'),
+        name: (cat?.name === FALLBACK_CATEGORY_NAME ? t('Other') : cat?.name) || t('Other'),
         value: amount,
         color: cat?.color || 'var(--text-secondary)' 
       });

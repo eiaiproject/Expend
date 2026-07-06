@@ -7,6 +7,7 @@ import { recordDebtPayment } from '../../services/debtService';
 import { getKnownErrorMessage, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '../../services/errors';
 import { getTodayStr } from '../../utils/dateUtils';
 import { formatCurrency } from '../../utils/formatUtils';
+import { parseAmount, formatAmountInput } from '../../utils/formatUtils';
 import { BottomSheetShell } from '../BottomSheetShell';
 import { DatePicker } from '../DatePicker';
 import { toast } from '../Toaster';
@@ -20,15 +21,6 @@ interface DebtPaymentSheetProps {
 }
 
 const EMPTY_WALLETS: Wallet[] = [];
-
-function parseAmount(value: string): number {
-  return parseInt(value.replace(/[^0-9]/g, ''), 10) || 0;
-}
-
-function formatAmountInput(value: string): string {
-  const raw = value.replace(/[^0-9]/g, '');
-  return raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
-}
 
 export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: DebtPaymentSheetProps) {
   const { t } = useTranslation();
