@@ -11,6 +11,10 @@ import {
   createWallet,
   readTable,
   assertAllButtonsAccessible,
+  expectWalletBalance,
+  readWalletByName,
+  createExpenseFromPayee,
+  pickWalletFromSelect,
 } from './helpers';
 
 /**
@@ -378,6 +382,125 @@ test.describe('Scenario H — PIN security', () => {
     await verifyDialog.getByRole('button', { name: /^confirm$/i }).click();
 
     await expect(page.getByRole('dialog', { name: /create pin/i })).toBeVisible();
+  });
+});
+
+test.describe('Scenario I — quick-add expense from payee', () => {
+  test.beforeEach(async ({ page }) => {
+    await visitApp(page);
+    await completeOnboarding(page, {
+      walletName: uniqueName('QuickPayee'),
+      walletBalance: '500000',
+      categories: ['Food & Drinks', 'Transportation'],
+    });
+  });
+
+  test('+ button on payee card opens form with pre-filled description', async ({ page }) => {
+    const payeeName = uniqueName('Kopi');
+    const walletName = uniqueName('QuickWallet');
+
+    await page.goto('/wallets');
+    await createWallet(page, walletName, '200000');
+
+    // Create an expense so the payee appears in the list.
+    await page.goto('/');
+    await createExpense(page, {
+      amount: '15000',
+      description: payeeName,
+      walletName,
+      categoryName: 'Food & Drinks',
+    });
+
+    // Navigate to payees and use the + button.
+    await page.goto('/payees');
+    await createExpenseFromPayee(page, {
+      payeeName,
+      amount: '25000',
+      walletName,
+    });
+
+    // Assert expense persisted with the correct description.
+    const txs = await readTable<{ description: string; type: string; amount: number }>(page, 'transactions');
+    const quickAdd = txs.filter((t) => t.description === payeeName && t.type === 'expense');
+    expect(quickAdd).toHaveLength(2);
+    expect(quickAdd.some((t) => t.amount === 25000)).toBe(true);
+
+    // Assert wallet balance decreased.
+    await expectWalletBalance(page, walletName, 200000 - 15000 - 25000);
+  });
+
+  test('detail view Add Expense button opens form with pre-filled description', async ({ page }) => {
+    const payeeName = uniqueName('Warung');
+    const walletName = uniqueName('DetailWallet');
+
+    await page.goto('/wallets');
+    await createWallet(page, walletName, '300000');
+
+    await page.goto('/');
+    await createExpense(page, {
+      amount: '10000',
+      description: payeeName,
+      walletName,
+      categoryName: 'Food & Drinks',
+    });
+
+    // Open payee detail view.
+    await page.goto('/payees');
+    await page.getByRole('button', { name: new RegExp(payeeName, 'i') }).first().click();
+
+    // Click the Add Expense button in the detail view.
+    await page.getByRole('button', { name: /add expense/i }).first().click();
+
+    // Wait for the form and verify description is pre-filled.
+    await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+    const descInput = page.locator('form input[type="text"]:not([inputmode])').first();
+    await expect(descInput).toHaveValue(new RegExp(payeeName, 'i'));
+
+    // Complete the form — select the same wallet for deterministic balance.
+    await pickWalletFromSelect(page, walletName);
+    await page.locator('form input[inputmode="numeric"]').first().fill('35000');
+    await page.getByRole('button', { name: /^save$/i }).first().click();
+    await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+    await page.waitForTimeout(500);
+
+    // Assert the new expense appears in the payee's history.
+    const txs = await readTable<{ description: string; type: string; amount: number }>(page, 'transactions');
+    const expenses = txs.filter((t) => t.description === payeeName && t.type === 'expense');
+    expect(expenses).toHaveLength(2);
+    expect(expenses.some((t) => t.amount === 35000)).toBe(true);
+
+    await expectWalletBalance(page, walletName, 300000 - 10000 - 35000);
+  });
+
+  test('multiple quick-adds produce correct payee grouping', async ({ page }) => {
+    const payeeName = uniqueName('Grab');
+    const walletName = uniqueName('GroupWallet');
+
+    await page.goto('/wallets');
+    await createWallet(page, walletName, '500000');
+
+    await page.goto('/');
+    await createExpense(page, {
+      amount: '10000',
+      description: payeeName,
+      walletName,
+      categoryName: 'Transportation',
+    });
+
+    // Quick-add two more expenses via the payee + button.
+    await page.goto('/payees');
+    await createExpenseFromPayee(page, { payeeName, amount: '20000', walletName });
+    await createExpenseFromPayee(page, { payeeName, amount: '30000', walletName });
+
+    // Verify 3 total expenses for this payee.
+    const txs = await readTable<{ description: string; type: string; amount: number }>(page, 'transactions');
+    const expenses = txs.filter((t) => t.description === payeeName && t.type === 'expense');
+    expect(expenses).toHaveLength(3);
+    const total = expenses.reduce((sum, t) => sum + t.amount, 0);
+    expect(total).toBe(10000 + 20000 + 30000);
+
+    // Verify wallet balance.
+    await expectWalletBalance(page, walletName, 500000 - 60000);
   });
 });
 

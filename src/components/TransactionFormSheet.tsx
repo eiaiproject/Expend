@@ -18,9 +18,10 @@ interface TransactionFormSheetProps {
   onClose: () => void;
   txToEdit?: Transaction | null;
   initialType?: TransactionType;
+  initialDescription?: string;
 }
 
-export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 'expense' }: TransactionFormSheetProps) {
+export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 'expense', initialDescription }: TransactionFormSheetProps) {
   const { t } = useTranslation();
   const isEditingExistingTransaction = !!txToEdit?.id;
   const formId = useId();
@@ -38,6 +39,7 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
     isOpen,
     txToEdit,
     initialType,
+    initialDescription,
     onClose,
     onConfirmCreateCategory: async (name: string) => {
       const confirmed = await confirm({

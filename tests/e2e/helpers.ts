@@ -151,8 +151,8 @@ export async function readDebts(page: Page): Promise<Array<Record<string, unknow
   return readTable(page, 'debts') as Promise<Array<Record<string, unknown> & { id?: string; personName?: string; type?: string; principalAmount?: number; remainingAmount?: number; walletId?: number; status?: string }>>;
 }
 
-export async function readDebtPayments(page: Page): Promise<Array<Record<string, unknown> & { id?: string; debtId?: string; type?: string; amount?: number; walletId?: number }>> {
-  return readTable(page, 'debtPayments') as Promise<Array<Record<string, unknown> & { id?: string; debtId?: string; type?: string; amount?: number; walletId?: number }>>;
+export async function readDebtPayments(page: Page): Promise<Array<Record<string, unknown> & { id?: string; debtId?: string; type?: string; amount?: number; walletId?: string }>> {
+  return readTable(page, 'debtPayments') as Promise<Array<Record<string, unknown> & { id?: string; debtId?: string; type?: string; amount?: number; walletId?: string }>>;
 }
 
 /**
@@ -595,7 +595,7 @@ async function clickPickerAction(page: Page, label: RegExp): Promise<void> {
   await action.click();
 }
 
-async function pickWalletFromSelect(page: Page, walletName: string): Promise<void> {
+export async function pickWalletFromSelect(page: Page, walletName: string): Promise<void> {
   const selects = page.locator('form select');
   const count = await selects.count();
   for (let i = 0; i < count; i++) {
@@ -618,6 +618,63 @@ async function pickTransferWalletFromSelect(page: Page, index: number, walletNam
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Create an expense via the payee quick-add flow: navigate to /payees,
+ * click the `+` button on a payee card, and complete the form.
+ * The description field is pre-filled with the payee name by the app.
+ */
+export async function createExpenseFromPayee(
+  page: Page,
+  opts: { payeeName: string; amount: string; walletName?: string; categoryName?: string },
+): Promise<void> {
+  if (!page.url().includes('/payees')) {
+    await page.goto('/payees');
+    await page.waitForLoadState('networkidle');
+  }
+
+  // The + button has an aria-label like "Add expense for <payeeName>".
+  const plusBtn = page.getByRole('button', {
+    name: new RegExp(`add expense.*${escapeRegex(opts.payeeName)}`, 'i'),
+  }).first();
+  await plusBtn.scrollIntoViewIfNeeded();
+  await plusBtn.click();
+
+  // Wait for the TransactionFormSheet to open.
+  await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+
+  // Description should be pre-filled with the payee name.
+  // Wait for React to commit the initialDescription via useEffect.
+  const descInput = page.locator('form input[type="text"]:not([inputmode])').first();
+  await page.waitForFunction(
+    (payeeName) => {
+      const input = document.querySelector('form input[type="text"]:not([inputmode])') as HTMLInputElement | null;
+      return input && new RegExp(payeeName, 'i').test(input.value);
+    },
+    opts.payeeName,
+    { timeout: 5_000 },
+  );
+
+  // Fill amount.
+  await page.locator('form input[inputmode="numeric"]').first().fill(opts.amount);
+
+  if (opts.categoryName) {
+    const categoryInput = page.locator('form input[placeholder*="category" i], form input[placeholder*="select" i]').first();
+    if (await categoryInput.count() > 0) {
+      await categoryInput.fill(opts.categoryName);
+      await page.waitForTimeout(150);
+      await page.keyboard.press('Tab');
+    }
+  }
+
+  if (opts.walletName) {
+    await pickWalletFromSelect(page, opts.walletName);
+  }
+
+  await page.getByRole('button', { name: /^save$/i }).first().click();
+  await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+  await page.waitForTimeout(500);
 }
 
 // ===================== Service-level helpers =====================

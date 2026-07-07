@@ -54,6 +54,7 @@ interface UseTransactionFormOptions {
   isOpen: boolean;
   txToEdit?: Transaction | null;
   initialType?: TransactionType;
+  initialDescription?: string;
   onClose: () => void;
   onConfirmCreateCategory: (name: string) => Promise<boolean>;
 }
@@ -75,6 +76,7 @@ export function useTransactionForm({
   isOpen,
   txToEdit,
   initialType = 'expense',
+  initialDescription,
   onClose,
   onConfirmCreateCategory,
 }: UseTransactionFormOptions): UseTransactionFormResult {
@@ -134,7 +136,7 @@ export function useTransactionForm({
       return;
     }
 
-    const initKey = txToEdit ? `edit:${getTransactionInitKey(txToEdit)}` : `new:${initialType}`;
+    const initKey = txToEdit ? `edit:${getTransactionInitKey(txToEdit)}` : `new:${initialType}:${initialDescription ?? ''}`;
     if (initializedKeyRef.current !== initKey) {
       initializedKeyRef.current = initKey;
 
@@ -161,7 +163,7 @@ export function useTransactionForm({
         setCategoryName(cat ? cat.name : '');
       } else {
         setAmount('');
-        setDescription('');
+        setDescription(initialDescription ?? '');
         setDate(getTodayStr());
         setWalletId(
           wallets.length > 0 ? wallets[0]!.id!.toString() : ''
@@ -172,7 +174,7 @@ export function useTransactionForm({
         setType(initialType);
       }
     }
-  }, [isOpen, txToEdit, categories, wallets, initialType]);
+  }, [isOpen, txToEdit, categories, wallets, initialType, initialDescription]);
 
   // Fix stale walletId when wallets load after form opens
   useEffect(() => {

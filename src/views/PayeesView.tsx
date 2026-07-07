@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { Search, ArrowLeft, ShoppingBag, Edit2, X, Filter, ArrowUpDown } from 'lucide-react';
+import { Search, ArrowLeft, ShoppingBag, Edit2, X, Filter, ArrowUpDown, Plus } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { formatCurrency } from '../utils/formatUtils';
 import { displayDateMedium } from '../utils/dateUtils';
@@ -12,6 +12,8 @@ import { EmptyState } from '../components/EmptyState';
 import { toast } from '../components/Toaster';
 import { PayeeSortSheet } from '../components/PayeeSortSheet';
 import { PayeeFilterSheet, type PayeeFilterDraft } from '../components/PayeeFilterSheet';
+
+const TransactionFormSheet = lazy(() => import('../components/TransactionFormSheet').then(m => ({ default: m.TransactionFormSheet })));
 
 const EMPTY_FILTER_DRAFT: PayeeFilterDraft = {
   categoryIds: [],
@@ -37,6 +39,10 @@ export default function PayeesView() {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterDraft, setFilterDraft] = useState<PayeeFilterDraft>(EMPTY_FILTER_DRAFT);
+
+  // Quick-add expense state
+  const [isAddTxOpen, setIsAddTxOpen] = useState(false);
+  const [txInitialDescription, setTxInitialDescription] = useState<string | undefined>();
 
   // Build transaction-level filters from draft
   const transactionFilters: PayeeTransactionFilters | undefined = useMemo(() => {
@@ -147,6 +153,16 @@ export default function PayeesView() {
     setSortConfig(config);
   }, []);
 
+  const openAddExpenseForPayee = useCallback((payeeName: string) => {
+    setTxInitialDescription(payeeName);
+    setIsAddTxOpen(true);
+  }, []);
+
+  const closeAddTxForm = useCallback(() => {
+    setIsAddTxOpen(false);
+    setTxInitialDescription(undefined);
+  }, []);
+
   const renameDialog = renamingPayee ? (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div
@@ -198,6 +214,7 @@ export default function PayeesView() {
   // Detail view
   if (selectedPayee) {
     return (
+      <>
       <div className="p-4 space-y-6">
         <div className="flex items-center gap-4">
           <button 
@@ -263,23 +280,43 @@ export default function PayeesView() {
           )}
         </div>
 
-        <button
-          onClick={() => {
-            setRenamingPayee(selectedPayee);
-            setNewPayeeName(selectedPayee.name);
-          }}
-          className="w-full flex items-center justify-center gap-2 p-4 bg-[var(--card)] border border-[var(--border)] rounded-[16px] hover:border-[var(--accent)]/40 transition-colors"
-        >
-          <Edit2 size={18} />
-          <span className="font-medium">{t('Rename')}</span>
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => openAddExpenseForPayee(selectedPayee.name)}
+            className="flex-1 flex items-center justify-center gap-2 p-4 bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-[16px] hover:border-[var(--accent)]/40 transition-colors"
+          >
+            <Plus size={18} className="text-[var(--accent)]" />
+            <span className="font-medium text-[var(--accent)]">{t('Add Expense')}</span>
+          </button>
+          <button
+            onClick={() => {
+              setRenamingPayee(selectedPayee);
+              setNewPayeeName(selectedPayee.name);
+            }}
+            className="flex-1 flex items-center justify-center gap-2 p-4 bg-[var(--card)] border border-[var(--border)] rounded-[16px] hover:border-[var(--accent)]/40 transition-colors"
+          >
+            <Edit2 size={18} />
+            <span className="font-medium">{t('Rename')}</span>
+          </button>
+        </div>
+
         {renameDialog}
       </div>
+
+      <Suspense fallback={null}>
+        <TransactionFormSheet
+          isOpen={isAddTxOpen}
+          onClose={closeAddTxForm}
+          initialDescription={txInitialDescription}
+        />
+      </Suspense>
+      </>
     );
   }
 
   // List view
   return (
+    <>
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{t('Recipients & Merchants')}</h1>
@@ -335,27 +372,38 @@ export default function PayeesView() {
           />
         ) : (
           filteredPayees.map(payee => (
-            <button
+            <div
               key={payee.key}
-              onClick={() => setSelectedPayee(payee)}
-              className="w-full flex items-center justify-between p-4 bg-[var(--card)] border border-[var(--border)] rounded-[16px] hover:border-[var(--accent)]/40 transition-[border-color,box-shadow] active:scale-[0.98] text-left group"
+              className="flex items-center p-4 bg-[var(--card)] border border-[var(--border)] rounded-[16px] hover:border-[var(--accent)]/40 transition-[border-color,box-shadow] active:scale-[0.98] group"
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => setSelectedPayee(payee)}
+                className="flex-1 flex items-center gap-3 min-w-0 text-left"
+              >
                 <div className="p-2 bg-[var(--bg)] rounded-xl text-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-white transition-colors">
                   <ShoppingBag size={20} aria-hidden="true" />
                 </div>
-                <div>
-                  <p className="font-bold">{payee.name}</p>
+                <div className="min-w-0">
+                  <p className="font-bold truncate">{payee.name}</p>
                   <p className="text-xs text-[var(--text-secondary)]">
                     {payee.transactionCount} {t('Txs')} • {t('Avg')} {formatCurrency(payee.averageAmount)}
                   </p>
                 </div>
+              </button>
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="text-right">
+                  <p className="font-mono font-bold text-[var(--expense)]">{formatCurrency(payee.totalExpense)}</p>
+                  <p className="text-[10px] text-[var(--text-secondary)] uppercase font-bold">{t('Total Spent')}</p>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); openAddExpenseForPayee(payee.name); }}
+                  className="p-2 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors active:scale-90"
+                  aria-label={t('Add Expense for {{name}}', { name: payee.name })}
+                >
+                  <Plus size={16} aria-hidden="true" />
+                </button>
               </div>
-              <div className="text-right shrink-0">
-                <p className="font-mono font-bold text-[var(--expense)]">{formatCurrency(payee.totalExpense)}</p>
-                <p className="text-[10px] text-[var(--text-secondary)] uppercase font-bold">{t('Total Spent')}</p>
-              </div>
-            </button>
+            </div>
           ))
         )}
       </div>
@@ -378,5 +426,14 @@ export default function PayeesView() {
 
       {renameDialog}
     </div>
+
+    <Suspense fallback={null}>
+      <TransactionFormSheet
+        isOpen={isAddTxOpen}
+        onClose={closeAddTxForm}
+        initialDescription={txInitialDescription}
+      />
+    </Suspense>
+    </>
   );
 }

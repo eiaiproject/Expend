@@ -36,6 +36,7 @@ function AppContent() {
   const [isActionPickerOpen, setIsActionPickerOpen] = useState(false);
   const [isAddTxOpen, setIsAddTxOpen] = useState(false);
   const [txInitialType, setTxInitialType] = useState<TransactionType>('expense');
+  const [txInitialDescription, setTxInitialDescription] = useState<string | undefined>();
   const [isDebtFormOpen, setIsDebtFormOpen] = useState(false);
   const { isLocked, isSecurityLoaded } = useSecurity();
   const isOnline = useOnlineStatus();
@@ -64,6 +65,7 @@ function AppContent() {
       if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
         setTxInitialType('expense');
+        setTxInitialDescription(undefined);
         setIsAddTxOpen(true);
       }
     };
@@ -177,11 +179,13 @@ function AppContent() {
         onClose={() => setIsActionPickerOpen(false)}
         onAddExpense={() => {
           setTxInitialType('expense');
+          setTxInitialDescription(undefined);
           setIsActionPickerOpen(false);
           setIsAddTxOpen(true);
         }}
         onTransfer={() => {
           setTxInitialType('transfer');
+          setTxInitialDescription(undefined);
           setIsActionPickerOpen(false);
           setIsAddTxOpen(true);
         }}
@@ -194,8 +198,9 @@ function AppContent() {
       {isAddTxOpen && (
         <TransactionFormSheet
           isOpen={isAddTxOpen}
-          onClose={() => setIsAddTxOpen(false)}
+          onClose={() => { setIsAddTxOpen(false); setTxInitialDescription(undefined); }}
           initialType={txInitialType}
+          initialDescription={txInitialDescription}
         />
       )}
 

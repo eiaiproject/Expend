@@ -7,6 +7,7 @@
     "Settings": "Settings",
     "More": "More",
     "Add Expense": "Add Expense",
+    "Add Expense for {{name}}": "Add expense for {{name}}",
     "Add Transaction": "Add Transaction",
     "Nominal": "Nominal",
     "Description": "Description (Payee)",
