@@ -232,22 +232,22 @@ export default function PayeesView() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1 min-w-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1">
             <p className="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider">{t('Total Spent')}</p>
-            <p className="text-lg sm:text-xl font-mono font-bold text-red-500 truncate">{formatCurrency(selectedPayee.totalExpense)}</p>
+            <p className="text-xl font-mono font-bold text-red-500">{formatCurrency(selectedPayee.totalExpense)}</p>
           </div>
-          <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1 min-w-0">
+          <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1">
             <p className="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider">{t('Count')}</p>
-            <p className="text-lg sm:text-xl font-mono font-bold truncate">{selectedPayee.transactionCount} {t('Txs')}</p>
+            <p className="text-xl font-mono font-bold">{selectedPayee.transactionCount} {t('Txs')}</p>
           </div>
-          <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1 min-w-0">
+          <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1">
             <p className="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider">{t('Average')}</p>
-            <p className="text-lg sm:text-xl font-mono font-bold truncate">{formatCurrency(selectedPayee.averageAmount)}</p>
+            <p className="text-xl font-mono font-bold">{formatCurrency(selectedPayee.averageAmount)}</p>
           </div>
-          <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1 min-w-0">
+          <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1">
             <p className="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider">{t('Last Date')}</p>
-            <p className="text-sm font-medium truncate">{displayDateMedium(selectedPayee.lastTransactionDate, i18n.language)}</p>
+            <p className="text-sm font-medium">{displayDateMedium(selectedPayee.lastTransactionDate, i18n.language)}</p>
           </div>
         </div>
 
