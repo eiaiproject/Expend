@@ -36,7 +36,7 @@ test.describe('Scenario A — first-run landing + onboarding', () => {
     const walletName = uniqueName('Wallet');
 
     // Landing must show hero CTA at minimum.
-    const heroCta = page.getByRole('button', { name: 'Start Tracking for Free' });
+    const heroCta = page.getByRole('button', { name: 'Start Tracking' });
     await expect(heroCta).toBeVisible({ timeout: 5_000 });
 
     await completeOnboarding(page, {
