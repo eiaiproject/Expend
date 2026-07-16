@@ -371,7 +371,8 @@ export async function createDebt(
     await page.waitForLoadState('networkidle');
   }
   await page.getByRole('button', { name: /add debt or receivable/i }).first().click();
-  await page.waitForSelector('h3:has-text("I Owe Money")', { timeout: 10_000 });
+  // Wait for the debt-type dialog step (h3 says "I owe someone" per debt.formIOwe).
+  await page.waitForSelector('h3:has-text("I owe someone")', { timeout: 10_000 });
 
   const typeLabel = opts.type === 'receivable' ? /someone owes me/i : /i owe someone/i;
   await page.getByRole('button', { name: typeLabel }).first().click();

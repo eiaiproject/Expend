@@ -336,11 +336,13 @@ test.describe('Scenario G — payee grouping and rename', () => {
 
     await page.goto('/payees');
     await page.getByRole('button', { name: new RegExp(merchantA, 'i') }).first().click();
-    await page.getByRole('button', { name: /^rename$/i }).click();
+    // Rename lives inside the overflow menu — open it first.
+    await page.getByRole('button', { name: new RegExp(`Actions for.*${merchantA}`, 'i') }).first().click();
+    await page.getByRole('menuitem', { name: /rename merchant/i }).first().click();
 
-    const dialog = page.getByRole('dialog', { name: /^rename$/i });
+    const dialog = page.getByRole('dialog', { name: /rename merchant/i });
     await dialog.locator('input').fill(nextName);
-    await dialog.getByRole('button', { name: /^rename$/i }).click();
+    await dialog.getByRole('button', { name: /rename/i }).click();
     await expect(dialog).toBeHidden();
 
     const txs = await readTable<{ description: string; type: string }>(page, 'transactions');

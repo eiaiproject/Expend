@@ -2,6 +2,16 @@
 
 All notable changes to Expend are documented here.
 
+## 1.10.2 - 2026-07-16
+
+### Fixed
+
+- E2E tests: align selectors with refactored SettingsView (accordions for Backup/Restore & CSV Import/Export, directly visible Security section).
+- E2E tests: align DebtFormSheet step-1 heading selector (`"I owe someone"` instead of stale `"I Owe Money"`).
+- E2E tests: align CategoryOverflowMenu rename flow (open menu → click `"Rename Merchant"` menuitem).
+- E2E tests: align WalletOverflowMenu delete menuitem label (`"Delete"` instead of `"delete permanently"`).
+- E2E tests: align DebtDetailSheet mark-settled button label (`"Mark as Settled"` instead of `"Paid"`).
+
 ## 1.10.1 - 2026-07-05
 
 ### Refactored

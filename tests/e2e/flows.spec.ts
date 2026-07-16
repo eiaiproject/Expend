@@ -47,11 +47,11 @@ test.describe('wallet deletion safety', () => {
     await page.goto('/wallets');
     await page.waitForLoadState('networkidle');
 
-    await clickWalletMenuOption(page, walletName, /delete permanently/i);
+    await clickWalletMenuOption(page, walletName, /^delete$/i);
 
     const confirmDialog = page.getByRole('dialog', { name: /delete|confirm/i });
     await confirmDialog.waitFor({ state: 'visible', timeout: 5_000 });
-    await confirmDialog.getByRole('button', { name: /delete|confirm/i }).first().click();
+    await confirmDialog.getByRole('button', { name: /^delete$/i }).first().click();
     await page.waitForTimeout(1_000);
 
     // Wallet still exists — deletion was blocked.
@@ -67,11 +67,11 @@ test.describe('wallet deletion safety', () => {
     await page.goto('/wallets');
     await page.waitForLoadState('networkidle');
 
-    await clickWalletMenuOption(page, extraWallet, /delete permanently/i);
+    await clickWalletMenuOption(page, extraWallet, /^delete$/i);
 
     const confirmDialog = page.getByRole('dialog', { name: /delete|confirm/i });
     await confirmDialog.waitFor({ state: 'visible', timeout: 5_000 });
-    await confirmDialog.getByRole('button', { name: /delete|confirm/i }).first().click();
+    await confirmDialog.getByRole('button', { name: /^delete$/i }).first().click();
     await page.waitForTimeout(1_000);
 
     const wallet = await readWalletByName(page, extraWallet);
@@ -132,9 +132,10 @@ test.describe('export and import', () => {
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
 
-    // Data section is now directly visible (no accordion)
+    // Open Backup & Restore accordion
+    await page.getByRole('button', { name: /backup & restore/i }).first().click();
     const downloadPromise = page.waitForEvent('download', { timeout: 10_000 });
-    await page.getByRole('button', { name: /export full backup|export json/i }).first().click();
+    await page.getByRole('button', { name: /export full backup|export json|export full backup/i }).first().click();
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toMatch(/expend.*\.json/);
@@ -160,9 +161,10 @@ test.describe('export and import', () => {
 
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
-    // Data section is now directly visible (no accordion)
+    // Open Transaction Import & Export accordion
+    await page.getByRole('button', { name: /transaction import & export/i }).first().click();
     const downloadPromise = page.waitForEvent('download', { timeout: 10_000 });
-    await page.getByRole('button', { name: /export all csv/i }).first().click();
+    await page.getByRole('button', { name: /export transactions as csv|export all csv/i }).first().click();
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toMatch(/\.csv/);
@@ -319,15 +321,15 @@ test.describe('debt write-off and mark-paid', () => {
     const detailDialog = page.getByRole('dialog');
     await detailDialog.waitFor({ state: 'visible', timeout: 5_000 });
 
-    // The button label renders as "Paid" (i18n key: Status Paid)
-    const markPaidBtn = detailDialog.getByRole('button', { name: /^paid$/i }).first();
+    // Button says "Mark as Settled" (i18n key: debt.markSettled)
+    const markPaidBtn = detailDialog.getByRole('button', { name: /mark as settled/i }).first();
     await markPaidBtn.waitFor({ state: 'visible', timeout: 5_000 });
     await markPaidBtn.click();
 
-    // Confirm dialog with Mark Paid confirmLabel
-    const confirmDialog = page.getByRole('dialog', { name: /mark.*paid|confirm/i });
+    // Confirm dialog with "Paid" confirmLabel (i18n key: Status Paid)
+    const confirmDialog = page.getByRole('dialog', { name: /mark.*paid|confirm|mark as paid/i });
     await confirmDialog.waitFor({ state: 'visible', timeout: 5_000 });
-    await confirmDialog.getByRole('button', { name: /mark paid/i }).first().click();
+    await confirmDialog.getByRole('button', { name: /^paid$/i }).first().click();
     await page.waitForTimeout(1_000);
 
     const debts = await readDebts(page);
@@ -395,8 +397,8 @@ test.describe('PIN security extended', () => {
     // Set up PIN
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /^security$/i }).click();
-    await page.getByRole('button', { name: /set up pin/i }).click();
+    // Security section is directly visible — find the Set up PIN button directly.
+    await page.getByRole('button', { name: /set up pin/i }).first().click();
 
     let dialog = page.getByRole('dialog', { name: /create pin/i });
     for (const digit of ['5', '6', '7', '8']) {
@@ -439,8 +441,8 @@ test.describe('PIN security extended', () => {
 
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /^security$/i }).click();
-    await page.getByRole('button', { name: /set up pin/i }).click();
+    // Security section is directly visible.
+    await page.getByRole('button', { name: /set up pin/i }).first().click();
 
     // Set up PIN first
     let dialog = page.getByRole('dialog', { name: /create pin/i });
