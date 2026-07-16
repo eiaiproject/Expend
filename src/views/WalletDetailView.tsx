@@ -30,52 +30,11 @@ export default function WalletDetailView() {
   );
   const categories = useLiveQuery(() => db.categories.toArray(), [], undefined);
 
-  // Loading state
-  if (wallet === undefined || transactions === undefined || categories === undefined) {
-    return (
-      <div className="space-y-4" role="status" aria-label={t('Loading...')}>
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-10 rounded-lg" />
-          <Skeleton className="h-6 w-32" />
-        </div>
-        <Skeleton className="h-24 rounded-[16px]" />
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-16 rounded-[16px]" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Not found
-  if (!wallet) {
-    return (
-      <div className="space-y-4">
-        <Link
-          to="/wallets"
-          className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
-        >
-          <ArrowLeft size={16} aria-hidden="true" />
-          {t('Wallets')}
-        </Link>
-        <EmptyState
-          icon={<WalletIcon size={48} className="opacity-20" />}
-          title={t('Wallet not found')}
-          description={t('The wallet you are looking for does not exist.')}
-          action={{
-            label: t('wallet.emptyCta'),
-            onClick: () => navigate('/wallets'),
-          }}
-        />
-      </div>
-    );
-  }
-
-  const balance = wallet.currentBalance ?? wallet.initialBalance;
-  const isStale = daysBetweenDateOnly(new Date(), wallet.lastUpdated) >= WALLET_STALE_DAYS;
-  const staleDays = daysBetweenDateOnly(new Date(), wallet.lastUpdated);
-  const isArchived = !!wallet.archivedAt;
+  const isLoading = wallet === undefined || transactions === undefined || categories === undefined;
+  const balance = isLoading ? 0 : (wallet!.currentBalance ?? wallet!.initialBalance);
+  const isStale = !isLoading && daysBetweenDateOnly(new Date(), wallet!.lastUpdated) >= WALLET_STALE_DAYS;
+  const staleDays = isLoading ? 0 : daysBetweenDateOnly(new Date(), wallet!.lastUpdated);
+  const isArchived = !isLoading && !!wallet!.archivedAt;
 
   // Category map
   const categoryMap = useMemo(() => {
@@ -156,6 +115,48 @@ export default function WalletDetailView() {
     }
     return 'text-[var(--text-primary)]';
   }, []);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-4" role="status" aria-label={t('Loading...')}>
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <Skeleton className="h-6 w-32" />
+        </div>
+        <Skeleton className="h-24 rounded-[16px]" />
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} className="h-16 rounded-[16px]" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Not found
+  if (!wallet) {
+    return (
+      <div className="space-y-4">
+        <Link
+          to="/wallets"
+          className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
+        >
+          <ArrowLeft size={16} aria-hidden="true" />
+          {t('Wallets')}
+        </Link>
+        <EmptyState
+          icon={<WalletIcon size={48} className="opacity-20" />}
+          title={t('Wallet not found')}
+          description={t('The wallet you are looking for does not exist.')}
+          action={{
+            label: t('wallet.emptyCta'),
+            onClick: () => navigate('/wallets'),
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -38,6 +38,7 @@ function ToastItem({ toast: msg, onRemove, t: translate }: { toast: ToastMessage
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleMouseEnter = () => { hoverRef.current = true; if (timerRef.current) clearTimeout(timerRef.current); };
