@@ -1,21 +1,43 @@
-# Expend - Privacy-First Offline Expense Tracker PWA
+# Expend — Privacy-First Offline Expense Tracker PWA
 
-Expend is a local-first personal finance tracker for expenses, budgets, wallets, debts, receivables, and monthly reports. It is built as an offline-capable Progressive Web App (PWA), stores financial data locally in IndexedDB, and does not require an account or cloud sync.
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Expend home dashboard" width="600">
+</p>
 
-[![Version](https://img.shields.io/badge/version-1.10.0-teal)](https://github.com/eiaiproject/Expend/releases)
-[![License](https://img.shields.io/badge/license-MIT-blue)](#license)
+<p align="center">
+  <a href="https://expend.pages.dev/">Live Demo</a> ·
+  <a href="docs/screenshots/">Screenshots</a> ·
+  <a href="CHANGELOG.md">Changelog</a>
+</p>
 
-## Live Demo
+<p align="center">
+  <img src="https://img.shields.io/badge/version-1.10.2-teal" alt="Version">
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React 19">
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Vite-6-646CFF?logo=vite" alt="Vite 6">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss" alt="Tailwind CSS 4">
+  <img src="https://img.shields.io/badge/PWA-Offline--first-5A0FC8" alt="PWA">
+</p>
 
-[Open Expend](https://expend.pages.dev/)
+Expend is a local-first personal finance tracker for expenses, budgets, wallets, debts, receivables, and monthly reports. Built as an offline-capable Progressive Web App (PWA). Stores all financial data locally in IndexedDB — no account, no cloud sync, no tracking.
+
+## Screenshots
+
+| | | |
+|---|---|---|
+| <img src="docs/screenshots/home.png" width="200" alt="Home"> | <img src="docs/screenshots/wallets.png" width="200" alt="Wallets"> | <img src="docs/screenshots/debts.png" width="200" alt="Debts"> |
+| <img src="docs/screenshots/stats.png" width="200" alt="Stats"> | <img src="docs/screenshots/payees.png" width="200" alt="Payees"> | <img src="docs/screenshots/add-expense.png" width="200" alt="Add expense"> |
 
 ## Table of Contents
 
 - [Why Expend](#why-expend)
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Privacy and Data Ownership](#privacy-and-data-ownership)
 - [Backup and Restore](#backup-and-restore)
 - [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [Available Scripts](#available-scripts)
 - [Testing and Quality Checks](#testing-and-quality-checks)
@@ -65,12 +87,12 @@ For stronger protection, use encrypted devices, separate OS accounts, and encryp
 
 ## Backup and Restore
 
-1. Open **Settings -> Data -> Export JSON** to download a full backup.
+1. Open **Settings → Backup & Restore** accordion, tap **Export Full Backup** to download a JSON backup.
 2. Store the JSON backup in a safe location.
-3. Open **Settings -> Data -> Import JSON** to restore a backup.
-4. Import replaces existing app data, while local PIN/security settings are preserved.
+3. Open **Settings → Backup & Restore** accordion, tap **Restore from Backup** to restore.
+4. Import replaces existing app data; local PIN/security settings are preserved.
 
-CSV import/export is available for transaction-focused workflows. JSON is the recommended format for full backup and restore.
+CSV import/export is available under **Settings → Transaction Import & Export**. JSON is the recommended format for full backup and restore.
 
 ## Tech Stack
 
@@ -84,6 +106,11 @@ CSV import/export is available for transaction-focused workflows. JSON is the re
 - Workbox and vite-plugin-pwa
 - Vitest and Playwright
 
+## Prerequisites
+
+- **Node.js** ≥ 22
+- **npm** ≥ 10
+
 ## Quick Start
 
 ```bash
@@ -94,6 +121,12 @@ npm run dev
 ```
 
 The development server runs at `http://localhost:3000`.
+
+### Install for first-time E2E testing
+
+```bash
+npm run playwright:install
+```
 
 ## Available Scripts
 
