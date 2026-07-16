@@ -373,7 +373,7 @@ export async function createDebt(
   await page.getByRole('button', { name: /add debt or receivable/i }).first().click();
   await page.waitForSelector('h3:has-text("I Owe Money")', { timeout: 10_000 });
 
-  const typeLabel = opts.type === 'receivable' ? /i lent money/i : /i owe money/i;
+  const typeLabel = opts.type === 'receivable' ? /someone owes me/i : /i owe someone/i;
   await page.getByRole('button', { name: typeLabel }).first().click();
 
   await page.waitForSelector('input[required][type="text"]', { timeout: 10_000 });
