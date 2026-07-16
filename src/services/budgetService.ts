@@ -1,5 +1,5 @@
 import { Transaction, Category } from '../db/db';
-import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
 import { getTodayStr, getYesterdayStr, getMonthStartStr, getNextMonthStartStr, normaliseDate } from '../utils/dateUtils';
 
 export interface BudgetStatus {

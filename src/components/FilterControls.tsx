@@ -3,7 +3,7 @@ import { Calendar, Check, Wallet as WalletIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Category, Wallet } from '../db/db';
 import { cn } from '../utils/cn';
-import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
 
 function formatNumericInput(value: string) {
   const numeric = value.replace(/\D/g, '');

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
 import { Transaction } from '../db/db';
-import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
 import { displayDateShort } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/formatUtils';
 import { usePrivacy } from '../contexts/PrivacyContext';

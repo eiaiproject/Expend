@@ -17,7 +17,6 @@ export function usePrivacy() {
 
 export function PrivacyProvider({ children }: { children: React.ReactNode }) {
   const [hideAmount, setHideAmount] = useState(false);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -27,7 +26,6 @@ export function PrivacyProvider({ children }: { children: React.ReactNode }) {
           setHideAmount(setting.value === 'true');
         }
       } catch { /* ignore */ }
-      setLoaded(true);
     };
     load();
   }, []);

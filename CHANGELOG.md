@@ -2,6 +2,22 @@
 
 All notable changes to Expend are documented here.
 
+## 1.10.1 - 2026-07-05
+
+### Refactored
+
+- `categoryDisplay.ts` removed; `FALLBACK_CATEGORY_NAME` inlined into `constants.ts`.
+- `transferUtils.ts`: drop legacy transfer-pair fuzzy fallback; keep `transferGroupId` indexed path only.
+- `cryptoUtils.ts`: deduplicated crypto helpers (`bufferToHex`, `hexToUint8Array` inlined into `pbkdf2Hex`/`sha256Hex`).
+- `db/db.ts`: deduplicated repeated Dexie store-string definitions; migrations consolidated where version numbers didn't change schema.
+- `WalletsView.tsx`: remove manual dynamic-import wrapper; use direct static import (chunk already loaded).
+- `PrivacyContext.tsx`: remove unused `loaded`/`setLoaded` state.
+
+### Removed
+
+- `src/utils/categoryDisplay.ts` (replaced by constant in `constants.ts`).
+- Dead `STORAGE_KEYS.FAILED_ATTEMPTS` and `STORAGE_KEYS.LOCKOUT_UNTIL` (never referenced outside `constants.ts`).
+
 ## 1.10.0 - 2026-07-05
 
 ### Added

@@ -25,6 +25,9 @@ export const DEFAULT_CATEGORIES = [
 /** App version displayed in InfoPopup and Settings. Derived from package.json via Vite define. */
 export const APP_VERSION = `v${__APP_VERSION__}`;
 
+/** Sentinel name used for fallback categories (displayed as "Other"). */
+export const FALLBACK_CATEGORY_NAME = '__OTHER__';
+
 /** Maximum PIN length. */
 export const MAX_PIN_LENGTH = 6;
 
@@ -69,7 +72,4 @@ export const STORAGE_KEYS = {
   PWA_BANNER_DISMISSED: 'expend_pwa_banner_dismissed',
   HAS_ONBOARDED: 'expend_has_onboarded',
   ONBOARDING_COMPLETED: 'expend_onboarding_completed',
-  // Legacy localStorage throttle keys kept so reset can clean older installs.
-  FAILED_ATTEMPTS: 'expend_failed_attempts',
-  LOCKOUT_UNTIL: 'expend_lockout_until',
 } as const;

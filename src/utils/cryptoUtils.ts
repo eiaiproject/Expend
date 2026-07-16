@@ -1,3 +1,8 @@
+/**
+ * PBKDF2-SHA256 PIN hashing via the SubtleCrypto API.
+ * The hash + salt + iteration triple is what's persisted; verification re-derives
+ * the same bits and compares in constant time across the hex encoding.
+ */
 const PBKDF2_ITERATIONS = 100_000;
 const KEY_LENGTH = 32; // 256 bits
 const SALT_LENGTH = 16; // bytes
@@ -23,47 +28,41 @@ function generateSalt(): string {
   return bufferToHex(salt.buffer);
 }
 
-/**
- * Hash a PIN using PBKDF2 with a random salt.
- * Returns the hash, salt, and iteration count — all needed for verification.
- */
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+  return bufferToHex(buf);
+}
+
+async function pbkdf2Hex(pin: string, saltHex: string, iterations: number): Promise<string> {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']
+  );
+  const derivedBits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: hexToUint8Array(saltHex), iterations, hash: 'SHA-256' },
+    keyMaterial, KEY_LENGTH * 8
+  );
+  return bufferToHex(derivedBits);
+}
+
+function cryptoUnavailable(): Error {
+  return new Error('Security subsystem unavailable. Ensure HTTPS or secure context.');
+}
+
+/** Hash a PIN. Returns the hash, salt, and iteration count needed for verification. */
 export async function hashPin(pin: string): Promise<{
   hash: string;
   salt: string;
   iterations: number;
 }> {
   const salt = generateSalt();
-  const encoder = new TextEncoder();
-
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(pin),
-    'PBKDF2',
-    false,
-    ['deriveBits']
-  );
-
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: hexToUint8Array(salt),
-      iterations: PBKDF2_ITERATIONS,
-      hash: 'SHA-256',
-    },
-    keyMaterial,
-    KEY_LENGTH * 8
-  );
-
   return {
-    hash: bufferToHex(derivedBits),
+    hash: await pbkdf2Hex(pin, salt, PBKDF2_ITERATIONS),
     salt,
     iterations: PBKDF2_ITERATIONS,
   };
 }
 
-/**
- * Verify a PIN against a stored PBKDF2 hash using the stored salt and iterations.
- */
+/** Verify a PIN against a stored PBKDF2 hash. */
 export async function verifyPin(
   pin: string,
   storedHash: string,
@@ -71,45 +70,19 @@ export async function verifyPin(
   iterations: number
 ): Promise<boolean> {
   try {
-    const encoder = new TextEncoder();
-    const keyMaterial = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(pin),
-      'PBKDF2',
-      false,
-      ['deriveBits']
-    );
-
-    const derivedBits = await crypto.subtle.deriveBits(
-      {
-        name: 'PBKDF2',
-        salt: hexToUint8Array(salt),
-        iterations,
-        hash: 'SHA-256',
-      },
-      keyMaterial,
-      KEY_LENGTH * 8
-    );
-
-    const hash = bufferToHex(derivedBits);
-    return hash === storedHash;
+    return (await pbkdf2Hex(pin, salt, iterations)) === storedHash;
   } catch (err) {
     console.error('PIN verification crypto failure:', err);
-    throw new Error('Security subsystem unavailable. Ensure HTTPS or secure context.');
+    throw cryptoUnavailable();
   }
 }
 
-/**
- * Legacy SHA-256 verification for migrating old hashes to PBKDF2.
- */
+/** Verify a legacy SHA-256-only hash. Used to upgrade old installs to PBKDF2. */
 export async function verifyLegacySha256(pin: string, storedHash: string): Promise<boolean> {
   try {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(pin);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    return bufferToHex(hashBuffer) === storedHash;
+    return (await sha256Hex(pin)) === storedHash;
   } catch (err) {
     console.error('Legacy SHA-256 verification crypto failure:', err);
-    throw new Error('Security subsystem unavailable. Ensure HTTPS or secure context.');
+    throw cryptoUnavailable();
   }
 }

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { cn } from '../utils/cn';
-import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
 import { getMonthStartStr, getNextMonthStartStr, normaliseDate } from '../utils/dateUtils';
 import { formatCurrencyValue } from '../utils/formatUtils';
 import { confirm } from '../components/ConfirmDialog';

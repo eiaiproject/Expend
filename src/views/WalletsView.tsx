@@ -16,8 +16,8 @@ import { WalletCard } from '../components/wallet/WalletCard';
 import { AddWalletSheet } from '../components/wallet/AddWalletSheet';
 import { EditWalletSheet } from '../components/wallet/EditWalletSheet';
 import { ReconcileBalanceSheet } from '../components/wallet/ReconcileBalanceSheet';
+import { TransactionFormSheet } from '../components/TransactionFormSheet';
 import type { SpendingTrend } from '../types/wallet';
-import type { TransactionType } from '../hooks/useTransactionForm';
 
 type SortOption = 'default' | 'name' | 'balance' | 'activity';
 
@@ -582,22 +582,11 @@ function TransferFormWrapper({ isOpen, onClose, fromWalletId }: {
   onClose: () => void;
   fromWalletId: number;
 }) {
-  // Lazy load TransactionFormSheet
-  const [FormSheet, setFormSheet] = useState<React.ComponentType<any> | null>(null);
-
-  useMemo(() => {
-    import('../components/TransactionFormSheet').then(m => {
-      setFormSheet(() => m.TransactionFormSheet);
-    });
-  }, []);
-
-  if (!FormSheet) return null;
-
   return (
-    <FormSheet
+    <TransactionFormSheet
       isOpen={isOpen}
       onClose={onClose}
-      initialType={'transfer' as TransactionType}
+      initialType="transfer"
       initialFromWalletId={fromWalletId}
     />
   );

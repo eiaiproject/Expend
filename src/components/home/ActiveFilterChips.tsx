@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
-import { FALLBACK_CATEGORY_NAME } from '../../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../../utils/constants';
 
 interface FilterState {
   type: 'all' | 'expense' | 'balance_adjustment';

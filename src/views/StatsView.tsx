@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { Skeleton } from '../components/Skeleton';
-import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
 import {
   displayDateShort,
   displayDateFull,

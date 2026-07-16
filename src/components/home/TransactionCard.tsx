@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowDownCircle, ArrowUpRight, ArrowDownLeft, RefreshCw, Edit2, Trash2, MoreVertical, Eye, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
-import { FALLBACK_CATEGORY_NAME } from '../../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../../utils/constants';
 import { formatCurrencyValue, formatSignedCurrency } from '../../utils/formatUtils';
 import { displayDateShort } from '../../utils/dateUtils';
 import { SearchHighlight } from '../SearchHighlight';

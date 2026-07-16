@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Check, X } from 'lucide-react';
 import { cn } from '../utils/cn';
-import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
+import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
 import { Category } from '../db/db';
 
 // ponytail: inline former getCategoryDisplayName helper
