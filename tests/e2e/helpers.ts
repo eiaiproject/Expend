@@ -471,18 +471,20 @@ export async function adjustWalletBalance(
     await page.goto('/wallets');
     await page.waitForLoadState('networkidle');
   }
-  // Find the wallet card and click "Update Balance" (or "Update Now" if stale).
-  const card = page.locator(`[data-wallet-card="${opts.walletName}"]`).first();
-  await card.scrollIntoViewIfNeeded();
-  await card.getByRole('button', { name: /update balance|update now/i }).first().click();
+  // Open overflow menu and click Reconcile Balance
+  await clickWalletMenuOption(page, opts.walletName, /reconcile balance/i);
 
-  const numericInput = card.locator('input[inputmode="numeric"]').first();
+  // Wait for the reconcile sheet dialog
+  const dialog = page.getByRole('dialog', { name: /reconcile balance/i });
+  await dialog.waitFor({ state: 'visible', timeout: 5_000 });
+
+  const numericInput = dialog.locator('input[inputmode="numeric"]').first();
   await numericInput.fill(opts.newBalance);
-  await card.getByRole('button', { name: /^save$/i }).first().click();
+  await dialog.getByRole('button', { name: /^save$/i }).first().click();
 
-  // Wait for the input to disappear (sheet closes).
+  // Wait for the dialog to close.
   await page.waitForFunction(
-    () => !document.querySelector('[role="dialog"] input[inputmode="numeric"]'),
+    () => !document.querySelector('[role="dialog"][aria-label*="Reconcile"]'),
     undefined,
     { timeout: 10_000 },
   );
@@ -504,7 +506,7 @@ export async function deleteTransactionByDescription(
   await row.scrollIntoViewIfNeeded();
 
   // First try the kebab menu — the cleaner path.
-  const kebab = row.getByRole('button', { name: /open transaction actions|transaction actions/i }).first();
+  const kebab = row.getByRole('button', { name: /open transaction actions|transaction actions|actions for/i }).first();
   await kebab.click();
   const menu = page.getByRole('menu');
   await menu.waitFor({ state: 'visible', timeout: 2_000 });
@@ -530,7 +532,7 @@ export async function openTransactionForEdit(
   }).first();
   await row.scrollIntoViewIfNeeded();
 
-  const kebab = row.getByRole('button', { name: /open transaction actions|transaction actions/i }).first();
+  const kebab = row.getByRole('button', { name: /open transaction actions|transaction actions|actions for/i }).first();
   await kebab.click();
   const menu = page.getByRole('menu');
   const menuVisible = await menu.isVisible({ timeout: 2_000 }).catch(() => false);
@@ -747,4 +749,29 @@ export async function createExpenseViaService(
   }, opts);
   // Let Dexie flush.
   await page.waitForTimeout(500);
+}
+
+/**
+ * Open a wallet's overflow menu and click an option by name.
+ * Handles the new overflow menu pattern (MoreVertical → menuitem).
+ */
+export async function clickWalletMenuOption(
+  page: Page,
+  walletName: string,
+  optionName: string | RegExp,
+): Promise<void> {
+  const card = page.locator(`[data-wallet-card="${walletName}"]`).first();
+  await card.scrollIntoViewIfNeeded();
+
+  // Click the overflow menu trigger (MoreVertical icon button)
+  const menuTrigger = card.getByRole('button', { name: /actions for/i });
+  await menuTrigger.click();
+
+  // Wait for menu to appear
+  const menu = page.getByRole('menu');
+  await menu.waitFor({ state: 'visible', timeout: 3_000 });
+
+  // Click the option
+  const option = menu.getByRole('menuitem', { name: optionName });
+  await option.click();
 }

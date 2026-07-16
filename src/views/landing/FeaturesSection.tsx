@@ -1,226 +1,80 @@
 import { useTranslation } from 'react-i18next';
-import { type ReactNode } from 'react';
-import {
-  Shield,
-  Zap,
-  Smartphone,
-  Wifi,
-  BarChart3,
-  Wallet,
-  Search,
-  ArrowLeftRight,
-  Tags,
-  Lock,
-  Globe,
-  Handshake,
-} from 'lucide-react';
+import { Zap, Shield, Wifi, Wallet, Tags, ArrowLeftRight, Handshake, BarChart3, Search } from 'lucide-react';
 
-interface FeatureItem {
-  icon: ReactNode;
-  title: string;
-  description: string;
-  stats?: string;
-}
+const benefits = [
+  { icon: Zap, titleKey: 'landing.benefit1Title', descKey: 'landing.benefit1Desc' },
+  { icon: Shield, titleKey: 'landing.benefit2Title', descKey: 'landing.benefit2Desc' },
+  { icon: Wifi, titleKey: 'landing.benefit3Title', descKey: 'landing.benefit3Desc' },
+];
 
-function FeatureCard({ icon, title, description, stats, index }: FeatureItem & { index: number }) {
-  return (
-    <div
-      className="relative group h-full"
-    >
-      <div className="p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-[var(--surface)]/50 border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 transition-colors duration-300 h-full flex flex-col">
-        {/* Icon */}
-        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 group-hover:bg-[var(--accent)]/20 transition-[transform,background-color] duration-300">
-          {icon}
-        </div>
-
-        {/* Content */}
-        <h3 className="text-lg sm:text-xl font-semibold text-[var(--text-primary)] mb-2 sm:mb-3">
-          {title}
-        </h3>
-        <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
-          {description}
-        </p>
-
-        {/* Stats Badge - always render spacer for alignment */}
-        <div className="mt-auto pt-5">
-          {stats && (
-            <div className="inline-flex w-fit items-center gap-2 px-3 py-1.5 bg-[var(--accent)]/10 rounded-full">
-              <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
-              <span className="text-xs sm:text-sm font-medium text-[var(--accent)]">{stats}</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+const features = [
+  { icon: Wallet, titleKey: 'landing.featureWalletTitle', descKey: 'landing.featureWalletDesc' },
+  { icon: Tags, titleKey: 'landing.featureBudgetTitle', descKey: 'landing.featureBudgetDesc' },
+  { icon: ArrowLeftRight, titleKey: 'landing.featureTransferTitle', descKey: 'landing.featureTransferDesc' },
+  { icon: Handshake, titleKey: 'landing.featureDebtTitle', descKey: 'landing.featureDebtDesc' },
+  { icon: BarChart3, titleKey: 'landing.featureChartsTitle', descKey: 'landing.featureChartsDesc' },
+  { icon: Search, titleKey: 'landing.featureSearchTitle', descKey: 'landing.featureSearchDesc' },
+];
 
 export function FeaturesSection() {
   const { t } = useTranslation();
 
-  const coreFeatures: FeatureItem[] = [
-    {
-      icon: <Shield size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featurePrivacyTitle'),
-      description: t('landing.featurePrivacyDesc'),
-      stats: t('landing.featurePrivacyStats'),
-    },
-    {
-      icon: <Zap size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featureSpeedTitle'),
-      description: t('landing.featureSpeedDesc'),
-      stats: t('landing.featureSpeedStats'),
-    },
-    {
-      icon: <Smartphone size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featureNativeTitle'),
-      description: t('landing.featureNativeDesc'),
-    },
-    {
-      icon: <Wifi size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featureOfflineTitle'),
-      description: t('landing.featureOfflineDesc'),
-      stats: t('landing.featureOfflineStats'),
-    },
-  ];
-
-  const financeFeatures: FeatureItem[] = [
-    {
-      icon: <Wallet size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featureWalletTitle'),
-      description: t('landing.featureWalletDesc'),
-      stats: t('landing.featureWalletStats'),
-    },
-    {
-      icon: <Tags size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featureBudgetTitle'),
-      description: t('landing.featureBudgetDesc'),
-      stats: t('landing.featureBudgetStats'),
-    },
-    {
-      icon: <ArrowLeftRight size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featureTransferTitle'),
-      description: t('landing.featureTransferDesc'),
-    },
-    {
-      icon: <Handshake size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featureDebtTitle'),
-      description: t('landing.featureDebtDesc'),
-      stats: t('landing.featureDebtStats'),
-    },
-  ];
-
-  const insightFeatures: FeatureItem[] = [
-    {
-      icon: <BarChart3 size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featureChartsTitle'),
-      description: t('landing.featureChartsDesc'),
-      stats: t('landing.featureChartsStats'),
-    },
-    {
-      icon: <Search size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featureSearchTitle'),
-      description: t('landing.featureSearchDesc'),
-    },
-    {
-      icon: <Lock size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featureSecurityTitle'),
-      description: t('landing.featureSecurityDesc'),
-      stats: t('landing.featureSecurityStats'),
-    },
-    {
-      icon: <Globe size={24} className="text-[var(--accent)]" />,
-      title: t('landing.featureLanguageTitle'),
-      description: t('landing.featureLanguageDesc'),
-    },
-  ];
-
   return (
-    <section
-      id="features-section"
-      className="scroll-mt-24 pt-12 pb-20 sm:pt-20 sm:pb-28 px-4 sm:px-6 max-w-6xl mx-auto relative z-10"
-    >
-      {/* Section Header */}
-      <div
-        className="text-center mb-14 sm:mb-16"
-      >
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)] mb-4 text-balance">
-          {t('landing.featuresTitle')}
-        </h2>
-        <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-2xl mx-auto text-pretty">
-          {t('landing.featuresSubtitle')}
-        </p>
-      </div>
+    <section id="features-section" className="scroll-mt-20 py-16 sm:py-24 px-4 sm:px-6">
+      <div className="max-w-5xl mx-auto">
+        {/* Benefits */}
+        <div className="text-center mb-16 sm:mb-20">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[var(--text-primary)] mb-3" style={{ textWrap: 'balance' }}>
+            {t('landing.benefitsTitle')}
+          </h2>
+          <p className="text-base sm:text-lg text-[var(--text-muted)] max-w-lg mx-auto mb-12" style={{ textWrap: 'pretty' }}>
+            {t('landing.benefitsSubtitle')}
+          </p>
 
-      <div className="space-y-16 sm:space-y-20">
-        {/* Core Features - Privacy & Performance */}
-        <div>
-          <div className="flex items-center gap-3 mb-6 sm:mb-8">
-            <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
-              <Shield size={16} className="text-[var(--accent)]" />
-            </div>
-            <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
-              {t('landing.featuresCoreTitle')}
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-            {coreFeatures.map((f, i) => (
-              <FeatureCard
-                key={i}
-                index={i}
-                icon={f.icon}
-                title={f.title}
-                description={f.description}
-                stats={f.stats}
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {benefits.map(({ icon: Icon, titleKey, descKey }, i) => (
+              <div key={i} className="text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--accent)]/10 mb-4">
+                  <Icon size={22} className="text-[var(--accent)]" />
+                </div>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+                  {t(titleKey)}
+                </h3>
+                <p className="text-sm text-[var(--text-secondary)] leading-relaxed max-w-xs mx-auto">
+                  {t(descKey)}
+                </p>
+              </div>
             ))}
           </div>
         </div>
 
         {/* Finance Features */}
         <div className="border-t border-[var(--border-subtle)] pt-14 sm:pt-16">
-          <div className="flex items-center gap-3 mb-6 sm:mb-8">
-            <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
-              <Wallet size={16} className="text-[var(--accent)]" />
-            </div>
-            <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
-              {t('landing.featuresFinanceTitle')}
-            </h3>
+          <div className="text-center mb-10 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] mb-3" style={{ textWrap: 'balance' }}>
+              {t('landing.financeTitle')}
+            </h2>
+            <p className="text-sm sm:text-base text-[var(--text-muted)] max-w-lg mx-auto" style={{ textWrap: 'pretty' }}>
+              {t('landing.financeSubtitle')}
+            </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-            {financeFeatures.map((f, i) => (
-              <FeatureCard
-                key={i}
-                index={i}
-                icon={f.icon}
-                title={f.title}
-                description={f.description}
-                stats={f.stats}
-              />
-            ))}
-          </div>
-        </div>
 
-        {/* Insight & Security Features */}
-        <div className="border-t border-[var(--border-subtle)] pt-14 sm:pt-16">
-          <div className="flex items-center gap-3 mb-6 sm:mb-8">
-            <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
-              <BarChart3 size={16} className="text-[var(--accent)]" />
-            </div>
-            <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
-              {t('landing.featuresInsightTitle')}
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-            {insightFeatures.map((f, i) => (
-              <FeatureCard
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {features.map(({ icon: Icon, titleKey, descKey }, i) => (
+              <div
                 key={i}
-                index={i}
-                icon={f.icon}
-                title={f.title}
-                description={f.description}
-                stats={f.stats}
-              />
+                className="p-5 rounded-xl bg-[var(--surface)]/50 border border-[var(--border-subtle)] hover:border-[var(--accent)]/20 transition-colors group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center mb-3 group-hover:bg-[var(--accent)]/15 transition-colors">
+                  <Icon size={18} className="text-[var(--accent)]" />
+                </div>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1.5">
+                  {t(titleKey)}
+                </h3>
+                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                  {t(descKey)}
+                </p>
+              </div>
             ))}
           </div>
         </div>

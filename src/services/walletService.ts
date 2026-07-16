@@ -26,6 +26,40 @@ export interface DeleteWalletResult {
 }
 
 /**
+ * Check if a wallet can be safely deleted.
+ * Returns { canDelete, reason, reasonKey, reasonOptions }.
+ */
+export async function canDeleteWallet(walletId: number): Promise<{ canDelete: boolean; reason?: string; reasonKey?: string; reasonOptions?: Record<string, number | string> }> {
+  const debtCount = await db.debts
+    .where('walletId')
+    .equals(walletId)
+    .and(d => !d.archivedAt)
+    .count();
+  if (debtCount > 0) {
+    return { canDelete: false, reason: `Wallet is linked to ${debtCount} active debt(s)/receivable(s).`, reasonKey: 'wallet.deleteBlocked', reasonOptions: { count: debtCount } };
+  }
+
+  const paymentCount = await db.debtPayments
+    .where('walletId')
+    .equals(walletId)
+    .count();
+  if (paymentCount > 0) {
+    return { canDelete: false, reason: `Wallet has ${paymentCount} debt payment record(s).`, reasonKey: 'wallet.deleteBlocked', reasonOptions: { count: paymentCount } };
+  }
+
+  const walletTxs = await db.transactions
+    .where('walletId')
+    .equals(walletId)
+    .toArray();
+  const nonTransferTxs = walletTxs.filter(t => t.type !== 'transfer_in' && t.type !== 'transfer_out');
+  if (nonTransferTxs.length > 0) {
+    return { canDelete: false, reason: `Wallet has ${nonTransferTxs.length} associated transaction(s).`, reasonKey: 'wallet.deleteBlocked', reasonOptions: { count: nonTransferTxs.length } };
+  }
+
+  return { canDelete: true };
+}
+
+/**
  * Delete a wallet safely inside a single Dexie transaction.
  *
  * Blocking references (always block deletion):
@@ -42,53 +76,17 @@ export interface DeleteWalletResult {
  */
 export async function deleteWalletSafely(walletId: number): Promise<DeleteWalletResult> {
   try {
-    // 1. Always block debts (active loan ledger)
-    const debtCount = await db.debts
-      .where('walletId')
-      .equals(walletId)
-      .and(d => !d.archivedAt)
-      .count();
-    if (debtCount > 0) {
-      return {
-        success: false,
-        reason: `Wallet cannot be deleted because it is linked to ${debtCount} active debt(s)/receivable(s).`,
-        reasonKey: 'Wallet delete blocked active debts',
-        reasonOptions: { count: debtCount },
-      };
+    const check = await canDeleteWallet(walletId);
+    if (!check.canDelete) {
+      return { success: false, reason: check.reason, reasonKey: check.reasonKey, reasonOptions: check.reasonOptions };
     }
 
-    // 2. Always block debt payments (cashflow history)
-    const paymentCount = await db.debtPayments
-      .where('walletId')
-      .equals(walletId)
-      .count();
-    if (paymentCount > 0) {
-      return {
-        success: false,
-        reason: `Wallet cannot be deleted because it has ${paymentCount} debt payment record(s).`,
-        reasonKey: 'Wallet delete blocked debt payments',
-        reasonOptions: { count: paymentCount },
-      };
-    }
-
-    // 3. Inspect transactions. Non-transfer transactions block deletion;
-    //    transfer_in/out pairs are unwound with their counterparts.
+    // Find paired transfers in OTHER wallets and collect affected wallet ids.
     const walletTxs = await db.transactions
       .where('walletId')
       .equals(walletId)
       .toArray();
 
-    const nonTransferTxs = walletTxs.filter(t => t.type !== 'transfer_in' && t.type !== 'transfer_out');
-    if (nonTransferTxs.length > 0) {
-      return {
-        success: false,
-        reason: `Wallet cannot be deleted because it has ${nonTransferTxs.length} associated transaction(s).`,
-        reasonKey: 'Wallet delete blocked transactions',
-        reasonOptions: { count: nonTransferTxs.length },
-      };
-    }
-
-    // 4. Find paired transfers in OTHER wallets and collect affected wallet ids.
     const pairedAffectedWalletIds = new Set<number>();
     const pairsToDelete = new Set<number>();
 
@@ -109,7 +107,7 @@ export async function deleteWalletSafely(walletId: number): Promise<DeleteWallet
       }
     }
 
-    // 5. Atomic delete + balance recompute
+    // Atomic delete + balance recompute
     await db.transaction('rw', [db.transactions, db.wallets], async () => {
       if (pairsToDelete.size > 0) {
         await db.transactions.bulkDelete(Array.from(pairsToDelete));
@@ -137,7 +135,7 @@ export async function deleteWalletSafely(walletId: number): Promise<DeleteWallet
     return {
       success: false,
       reason: err instanceof Error ? err.message : 'An unknown error occurred',
-      reasonKey: 'Wallet delete failed unknown',
+      reasonKey: 'wallet.deleteError',
     };
   }
 }
@@ -168,7 +166,7 @@ export async function adjustWalletBalance(
         walletId,
         categoryId: null,
         date: new Date().toISOString().slice(0, 10),
-        description: metadata?.description ?? 'Balance Update',
+        description: metadata?.description ?? 'Balance Reconciliation',
         type: 'balance_adjustment',
         amount: delta,
         notes: metadata?.notes,
@@ -179,5 +177,24 @@ export async function adjustWalletBalance(
       currentBalance: newAbsoluteBalance,
       lastUpdated: new Date().toISOString(),
     });
+  });
+}
+
+/**
+ * Deactivate a wallet by setting archivedAt to the current ISO timestamp.
+ * Does NOT delete data — wallet remains in history and reports.
+ */
+export async function deactivateWallet(walletId: number): Promise<void> {
+  await db.wallets.update(walletId, {
+    archivedAt: new Date().toISOString(),
+  });
+}
+
+/**
+ * Reactivate a wallet by clearing archivedAt.
+ */
+export async function reactivateWallet(walletId: number): Promise<void> {
+  await db.wallets.update(walletId, {
+    archivedAt: null,
   });
 }

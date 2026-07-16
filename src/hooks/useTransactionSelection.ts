@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { Transaction } from '../db/db';
 import { deleteTransactionsWithPairs, restoreTransactions } from '../services/deleteTransactionService';
 import { toast } from '../components/Toaster';
@@ -11,13 +11,15 @@ export interface UseTransactionSelectionResult {
   toggleSelection: (id: number) => void;
   handleBulkDelete: () => Promise<void>;
   isSelected: (id: number) => boolean;
+  /** Select all given ids */
+  selectAll: (ids: number[]) => void;
+  /** Clear selection */
+  deselectAll: () => void;
 }
 
 export function useTransactionSelection(t: (key: string) => string): UseTransactionSelectionResult {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
-  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
   const enterSelectionMode = useCallback(() => {
     setIsSelectionMode(true);
@@ -30,17 +32,14 @@ export function useTransactionSelection(t: (key: string) => string): UseTransact
   }, []);
 
   const toggleSelection = useCallback((id: number) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return Array.from(next);
-    });
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
   }, []);
 
   const isSelected = useCallback((id: number) => {
-    return selectedIdSet.has(id);
-  }, [selectedIdSet]);
+    return selectedIds.includes(id);
+  }, [selectedIds]);
 
   const handleBulkDelete = useCallback(async () => {
     if (selectedIds.length === 0) return;
@@ -54,6 +53,14 @@ export function useTransactionSelection(t: (key: string) => string): UseTransact
     });
   }, [selectedIds, t]);
 
+  const selectAll = useCallback((ids: number[]) => {
+    setSelectedIds(ids);
+  }, []);
+
+  const deselectAll = useCallback(() => {
+    setSelectedIds([]);
+  }, []);
+
   return {
     isSelectionMode,
     selectedIds,
@@ -62,5 +69,7 @@ export function useTransactionSelection(t: (key: string) => string): UseTransact
     toggleSelection,
     handleBulkDelete,
     isSelected,
+    selectAll,
+    deselectAll,
   };
 }

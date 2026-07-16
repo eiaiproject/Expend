@@ -130,7 +130,7 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets }: F
     >
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-          <div className="space-y-3" role="radiogroup" aria-label={t('Filter Type')}>
+          <div className="space-y-3" role="group" aria-label={t('Filter Type')}>
             <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
               {t('Filter Type')}
             </p>
@@ -139,11 +139,10 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets }: F
                 <button
                   type="button"
                   key={type}
-                  role="radio"
-                  aria-checked={draft.type === type}
+                  aria-pressed={draft.type === type}
                   onClick={() => updateDraft({ type })}
                   className={cn(
-                    "text-left px-4 py-3 rounded-xl text-sm transition-colors border flex items-center justify-between",
+                    "text-left px-4 py-3 rounded-xl text-sm transition-colors border flex items-center justify-between min-h-[44px]",
                     draft.type === type
                       ? "bg-[var(--accent-fill)] text-[var(--accent-ink)] border-[var(--accent-fill)]"
                       : "bg-[var(--bg)] text-[var(--text-primary)] border-[var(--border)] hover:border-[var(--accent)]"

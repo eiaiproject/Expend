@@ -1,26 +1,34 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useNavigate, Link } from 'react-router-dom';
 import { db, type Category } from '../db/db';
-import { Tag, Plus, Edit2, Trash2, Check, X, Save, ArrowLeft, HelpCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-
+import {
+  Tag, Plus, ArrowLeft, HelpCircle, Search, X as XIcon, ArrowUpDown,
+  ChevronDown, ChevronUp
+} from 'lucide-react';
+import { usePrivacy } from '../contexts/PrivacyContext';
 import { cn } from '../utils/cn';
 import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
+import { getMonthStartStr, getNextMonthStartStr, normaliseDate } from '../utils/dateUtils';
+import { formatCurrencyValue } from '../utils/formatUtils';
+import { confirm } from '../components/ConfirmDialog';
+import { toast } from '../components/Toaster';
+import { EmptyState } from '../components/EmptyState';
+import { BUDGET_NEAR_LIMIT_THRESHOLD } from '../utils/constants';
+import { CategoryOverflowMenu } from '../components/categories/CategoryOverflowMenu';
+import { HelpDialog } from '../components/categories/HelpDialog';
+import { CategoryForm } from '../components/categories/CategoryForm';
 
 // ponytail: inline former getCategoryDisplayName helper
 const catDisplayName = (name: string | null | undefined, t: (k: string) => string): string => {
   if (!name) return '';
   return name === FALLBACK_CATEGORY_NAME ? t('Other') : name;
 };
-import { getMonthStartStr, getNextMonthStartStr, normaliseDate } from '../utils/dateUtils';
-import { confirm } from '../components/ConfirmDialog';
-import { toast } from '../components/Toaster';
-import { CURATED_PALETTE } from '../utils/constants';
-import { formatAmountLocal } from '../utils/formatUtils';
-import { EmptyState } from '../components/EmptyState';
 
-interface CategoryWithSpending {
+type SortMode = 'manual' | 'name' | 'spending' | 'budget';
+
+interface CategoryWithStats {
   id: number;
   name: string;
   icon: string;
@@ -28,47 +36,48 @@ interface CategoryWithSpending {
   budget?: number;
   spendingThisMonth: number;
   txCount: number;
+  totalSpending: number;
+  archivedAt?: string | null;
+}
+
+// ── Budget threshold helper ──────────────────────────────────
+function budgetStatus(spent: number, budget: number) {
+  if (spent >= budget) return 'over';
+  if (spent / budget >= BUDGET_NEAR_LIMIT_THRESHOLD) return 'near';
+  return 'normal';
 }
 
 export default function CategoriesView() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { hideAmount } = usePrivacy();
 
   const categories = useLiveQuery(() => db.categories.toArray(), [], []);
   const transactions = useLiveQuery(() => db.transactions.toArray(), [], []);
 
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editColor, setEditColor] = useState('');
-  const [editBudget, setEditBudget] = useState('');
+  // UI state
   const [showAddForm, setShowAddForm] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newColor, setNewColor] = useState<string>(CURATED_PALETTE[0] as string);
-  const [newBudget, setNewBudget] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortMode, setSortMode] = useState<SortMode>('manual');
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  const newCategoryInputRef = useRef<HTMLInputElement>(null);
-  const editCategoryInputRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const addCategoryInputRef = useRef<HTMLInputElement>(null);
 
+  // Focus add form input
   useEffect(() => {
-    if (showAddForm && newCategoryInputRef.current) {
-      newCategoryInputRef.current.focus();
-    }
+    if (showAddForm) addCategoryInputRef.current?.focus();
   }, [showAddForm]);
 
-  useEffect(() => {
-    if (editingId && editCategoryInputRef.current) {
-      editCategoryInputRef.current.focus();
-    }
-  }, [editingId]);
-
-  const categoriesWithSpending: CategoryWithSpending[] = useMemo(() => {
+  // ── Aggregate stats (single pass) ──────────────────────────
+  const categoriesWithStats: CategoryWithStats[] = useMemo(() => {
     if (!categories || !transactions) return [];
 
     const monthStart = getMonthStartStr();
     const nextMonthStart = getNextMonthStartStr();
 
-    // Single-pass aggregation: O(n+m) instead of O(n*m)
     const spendingMap = new Map<number, { totalSpending: number; txCount: number; monthSpending: number }>();
 
     for (const tx of transactions) {
@@ -93,430 +102,556 @@ export default function CategoriesView() {
         budget: cat.budget,
         spendingThisMonth: stats?.monthSpending ?? 0,
         txCount: stats?.txCount ?? 0,
+        totalSpending: stats?.totalSpending ?? 0,
+        archivedAt: cat.archivedAt,
       };
-    }).sort((a, b) => b.spendingThisMonth - a.spendingThisMonth);
+    });
   }, [categories, transactions]);
 
-  const handleStartEdit = (cat: CategoryWithSpending) => {
-    setEditingId(cat.id);
-    setEditName(cat.name);
-    setEditColor(cat.color || '');
-    setEditBudget(cat.budget ? cat.budget.toString() : '');
-  };
+  // ── Split active / archived ────────────────────────────────
+  const activeCategories = useMemo(() => {
+    const filtered = categoriesWithStats.filter(c => !c.archivedAt);
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditName('');
-    setEditColor('');
-    setEditBudget('');
-  };
-
-  const handleSaveEdit = async (id: number) => {
-    if (!editName.trim()) return;
-    try {
-      // Prevent duplicate name
-      const duplicate = categories?.find(c => c.id !== id && c.name.toLowerCase() === editName.trim().toLowerCase());
-      if (duplicate) {
-        toast.add(t('A category with this name already exists'));
-        return;
-      }
-      const updates: Partial<Pick<Category, 'name' | 'color' | 'budget'>> = { name: editName.trim(), color: editColor };
-      if (editBudget) {
-        updates.budget = parseInt(editBudget.replace(/[^0-9]/g, ''), 10);
-      } else {
-        updates.budget = undefined;
-      }
-      await db.categories.update(id, updates);
-      handleCancelEdit();
-    } catch (err) {
-      toast.add(t('Error saving category'));
+    let sorted = [...filtered];
+    switch (sortMode) {
+      case 'name':
+        sorted.sort((a, b) => a.name.localeCompare(b.name, i18n.language));
+        break;
+      case 'spending':
+        sorted.sort((a, b) => b.spendingThisMonth - a.spendingThisMonth);
+        break;
+      case 'budget':
+        sorted.sort((a, b) => (b.budget ?? 0) - (a.budget ?? 0));
+        break;
+      default: // manual — keep default order
+        break;
     }
-  };
 
-  const handleDelete = async (id: number) => {
-    try {
-      const count = await db.transactions.where('categoryId').equals(id).count();
-      const catToDelete = categories?.find(c => c.id === id);
-
-      if (catToDelete?.name === FALLBACK_CATEGORY_NAME && count > 0) {
-        toast.add(t('Fallback category delete blocked'));
-        return;
-      }
-      
-      if (count > 0) {
-        const confirmed = await confirm({ 
-          title: t('Delete Category'), 
-          message: t('Delete category with transactions reassign confirmation', { count }), 
-          variant: 'danger' 
-        });
-        if (!confirmed) return;
-
-        const FALLBACK_COLOR = '#64748B';
-        
-        // Find existing fallback category (by canonical name)
-        let otherCategory = categories?.find(c => c.name === FALLBACK_CATEGORY_NAME);
-        let otherCategoryId: number;
-        
-        // Store backup for undo
-        const originalCategoryId = id;
-        const originalCategory = catToDelete ? { ...catToDelete } : null;
-        const originalTransactions = await db.transactions.where('categoryId').equals(id).toArray();
-
-        // All operations in one atomic transaction
-        await db.transaction('rw', db.categories, db.transactions, async () => {
-          if (otherCategory && otherCategory.id != null) {
-            otherCategoryId = otherCategory.id;
-          } else {
-            // Create fallback category inside the same transaction
-            const newId = await db.categories.add({
-              name: FALLBACK_CATEGORY_NAME,
-              icon: '🏷️',
-              color: FALLBACK_COLOR,
-            });
-            otherCategoryId = newId as number;
-          }
-
-          // Reassign all transactions to fallback category
-          await db.transactions.where('categoryId').equals(id).modify({ categoryId: otherCategoryId });
-          // Delete the category
-          await db.categories.delete(id);
-        });
-
-        // Show undo toast
-        toast.add(
-          t('Category deleted. Transactions moved to {{name}}.', {
-            name: catDisplayName(otherCategory?.name ?? FALLBACK_CATEGORY_NAME, t),
-          }),
-          async () => {
-            // Undo: restore category and reassign transactions back
-            if (originalCategory && originalCategory.id != null) {
-              await db.categories.put(originalCategory);
-              await db.transaction('rw', db.transactions, async () => {
-                await db.transactions
-                  .where('categoryId')
-                  .equals(otherCategoryId)
-                  .and(tx => originalTransactions.some(otx => otx.id === tx.id))
-                  .modify({ categoryId: originalCategoryId });
-              });
-            }
-          }
-        );
-      } else {
-        // No transactions — just delete the category
-        await db.categories.delete(id);
-      }
-    } catch (err) {
-      console.error('Error deleting category:', err);
-      toast.add(t('Error deleting category'));
+    if (searchTerm.trim()) {
+      const lower = searchTerm.toLowerCase();
+      sorted = sorted.filter(c => c.name.toLowerCase().includes(lower));
     }
+
+    return sorted;
+  }, [categoriesWithStats, sortMode, searchTerm, i18n.language]);
+
+  const archivedCategories = useMemo(
+    () => categoriesWithStats.filter(c => c.archivedAt).sort((a, b) => a.name.localeCompare(b.name, i18n.language)),
+    [categoriesWithStats, i18n.language]
+  );
+
+  // ── Summary counts ─────────────────────────────────────────
+  const summaryStats = useMemo(() => {
+    const active = categoriesWithStats.filter(c => !c.archivedAt);
+    const withBudget = active.filter(c => c.budget && c.budget > 0);
+    const nearLimit = withBudget.filter(c => budgetStatus(c.spendingThisMonth, c.budget!) === 'near' || budgetStatus(c.spendingThisMonth, c.budget!) === 'over');
+    return {
+      activeCount: active.length,
+      withBudgetCount: withBudget.length,
+      nearLimitCount: nearLimit.length,
+    };
+  }, [categoriesWithStats]);
+
+  const hasAnyCategory = categoriesWithStats.length > 0;
+
+  // ── Category actions ───────────────────────────────────────
+  const hasTransactions = (catId: number) => {
+    if (!transactions) return false;
+    return transactions.some(tx => tx.categoryId === catId);
   };
 
-  const handleAddCategory = async () => {
-    if (!newName.trim()) return;
+  const handleAddCategory = async (data: { name: string; color: string; budget?: number }) => {
     try {
-      // Prevent duplicate name
-      const existing = categories?.find(c => c.name.toLowerCase() === newName.trim().toLowerCase());
-      if (existing) {
-        toast.add(t('A category with this name already exists'));
-        return;
-      }
-      const budgetVal = newBudget ? parseInt(newBudget.replace(/[^0-9]/g, ''), 10) : undefined;
       await db.categories.add({
-        name: newName.trim(),
+        name: data.name,
         icon: '🏷️',
-        color: newColor,
-        budget: budgetVal,
+        color: data.color,
+        budget: data.budget,
       });
-      setNewName('');
-      setNewColor(CURATED_PALETTE[0] as string);
-      setNewBudget('');
+      toast.add(t('Category added.'));
       setShowAddForm(false);
-    } catch (err) {
+    } catch {
       toast.add(t('Error adding category'));
     }
   };
 
-  const budgetProgress = (spent: number, budget: number) => {
-    return Math.min((spent / budget) * 100, 100);
+  const handleEditCategory = async (data: { name: string; color: string; budget?: number }) => {
+    if (!editingCategory) return;
+    try {
+      await db.categories.update(editingCategory.id!, {
+        name: data.name,
+        color: data.color,
+        budget: data.budget,
+      });
+      toast.add(t('Category changes saved.'));
+      setEditingCategory(null);
+    } catch {
+      toast.add(t('Error saving category'));
+    }
   };
 
+  const handleArchive = async (cat: CategoryWithStats) => {
+    const confirmed = await confirm({
+      title: t('categories.archiveTitle', { name: catDisplayName(cat.name, t) }),
+      message: t('categories.archiveDesc'),
+      confirmLabel: t('categories.archiveCategory'),
+      cancelLabel: t('Cancel'),
+    });
+    if (!confirmed) return;
+
+    try {
+      await db.categories.update(cat.id, { archivedAt: new Date().toISOString() });
+      toast.add(t('categories.archived'));
+    } catch {
+      toast.add(t('Error saving category'));
+    }
+  };
+
+  const handleRestore = async (cat: CategoryWithStats) => {
+    // Check for name conflict with active categories
+    const conflict = categories?.some(c =>
+      c.id !== cat.id && !c.archivedAt && c.name.toLowerCase() === cat.name.toLowerCase()
+    );
+    if (conflict) {
+      toast.add(t('A category with this name already exists'));
+      return;
+    }
+
+    try {
+      await db.categories.update(cat.id, { archivedAt: null });
+      toast.add(t('categories.restored'));
+    } catch {
+      toast.add(t('Error saving category'));
+    }
+  };
+
+  const handleDelete = async (cat: CategoryWithStats) => {
+    if (hasTransactions(cat.id)) {
+      toast.add(t('categories.cannotDeleteHasHistory'));
+      return;
+    }
+
+    const confirmed = await confirm({
+      title: t('categories.deleteTitle', { name: catDisplayName(cat.name, t) }),
+      message: t('categories.deleteDesc'),
+      confirmLabel: t('categories.deletePermanently'),
+      cancelLabel: t('Cancel'),
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    try {
+      await db.categories.delete(cat.id);
+      toast.add(t('categories.deleted'));
+    } catch {
+      toast.add(t('Error deleting category'));
+    }
+  };
+
+  const handleRemoveBudget = async (cat: CategoryWithStats) => {
+    try {
+      await db.categories.update(cat.id, { budget: undefined });
+      toast.add(t('Budget removed.'));
+    } catch {
+      toast.add(t('Error saving category'));
+    }
+  };
+
+  const getCategoryMenuItems = (cat: CategoryWithStats) => {
+    const isArchived = !!cat.archivedAt;
+    const items: { label: string; onClick: () => void; danger?: boolean }[] = [];
+
+    if (!isArchived) {
+      // View transactions — navigate to home with category filter
+      items.push({
+        label: t('categories.viewTransactions'),
+        onClick: () => navigate(`/?categoryId=${cat.id}`),
+      });
+    }
+
+    items.push({
+      label: t('categories.editCategory'),
+      onClick: () => setEditingCategory(categories?.find(c => c.id === cat.id) ?? null),
+    });
+
+    if (!isArchived) {
+      if (cat.budget && cat.budget > 0) {
+        items.push({
+          label: t('categories.changeBudget'),
+          onClick: () => setEditingCategory(categories?.find(c => c.id === cat.id) ?? null),
+        });
+        items.push({
+          label: t('categories.removeBudget'),
+          onClick: () => handleRemoveBudget(cat),
+        });
+      } else {
+        items.push({
+          label: t('categories.setBudget'),
+          onClick: () => setEditingCategory(categories?.find(c => c.id === cat.id) ?? null),
+        });
+      }
+    }
+
+    if (isArchived) {
+      items.push({
+        label: t('categories.restoreCategory'),
+        onClick: () => handleRestore(cat),
+      });
+    } else {
+      items.push({
+        label: t('categories.archiveCategory'),
+        onClick: () => handleArchive(cat),
+      });
+    }
+
+    // Hard delete only if no transactions
+    if (!hasTransactions(cat.id)) {
+      items.push({
+        label: t('categories.deletePermanently'),
+        onClick: () => handleDelete(cat),
+        danger: true,
+      });
+    }
+
+    return items;
+  };
+
+  // ── Budget progress display ────────────────────────────────
+  const renderBudgetProgress = (cat: CategoryWithStats) => {
+    if (!cat.budget || cat.budget <= 0) return null;
+
+    const spent = cat.spendingThisMonth;
+    const pct = Math.min((spent / cat.budget) * 100, 100);
+    const status = budgetStatus(spent, cat.budget);
+    const remaining = Math.max(cat.budget - spent, 0);
+    const exceeded = Math.max(spent - cat.budget, 0);
+
+    const ariaValueText = hideAmount
+      ? t('categories.amountHidden')
+      : status === 'over'
+        ? t('categories.overBudgetBy', { amount: formatCurrencyValue(exceeded) })
+        : t('categories.remaining', { amount: formatCurrencyValue(remaining) });
+
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-[var(--text-secondary)]">{t('Budget')}</span>
+          <span className="font-mono text-[var(--text-secondary)]">
+            {hideAmount ? '•••••' : `Rp ${formatCurrencyValue(cat.budget)}`}
+          </span>
+        </div>
+        <div
+          className="w-full h-2 bg-[var(--bg)] rounded-full overflow-hidden"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={cat.budget}
+          aria-valuenow={hideAmount ? undefined : spent}
+          aria-label={t('categories.budgetProgress', { name: catDisplayName(cat.name, t) })}
+          aria-valuetext={ariaValueText}
+        >
+          <div
+            className={cn(
+              'h-full rounded-full transition-all',
+              status === 'over' ? 'bg-red-500' : status === 'near' ? 'bg-yellow-500' : 'bg-[var(--accent)]'
+            )}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className={cn(
+            'text-[10px] font-medium',
+            status === 'over' ? 'text-red-500' : status === 'near' ? 'text-yellow-500' : 'text-[var(--text-secondary)]'
+          )}>
+            {hideAmount ? (
+              status === 'over' ? t('Over Budget') : status === 'near' ? t('categories.budgetNearlyUsed') : t('categories.onTrack')
+            ) : (
+              status === 'over'
+                ? `${t('Over Budget')} · ${Math.round((spent / cat.budget) * 100)}%`
+                : status === 'near'
+                  ? `${t('categories.budgetNearlyUsed')} · ${Math.round(pct)}%`
+                  : `${t('categories.onTrack')} · ${Math.round(pct)}%`
+            )}
+          </span>
+          <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+            {hideAmount
+              ? t('categories.amountHidden')
+              : status === 'over'
+                ? t('categories.overBudgetBy', { amount: formatCurrencyValue(exceeded) })
+                : t('categories.remaining', { amount: formatCurrencyValue(remaining) })
+            }
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Category card ──────────────────────────────────────────
+  const renderCategoryCard = (cat: CategoryWithStats) => {
+    const isArchived = !!cat.archivedAt;
+    const hasBudget = !!cat.budget && cat.budget > 0;
+    const isFallback = cat.name === FALLBACK_CATEGORY_NAME;
+    const menuItems = getCategoryMenuItems(cat);
+
+    return (
+      <article
+        key={cat.id}
+        className={cn(
+          'bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4 space-y-3',
+          isArchived && 'opacity-70'
+        )}
+      >
+        <div className="flex items-center justify-between">
+          <Link
+            to={isArchived ? '#' : `/?categoryId=${cat.id}`}
+            className="flex items-center gap-3 min-w-0 flex-1 min-h-[44px] rounded-lg -ml-2 pl-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            tabIndex={isArchived ? -1 : 0}
+            aria-label={catDisplayName(cat.name, t)}
+          >
+            <div
+              className="w-4 h-4 rounded-full shrink-0"
+              style={{ backgroundColor: cat.color }}
+              aria-hidden="true"
+            />
+            <div className="min-w-0">
+              <h3 className="font-bold text-sm truncate">{catDisplayName(cat.name, t)}</h3>
+              <p className="text-[11px] text-[var(--text-secondary)]">
+                {cat.txCount === 1
+                  ? t('1 transaction')
+                  : t('{{count}} transactions', { count: cat.txCount })
+                }
+                {isArchived && (
+                  <span className="ml-1 text-[var(--text-secondary)] italic">
+                    · {t('Archived')}
+                  </span>
+                )}
+              </p>
+            </div>
+          </Link>
+
+          <CategoryOverflowMenu
+            categoryName={catDisplayName(cat.name, t)}
+            items={menuItems}
+            disabled={isArchived}
+          />
+        </div>
+
+        {/* Spending & Budget */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[var(--text-secondary)] text-xs">{t('categories.spendingThisMonth')}</span>
+            <span className="font-mono font-semibold text-sm text-[var(--text-primary)]">
+              {hideAmount ? '•••••' : `Rp ${formatCurrencyValue(cat.spendingThisMonth)}`}
+            </span>
+          </div>
+          {hasBudget && renderBudgetProgress(cat)}
+        </div>
+      </article>
+    );
+  };
+
+  // ── Period display ─────────────────────────────────────────
+  const monthNames = i18n.language?.startsWith('id')
+    ? ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+    : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const now = new Date();
+  const currentMonth = monthNames[now.getMonth()];
+  const currentYear = now.getFullYear();
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-full bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--border)] transition-colors md:hidden"
-            aria-label={t('Back')}
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="text-2xl font-bold">{t('Categories & Budgets')}</h1>
-        </div>
         <div className="flex items-center gap-2">
+          <Link
+            to="/settings"
+            className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--border)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            aria-label={t('categories.backToSettings')}
+          >
+            <ArrowLeft size={20} aria-hidden="true" />
+          </Link>
+          <h1 className="text-xl font-bold">{t('Categories & Budgets')}</h1>
+        </div>
+        <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => setShowHelp(!showHelp)}
-            className="p-2 border border-[var(--border)] bg-[var(--card)] rounded-full"
-            aria-label={t('Help')}
+            onClick={() => setShowHelp(true)}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--bg)] transition-colors"
+            aria-label={t('categories.helpLabel')}
           >
-            <HelpCircle size={20} />
+            <HelpCircle size={20} aria-hidden="true" />
           </button>
           <button
+            type="button"
             onClick={() => setShowAddForm(true)}
-            className="p-2 bg-[var(--accent)] text-white rounded-full shadow"
-            aria-label={t('Add Category')}
+            className="flex h-11 items-center justify-center gap-2 px-3 bg-[var(--accent)] text-white rounded-xl shadow font-medium hover:opacity-90 transition-colors"
+            aria-label={t('categories.addLabel')}
           >
-            <Plus size={20} />
+            <Plus size={18} aria-hidden="true" />
+            <span className="hidden sm:inline text-sm">{t('categories.addLabel')}</span>
           </button>
         </div>
       </div>
 
-      {showHelp && (
-        <div className="rounded-[16px] border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4">
-          <h3 className="font-bold text-[var(--accent)] mb-2">{t('How Categories Work')}</h3>
-          <ul className="text-sm text-[var(--text-secondary)] space-y-1">
-            <li>• {t('Categories organize your expenses')}</li>
-            <li>• {t('Set budgets to track spending limits')}</li>
-            <li>• {t('Budget progress shows in the bar below')}</li>
-            <li>• {t('Deleting a category moves transactions to Other')}</li>
-          </ul>
+      {/* Summary */}
+      {summaryStats.activeCount > 0 && (
+        <div className="flex flex-wrap gap-3 text-xs text-[var(--text-secondary)]">
+          <span>{t('categories.activeCount', { count: summaryStats.activeCount })}</span>
+          {summaryStats.withBudgetCount > 0 && (
+            <span>· {t('categories.withBudgetCount', { count: summaryStats.withBudgetCount })}</span>
+          )}
+          {summaryStats.nearLimitCount > 0 && (
+            <span className="text-amber-600 dark:text-amber-400">
+              · {t('categories.nearLimitCount', { count: summaryStats.nearLimitCount })}
+            </span>
+          )}
         </div>
       )}
 
-      {/* Add Category Form */}
-      <>
-        {showAddForm && (
-          <div
-            className="bg-[var(--card)] rounded-xl border border-[var(--border)] overflow-hidden"
-          >
-            <div className="p-4 space-y-4">
-              <h3 className="font-bold text-sm">{t('New Category')}</h3>
-              <input
-                ref={newCategoryInputRef}
-                id="new-category-name"
-                type="text"
-                name="categoryName"
-                autoComplete="off"
-                placeholder={t('Category Name')}
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-              />
-              <div>
-                <label className="text-xs font-medium text-[var(--text-secondary)] mb-2 block">{t('Color')}</label>
-                <div className="flex flex-wrap gap-2">
-                  {CURATED_PALETTE.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setNewColor(color)}                        className={cn(
-                          'w-8 h-8 rounded-full transition-colors border border-[var(--border)]',
-                          newColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--card)] ring-[var(--accent)] scale-110' : 'hover:scale-110'
-                      )}
-                      style={{ backgroundColor: color }}
-                      aria-label={t('Select color {{color}}', { color })}
-                      aria-pressed={newColor === color}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">{t('Monthly Budget')}</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[var(--text-secondary)]">Rp</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={newBudget}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
-                      setNewBudget(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
-                    }}
-                    placeholder="0"
-                    className="w-full pl-10 pr-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm font-mono focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setShowAddForm(false)} className="px-4 py-2 text-sm text-[var(--text-secondary)]">
-                  {t('Cancel')}
-                </button>
-                <button onClick={handleAddCategory} className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded-lg">
-                  <Save size={16} className="inline mr-1" />{t('Save')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-
-      {/* Category List */}
-      <div className="space-y-3">
-        {categoriesWithSpending.length === 0 ? (
-          <EmptyState
-            icon={<Tag size={48} className="opacity-20" />}
-            title={t('No Categories')}
-            description={t('Add categories to make your transactions easier to analyze.')}
-            action={{
-              label: t('Add Category'),
-              onClick: () => setShowAddForm(true),
-            }}
+      {/* Add Form */}
+      {showAddForm && (
+        <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4">
+          <h3 className="font-bold text-sm mb-3">{t('New Category')}</h3>
+          <CategoryForm
+            mode="add"
+            onSubmit={handleAddCategory}
+            onCancel={() => setShowAddForm(false)}
+            existingNames={categories?.map(c => c.name) ?? []}
           />
-        ) : (
-          categoriesWithSpending.map((cat) => {
-            const isEditing = editingId === cat.id;
-            const hasBudget = !!cat.budget && cat.budget > 0;
-            const progress = hasBudget ? budgetProgress(cat.spendingThisMonth, cat.budget!) : 0;
-            const isOverBudget = progress >= 100;
-            const isNearLimit = progress >= 80 && !isOverBudget;
-            const displayName = catDisplayName(cat.name, t);
-            const isFallbackCategory = cat.name === FALLBACK_CATEGORY_NAME;
+        </div>
+      )}
 
-            return (
-              <div
-                key={cat.id}
-                className="bg-[var(--card)] rounded-[16px] border border-[var(--border)] p-4 space-y-3"
+      {/* Edit Form */}
+      {editingCategory && (
+        <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4">
+          <h3 className="font-bold text-sm mb-3">{t('categories.editTitle')}</h3>
+          <CategoryForm
+            mode="edit"
+            initialCategory={editingCategory}
+            onSubmit={handleEditCategory}
+            onCancel={() => setEditingCategory(null)}
+            existingNames={categories?.map(c => c.name) ?? []}
+          />
+        </div>
+      )}
+
+      {/* Search & Sort */}
+      {hasAnyCategory && (
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" aria-hidden="true" />
+            <input
+              ref={searchRef}
+              type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t('categories.searchPlaceholder')}
+              className="w-full h-11 bg-[var(--card)] border border-[var(--border)] rounded-xl pl-9 pr-9 text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
+              aria-label={t('categories.searchPlaceholder')}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => { setSearchTerm(''); searchRef.current?.focus(); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md hover:bg-[var(--bg)] transition-colors"
+                aria-label={t('categories.searchEmptyAction')}
               >
-                {isEditing ? (
-                  /* Edit Mode */
-                  <div className="space-y-3">
-                    <input
-                      ref={editCategoryInputRef}
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      {CURATED_PALETTE.map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => setEditColor(color)}
-                        className={cn(
-                          'w-8 h-8 rounded-full transition-colors border border-[var(--border)]',
-                          editColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--card)] ring-[var(--accent)] scale-110' : 'hover:scale-110'
-                          )}
-                          style={{ backgroundColor: color }}
-                          aria-label={t('Select color {{color}}', { color })}
-                          aria-pressed={editColor === color}
-                        />
-                      ))}
-                    </div>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[var(--text-secondary)]">Rp</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={editBudget}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9]/g, '');
-                          setEditBudget(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
-                        }}
-                        placeholder={t('Budget placeholder')}
-                        className="w-full pl-10 pr-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm font-mono focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-                      />
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <button onClick={handleCancelEdit} className="p-2 text-[var(--text-secondary)] hover:text-red-500" aria-label={t('Cancel')}>
-                        <X size={18} />
-                      </button>
-                      <button onClick={() => handleSaveEdit(cat.id)} className="p-2 text-[var(--accent)]" aria-label={t('Save')}>
-                        <Check size={18} />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* Display Mode */
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          className="w-4 h-4 rounded-full shrink-0"
-                          style={{ backgroundColor: cat.color }}
-                        />
-                        <div className="min-w-0">
-                          <h3 className="font-bold text-sm truncate">{displayName}</h3>
-                          <p className="text-[11px] text-[var(--text-secondary)]">
-                            {cat.txCount} {t('transactions')}
-                          </p>
-                        </div>
-                      </div>
-                      {!isFallbackCategory && (
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            onClick={() => handleStartEdit(cat)}
-                            className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-lg hover:bg-[var(--bg)]"
-                            aria-label={t('Edit')}
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(cat.id)}
-                            className="p-1.5 text-[var(--text-secondary)] hover:text-red-500 transition-colors rounded-lg hover:bg-[var(--bg)]"
-                            aria-label={t('Delete')}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                <XIcon size={14} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+          <div className="relative">
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as SortMode)}
+              className="h-11 bg-[var(--card)] border border-[var(--border)] rounded-xl pl-3 pr-8 text-sm appearance-none focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
+              aria-label={t('categories.sortLabel')}
+            >
+              <option value="manual">{t('Default')}</option>
+              <option value="name">{t('categories.sortByName')}</option>
+              <option value="spending">{t('categories.sortBySpending')}</option>
+              <option value="budget">{t('categories.sortByBudget')}</option>
+            </select>
+            <ArrowUpDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-secondary)]" aria-hidden="true" />
+          </div>
+        </div>
+      )}
 
-                    {/* Spending & Budget Info */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-[var(--text-secondary)] text-xs">{t('This Month')}</span>
-                        <span className={cn(
-                          'font-mono font-semibold text-sm',
-                          isOverBudget ? 'text-red-500' : isNearLimit ? 'text-yellow-500' : 'text-[var(--text-primary)]'
-                        )}>
-                          Rp {formatAmountLocal(cat.spendingThisMonth)}
-                        </span>
-                      </div>
+      {/* Active Categories */}
+      {!hasAnyCategory && !showAddForm ? (
+        <EmptyState
+          icon={<Tag size={48} className="opacity-20" />}
+          title={t('categories.emptyTitle')}
+          description={t('categories.emptyDesc')}
+          action={{
+            label: t('categories.addLabel'),
+            onClick: () => setShowAddForm(true),
+          }}
+        />
+      ) : activeCategories.length === 0 && !searchTerm && archivedCategories.length > 0 ? (
+        <div className="text-center py-12 space-y-4">
+          <div className="bg-[var(--card)] w-20 h-20 rounded-full flex items-center justify-center mx-auto border border-[var(--border)]">
+            <Tag size={32} className="text-[var(--text-secondary)] opacity-30" aria-hidden="true" />
+          </div>
+          <h3 className="font-bold text-[var(--text-primary)]">{t('categories.allArchivedTitle')}</h3>
+          <p className="text-sm text-[var(--text-secondary)] max-w-[280px] mx-auto">{t('categories.allArchivedDesc')}</p>
+          <div className="flex justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowArchived(true)}
+              className="flex h-11 items-center justify-center gap-2 px-4 text-sm border border-[var(--border)] rounded-xl hover:bg-[var(--bg)] transition-colors"
+            >
+              {t('categories.showArchived')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAddForm(true)}
+              className="flex h-11 items-center justify-center gap-2 px-4 text-sm bg-[var(--accent)] text-white rounded-xl font-medium hover:opacity-90 transition-colors"
+            >
+              <Plus size={16} aria-hidden="true" />
+              {t('categories.addLabel')}
+            </button>
+          </div>
+        </div>
+      ) : activeCategories.length === 0 && searchTerm ? (
+        <div className="text-center py-12 space-y-3">
+          <Tag size={32} className="mx-auto text-[var(--text-secondary)] opacity-30" aria-hidden="true" />
+          <p className="text-sm text-[var(--text-secondary)]">{t('categories.searchEmptyTitle')}</p>
+          <button
+            type="button"
+            onClick={() => { setSearchTerm(''); searchRef.current?.focus(); }}
+            className="text-sm text-[var(--accent)] font-medium hover:underline"
+          >
+            {t('categories.searchEmptyAction')}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider px-1">
+            {t('Active Categories')}
+          </h2>
+          {activeCategories.map(renderCategoryCard)}
+        </div>
+      )}
 
-                      {hasBudget && (
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-[var(--text-secondary)]">{t('Budget')}</span>
-                            <span className="font-mono text-[var(--text-secondary)]">Rp {formatAmountLocal(cat.budget!)}</span>
-                          </div>
-                          <div 
-                            className="w-full h-2 bg-[var(--bg)] rounded-full overflow-hidden"
-                            role="progressbar"
-                            aria-valuemin={0}
-                            aria-valuemax={100}
-                            aria-valuenow={Math.round(progress)}
-                            aria-label={t('Budget progress for {{name}}: {{percent}}%', { name: displayName, percent: Math.round(progress) })}
-                          >
-                            <div
-                              className={cn(
-                                'h-full rounded-full',
-                                isOverBudget ? 'bg-red-500' : isNearLimit ? 'bg-yellow-500' : 'bg-[var(--accent)]'
-                              )}
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className={cn(
-                              'text-[10px] font-medium',
-                              isOverBudget ? 'text-red-500' : isNearLimit ? 'text-yellow-500' : 'text-[var(--text-secondary)]'
-                            )}>
-                              {isOverBudget ? t('Over Budget') : isNearLimit ? t('Near Limit') : t('On Track')} · {progress.toFixed(0)}%
-                            </span>
-                            <span className="text-[10px] font-mono text-[var(--text-secondary)]">
-                              Rp {formatAmountLocal(Math.max(cat.budget! - cat.spendingThisMonth, 0))} {t('remaining')}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
+      {/* Archived Categories */}
+      {archivedCategories.length > 0 && hasAnyCategory && (
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setShowArchived(!showArchived)}
+            className="flex items-center gap-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider px-1 hover:text-[var(--text-primary)] transition-colors min-h-[44px]"
+            aria-expanded={showArchived}
+          >
+            {showArchived ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
+            {t('Archived Categories')} ({archivedCategories.length})
+          </button>
+          {showArchived && archivedCategories.map(renderCategoryCard)}
+        </div>
+      )}
+
+      {/* Help Dialog */}
+      <HelpDialog isOpen={showHelp} onClose={() => setShowHelp(false)} />
     </div>
   );
 }

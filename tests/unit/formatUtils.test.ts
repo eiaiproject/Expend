@@ -3,7 +3,6 @@ import {
   formatCurrency,
   formatBalance,
   formatCurrencyValue,
-  formatAmountLocal,
 } from '@/utils/formatUtils';
 
 describe('formatUtils', () => {
@@ -49,14 +48,6 @@ describe('formatUtils', () => {
       const result = formatCurrencyValue(100000);
       expect(result).not.toContain('Rp');
       expect(result).toContain('100');
-    });
-  });
-
-  describe('formatAmountLocal', () => {
-    it('formats as locale number', () => {
-      const result = formatAmountLocal(1000000);
-      expect(result).toContain('1');
-      expect(result).toContain('000');
     });
   });
 });

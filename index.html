@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="Expend is a privacy-first, offline-first personal finance tracker PWA for expenses, budgets, wallets, debt tracking, receivables, reports, and local-first data control." />
-    <meta name="keywords" content="personal finance tracker, expense tracker, budget tracker, wallet manager, debt tracker, receivable tracker, offline-first PWA, privacy-first finance app, local-first finance app" />
+    <meta name="description" content="Expend is a privacy-first, local-first personal finance PWA. Track expenses, manage wallets, and monitor debts without creating an account. Data stays on your device. Works offline." />
+    <meta name="keywords" content="personal finance tracker, expense tracker, offline-first PWA, privacy-first finance app, local-first finance, wallet manager, budget tracker, debt tracker" />
     <meta name="application-name" content="Expend" />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#7A9B6A" />
@@ -13,13 +13,13 @@
     <meta property="og:url" content="https://expend.pages.dev/" />
     <meta property="og:site_name" content="Expend" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:title" content="Expend | Privacy-First Offline Personal Finance Tracker PWA" />
-    <meta property="og:description" content="Track expenses, budgets, wallets, debts, receivables, and monthly reports with local-first IndexedDB storage and offline PWA support." />
+    <meta property="og:title" content="Expend — Private, Local-First Personal Finance" />
+    <meta property="og:description" content="Track expenses, manage wallets, and monitor debts without creating an account. Data stays on your device. Works offline." />
     <meta property="og:image" content="https://expend.pages.dev/icons/app-icons/icon-512x512.png" />
     <meta property="og:image:alt" content="Expend app icon" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Expend | Privacy-First Offline Personal Finance Tracker PWA" />
-    <meta name="twitter:description" content="A local-first expense, budget, wallet, debt, receivable, and report tracker built as an offline PWA." />
+    <meta name="twitter:title" content="Expend — Private, Local-First Personal Finance" />
+    <meta name="twitter:description" content="Track expenses, manage wallets, and monitor debts without creating an account. Data stays on your device. Works offline." />
     <meta name="twitter:image" content="https://expend.pages.dev/icons/app-icons/icon-512x512.png" />
     <meta name="twitter:image:alt" content="Expend app icon" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -28,7 +28,37 @@
     <meta name="apple-mobile-web-app-title" content="Expend" />
     <link rel="apple-touch-icon" href="/icons/app-icons/icon-180x180.png" />
     <link rel="apple-touch-startup-image" href="/icons/app-icons/icon-512x512.png" />
-    <title>Expend | Privacy-First Offline Personal Finance Tracker PWA</title>
+    <title>Expend — Private, Local-First Personal Finance</title>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Expend",
+      "description": "Track expenses, manage wallets, and monitor debts without creating an account. Data stays on your device. Works offline.",
+      "url": "https://expend.pages.dev/",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Any (Web)",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Local-first expense tracking",
+        "Multi-wallet management",
+        "Budget per category",
+        "Debt and receivable tracking",
+        "Offline functionality",
+        "No account required"
+      ],
+      "softwareHelp": {
+        "@type": "CreativeWork",
+        "url": "https://github.com/eiaiproject/Expend.git"
+      },
+      "BrowserRequires": "JavaScript",
+      "permissions": "offline"
+    }
+    </script>
     <link rel="icon" type="image/png" href="/icons/app-icons/icon-32x32.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

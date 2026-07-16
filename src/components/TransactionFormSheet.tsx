@@ -19,9 +19,10 @@ interface TransactionFormSheetProps {
   txToEdit?: Transaction | null;
   initialType?: TransactionType;
   initialDescription?: string;
+  initialFromWalletId?: number;
 }
 
-export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 'expense', initialDescription }: TransactionFormSheetProps) {
+export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 'expense', initialDescription, initialFromWalletId }: TransactionFormSheetProps) {
   const { t } = useTranslation();
   const isEditingExistingTransaction = !!txToEdit?.id;
   const formId = useId();
@@ -40,6 +41,7 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
     txToEdit,
     initialType,
     initialDescription,
+    initialFromWalletId,
     onClose,
     onConfirmCreateCategory: async (name: string) => {
       const confirmed = await confirm({

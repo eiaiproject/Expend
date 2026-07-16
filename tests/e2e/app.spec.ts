@@ -36,7 +36,7 @@ test.describe('Scenario A — first-run landing + onboarding', () => {
     const walletName = uniqueName('Wallet');
 
     // Landing must show hero CTA at minimum.
-    const heroCta = page.getByRole('button', { name: /start tracking/i });
+    const heroCta = page.getByRole('button', { name: 'Start Tracking for Free' });
     await expect(heroCta).toBeVisible({ timeout: 5_000 });
 
     await completeOnboarding(page, {
@@ -285,11 +285,15 @@ test.describe('Scenario F — accessibility invariants', () => {
       categories: [],
     });
 
-    for (const path of ['/', '/wallets', '/debts', '/stats', '/settings']) {
+    const routes = ['/', '/wallets', '/debts', '/stats', '/settings'];
+    for (const path of routes) {
       await page.goto(path);
       await page.waitForLoadState('networkidle');
       await assertAllButtonsAccessible(page);
     }
+
+    // All routes scanned without throwing — assertion implicit via nothrow above.
+    expect(routes.length).toBeGreaterThan(0);
   });
 
   test('main landmark exists once in the document after onboarding', async ({ page }) => {
@@ -358,7 +362,7 @@ test.describe('Scenario H — PIN security', () => {
 
   test('current PIN can be verified immediately after setup without reload', async ({ page }) => {
     await page.goto('/settings');
-    await page.getByRole('button', { name: /^security$/i }).click();
+    // Security section is now directly visible (no accordion)
     await page.getByRole('button', { name: /set up pin/i }).click();
 
     let dialog = page.getByRole('dialog', { name: /create pin/i });

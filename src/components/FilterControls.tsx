@@ -6,8 +6,8 @@ import { cn } from '../utils/cn';
 import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
 
 function formatNumericInput(value: string) {
-  const numeric = value.replace(/[^0-9]/g, '');
-  return numeric ? parseInt(numeric, 10).toLocaleString('id-ID') : '';
+  const numeric = value.replace(/\D/g, '');
+  return numeric ? Number.parseInt(numeric, 10).toLocaleString('id-ID') : '';
 }
 
 export function FilterSection({
@@ -66,7 +66,7 @@ export function CategoryFilterList({
               aria-pressed={isSelected}
               onClick={() => onToggle(cat.id!)}
               className={cn(
-                "text-left px-4 py-3 rounded-xl text-sm transition-colors border flex items-center justify-between gap-2",
+                "text-left px-4 py-3 rounded-xl text-sm transition-colors border flex items-center justify-between gap-2 min-h-[44px]",
                 isSelected
                   ? "bg-[var(--accent-fill)] text-[var(--accent-ink)] border-[var(--accent-fill)]"
                   : "bg-[var(--bg)] text-[var(--text-primary)] border-[var(--border)] hover:border-[var(--accent)]"
@@ -111,7 +111,7 @@ export function WalletFilterList({
               aria-pressed={isSelected}
               onClick={() => onToggle(wallet.id!)}
               className={cn(
-                "text-left px-4 py-3 rounded-xl text-sm transition-colors border flex items-center justify-between gap-2",
+                "text-left px-4 py-3 rounded-xl text-sm transition-colors border flex items-center justify-between gap-2 min-h-[44px]",
                 isSelected
                   ? "bg-[var(--accent-fill)] text-[var(--accent-ink)] border-[var(--accent-fill)]"
                   : "bg-[var(--bg)] text-[var(--text-primary)] border-[var(--border)] hover:border-[var(--accent)]"
@@ -161,7 +161,7 @@ export function CurrencyRangeFields({
               type="text"
               inputMode="numeric"
               value={formatNumericInput(min)}
-              onChange={(event) => onMinChange(event.target.value.replace(/[^0-9]/g, ''))}
+              onChange={(event) => onMinChange(event.target.value.replace(/\D/g, ''))}
               placeholder="0"
               className="w-full pl-8 pr-3 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] font-mono"
             />
@@ -178,7 +178,7 @@ export function CurrencyRangeFields({
               type="text"
               inputMode="numeric"
               value={formatNumericInput(max)}
-              onChange={(event) => onMaxChange(event.target.value.replace(/[^0-9]/g, ''))}
+              onChange={(event) => onMaxChange(event.target.value.replace(/\D/g, ''))}
               placeholder={t('Unlimited')}
               className="w-full pl-8 pr-3 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] font-mono"
             />

@@ -1,7 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { CURATED_PALETTE } from '../utils/constants';
 import { getTodayStr } from '../utils/dateUtils';
-import { DEBT_PAYMENT_NOTE_KEYS } from '../services/errors';
 
 export interface Wallet {
   id?: number;
@@ -10,6 +9,8 @@ export interface Wallet {
   lastUpdated: string;
   initialBalance: number;
   currentBalance?: number; // Computed incrementally for fast reads
+  archivedAt?: string | null; // ISO timestamp when deactivated; null = active
+  color?: string; // Hex color for visual identification
 }
 
 export interface Category {
@@ -18,6 +19,18 @@ export interface Category {
   icon: string;
   color: string;
   budget?: number;
+  archivedAt?: string | null; // ISO timestamp when archived; null/undefined = active
+}
+
+export interface Merchant {
+  id?: number;
+  displayName: string;     // What user sees
+  originalName: string;    // First imported name (never changes)
+  aliases: string[];       // Additional names that map to this merchant
+  archivedAt?: string | null; // ISO timestamp; null = active
+  mergedIntoId?: number | null; // If merged, the target merchant ID
+  createdAt: string;       // ISO timestamp
+  updatedAt: string;       // ISO timestamp
 }
 
 export interface Transaction {
@@ -71,349 +84,6 @@ export interface Setting {
   value: unknown;
 }
 
-// Defined the TransactionMode type to match Dexie's expectations if not exported
-type TransactionMode = 'read' | 'rw';
-
-type LegacyDebtRecord = Partial<Debt> & {
-  id?: string | number;
-  contactName?: unknown;
-  description?: unknown;
-  amount?: unknown;
-  status?: unknown;
-  categoryId?: unknown;
-};
-
-type LegacyDebtPaymentRecord = {
-  id?: string | number;
-  debtId?: string | number;
-  amount?: unknown;
-  date?: unknown;
-  note?: unknown;
-  notes?: unknown;
-  transactionId?: unknown;
-  linkedTransactionId?: unknown;
-  walletId?: unknown;
-  type?: unknown;
-  createdAt?: unknown;
-};
-
-const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}/;
-
-function getDateOnly(value: unknown, fallback: string | null = null): string | null {
-  if (typeof value !== 'string') return fallback;
-  const match = value.match(DATE_ONLY_RE);
-  return match ? match[0] : fallback;
-}
-
-function getTodayDateOnly(): string {
-  return getTodayStr();
-}
-
-function getTimestamp(value: unknown, fallback: string): string {
-  return typeof value === 'string' && value.trim() ? value : fallback;
-}
-
-function getString(value: unknown, fallback = ''): string {
-  return typeof value === 'string' ? value.trim() : fallback;
-}
-
-function getPositiveNumber(value: unknown, fallback: number): number {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
-}
-
-function getNonNegativeNumber(value: unknown, fallback: number): number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
-}
-
-function getWalletId(value: unknown, fallback: number): number {
-  return Number.isSafeInteger(value) && Number(value) > 0 ? Number(value) : fallback;
-}
-
-function getDebtType(value: unknown): DebtType {
-  return value === 'receivable' ? 'receivable' : 'payable';
-}
-
-function getDebtStatus(value: unknown, principalAmount: number, remainingAmount: number): DebtStatus {
-  if (value === 'written_off') return 'written_off';
-  if (value === 'settled' || value === 'paid' || remainingAmount <= 0) return 'paid';
-  if (value === 'partial' || remainingAmount < principalAmount) return 'partial';
-  if (value === 'overdue') return 'overdue';
-  return 'open';
-}
-
-function getDebtPaymentType(value: unknown): DebtPaymentType {
-  if (value === 'initial' || value === 'adjustment' || value === 'write_off') return value;
-  return 'repayment';
-}
-
-function normalizeLegacyDebt(
-  rawDebt: LegacyDebtRecord,
-  index: number,
-  fallbackWalletId: number,
-  now: string,
-): Debt {
-  const rawId = rawDebt.id ?? index + 1;
-  const id = typeof rawId === 'string' ? rawId : `legacy_debt_${rawId}`;
-  const createdAt = getTimestamp(rawDebt.createdAt, now);
-  const startDate = getDateOnly(rawDebt.startDate, getDateOnly(createdAt, getTodayDateOnly())) ?? getTodayDateOnly();
-  const principalFallback = getPositiveNumber(rawDebt.remainingAmount, 1);
-  const principalAmount = getPositiveNumber(rawDebt.principalAmount, getPositiveNumber(rawDebt.amount, principalFallback));
-  const baseRemainingAmount = getNonNegativeNumber(rawDebt.remainingAmount, principalAmount);
-  const status = getDebtStatus(rawDebt.status, principalAmount, baseRemainingAmount);
-  const remainingAmount = status === 'paid' || status === 'written_off' ? 0 : Math.min(baseRemainingAmount, principalAmount);
-  const personName = getString(rawDebt.personName, getString(rawDebt.contactName, 'Kontak lama')) || 'Kontak lama';
-  const title = getString(rawDebt.title, getString(rawDebt.description)) || undefined;
-  const notes = getString(rawDebt.notes) || undefined;
-
-  return {
-    id,
-    type: getDebtType(rawDebt.type),
-    personName,
-    title,
-    principalAmount,
-    remainingAmount,
-    walletId: getWalletId(rawDebt.walletId, fallbackWalletId),
-    startDate,
-    dueDate: getDateOnly(rawDebt.dueDate, null),
-    status,
-    notes,
-    createdAt,
-    updatedAt: getTimestamp(rawDebt.updatedAt, createdAt),
-    archivedAt: getTimestamp(rawDebt.archivedAt, '') || null,
-  };
-}
-
-function normalizeLegacyDebtRows(
-  rawDebts: LegacyDebtRecord[],
-  walletRows: Wallet[],
-): { debts: Debt[]; legacyDebtIds: Map<string, string> } {
-  const now = new Date().toISOString();
-  const fallbackWalletId = walletRows.find((wallet) => Number.isSafeInteger(wallet.id) && wallet.id! > 0)?.id ?? 1;
-  const legacyDebtIds = new Map<string, string>();
-  const debts = rawDebts.map((rawDebt, index) => {
-    const debt = normalizeLegacyDebt(rawDebt, index, fallbackWalletId, now);
-    if (rawDebt.id != null) {
-      legacyDebtIds.set(String(rawDebt.id), debt.id);
-    }
-    legacyDebtIds.set(debt.id, debt.id);
-    return debt;
-  });
-
-  return { debts, legacyDebtIds };
-}
-
-function normalizeLegacyDebtPayments(
-  legacyPayments: LegacyDebtPaymentRecord[],
-  debts: Debt[],
-  legacyDebtIds: Map<string, string>,
-  existingPayments: DebtPayment[] = [],
-): DebtPayment[] {
-  const existingPaymentIds = new Set(existingPayments.map((payment) => payment.id));
-  const debtIdsWithPayments = new Set(existingPayments.map((payment) => payment.debtId));
-  const debtById = new Map(debts.map((debt) => [debt.id, debt]));
-  const payments = [...existingPayments];
-
-  for (const debt of debts) {
-    const initialPaymentId = `legacy_debt_initial_${debt.id}`;
-    if (!debtIdsWithPayments.has(debt.id) && !existingPaymentIds.has(initialPaymentId)) {
-      payments.push({
-        id: initialPaymentId,
-        debtId: debt.id,
-        amount: debt.principalAmount,
-        date: debt.startDate,
-        walletId: debt.walletId,
-        type: 'initial',
-        notes: debt.type === 'payable' ? DEBT_PAYMENT_NOTE_KEYS.loanReceived : DEBT_PAYMENT_NOTE_KEYS.loanGiven,
-        linkedTransactionId: null,
-        createdAt: debt.createdAt,
-      } satisfies DebtPayment);
-      existingPaymentIds.add(initialPaymentId);
-      debtIdsWithPayments.add(debt.id);
-    }
-  }
-
-  for (const [index, rawPayment] of legacyPayments.entries()) {
-    const debtId = rawPayment.debtId == null ? null : legacyDebtIds.get(String(rawPayment.debtId));
-    if (!debtId) continue;
-
-    const debt = debtById.get(debtId);
-    if (!debt) continue;
-
-    const paymentId = typeof rawPayment.id === 'string'
-      ? rawPayment.id
-      : `legacy_debt_payment_${rawPayment.id ?? index + 1}`;
-    if (existingPaymentIds.has(paymentId)) continue;
-
-    const date = getDateOnly(rawPayment.date, debt.startDate) ?? debt.startDate;
-    payments.push({
-      id: paymentId,
-      debtId,
-      amount: getPositiveNumber(rawPayment.amount, 1),
-      date,
-      walletId: getWalletId(rawPayment.walletId, debt.walletId),
-      type: getDebtPaymentType(rawPayment.type),
-      notes: getString(rawPayment.notes, getString(rawPayment.note)) || undefined,
-      linkedTransactionId: Number.isSafeInteger(rawPayment.linkedTransactionId)
-        ? Number(rawPayment.linkedTransactionId)
-        : Number.isSafeInteger(rawPayment.transactionId)
-          ? Number(rawPayment.transactionId)
-          : null,
-      createdAt: getTimestamp(rawPayment.createdAt, `${date}T00:00:00.000Z`),
-    } satisfies DebtPayment);
-    existingPaymentIds.add(paymentId);
-  }
-
-  return payments;
-}
-
-function createDebtStore(nativeDb: IDBDatabase): IDBObjectStore {
-  const debtStore = nativeDb.createObjectStore('debts', { keyPath: 'id' });
-  for (const indexName of ['type', 'personName', 'walletId', 'startDate', 'dueDate', 'archivedAt', 'updatedAt']) {
-    debtStore.createIndex(indexName, indexName);
-  }
-  return debtStore;
-}
-
-function createDebtPaymentStore(nativeDb: IDBDatabase): IDBObjectStore {
-  const paymentStore = nativeDb.createObjectStore('debtPayments', { keyPath: 'id' });
-  for (const indexName of ['debtId', 'walletId', 'date', 'createdAt']) {
-    paymentStore.createIndex(indexName, indexName);
-  }
-  return paymentStore;
-}
-
-/**
- * Pre-flight native IndexedDB repair for the legacy v1.0.0 debt schema.
- *
- * VERSION STRATEGY:
- * Dexie maps db.version(N) to native IndexedDB version N * 10.
- * The repair sets the native DB version to REPAIR_VERSION (110), which is
- * exactly 10 above the current Dexie native maximum (100). This ensures:
- *
- * - After repair, Dexie opens at native version 110 → no upgrade triggered.
- * - When Dexie is bumped to version 11 in the future, the DB is already
- *   at native version 110 → Dexie opens without upgrade (stores remain intact).
- * - When Dexie is bumped to version 12, the DB at 110 < 120 → upgrade runs.
- *
- * UPGRADING: When adding a new Dexie version N, update REPAIR_VERSION to
- * (N + 1) * 10 so the repair always sets one Dexie step above the new max.
- *
- * This function is idempotent: it only repairs if the legacy store exists.
- */
-const REPAIR_VERSION = 110;
-
-function repairLegacyDebtSchemaNative(): Promise<void> {
-  if (typeof indexedDB === 'undefined') return Promise.resolve();
-
-  const dbName = 'ExpendDB';
-
-  const probe = new Promise<boolean>((resolve) => {
-    const request = indexedDB.open(dbName);
-    let createdEmptyDatabase = false;
-
-    request.onupgradeneeded = () => {
-      createdEmptyDatabase = true;
-      request.transaction?.abort();
-    };
-    request.onerror = () => resolve(false);
-    request.onsuccess = () => {
-      const nativeDb = request.result;
-      const needsRepair = !createdEmptyDatabase
-        && nativeDb.version < REPAIR_VERSION
-        && nativeDb.objectStoreNames.contains('debt_payments');
-      nativeDb.close();
-      resolve(needsRepair);
-    };
-  });
-
-  return probe.then((needsRepair) => {
-    if (!needsRepair) return undefined;
-
-    return new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open(dbName, REPAIR_VERSION);
-      let migrationError: unknown = null;
-
-      request.onupgradeneeded = () => {
-        const nativeDb = request.result;
-        const tx = request.transaction;
-        if (!tx) return;
-
-        const debtRequest = nativeDb.objectStoreNames.contains('debts')
-          ? tx.objectStore('debts').getAll()
-          : null;
-        const legacyPaymentRequest = nativeDb.objectStoreNames.contains('debt_payments')
-          ? tx.objectStore('debt_payments').getAll()
-          : null;
-        const currentPaymentRequest = nativeDb.objectStoreNames.contains('debtPayments')
-          ? tx.objectStore('debtPayments').getAll()
-          : null;
-        const walletRequest = nativeDb.objectStoreNames.contains('wallets')
-          ? tx.objectStore('wallets').getAll()
-          : null;
-
-        const requests = [debtRequest, legacyPaymentRequest, currentPaymentRequest, walletRequest].filter(Boolean) as IDBRequest<unknown[]>[];
-        let pending = requests.length;
-
-        const rewriteStores = () => {
-          try {
-            const rawDebts = (debtRequest?.result ?? []) as LegacyDebtRecord[];
-            const legacyPayments = (legacyPaymentRequest?.result ?? []) as LegacyDebtPaymentRecord[];
-            const currentPayments = (currentPaymentRequest?.result ?? []) as DebtPayment[];
-            const wallets = (walletRequest?.result ?? []) as Wallet[];
-            const { debts, legacyDebtIds } = normalizeLegacyDebtRows(rawDebts, wallets);
-            const payments = normalizeLegacyDebtPayments(legacyPayments, debts, legacyDebtIds, currentPayments);
-
-            for (const storeName of ['debts', 'debtPayments', 'debt_payments']) {
-              if (nativeDb.objectStoreNames.contains(storeName)) {
-                nativeDb.deleteObjectStore(storeName);
-              }
-            }
-
-            const debtStore = createDebtStore(nativeDb);
-            const paymentStore = createDebtPaymentStore(nativeDb);
-
-            for (const debt of debts) {
-              debtStore.put(debt);
-            }
-            for (const payment of payments) {
-              paymentStore.put(payment);
-            }
-            if (nativeDb.objectStoreNames.contains('settings')) {
-              tx.objectStore('settings').put({ key: 'legacy_debt_schema_migrated_v9', value: true });
-            }
-          } catch (err) {
-            migrationError = err;
-            tx.abort();
-          }
-        };
-
-        if (pending === 0) {
-          rewriteStores();
-          return;
-        }
-
-        for (const pendingRequest of requests) {
-          pendingRequest.onerror = () => {
-            migrationError = pendingRequest.error;
-            tx.abort();
-          };
-          pendingRequest.onsuccess = () => {
-            pending -= 1;
-            if (pending === 0) rewriteStores();
-          };
-        }
-      };
-
-      request.onerror = () => reject(migrationError ?? request.error);
-      request.onsuccess = () => {
-        request.result.close();
-        resolve();
-      };
-    });
-  }).catch((err) => {
-    console.error('Failed to repair legacy debt schema:', err);
-  });
-}
 
 const db = new Dexie('ExpendDB') as Dexie & {
   wallets: EntityTable<Wallet, 'id'>;
@@ -421,12 +91,9 @@ const db = new Dexie('ExpendDB') as Dexie & {
   transactions: EntityTable<Transaction, 'id'>;
   debts: EntityTable<Debt, 'id'>;
   debtPayments: EntityTable<DebtPayment, 'id'>;
+  merchants: EntityTable<Merchant, 'id'>;
   settings: EntityTable<Setting, 'key'>;
 };
-
-const legacyDebtSchemaRepair = repairLegacyDebtSchemaNative();
-const openDb = db.open.bind(db);
-db.open = (() => legacyDebtSchemaRepair.then(() => openDb())) as typeof db.open;
 
 db.version(3).stores({
   wallets: '++id, name, currency, lastUpdated',
@@ -610,8 +277,7 @@ db.version(7).stores({
   }
 });
 
-// Version 8: Add local-first debt/receivable tables. Native preflight above
-// repairs the incompatible v1.0.0 schema that also used Dexie version 8.
+// Version 8: Add local-first debt/receivable tables.
 db.version(8).stores({
   wallets: '++id, name, currency, lastUpdated, currentBalance',
   categories: '++id, name, icon, color, budget',
@@ -621,7 +287,7 @@ db.version(8).stores({
   settings: 'key'
 });
 
-// Version 9: Reserve a schema step for v1.2.1 debt compatibility repair.
+// Version 9: Current debt schema.
 db.version(9).stores({
   wallets: '++id, name, currency, lastUpdated, currentBalance',
   categories: '++id, name, icon, color, budget',
@@ -631,7 +297,7 @@ db.version(9).stores({
   settings: 'key'
 });
 
-// Version 10: Current debt schema after native legacy repair.
+// Version 10: Add archivedAt to wallets for deactivate/reactivate feature.
 db.version(10).stores({
   wallets: '++id, name, currency, lastUpdated, currentBalance',
   categories: '++id, name, icon, color, budget',
@@ -639,6 +305,88 @@ db.version(10).stores({
   debts: 'id, type, personName, walletId, startDate, dueDate, archivedAt, updatedAt',
   debtPayments: 'id, debtId, walletId, date, createdAt',
   settings: 'key'
+}).upgrade(async (tx) => {
+  // No data migration needed — archivedAt defaults to undefined/null for all existing wallets.
+  // Dexie handles the new field gracefully: wallets without archivedAt are treated as active.
+  await tx.table('settings').put({ key: 'migration_completed_v10', value: true });
+});
+
+// Version 11: Add color to wallets for visual identification.
+db.version(11).stores({
+  wallets: '++id, name, currency, lastUpdated, currentBalance',
+  categories: '++id, name, icon, color, budget',
+  transactions: '++id, walletId, categoryId, date, description, type, amount, transferGroupId, [type+date], [walletId+date], [categoryId+date]',
+  debts: 'id, type, personName, walletId, startDate, dueDate, archivedAt, updatedAt',
+  debtPayments: 'id, debtId, walletId, date, createdAt',
+  settings: 'key'
+}).upgrade(async (tx) => {
+  // Assign default color to existing wallets.
+  const wallets = await tx.table('wallets').toArray();
+  for (const wallet of wallets) {
+    if (!wallet.color) {
+      await tx.table('wallets').update(wallet.id, { color: '#6366f1' });
+    }
+  }
+  await tx.table('settings').put({ key: 'migration_completed_v11', value: true });
+});
+
+// Version 12: Add archivedAt to categories for archive/restore feature.
+db.version(12).stores({
+  wallets: '++id, name, currency, lastUpdated, currentBalance',
+  categories: '++id, name, icon, color, budget, archivedAt',
+  transactions: '++id, walletId, categoryId, date, description, type, amount, transferGroupId, [type+date], [walletId+date], [categoryId+date]',
+  debts: 'id, type, personName, walletId, startDate, dueDate, archivedAt, updatedAt',
+  debtPayments: 'id, debtId, walletId, date, createdAt',
+  settings: 'key'
+}).upgrade(async (tx) => {
+  // No data migration needed — archivedAt defaults to undefined/null for all existing categories.
+  await tx.table('settings').put({ key: 'migration_completed_v12', value: true });
+});
+
+// Version 13: Add merchants table for stable merchant identity, aliases, archive/restore, merge.
+db.version(13).stores({
+  wallets: '++id, name, currency, lastUpdated, currentBalance',
+  categories: '++id, name, icon, color, budget, archivedAt',
+  transactions: '++id, walletId, categoryId, date, description, type, amount, transferGroupId, [type+date], [walletId+date], [categoryId+date]',
+  debts: 'id, type, personName, walletId, startDate, dueDate, archivedAt, updatedAt',
+  debtPayments: 'id, debtId, walletId, date, createdAt',
+  merchants: '++id, displayName, originalName, archivedAt, mergedIntoId',
+  settings: 'key'
+}).upgrade(async (tx) => {
+  // Auto-create merchant entries from existing expense transactions
+  const txTable = tx.table('transactions');
+  const merchantTable = tx.table('merchants');
+  const settingsTable = tx.table('settings');
+
+  const alreadyDone = await settingsTable.get('merchants_synced_v13');
+  if (alreadyDone) return;
+
+  const expenses = await txTable.where('type').equals('expense').toArray();
+  const keyToName = new Map<string, string>();
+
+  for (const tx of expenses) {
+    if (!tx.description) continue;
+    const key = tx.description.trim().toLowerCase();
+    if (!key) continue;
+    if (!keyToName.has(key)) {
+      keyToName.set(key, tx.description.trim());
+    }
+  }
+
+  const now = new Date().toISOString();
+  for (const [key, name] of keyToName.entries()) {
+    await merchantTable.add({
+      displayName: name,
+      originalName: name,
+      aliases: [],
+      archivedAt: null,
+      mergedIntoId: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  await settingsTable.put({ key: 'merchants_synced_v13', value: true });
 });
 
 export { db };

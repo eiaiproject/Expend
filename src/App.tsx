@@ -1,10 +1,11 @@
-import { useState, lazy, Suspense, useEffect } from 'react';
+import { useState, lazy, Suspense, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { BottomNav } from './components/BottomNav';
+import { BottomNav, FabButton } from './components/BottomNav';
 import { ErrorBoundary } from './components/ErrorBoundary';
 const HomeView = lazy(() => import('./views/HomeView'));
 const WalletsView = lazy(() => import('./views/WalletsView'));
+const WalletDetailView = lazy(() => import('./views/WalletDetailView'));
 const DebtsView = lazy(() => import('./views/DebtsView'));
 const StatsView = lazy(() => import('./views/StatsView'));
 const SettingsView = lazy(() => import('./views/SettingsView'));
@@ -15,6 +16,7 @@ import { TransactionFormSheet } from './components/TransactionFormSheet';
 import { ActionPickerSheet } from './components/ActionPickerSheet';
 import { DebtFormSheet } from './components/debts/DebtFormSheet';
 import { Toaster } from './components/Toaster';
+import { PrivacyProvider } from './contexts/PrivacyContext';
 import { ConfirmDialogProvider } from './components/ConfirmDialog';
 import { LockScreen } from './components/LockScreen';
 import { SecurityProvider, useSecurity } from './contexts/SecurityContext';
@@ -41,7 +43,6 @@ function AppContent() {
   const { isLocked, isSecurityLoaded } = useSecurity();
   const isOnline = useOnlineStatus();
   const { deferredPrompt, showInstallPrompt } = useInstallPrompt();
-  const showIosInstallInstructions = !deferredPrompt && isIOSDevice();
   const {
     isCheckingData,
     bypassPwa,
@@ -55,30 +56,35 @@ function AppContent() {
     handleOnboardingComplete,
   } = useAppBootstrap();
 
+  const openAddTx = useCallback((type: TransactionType = 'expense', desc?: string) => {
+    setTxInitialType(type);
+    setTxInitialDescription(desc);
+    setIsAddTxOpen(true);
+  }, []);
+
   // Keyboard shortcut: N to open Add Transaction
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      const isEditable = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      const tag = target.tagName;
+      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable || target.hasAttribute('contenteditable') || target.getAttribute('role') === 'textbox';
       if (isEditable) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
-        setTxInitialType('expense');
-        setTxInitialDescription(undefined);
-        setIsAddTxOpen(true);
+        openAddTx('expense');
       }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, []);
+  }, [openAddTx]);
 
-  // Block all app content until the security state is known.
   if (!isSecurityLoaded) {
     return <SecureLoadingScreen />;
   }
 
-  // Still checking IndexedDB — show loading to avoid flashing incorrect screen
   if (isCheckingData) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
@@ -87,8 +93,6 @@ function AppContent() {
     );
   }
 
-  // Soft PWA gate: only block first-time visitors (no data, no onboarding flag)
-  // Returning visitors go straight to the app.
   if (!isStandalone && !bypassPwa && !hasOnboarded) {
     return (
       <LandingView
@@ -98,12 +102,10 @@ function AppContent() {
     );
   }
 
-  // Show onboarding wizard after first visit (before main app)
   if (hasOnboarded && !onboardingCompleted) {
     return <OnboardingWizard onComplete={handleOnboardingComplete} />;
   }
 
-  // When locked, render only the LockScreen (routes/content not rendered)
   if (isLocked) {
     return (
       <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans flex flex-col">
@@ -112,82 +114,84 @@ function AppContent() {
     );
   }
 
+  // Contextual install prompt — only when deferredPrompt is available and not dismissed
+  const showContextualInstall = !isStandalone && deferredPrompt && !isBannerDismissed;
+
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans flex flex-col">
-      {/* Skip to content link for keyboard users */}
+      {/* Skip to content link */}
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[var(--accent)] focus:text-white focus:rounded-lg focus:font-bold focus:shadow-lg"
       >
         {t('Skip to content')}
       </a>
-      {/* Render elegant installation banner on mobile web if not standalone and banner not dismissed */}
-      {!isStandalone && !isBannerDismissed && (
-        <div className="md:hidden bg-[var(--accent-fill)] text-[var(--accent-ink)] px-4 py-3 flex items-center justify-between gap-3 text-xs font-semibold shadow z-50 relative shrink-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <Download size={14} className="shrink-0" aria-hidden="true" />
-            <span>
-              {showIosInstallInstructions
-                ? t('Install Expend on iOS from Share > Add to Home Screen.')
-                : t('Install Expend as a PWA for offline use & fullscreen!')}
-            </span>
+
+      {/* Contextual install banner — compact, dismissible */}
+      {showContextualInstall && (
+        <div className="md:hidden bg-[var(--card)] border border-[var(--border)] mx-4 mt-3 px-4 py-3 flex items-center justify-between gap-3 text-sm rounded-xl shadow-sm relative z-30 shrink-0">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
+              <Download size={16} className="text-[var(--accent)]" aria-hidden="true" />
+            </div>
+            <p className="text-xs font-semibold text-[var(--text-primary)] min-w-0">{t('home.installDesc')}</p>
           </div>
-          {deferredPrompt && (
+          <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
               onClick={showInstallPrompt}
-              className="shrink-0 rounded-lg bg-white/20 px-3 py-1.5 font-semibold hover:bg-white/30 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-[var(--accent-fill)] text-[var(--accent-ink)] text-xs font-semibold hover:opacity-90 transition-opacity min-h-[36px]"
             >
               {t('Install')}
             </button>
-          )}
-          <button 
-            type="button"
-            onClick={handleDismissBanner} 
-            className="shrink-0 p-1 rounded-full hover:bg-white/10 cursor-pointer transition-colors"
-            aria-label={t('Close')}
-          >
-            <X size={14} aria-hidden="true" />
-          </button>
+            <button
+              type="button"
+              onClick={handleDismissBanner}
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--border)] transition-colors"
+              aria-label={t('home.installDismiss')}
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
+          </div>
         </div>
       )}
 
       {!isOnline && (
-        <div className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-b border-amber-500/20 px-4 py-2 text-xs font-medium flex items-center justify-center gap-2">
+        <div className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-b border-amber-500/20 px-4 py-2 text-xs font-medium flex items-center justify-center gap-2" role="status">
           <WifiOff size={14} aria-hidden="true" />
           <span>{t('Offline Mode')}. {t('Data stored locally on this device.')}</span>
         </div>
       )}
 
-      {/* Main layout container: side-by-side flex on desktop */}
+      {/* Main layout */}
       <div className="flex-1 flex min-h-0">
-        {/* Sidebar Nav (Desktop only) */}
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <SidebarNav onAddClick={() => setIsActionPickerOpen(true)} />
         </div>
 
-        {/* Main View Area */}
-        <main id="main-content" className="flex-1 min-w-0 w-full max-w-4xl mx-auto overflow-y-auto px-4 pt-5 pb-[calc(144px+env(safe-area-inset-bottom,0px))] md:px-6 md:py-8 md:pb-8" tabIndex={-1}>
+        <main
+          id="main-content"
+          className="flex-1 min-w-0 w-full max-w-4xl mx-auto overflow-y-auto px-4 pt-5 md:px-6 md:py-8 lg:pb-8 pb-[calc(80px+env(safe-area-inset-bottom,0px))]"
+          tabIndex={-1}
+        >
           <RoutesWithSuspense />
         </main>
       </div>
 
+      {/* Bottom Nav + FAB — siblings */}
       <BottomNav onAddClick={() => setIsActionPickerOpen(true)} />
+      <FabButton onAddClick={() => setIsActionPickerOpen(true)} />
 
       <ActionPickerSheet
         isOpen={isActionPickerOpen}
         onClose={() => setIsActionPickerOpen(false)}
         onAddExpense={() => {
-          setTxInitialType('expense');
-          setTxInitialDescription(undefined);
           setIsActionPickerOpen(false);
-          setIsAddTxOpen(true);
+          openAddTx('expense');
         }}
         onTransfer={() => {
-          setTxInitialType('transfer');
-          setTxInitialDescription(undefined);
           setIsActionPickerOpen(false);
-          setIsAddTxOpen(true);
+          openAddTx('transfer');
         }}
         onDebt={() => {
           setIsActionPickerOpen(false);
@@ -214,12 +218,8 @@ function AppContent() {
 
 function SecureLoadingScreen() {
   const { t } = useTranslation();
-
   return (
-    <div
-      className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] flex items-center justify-center"
-      aria-live="polite"
-    >
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] flex items-center justify-center" aria-live="polite">
       <div className="space-y-3 text-center">
         <div className="mx-auto h-8 w-8 rounded-full border-2 border-[var(--border)] border-t-[var(--accent)] animate-spin" />
         <p className="text-sm text-[var(--text-secondary)]">{t('Loading...')}</p>
@@ -239,8 +239,8 @@ function RoutesWithSuspense() {
         <Routes>
           <Route path="/" element={<HomeView />} />
           <Route path="/wallets" element={<WalletsView />} />
+          <Route path="/wallets/:id" element={<WalletDetailView />} />
           <Route path="/debts" element={<DebtsView />} />
-
           <Route path="/stats" element={<StatsView />} />
           <Route path="/settings" element={<SettingsView />} />
           <Route path="/categories" element={<CategoriesView />} />
@@ -254,7 +254,6 @@ function RoutesWithSuspense() {
 
 function NotFoundView() {
   const { t } = useTranslation();
-
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6 rounded-[16px] border border-[var(--border)] bg-[var(--card)] mt-4">
       <h1 className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">404</h1>
@@ -273,12 +272,14 @@ export default function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>
-        <SecurityProvider>
-          <AppContent />
-          <UpdatePrompt />
-          <Toaster />
-          <ConfirmDialogProvider />
-        </SecurityProvider>
+        <PrivacyProvider>
+          <SecurityProvider>
+            <AppContent />
+            <UpdatePrompt />
+            <Toaster />
+            <ConfirmDialogProvider />
+          </SecurityProvider>
+        </PrivacyProvider>
       </ThemeProvider>
     </BrowserRouter>
   );

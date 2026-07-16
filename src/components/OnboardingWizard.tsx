@@ -37,7 +37,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
     try {
       // Create wallet
       if (walletName.trim()) {
-        const parsedBalance = parseInt(walletBalance.replace(/[^0-9]/g, '') || '0', 10);
+        const parsedBalance = Number.parseInt(walletBalance.replace(/\D/g, '') || '0', 10);
         await db.wallets.add({
           name: walletName.trim(),
           currency: 'IDR',

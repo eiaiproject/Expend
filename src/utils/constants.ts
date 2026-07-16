@@ -34,7 +34,17 @@ export const MIN_PIN_LENGTH = 4;
 /** Preset amounts shown in the transaction form. */
 export const PRESET_AMOUNTS = [10000, 20000, 50000, 100000, 200000, 500000] as const;
 
-/** Auto-lock timeout in milliseconds (2 minutes). */
+/** Auto-lock timeout options in milliseconds. */
+export const AUTO_LOCK_TIMEOUT_OPTIONS = [
+  { value: 60_000, labelKey: 'settings.autoLock1min' },
+  { value: 120_000, labelKey: 'settings.autoLock2min' },
+  { value: 300_000, labelKey: 'settings.autoLock5min' },
+  { value: 900_000, labelKey: 'settings.autoLock15min' },
+  { value: 1_800_000, labelKey: 'settings.autoLock30min' },
+  { value: 0, labelKey: 'settings.autoLockNever' },
+] as const;
+
+/** Default auto-lock timeout (2 minutes). */
 export const AUTO_LOCK_TIMEOUT_MS = 120_000;
 
 /** Number of days before a wallet is considered stale (30 days). */
@@ -46,6 +56,9 @@ export const SPENDING_TREND_PREVIOUS_DAYS = 14;
 
 /** Maximum file size for JSON import (10 MB). */
 export const MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024;
+
+/** Budget warning threshold (80% used). */
+export const BUDGET_NEAR_LIMIT_THRESHOLD = 0.80;
 
 /** Valid transaction types for import validation. */
 export const VALID_TX_TYPES = ['expense', 'balance_adjustment', 'transfer_in', 'transfer_out'] as const;

@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export interface ToastMessage {
   id: number;
   message: string;
   onUndo?: () => void;
-  duration?: number; // Custom duration in ms
+  duration?: number;
 }
 
 let toastCounter = 0;
@@ -19,57 +19,100 @@ export const toast = {
   }
 };
 
+function ToastItem({ toast: msg, onRemove, t: translate }: { toast: ToastMessage; onRemove: (id: number) => void; t: (key: string) => string }) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverRef = useRef(false);
+  const focusRef = useRef(false);
+
+  const startTimer = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      if (!hoverRef.current && !focusRef.current) {
+        onRemove(msg.id);
+      }
+    }, msg.onUndo ? 7000 : (msg.duration || 5000));
+  };
+
+  useEffect(() => {
+    startTimer();
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const handleMouseEnter = () => { hoverRef.current = true; if (timerRef.current) clearTimeout(timerRef.current); };
+  const handleMouseLeave = () => { hoverRef.current = false; startTimer(); };
+  const handleFocus = () => { focusRef.current = true; if (timerRef.current) clearTimeout(timerRef.current); };
+  const handleBlur = () => { focusRef.current = false; startTimer(); };
+
+  return (
+    <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      className="bg-[var(--text-primary)] text-[var(--bg)] px-4 py-3 rounded-lg shadow-xl flex items-center gap-4 text-sm font-medium pointer-events-auto max-w-[90vw]"
+    >
+      <span>{msg.message}</span>
+      {msg.onUndo && (
+        <button
+          onClick={() => {
+            msg.onUndo?.();
+            onRemove(msg.id);
+          }}
+          className="text-[var(--accent)] hover:underline ml-auto border-l border-[var(--bg)]/20 pl-4 font-bold whitespace-nowrap"
+        >
+          {translate('UNDO')}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function Toaster() {
   const { t } = useTranslation();
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   useEffect(() => {
-    const timers = new Map<number, ReturnType<typeof setTimeout>>();
-
-    const listener = (toast: ToastMessage) => {
-      setToasts(prev => [...prev, toast]);
-      // Duration: Undo toasts longer (7s), success shorter (3s), default 5s
-      const duration = toast.onUndo ? 7000 : (toast.duration || 5000);
-      const timer = setTimeout(() => {
-        timers.delete(toast.id);
-        setToasts(prev => prev.filter(t => t.id !== toast.id));
-      }, duration);
-      timers.set(toast.id, timer);
+    const listener = (newToast: ToastMessage) => {
+      setToasts(prev => [...prev, newToast]);
     };
 
     listeners.add(listener);
     return () => {
       listeners.delete(listener);
-      // Clear all pending timers on unmount
-      timers.forEach(timer => clearTimeout(timer));
-      timers.clear();
     };
   }, []);
 
+  const removeToast = (id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  if (toasts.length === 0) return null;
+
   return (
-    <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-max max-w-[90vw]" aria-live="polite" role="status">
-      <>
-        {toasts.map(toast => (
-          <div
-            key={toast.id}
-            className="bg-[var(--text-primary)] text-[var(--bg)] px-4 py-3 rounded-lg shadow-xl flex items-center gap-4 text-sm font-medium"
-          >
-            <span>{toast.message}</span>
-            {toast.onUndo && (
-              <button 
-                onClick={() => {
-                  toast.onUndo?.();
-                  // Clear the auto-dismiss timer for this toast
-                  setToasts(prev => prev.filter(t => t.id !== toast.id));
-                }}
-                className="text-[var(--accent)] hover:underline ml-auto border-l border-[var(--bg)]/20 pl-4 font-bold"
-              >
-                {t('UNDO')}
-              </button>
-            )}
-          </div>
+    <>
+      {/* Mobile: above bottom nav */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-[100] lg:hidden flex flex-col items-center gap-2 px-4 pointer-events-none"
+        style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 16px)' }}
+        aria-live="polite"
+        role="status"
+      >
+        {toasts.map(msg => (
+          <ToastItem key={msg.id} toast={msg} onRemove={removeToast} t={t} />
         ))}
-      </>
-    </div>
+      </div>
+      {/* Desktop: bottom-right */}
+      <div
+        className="fixed bottom-6 right-6 z-[100] hidden lg:flex flex-col items-end gap-2 pointer-events-none"
+        aria-live="polite"
+        role="status"
+      >
+        {toasts.map(msg => (
+          <ToastItem key={msg.id} toast={msg} onRemove={removeToast} t={t} />
+        ))}
+      </div>
+    </>
   );
 }

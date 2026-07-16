@@ -1,14 +1,15 @@
 import { useTranslation } from 'react-i18next';
-import { PlusSquare, Share, ArrowRight, Download, ChevronRight } from 'lucide-react';
+import { Download, Check } from 'lucide-react';
 import { isIOSDevice } from '../../utils/pwaUtils';
+import { useState, useEffect } from 'react';
 import { APP_VERSION } from '../../utils/constants';
 
 export function InstallSection({
-  onTryWeb,
+  onEnter,
   deferredPrompt,
   showInstallPrompt,
 }: {
-  onTryWeb: () => void;
+  onEnter: () => void;
   deferredPrompt: {
     prompt: () => Promise<void>;
     userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -17,146 +18,89 @@ export function InstallSection({
 }) {
   const { t } = useTranslation();
   const isIOS = isIOSDevice();
+  const [dismissed, setDismissed] = useState(false);
+  const [installed, setInstalled] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setInstalled(true);
+    }
+  }, []);
+
+  const platformHint = isIOS
+    ? t('landing.installIOS')
+    : deferredPrompt
+      ? t('landing.installAndroid')
+      : t('landing.installDesktop');
 
   return (
-    <section
-      id="install-section"
-      className="scroll-mt-24 py-20 sm:py-28 px-4 sm:px-6 relative z-10"
-    >
-      <div className="max-w-4xl mx-auto">
+    <section id="install-section" className="scroll-mt-20 py-16 sm:py-24 px-4 sm:px-6">
+      <div className="max-w-3xl mx-auto text-center">
         {/* Header */}
-        <div
-          className="text-center mb-10 sm:mb-14"
-        >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4 text-[var(--text-primary)] text-balance">
-            {t('landing.installTitle')}
-          </h2>
-          <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-xl mx-auto text-pretty">
-            {t('landing.installSubtitle')}
-          </p>
-        </div>
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[var(--text-primary)] mb-3" style={{ textWrap: 'balance' }}>
+          {t('landing.installTitle')}
+        </h2>
+        <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-md mx-auto mb-8" style={{ textWrap: 'pretty' }}>
+          {t('landing.installSubtitle')}
+        </p>
 
-        {/* Install Button or Manual Steps */}
-        <div
-          className="text-center mb-10 sm:mb-14"
-        >
-          {deferredPrompt ? (
-            <div className="space-y-4">
+        {installed ? (
+          /* Already installed */
+          <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-sm font-medium">
+            <Check size={16} />
+            {t('landing.installAlreadyInstalled')}
+          </div>
+        ) : !dismissed ? (
+          /* Install prompt */
+          <div className="space-y-4">
+            {deferredPrompt ? (
               <button
                 type="button"
                 onClick={showInstallPrompt}
-                className="px-10 sm:px-12 py-4 sm:py-5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base sm:text-lg hover:bg-[var(--accent)]/90 transition-colors active:scale-95 cursor-pointer inline-flex items-center gap-3"
+                className="px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer inline-flex items-center gap-2.5"
               >
-                <Download size={20} />
+                <Download size={18} aria-hidden="true" />
                 {t('landing.installButton')}
               </button>
-              <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
-                {t('landing.installQuickNote')}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-lg mx-auto">
-                {isIOS ? t('landing.iosManualStep') : t('landing.browserInstallOption')}
-              </p>
+            ) : (
               <button
                 type="button"
-                onClick={onTryWeb}
-                className="text-sm sm:text-base font-semibold text-[var(--accent)] hover:underline cursor-pointer"
+                onClick={onEnter}
+                className="px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer inline-flex items-center gap-2.5"
               >
-                {t('landing.continueWeb')} <ArrowRight size={14} className="inline" />
+                <Download size={18} aria-hidden="true" />
+                {t('landing.installButton')}
               </button>
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* Visual Steps */}
-        <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
-          {/* Step 1 */}
-          <div
-            className="bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl p-6 sm:p-8 relative overflow-hidden group hover:border-[var(--accent)]/20 transition-colors h-full"
-          >
-            {/* Step Number */}
-            <div className="absolute top-4 sm:top-6 right-4 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-              <span className="text-lg sm:text-xl font-bold text-[var(--accent)]">1</span>
-            </div>
-
-            {/* Icon */}
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[var(--surface)] flex items-center justify-center mb-5 sm:mb-6 group-hover:scale-110 transition-transform">
-              {isIOS ? (
-                <Share size={28} className="text-[#007AFF]" />
-              ) : (
-                <ChevronRight size={28} className="text-[var(--text-muted)]" />
-              )}
-            </div>
-
-            {/* Content */}
-            <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] mb-2 sm:mb-3">
-              {isIOS ? t('landing.step1Ios') : t('landing.step1Browser')}
-            </h3>
-            <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
-              {isIOS ? t('landing.step1IosDesc') : t('landing.step1BrowserDesc')}
+            <p className="text-xs text-[var(--text-muted)]">
+              {t('landing.installQuickNote')}
             </p>
 
-            {/* Visual Indicator */}
-            <div className="mt-5 sm:mt-6 flex items-center gap-3">
-              <div
-                className={`p-2.5 sm:p-3 rounded-xl ${isIOS ? 'bg-[#007AFF]/10' : 'bg-white/5'}`}
-              >
-                {isIOS ? (
-                  <Share size={20} className="text-[#007AFF]" />
-                ) : (
-                  <span className="text-lg">⋮</span>
-                )}
-              </div>
-              <div className="text-xs sm:text-sm text-[var(--text-secondary)]">
-                {isIOS ? t('landing.step1IosVisual') : t('landing.step1BrowserVisual')}
-              </div>
-            </div>
-          </div>
-
-          {/* Step 2 */}
-          <div
-            className="bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl p-6 sm:p-8 relative overflow-hidden group hover:border-[var(--accent)]/20 transition-colors h-full"
-          >
-            {/* Step Number */}
-            <div className="absolute top-4 sm:top-6 right-4 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-              <span className="text-lg sm:text-xl font-bold text-[var(--accent)]">2</span>
-            </div>
-
-            {/* Icon */}
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[var(--surface)] flex items-center justify-center mb-5 sm:mb-6 group-hover:scale-110 transition-transform">
-              <PlusSquare size={28} className="text-[var(--text-muted)]" />
-            </div>
-
-            {/* Content */}
-            <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] mb-2 sm:mb-3">
-              {t('landing.step2Title')}
-            </h3>
-            <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
-              {t('landing.step2Desc')}
+            {/* Platform hint */}
+            <p className="text-sm text-[var(--text-secondary)] max-w-md mx-auto">
+              {platformHint}
             </p>
 
-            {/* Visual Indicator */}
-            <div className="mt-5 sm:mt-6 flex items-center gap-3">
-              <div className="p-2.5 sm:p-3 rounded-xl bg-white/5">
-                <PlusSquare size={20} className="text-[var(--text-muted)]" />
-              </div>
-              <div className="text-xs sm:text-sm text-[var(--text-secondary)]">
-                {t('landing.step2Visual')}
-              </div>
-            </div>
+            {/* Not now */}
+            <button
+              type="button"
+              onClick={() => setDismissed(true)}
+              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+            >
+              {t('landing.installNotNow')}
+            </button>
           </div>
-        </div>
-
-        {/* Additional Info */}
-        <div
-          className="mt-8 sm:mt-10 text-center"
-        >
-          <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
-            {t('landing.installNote')}
-          </p>
-        </div>
+        ) : (
+          /* Dismissed — just enter the app */
+          <button
+            type="button"
+            onClick={onEnter}
+            className="px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
+          >
+            {t('landing.heroCtaPrimary')}
+          </button>
+        )}
       </div>
     </section>
   );
@@ -165,21 +109,13 @@ export function InstallSection({
 export function LandingFooter() {
   const { t } = useTranslation();
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   return (
-    <footer className="py-8 sm:py-12 px-4 sm:px-6 relative z-10 border-t border-[var(--border-subtle)]">
+    <footer className="py-8 sm:py-12 px-4 sm:px-6 border-t border-[var(--border-subtle)]">
       <div className="max-w-4xl mx-auto">
         {/* Logo & Tagline */}
-        <button
-          type="button"
-          onClick={scrollToTop}
-          className="block w-full text-center cursor-pointer mb-6 sm:mb-8 group"
-        >
+        <div className="text-center mb-6 sm:mb-8">
           <h2
-            className="text-xl sm:text-2xl tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors mb-1"
+            className="text-xl sm:text-2xl tracking-tight text-[var(--text-primary)] mb-1"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Expend
@@ -187,7 +123,7 @@ export function LandingFooter() {
           <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
             {t('landing.footerTagline')}
           </p>
-        </button>
+        </div>
 
         {/* Quick Links */}
         <div className="flex justify-center flex-wrap gap-4 sm:gap-6 mb-6 sm:mb-8">

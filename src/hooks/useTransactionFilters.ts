@@ -118,8 +118,8 @@ export function useTransactionFilters(
     let results = transactions.filter(tx => {
       const txDate = normaliseDate(tx.date);
       const absAmount = Math.abs(tx.amount);
-      const minParsed = minAmount ? parseInt(minAmount, 10) : NaN;
-      const maxParsed = maxAmount ? parseInt(maxAmount, 10) : NaN;
+      const minParsed = minAmount ? Number.parseInt(minAmount, 10) : Number.NaN;
+      const maxParsed = maxAmount ? Number.parseInt(maxAmount, 10) : Number.NaN;
 
       return (type === 'all' || tx.type === type) &&
         (categories.length === 0 || (tx.categoryId != null && categories.includes(tx.categoryId))) &&

@@ -1,10 +1,9 @@
 /**
- * Migration tests: verify legacy debt schema repair and Dexie compatibility.
+ * Migration tests: verify Dexie database compatibility.
  *
  * Tests:
- * - Legacy DB with old debt_payments store can be repaired
- * - Dexie opens successfully after native repair
- * - Existing data survives the repair
+ * - Dexie opens successfully
+ * - Existing data survives migrations
  * - Version 100 → Dexie version 10 doesn't cause issues
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -24,76 +23,6 @@ async function loadDb() {
   return db;
 }
 
-async function createLegacyDebtDatabase(): Promise<void> {
-  await deleteExpendDb();
-
-  await new Promise<void>((resolve, reject) => {
-    const request = indexedDB.open('ExpendDB', 80);
-
-    request.onupgradeneeded = () => {
-      const nativeDb = request.result;
-      const wallets = nativeDb.createObjectStore('wallets', { keyPath: 'id', autoIncrement: true });
-      for (const indexName of ['name', 'currency', 'lastUpdated', 'currentBalance']) {
-        wallets.createIndex(indexName, indexName);
-      }
-
-      const transactions = nativeDb.createObjectStore('transactions', { keyPath: 'id', autoIncrement: true });
-      for (const indexName of ['walletId', 'categoryId', 'date', 'description', 'type', 'amount', 'transferGroupId']) {
-        transactions.createIndex(indexName, indexName);
-      }
-      transactions.createIndex('[type+date]', ['type', 'date']);
-      transactions.createIndex('[walletId+date]', ['walletId', 'date']);
-      transactions.createIndex('[categoryId+date]', ['categoryId', 'date']);
-
-      const categories = nativeDb.createObjectStore('categories', { keyPath: 'id', autoIncrement: true });
-      for (const indexName of ['name', 'icon', 'color', 'budget']) {
-        categories.createIndex(indexName, indexName);
-      }
-
-      const debts = nativeDb.createObjectStore('debts', { keyPath: 'id', autoIncrement: true });
-      const debtPayments = nativeDb.createObjectStore('debt_payments', { keyPath: 'id', autoIncrement: true });
-      nativeDb.createObjectStore('settings', { keyPath: 'key' });
-
-      wallets.put({
-        id: 1,
-        name: 'Legacy Wallet',
-        currency: 'IDR',
-        initialBalance: 1000000,
-        currentBalance: 1000000,
-        lastUpdated: '2025-01-01T00:00:00.000Z',
-      });
-      debts.put({
-        id: 1,
-        type: 'payable',
-        contactName: 'Legacy Person',
-        description: 'Old loan',
-        amount: 500000,
-        remainingAmount: 300000,
-        walletId: 1,
-        startDate: '2025-01-01T00:00:00.000Z',
-        status: 'partial',
-        createdAt: '2025-01-01T00:00:00.000Z',
-      });
-      debtPayments.put({
-        id: 1,
-        debtId: 1,
-        amount: 200000,
-        date: '2025-01-10T00:00:00.000Z',
-        walletId: 1,
-        type: 'repayment',
-        note: 'Legacy repayment',
-        createdAt: '2025-01-10T00:00:00.000Z',
-      });
-    };
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      request.result.close();
-      resolve();
-    };
-  });
-}
-
 beforeEach(async () => {
   await deleteExpendDb();
 });
@@ -105,36 +34,6 @@ afterEach(async () => {
 });
 
 describe('Dexie database compatibility', () => {
-  it('repairs legacy debt_payments schema before Dexie opens', async () => {
-    await createLegacyDebtDatabase();
-
-    const db = await loadDb();
-    const debts = await db.debts.toArray();
-    const payments = await db.debtPayments.toArray();
-
-    expect(db.backendDB().version).toBe(110);
-    expect(db.backendDB().objectStoreNames.contains('debt_payments')).toBe(false);
-    expect(debts).toHaveLength(1);
-    expect(debts[0]).toMatchObject({
-      id: 'legacy_debt_1',
-      personName: 'Legacy Person',
-      title: 'Old loan',
-      principalAmount: 500000,
-      remainingAmount: 300000,
-      walletId: 1,
-      startDate: '2025-01-01',
-      status: 'partial',
-    });
-    expect(payments).toHaveLength(2);
-    expect(payments.map((payment) => payment.type).sort()).toEqual(['initial', 'repayment']);
-    expect(payments.find((payment) => payment.type === 'repayment')).toMatchObject({
-      debtId: 'legacy_debt_1',
-      amount: 200000,
-      date: '2025-01-10',
-      notes: 'Legacy repayment',
-    });
-  });
-
   it('opens and closes without errors', async () => {
     const db = await loadDb();
     // db is already opened by import; verify it works

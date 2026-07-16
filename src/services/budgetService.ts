@@ -25,27 +25,14 @@ export interface SpendingInsight {
   color: string;
 }
 
-/**
- * Compute month boundaries for the current month as YYYY-MM-DD strings.
- * Uses local date strings to avoid timezone-induced day shifting.
- */
-export function getMonthBoundaries(): { start: string; end: string } {
-  return { start: getMonthStartStr(), end: getNextMonthStartStr() };
-}
-
-/**
- * Get today and yesterday as YYYY-MM-DD strings.
- */
-export function getDayBoundaries(): { todayStr: string; yesterdayStr: string } {
-  return { todayStr: getTodayStr(), yesterdayStr: getYesterdayStr() };
-}
 
 /**
  * Calculate daily spending (today vs yesterday).
  * Uses string comparison on YYYY-MM-DD dates for timezone-safe logic.
  */
 export function computeDailySpending(transactions: Transaction[]): DailySpending {
-  const { todayStr, yesterdayStr } = getDayBoundaries();
+  const todayStr = getTodayStr();
+  const yesterdayStr = getYesterdayStr();
 
   let today = 0;
   let yesterday = 0;
@@ -71,7 +58,8 @@ export function computeBudgetStatuses(
   transactions: Transaction[],
   categories: Category[]
 ): BudgetStatus[] {
-  const { start: monthStart, end: nextMonthStart } = getMonthBoundaries();
+  const monthStart = getMonthStartStr();
+  const nextMonthStart = getNextMonthStartStr();
 
   const statuses: BudgetStatus[] = [];
 
@@ -154,9 +142,8 @@ export function generateInsight(
   }
 
   // 3. Top spending category this month
-  const monthBoundaries = getMonthBoundaries();
-  const monthStart = monthBoundaries.start;
-  const nextMonthStart = monthBoundaries.end;
+  const monthStart = getMonthStartStr();
+  const nextMonthStart = getNextMonthStartStr();
   const monthTxs = transactions.filter(
     (t) => t.type === 'expense' && normaliseDate(t.date) >= monthStart && normaliseDate(t.date) < nextMonthStart
   );

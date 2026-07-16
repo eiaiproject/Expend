@@ -40,6 +40,26 @@ export function displayDateLong(value: string | Date, locale?: string): string {
   return formatDate(value, { day: 'numeric', month: 'long', year: 'numeric' }, locale);
 }
 
+export function displayTimeOrDate(value: string | Date, locale?: string): string {
+  const d = toDate(value);
+  const today = new Date();
+  const todayStr = getTodayStr(today);
+  const dateStr = typeof value === 'string' ? normaliseDate(value) : getTodayStr(d);
+
+  if (dateStr === todayStr) {
+    return displayTime(value, locale);
+  }
+  return displayDateShort(d, locale);
+}
+
+/**
+ * Format a time value for display (HH:MM).
+ */
+export function displayTime(value: string | Date, locale?: string): string {
+  const d = toDate(value);
+  return new Intl.DateTimeFormat(fmtLocale(locale), { hour: '2-digit', minute: '2-digit' }).format(d);
+}
+
 export function displayMonthShort(value: string | Date, locale?: string): string {
   return formatDate(value, { month: 'short' }, locale);
 }

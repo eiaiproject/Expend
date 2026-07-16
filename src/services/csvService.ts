@@ -5,6 +5,7 @@ import { getTodayStr } from '../utils/dateUtils';
 import { downloadBlob } from '../utils/downloadUtils';
 import { VALID_TX_TYPES } from '../utils/constants';
 import { recomputeWalletCurrentBalances } from '../utils/balanceUtils';
+import { ensureMerchant } from './merchantService';
 
 export interface TransactionCsvRow {
   date: string;
@@ -213,9 +214,13 @@ export async function parseTransactionsCsv(file: File): Promise<{ rows: any[]; e
  * Import validated CSV transactions.
  */
 export async function importCsvTransactions(rows: any[]): Promise<void> {
-  await db.transaction('rw', [db.transactions, db.wallets, db.debts, db.debtPayments], async () => {
+  await db.transaction('rw', [db.transactions, db.wallets, db.debts, db.debtPayments, db.merchants], async () => {
     for (const row of rows) {
       await db.transactions.add(row);
+      // Auto-create merchant entry for expenses
+      if (row.type === 'expense' && row.description) {
+        await ensureMerchant(row.description);
+      }
     }
 
     const wallets = await db.wallets.toArray();

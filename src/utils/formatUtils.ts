@@ -39,16 +39,22 @@ export function formatBalance(amount: number, hideAmount = false): string {
 }
 
 /**
+ * Format an amount with sign prefix as a single string.
+ * Suitable for transaction cards — no separate minus element.
+ * Returns "-Rp500.000" or "+Rp500.000".
+ */
+export function formatSignedCurrency(amount: number, hideAmount = false): string {
+  if (hideAmount) return '•••••';
+  const sign = amount < 0 ? '-' : '+';
+  return `${sign}${CURRENCY_FORMATTER.format(Math.abs(amount))}`;
+}
+
+/**
  * Format an amount value as a plain number string (for inline use in transaction cards).
  */
 export function formatCurrencyValue(amount: number, hideAmount = false): string {
   if (hideAmount) return '•••••';
   return NUMBER_FORMATTER.format(Math.abs(amount));
-}
-
-/** Format amount without currency symbol (for inline display). */
-export function formatAmountLocal(amount: number): string {
-  return NUMBER_FORMATTER.format(amount);
 }
 
 // Re-export shared amount parsing/formatting helpers

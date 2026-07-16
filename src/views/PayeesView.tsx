@@ -1,439 +1,505 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
-import { Search, ArrowLeft, ShoppingBag, Edit2, X, Filter, ArrowUpDown, Plus } from 'lucide-react';
+import { db, type Merchant } from '../db/db';
+import {
+  Search, ArrowLeft, ShoppingBag, Plus, X, Filter, ArrowUpDown
+} from 'lucide-react';
 import { cn } from '../utils/cn';
 import { formatCurrency } from '../utils/formatUtils';
 import { displayDateMedium } from '../utils/dateUtils';
-import { getPayeeStatsFromTransactions, filterTransactionsByPayee, normalizePayeeKey, normalizePayeeName, type PayeeStats, type PayeeSortConfig, type PayeeTransactionFilters, type PayeeAggregateFilters } from '../services/payeeService';
+import { usePrivacy } from '../contexts/PrivacyContext';
+import { confirm } from '../components/ConfirmDialog';
+import {
+  getPayeeStatsFromTransactions, filterTransactionsByPayee,
+  normalizePayeeKey, normalizePayeeName,
+  type PayeeStats, type PayeeSortConfig, type PayeeTransactionFilters, type PayeeAggregateFilters
+} from '../services/payeeService';
+import {
+  ensureMerchant, renameMerchant, addMerchantAlias, removeMerchantAlias,
+  archiveMerchant, restoreMerchant, syncMerchants
+} from '../services/merchantService';
 import { TransactionCard } from '../components/home/TransactionCard';
 import { EmptyState } from '../components/EmptyState';
 import { toast } from '../components/Toaster';
 import { PayeeSortSheet } from '../components/PayeeSortSheet';
 import { PayeeFilterSheet, type PayeeFilterDraft } from '../components/PayeeFilterSheet';
+import { CategoryOverflowMenu } from '../components/categories/CategoryOverflowMenu';
+import { useSearchParams } from 'react-router-dom';
 
 const TransactionFormSheet = lazy(() => import('../components/TransactionFormSheet').then(m => ({ default: m.TransactionFormSheet })));
 
 const EMPTY_FILTER_DRAFT: PayeeFilterDraft = {
-  categoryIds: [],
-  walletIds: [],
-  startDate: '',
-  endDate: '',
-  minTotalExpense: '',
-  maxTotalExpense: '',
-  minTransactionCount: '',
-  maxTransactionCount: '',
+  categoryIds: [], walletIds: [], startDate: '', endDate: '',
+  minTotalExpense: '', maxTotalExpense: '', minTransactionCount: '', maxTransactionCount: '',
 };
+
+// ── Enriched merchant with stats ─────────────────────────────
+interface MerchantWithStats extends Merchant {
+  stats: PayeeStats;
+}
 
 export default function PayeesView() {
   const { t, i18n } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPayee, setSelectedPayee] = useState<PayeeStats | null>(null);
-  const [renamingPayee, setRenamingPayee] = useState<PayeeStats | null>(null);
-  const [newPayeeName, setNewPayeeName] = useState('');
+  const { hideAmount } = usePrivacy();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // State from URL params
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') ?? '');
+  const [selectedMerchantId, setSelectedMerchantId] = useState<number | null>(
+    searchParams.get('id') ? Number(searchParams.get('id')) : null
+  );
+  const [renamingMerchant, setRenamingMerchant] = useState<Merchant | null>(null);
+  const [newMerchantName, setNewMerchantName] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
 
-  // Sort & filter state
-  const [sortConfig, setSortConfig] = useState<PayeeSortConfig>({ field: 'totalExpense', order: 'desc' });
+  const [sortConfig, setSortConfig] = useState<PayeeSortConfig>({
+    field: (searchParams.get('sort') as any) ?? 'totalExpense', order: 'desc',
+  });
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterDraft, setFilterDraft] = useState<PayeeFilterDraft>(EMPTY_FILTER_DRAFT);
+  const [showArchived, setShowArchived] = useState(false);
 
-  // Quick-add expense state
   const [isAddTxOpen, setIsAddTxOpen] = useState(false);
   const [txInitialDescription, setTxInitialDescription] = useState<string | undefined>();
 
-  // Build transaction-level filters from draft
-  const transactionFilters: PayeeTransactionFilters | undefined = useMemo(() => {
-    const hasTxFilter = filterDraft.categoryIds.length > 0 || filterDraft.walletIds.length > 0 || filterDraft.startDate || filterDraft.endDate;
-    if (!hasTxFilter) return undefined;
-    return {
-      categoryIds: filterDraft.categoryIds.length > 0 ? filterDraft.categoryIds : undefined,
-      walletIds: filterDraft.walletIds.length > 0 ? filterDraft.walletIds : undefined,
-      startDate: filterDraft.startDate || undefined,
-      endDate: filterDraft.endDate || undefined,
-    };
-  }, [filterDraft]);
+  // ── Sync merchants on mount ────────────────────────────────
+  useEffect(() => { syncMerchants(); }, []);
 
-  // Build aggregate-level filters from draft
-  const aggregateFilters: PayeeAggregateFilters | undefined = useMemo(() => {
-    const hasAggFilter = filterDraft.minTotalExpense || filterDraft.maxTotalExpense || filterDraft.minTransactionCount || filterDraft.maxTransactionCount;
-    if (!hasAggFilter) return undefined;
-    return {
-      minTotalExpense: filterDraft.minTotalExpense ? parseInt(filterDraft.minTotalExpense, 10) : undefined,
-      maxTotalExpense: filterDraft.maxTotalExpense ? parseInt(filterDraft.maxTotalExpense, 10) : undefined,
-      minTransactionCount: filterDraft.minTransactionCount ? parseInt(filterDraft.minTransactionCount, 10) : undefined,
-      maxTransactionCount: filterDraft.maxTransactionCount ? parseInt(filterDraft.maxTransactionCount, 10) : undefined,
-    };
-  }, [filterDraft]);
-
-  const activeFilterCount = useMemo(() => (
-    filterDraft.categoryIds.length +
-    filterDraft.walletIds.length +
-    (filterDraft.startDate ? 1 : 0) +
-    (filterDraft.endDate ? 1 : 0) +
-    (filterDraft.minTotalExpense ? 1 : 0) +
-    (filterDraft.maxTotalExpense ? 1 : 0) +
-    (filterDraft.minTransactionCount ? 1 : 0) +
-    (filterDraft.maxTransactionCount ? 1 : 0)
-  ), [filterDraft]);
-
-  const payees = useLiveQuery(async () => {
+  // ── Query data ─────────────────────────────────────────────
+  const merchants = useLiveQuery(() => db.merchants.toArray(), [], []);
+  const payeeStats = useLiveQuery(async () => {
     return await getPayeeStatsFromTransactions({
-      transactionFilters,
-      aggregateFilters,
+      transactionFilters: buildTxFilters(filterDraft),
+      aggregateFilters: buildAggFilters(filterDraft),
       sort: sortConfig,
     });
-  }, [sortConfig, transactionFilters, aggregateFilters]);
+  }, [sortConfig, filterDraft]);
 
   const categories = useLiveQuery(() => db.categories.toArray(), [], []);
   const wallets = useLiveQuery(() => db.wallets.toArray(), [], []);
 
-  const categoryMap = useMemo(() => {
-    return (categories ?? []).reduce((acc, category) => {
-      if (category.id != null) acc[category.id] = category;
-      return acc;
-    }, {} as Record<number, import('../db/db').Category>);
-  }, [categories]);
+  const categoryMap = useMemo(() =>
+    (categories ?? []).reduce((acc, c) => { if (c.id) acc[c.id] = c; return acc; }, {} as Record<number, import('../db/db').Category>),
+  [categories]);
 
-  const walletMap = useMemo(() => {
-    return (wallets ?? []).reduce((acc, wallet) => {
-      if (wallet.id != null) acc[wallet.id] = wallet;
-      return acc;
-    }, {} as Record<number, import('../db/db').Wallet>);
-  }, [wallets]);
+  const walletMap = useMemo(() =>
+    (wallets ?? []).reduce((acc, w) => { if (w.id) acc[w.id] = w; return acc; }, {} as Record<number, import('../db/db').Wallet>),
+  [wallets]);
 
-  const filteredPayees = useMemo(() => {
-    if (!payees) return [];
-    if (!searchQuery.trim()) return payees;
-    const lower = searchQuery.toLowerCase();
-    return payees.filter(p => p.name.toLowerCase().includes(lower));
-  }, [payees, searchQuery]);
+  // ── Merge merchants with stats ─────────────────────────────
+  const merchantStatsMap = useMemo(() => {
+    const map = new Map<string, PayeeStats>();
+    for (const ps of (payeeStats ?? [])) map.set(ps.key, ps);
+    return map;
+  }, [payeeStats]);
 
+  const mergedMerchants = useMemo((): MerchantWithStats[] => {
+    if (!merchants) return [];
+    return merchants
+      .filter(m => !m.mergedIntoId) // Exclude merged-away merchants
+      .map(m => {
+        const key = normalizePayeeKey(m.displayName);
+        const stats = merchantStatsMap.get(key) ?? {
+          key, name: m.displayName, totalExpense: 0, transactionCount: 0,
+          averageAmount: 0, lastTransactionDate: '', mostCommonCategory: null, mostCommonWallet: 1,
+        };
+        return { ...m, stats };
+      });
+  }, [merchants, merchantStatsMap]);
+
+  // ── Split active / archived ────────────────────────────────
+  const activeMerchants = useMemo(() => {
+    let list = mergedMerchants.filter(m => !m.archivedAt);
+    if (searchQuery.trim()) {
+      const lower = searchQuery.toLowerCase();
+      list = list.filter(m =>
+        m.displayName.toLowerCase().includes(lower) ||
+        m.originalName.toLowerCase().includes(lower) ||
+        m.aliases.some(a => a.toLowerCase().includes(lower))
+      );
+    }
+    // Sort
+    const { field, order } = sortConfig;
+    const dir = order === 'asc' ? 1 : -1;
+    list.sort((a, b) => {
+      if (field === 'name') return dir * a.displayName.localeCompare(b.displayName, i18n.language);
+      if (field === 'lastTransactionDate') return dir * a.stats.lastTransactionDate.localeCompare(b.stats.lastTransactionDate);
+      const aVal = (a.stats as any)[field] ?? 0;
+      const bVal = (b.stats as any)[field] ?? 0;
+      return dir * (aVal - bVal);
+    });
+    return list;
+  }, [mergedMerchants, searchQuery, sortConfig, i18n.language]);
+
+  const archivedMerchants = useMemo(
+    () => mergedMerchants.filter(m => m.archivedAt),
+    [mergedMerchants]
+  );
+
+  // ── Active filter count ────────────────────────────────────
+  const activeFilterCount = useMemo(() =>
+    filterDraft.categoryIds.length + filterDraft.walletIds.length +
+    (filterDraft.startDate ? 1 : 0) + (filterDraft.endDate ? 1 : 0) +
+    (filterDraft.minTotalExpense ? 1 : 0) + (filterDraft.maxTotalExpense ? 1 : 0) +
+    (filterDraft.minTransactionCount ? 1 : 0) + (filterDraft.maxTransactionCount ? 1 : 0),
+  [filterDraft]);
+
+  // ── Selected merchant ──────────────────────────────────────
+  const selectedMerchant = useMemo(
+    () => mergedMerchants.find(m => m.id === selectedMerchantId) ?? null,
+    [mergedMerchants, selectedMerchantId]
+  );
+
+  const selectedTransactions = useLiveQuery(async () => {
+    if (!selectedMerchant) return [];
+    return filterTransactionsByPayee(selectedMerchant.displayName, buildTxFilters(filterDraft));
+  }, [selectedMerchant, filterDraft]);
+
+  // ── Effects ────────────────────────────────────────────────
   useEffect(() => {
-    if (renamingPayee && renameInputRef.current) {
+    if (renamingMerchant && renameInputRef.current) {
       renameInputRef.current.focus();
       renameInputRef.current.select();
     }
-  }, [renamingPayee]);
+  }, [renamingMerchant]);
 
-  const handleRename = async () => {
-    if (!renamingPayee || !newPayeeName.trim()) return;
-    const oldKey = renamingPayee.key;
-    const trimmedName = normalizePayeeName(newPayeeName);
-    
-    if (renamingPayee.name === trimmedName) {
-      setRenamingPayee(null);
-      return;
-    }
+  // ── URL state sync ─────────────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (selectedMerchantId) params.set('id', String(selectedMerchantId));
+    if (sortConfig.field !== 'totalExpense') params.set('sort', sortConfig.field);
+    setSearchParams(params, { replace: true });
+  }, [searchQuery, selectedMerchantId, sortConfig.field, setSearchParams]);
 
-    await db.transactions
-      .where('type')
-      .equals('expense')
-      .filter((tx) => normalizePayeeKey(tx.description) === oldKey)
-      .modify({ description: trimmedName });
-    
-    toast.add(t('Renamed to') + ' ' + trimmedName);
-    setRenamingPayee(null);
-    setSelectedPayee(null);
-  };
-
-  // Pass transaction-level filters to detail view for consistency
-  const selectedPayeeTransactions = useLiveQuery(async () => {
-    if (!selectedPayee) return [];
-    return await filterTransactionsByPayee(selectedPayee.key, transactionFilters);
-  }, [selectedPayee, transactionFilters]);
-
-  const handleApplyFilter = useCallback((draft: PayeeFilterDraft) => {
-    setFilterDraft(draft);
-  }, []);
-
-  const handleApplySort = useCallback((config: PayeeSortConfig) => {
-    setSortConfig(config);
-  }, []);
-
-  const openAddExpenseForPayee = useCallback((payeeName: string) => {
-    setTxInitialDescription(payeeName);
+  // ── Handlers ───────────────────────────────────────────────
+  const openAddExpense = useCallback((name: string) => {
+    setTxInitialDescription(name);
     setIsAddTxOpen(true);
   }, []);
 
-  const closeAddTxForm = useCallback(() => {
-    setIsAddTxOpen(false);
-    setTxInitialDescription(undefined);
-  }, []);
+  const handleRename = async () => {
+    if (!renamingMerchant || !newMerchantName.trim()) return;
+    const trimmed = normalizePayeeName(newMerchantName);
+    if (renamingMerchant.displayName === trimmed) { setRenamingMerchant(null); return; }
 
-  const renameDialog = renamingPayee ? (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div
-        className="bg-[var(--card)] w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4"
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('Rename')}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold">{t('Rename')}</h3>
-          <button
-            onClick={() => setRenamingPayee(null)}
-            className="p-1 rounded-full hover:bg-[var(--bg)]"
-            aria-label={t('Close')}
-          >
-            <X size={20} />
-          </button>
-        </div>
+    // Check duplicate
+    const dup = mergedMerchants.find(m => m.id !== renamingMerchant.id && m.displayName.toLowerCase() === trimmed.toLowerCase());
+    if (dup) { toast.add(t('A category with this name already exists')); return; }
+
+    await renameMerchant(renamingMerchant.id!, trimmed);
+    toast.add(t('payees.renamed', { from: renamingMerchant.displayName, to: trimmed }));
+    setRenamingMerchant(null);
+  };
+
+  const handleArchive = async (m: MerchantWithStats) => {
+    if (m.archivedAt) {
+      await restoreMerchant(m.id!);
+      toast.add(t('payees.restored'));
+      return;
+    }
+    const confirmed = await confirm({
+      title: t('payees.archiveTitle', { name: m.displayName }),
+      message: t('payees.archiveDesc'),
+      confirmLabel: t('payees.archiveMerchant'),
+      cancelLabel: t('Cancel'),
+    });
+    if (!confirmed) return;
+    await archiveMerchant(m.id!);
+    toast.add(t('payees.archived'));
+    if (selectedMerchantId === m.id) setSelectedMerchantId(null);
+  };
+
+  // ── Rename dialog ──────────────────────────────────────────
+  const renameDialog = renamingMerchant ? (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-label={t('payees.renameMerchant')}>
+      <div className="bg-[var(--card)] w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
+        <h2 className="text-lg font-bold">{t('payees.renameMerchant')}</h2>
         <p className="text-sm text-[var(--text-secondary)]">
-          {t('All transactions with')} <span className="font-bold">{renamingPayee.name}</span> {t('will be renamed')}
+          {t('payees.renameDesc', { name: renamingMerchant.displayName })}
         </p>
         <input
           ref={renameInputRef}
           type="text"
-          value={newPayeeName}
-          onChange={(e) => setNewPayeeName(e.target.value)}
+          value={newMerchantName}
+          onChange={(e) => setNewMerchantName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleRename()}
           className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
+          aria-label={t('payees.newNameLabel')}
         />
         <div className="flex gap-3">
-          <button
-            onClick={() => setRenamingPayee(null)}
-            className="flex-1 py-3 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors"
-          >
-            {t('Cancel')}
-          </button>
-          <button
-            onClick={handleRename}
-            disabled={!newPayeeName.trim()}
-            className="flex-1 py-3 rounded-xl bg-[var(--accent)] text-white font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {t('Rename')}
-          </button>
+          <button type="button" onClick={() => setRenamingMerchant(null)} className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)]">{t('Cancel')}</button>
+          <button type="button" onClick={handleRename} disabled={!newMerchantName.trim()} className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-bold hover:opacity-90 disabled:opacity-50">{t('payees.renameConfirm')}</button>
         </div>
       </div>
     </div>
   ) : null;
 
-  // Detail view
-  if (selectedPayee) {
+  // ── Detail view ────────────────────────────────────────────
+  if (selectedMerchant) {
+    const m = selectedMerchant;
+    const isArchived = !!m.archivedAt;
+    const detailMenuItems = [
+      { label: t('payees.renameMerchant'), onClick: () => { setRenamingMerchant(m); setNewMerchantName(m.displayName); } },
+      { label: t('payees.manageAliases'), onClick: async () => {
+        const alias = window.prompt(t('payees.addAliasPrompt'));
+        if (alias) { await addMerchantAlias(m.id!, alias); toast.add(t('payees.aliasAdded')); }
+      }},
+      ...(isArchived
+        ? [{ label: t('payees.restoreMerchant'), onClick: () => handleArchive(m) }]
+        : [{ label: t('payees.archiveMerchant'), onClick: () => handleArchive(m) }]
+      ),
+    ];
+
     return (
       <>
-      <div className="p-4 space-y-6">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setSelectedPayee(null)}
-            className="p-2 bg-[var(--card)] border border-[var(--border)] rounded-full text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
-            aria-label={t('Back')}
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold">{selectedPayee.name}</h1>
-            <p className="text-sm text-[var(--text-secondary)]">
-              {t('Transactions history')}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1">
-            <p className="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider">{t('Total Spent')}</p>
-            <p className="text-xl font-mono font-bold text-red-500">{formatCurrency(selectedPayee.totalExpense)}</p>
-          </div>
-          <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1">
-            <p className="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider">{t('Count')}</p>
-            <p className="text-xl font-mono font-bold">{selectedPayee.transactionCount} {t('Txs')}</p>
-          </div>
-          <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1">
-            <p className="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider">{t('Average')}</p>
-            <p className="text-xl font-mono font-bold">{formatCurrency(selectedPayee.averageAmount)}</p>
-          </div>
-          <div className="bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] space-y-1">
-            <p className="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider">{t('Last Date')}</p>
-            <p className="text-sm font-medium">{displayDateMedium(selectedPayee.lastTransactionDate, i18n.language)}</p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <h3 className="text-lg font-bold">{t('History')}</h3>
-          {selectedPayeeTransactions && selectedPayeeTransactions.length > 0 ? (
-            <div className="space-y-2">
-              {selectedPayeeTransactions.map(tx => (
-                <TransactionCard
-                  key={tx.id}
-                  tx={tx}
-                  categoryMap={categoryMap}
-                  walletMap={walletMap}
-                  searchTerm=""
-                  hideAmount={false}
-                  isSelectionMode={false}
-                  isSelected={false}
-                  onSelect={() => {}}
-                  onClick={() => {}}
-                  onEdit={() => {}}
-                  onDelete={() => {}}
-                />
-              ))}
+        <div className="p-4 space-y-6">
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => setSelectedMerchantId(null)}
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--border)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              aria-label={t('payees.backToList')}
+            >
+              <ArrowLeft size={20} aria-hidden="true" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-bold truncate">{m.displayName}</h1>
+              <p className="text-sm text-[var(--text-secondary)]">
+                {t('Merchant')}{isArchived && <span className="ml-2 text-xs italic">· {t('Archived')}</span>}
+              </p>
             </div>
-          ) : (
-            <EmptyState 
-              title={t('No transactions found')} 
-              description={t('No transactions found for this merchant')}
-            />
+            <CategoryOverflowMenu categoryName={m.displayName} items={detailMenuItems} />
+          </div>
+
+          {/* Summary */}
+          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4">
+            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-3">{t('All Time')}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-[var(--text-secondary)]">{t('payees.totalSpending')}</p>
+                <p className="text-xl font-mono font-bold">{hideAmount ? '•••••' : formatCurrency(m.stats.totalExpense)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-[var(--text-secondary)]">{t('payees.transactionCount')}</p>
+                <p className="text-xl font-mono font-bold">{m.stats.transactionCount} {t('Txs')}</p>
+              </div>
+              <div>
+                <p className="text-xs text-[var(--text-secondary)]">{t('payees.avgPerTransaction')}</p>
+                <p className="text-xl font-mono font-bold">{hideAmount ? '•••••' : formatCurrency(m.stats.averageAmount)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-[var(--text-secondary)]">{t('payees.lastActivity')}</p>
+                <p className="text-sm font-medium">{m.stats.lastTransactionDate ? displayDateMedium(m.stats.lastTransactionDate, i18n.language) : '—'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Aliases */}
+          {m.aliases.length > 0 && (
+            <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4">
+              <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{t('payees.aliases')}</p>
+              <div className="flex flex-wrap gap-2">
+                {m.aliases.map(alias => (
+                  <span key={alias} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--bg)] border border-[var(--border)] text-xs">
+                    {alias}
+                    <button type="button" onClick={async () => { await removeMerchantAlias(m.id!, alias); toast.add(t('payees.aliasRemoved')); }}
+                      className="text-[var(--text-secondary)] hover:text-red-500 ml-1" aria-label={t('payees.removeAlias', { alias })}>
+                      <X size={12} aria-hidden="true" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
-        </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => openAddExpenseForPayee(selectedPayee.name)}
-            className="flex-1 flex items-center justify-center gap-2 p-4 bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-[16px] hover:border-[var(--accent)]/40 transition-colors"
-          >
-            <Plus size={18} className="text-[var(--accent)]" />
-            <span className="font-medium text-[var(--accent)]">{t('Add Expense')}</span>
-          </button>
-          <button
-            onClick={() => {
-              setRenamingPayee(selectedPayee);
-              setNewPayeeName(selectedPayee.name);
-            }}
-            className="flex-1 flex items-center justify-center gap-2 p-4 bg-[var(--card)] border border-[var(--border)] rounded-[16px] hover:border-[var(--accent)]/40 transition-colors"
-          >
-            <Edit2 size={18} />
-            <span className="font-medium">{t('Rename')}</span>
-          </button>
-        </div>
+          {/* Original name */}
+          {m.originalName !== m.displayName && (
+            <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4">
+              <p className="text-xs text-[var(--text-secondary)]">{t('payees.originalName')}: <span className="font-medium text-[var(--text-primary)]">{m.originalName}</span></p>
+            </div>
+          )}
 
+          {/* Add Expense CTA */}
+          <button type="button" onClick={() => openAddExpense(m.displayName)}
+            className="w-full flex items-center justify-center gap-2 h-12 bg-[var(--accent)] text-white rounded-xl font-medium hover:opacity-90 transition-colors">
+            <Plus size={18} aria-hidden="true" />
+            {t('payees.addExpenseFor', { name: m.displayName })}
+          </button>
+
+          {/* Transaction History */}
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold">{t('payees.transactionHistory')}</h2>
+            {selectedTransactions && selectedTransactions.length > 0 ? (
+              <div className="space-y-2">
+                {selectedTransactions.map(tx => (
+                  <TransactionCard key={tx.id} tx={tx} categoryMap={categoryMap} walletMap={walletMap}
+                    searchTerm="" hideAmount={hideAmount} isSelectionMode={false} isSelected={false}
+                    onSelect={() => {}} onClick={() => {}} onEdit={() => {}} onDelete={() => {}} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title={t('payees.noTransactionsYet')} description={t('payees.noTransactionsForMerchant', { name: m.displayName })}
+                action={{ label: t('payees.addFirstExpense'), onClick: () => openAddExpense(m.displayName) }} />
+            )}
+          </div>
+        </div>
         {renameDialog}
-      </div>
-
-      <Suspense fallback={null}>
-        <TransactionFormSheet
-          isOpen={isAddTxOpen}
-          onClose={closeAddTxForm}
-          initialDescription={txInitialDescription}
-        />
-      </Suspense>
+        <Suspense fallback={null}>
+          <TransactionFormSheet isOpen={isAddTxOpen} onClose={() => { setIsAddTxOpen(false); setTxInitialDescription(undefined); }} initialDescription={txInitialDescription} />
+        </Suspense>
       </>
     );
   }
 
-  // List view
+  // ── List view ──────────────────────────────────────────────
   return (
     <>
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">{t('Recipients & Merchants')}</h1>
-      </div>
+      <div className="space-y-4">
+        <h1 className="text-xl font-bold">{t('payees.pageTitle')}</h1>
 
-      <div className="relative group">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] transition-colors" size={18} />
-        <input 
-          type="text" 
-          placeholder={t('Search Merchant')} 
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-        />
-      </div>
-
-      {/* Sort & Filter buttons */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setIsFilterOpen(true)}
-          className={cn(
-            "relative flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors text-sm font-medium",
-            activeFilterCount > 0
-              ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-              : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] active:bg-[var(--border)]"
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} aria-hidden="true" />
+          <input type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('payees.searchPlaceholder')}
+            className="w-full h-11 pl-9 pr-9 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
+            aria-label={t('payees.searchLabel')} />
+          {searchQuery && (
+            <button type="button" onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md hover:bg-[var(--bg)]"
+              aria-label={t('payees.clearSearch')}>
+              <X size={14} aria-hidden="true" />
+            </button>
           )}
-          aria-label={t('Filter Type')}
-        >
-          <Filter size={14} />
-          <span>{t('Filter')}</span>
-          {activeFilterCount > 0 && (
-            <span className="ml-1 bg-white/20 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-              {activeFilterCount}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setIsSortOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] active:bg-[var(--border)] transition-colors text-sm font-medium"
-          aria-label={t('Sort Payees')}
-        >
-          <ArrowUpDown size={14} />
-          <span>{t('Sort')}</span>
-        </button>
-      </div>
+        </div>
 
-      <div className="space-y-3">
-        {filteredPayees.length === 0 ? (
-          <EmptyState 
-            icon={<ShoppingBag size={48} className="opacity-20" />}
-            title={t('No Merchants Found')} 
-            description={activeFilterCount > 0 ? t('Try changing your filter or search keywords.') : t('Add some expense transactions to see your merchants here.')}
-          />
+        {/* Sort & Filter */}
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setIsFilterOpen(true)}
+            className={cn("relative flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium min-h-[44px]",
+              activeFilterCount > 0 ? "bg-[var(--accent)] text-white border-[var(--accent)]" : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
+            )}
+            aria-label={activeFilterCount > 0 ? t('payees.filterActive', { count: activeFilterCount }) : t('payees.filterLabel')}
+            aria-haspopup="dialog" aria-expanded={isFilterOpen}>
+            <Filter size={14} aria-hidden="true" /><span>{t('payees.filterLabel')}</span>
+            {activeFilterCount > 0 && <span className="ml-1 bg-white/20 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">{activeFilterCount}</span>}
+          </button>
+          <button type="button" onClick={() => setIsSortOpen(true)}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-lg border bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] text-sm font-medium min-h-[44px]"
+            aria-label={t('payees.sortLabel')} aria-haspopup="dialog" aria-expanded={isSortOpen}>
+            <ArrowUpDown size={14} aria-hidden="true" /><span>{t('payees.sortLabel')}</span>
+          </button>
+        </div>
+
+        {/* Active Merchants */}
+        {activeMerchants.length === 0 && !searchQuery && activeFilterCount === 0 && archivedMerchants.length === 0 ? (
+          <EmptyState icon={<ShoppingBag size={48} className="opacity-20" />} title={t('payees.emptyTitle')} description={t('payees.emptyDesc')} />
+        ) : activeMerchants.length === 0 && (searchQuery || activeFilterCount > 0) ? (
+          <div className="text-center py-12 space-y-3">
+            <ShoppingBag size={32} className="mx-auto text-[var(--text-secondary)] opacity-30" aria-hidden="true" />
+            <p className="text-sm text-[var(--text-secondary)]">{searchQuery ? t('payees.searchEmpty') : t('payees.filterEmpty')}</p>
+            <button type="button" onClick={() => { setSearchQuery(''); setFilterDraft(EMPTY_FILTER_DRAFT); }} className="text-sm text-[var(--accent)] font-medium hover:underline">
+              {searchQuery ? t('payees.clearSearch') : t('payees.clearFilter')}
+            </button>
+          </div>
         ) : (
-          filteredPayees.map(payee => (
-            <div
-              key={payee.key}
-              className="flex items-center p-4 bg-[var(--card)] border border-[var(--border)] rounded-[16px] hover:border-[var(--accent)]/40 transition-[border-color,box-shadow] active:scale-[0.98] group"
-            >
-              <button
-                onClick={() => setSelectedPayee(payee)}
-                className="flex-1 flex items-center gap-3 min-w-0 text-left"
-              >
-                <div className="p-2 bg-[var(--bg)] rounded-xl text-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-white transition-colors">
-                  <ShoppingBag size={20} aria-hidden="true" />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-bold truncate">{payee.name}</p>
-                  <p className="text-xs text-[var(--text-secondary)]">
-                    {payee.transactionCount} {t('Txs')} • {t('Avg')} {formatCurrency(payee.averageAmount)}
-                  </p>
-                </div>
-              </button>
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="text-right">
-                  <p className="font-mono font-bold text-[var(--expense)]">{formatCurrency(payee.totalExpense)}</p>
-                  <p className="text-[10px] text-[var(--text-secondary)] uppercase font-bold">{t('Total Spent')}</p>
-                </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); openAddExpenseForPayee(payee.name); }}
-                  className="p-2 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors active:scale-90"
-                  aria-label={t('Add Expense for {{name}}', { name: payee.name })}
-                >
-                  <Plus size={16} aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-          ))
+          <div className="space-y-3">
+            <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider px-1">{t('Active Merchants')}</h2>
+            {activeMerchants.map(m => (
+              <MerchantCard key={m.id} merchant={m} hideAmount={hideAmount}
+                onOpen={() => setSelectedMerchantId(m.id!)} onAddExpense={() => openAddExpense(m.displayName)} onArchive={() => handleArchive(m)} />
+            ))}
+          </div>
         )}
+
+        {/* Archived */}
+        {archivedMerchants.length > 0 && (
+          <div className="space-y-3">
+            <button type="button" onClick={() => setShowArchived(!showArchived)}
+              className="flex items-center gap-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider px-1 hover:text-[var(--text-primary)] min-h-[44px]"
+              aria-expanded={showArchived}>
+              {t('Archived Merchants')} ({archivedMerchants.length})
+            </button>
+            {showArchived && archivedMerchants.map(m => (
+              <MerchantCard key={m.id} merchant={m} hideAmount={hideAmount} isArchived
+                onOpen={() => setSelectedMerchantId(m.id!)} onAddExpense={() => openAddExpense(m.displayName)} onArchive={() => handleArchive(m)} />
+            ))}
+          </div>
+        )}
+
+        <PayeeSortSheet isOpen={isSortOpen} onClose={() => setIsSortOpen(false)} sortConfig={sortConfig} onApply={setSortConfig} />
+        <PayeeFilterSheet isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} draft={filterDraft} onApply={setFilterDraft} categories={categories ?? []} wallets={wallets ?? []} />
+        {renameDialog}
       </div>
-
-      <PayeeSortSheet
-        isOpen={isSortOpen}
-        onClose={() => setIsSortOpen(false)}
-        sortConfig={sortConfig}
-        onApply={handleApplySort}
-      />
-
-      <PayeeFilterSheet
-        isOpen={isFilterOpen}
-        onClose={() => setIsFilterOpen(false)}
-        draft={filterDraft}
-        onApply={handleApplyFilter}
-        categories={categories ?? []}
-        wallets={wallets ?? []}
-      />
-
-      {renameDialog}
-    </div>
-
-    <Suspense fallback={null}>
-      <TransactionFormSheet
-        isOpen={isAddTxOpen}
-        onClose={closeAddTxForm}
-        initialDescription={txInitialDescription}
-      />
-    </Suspense>
+      <Suspense fallback={null}>
+        <TransactionFormSheet isOpen={isAddTxOpen} onClose={() => { setIsAddTxOpen(false); setTxInitialDescription(undefined); }} initialDescription={txInitialDescription} />
+      </Suspense>
     </>
+  );
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function buildTxFilters(draft: PayeeFilterDraft): PayeeTransactionFilters | undefined {
+  const has = draft.categoryIds.length > 0 || draft.walletIds.length > 0 || draft.startDate || draft.endDate;
+  if (!has) return undefined;
+  return {
+    categoryIds: draft.categoryIds.length > 0 ? draft.categoryIds : undefined,
+    walletIds: draft.walletIds.length > 0 ? draft.walletIds : undefined,
+    startDate: draft.startDate || undefined,
+    endDate: draft.endDate || undefined,
+  };
+}
+
+function buildAggFilters(draft: PayeeFilterDraft): PayeeAggregateFilters | undefined {
+  const has = draft.minTotalExpense || draft.maxTotalExpense || draft.minTransactionCount || draft.maxTransactionCount;
+  if (!has) return undefined;
+  return {
+    minTotalExpense: draft.minTotalExpense ? Number.parseInt(draft.minTotalExpense, 10) : undefined,
+    maxTotalExpense: draft.maxTotalExpense ? Number.parseInt(draft.maxTotalExpense, 10) : undefined,
+    minTransactionCount: draft.minTransactionCount ? Number.parseInt(draft.minTransactionCount, 10) : undefined,
+    maxTransactionCount: draft.maxTransactionCount ? Number.parseInt(draft.maxTransactionCount, 10) : undefined,
+  };
+}
+
+// ── Merchant Card ─────────────────────────────────────────────
+function MerchantCard({
+  merchant, hideAmount, isArchived, onOpen, onAddExpense, onArchive,
+}: {
+  merchant: MerchantWithStats; hideAmount: boolean; isArchived?: boolean;
+  onOpen: () => void; onAddExpense: () => void; onArchive: () => void;
+}) {
+  const { t } = useTranslation();
+  const s = merchant.stats;
+  return (
+    <article className={cn("flex items-center p-4 bg-[var(--card)] border border-[var(--border)] rounded-2xl min-h-[72px]", isArchived && "opacity-70")}>
+      <button type="button" onClick={onOpen}
+        className="flex-1 flex items-center gap-3 min-w-0 text-left min-h-[44px] rounded-lg -ml-2 pl-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        aria-label={merchant.displayName}>
+        <div className="p-2 bg-[var(--bg)] rounded-xl text-[var(--accent)] shrink-0"><ShoppingBag size={20} aria-hidden="true" /></div>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-sm truncate">{merchant.displayName}</p>
+          <p className="text-xs text-[var(--text-secondary)]">
+            {t('Merchant')} · {s.transactionCount === 1 ? t('1 transaction') : t('{{count}} transactions', { count: s.transactionCount })}
+            {isArchived && <span className="ml-1 italic">· {t('Archived')}</span>}
+          </p>
+          <p className="text-xs text-[var(--text-secondary)]">
+            {hideAmount ? '•••••' : formatCurrency(s.totalExpense)}
+          </p>
+        </div>
+      </button>
+      <div className="flex items-center gap-1 shrink-0">
+        <button type="button" onClick={(e) => { e.stopPropagation(); onAddExpense(); }}
+          className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors"
+          aria-label={t('payees.addExpenseFor', { name: merchant.displayName })}>
+          <Plus size={16} aria-hidden="true" />
+        </button>
+        <CategoryOverflowMenu categoryName={merchant.displayName} items={[
+          { label: t('payees.viewTransactions'), onClick: onOpen },
+          { label: isArchived ? t('payees.restoreMerchant') : t('payees.archiveMerchant'), onClick: onArchive },
+        ]} />
+      </div>
+    </article>
   );
 }

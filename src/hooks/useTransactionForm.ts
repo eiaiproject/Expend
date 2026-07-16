@@ -55,6 +55,7 @@ interface UseTransactionFormOptions {
   txToEdit?: Transaction | null;
   initialType?: TransactionType;
   initialDescription?: string;
+  initialFromWalletId?: number;
   onClose: () => void;
   onConfirmCreateCategory: (name: string) => Promise<boolean>;
 }
@@ -77,6 +78,7 @@ export function useTransactionForm({
   txToEdit,
   initialType = 'expense',
   initialDescription,
+  initialFromWalletId,
   onClose,
   onConfirmCreateCategory,
 }: UseTransactionFormOptions): UseTransactionFormResult {
@@ -166,7 +168,9 @@ export function useTransactionForm({
         setDescription(initialDescription ?? '');
         setDate(getTodayStr());
         setWalletId(
-          wallets.length > 0 ? wallets[0]!.id!.toString() : ''
+          initialFromWalletId
+            ? initialFromWalletId.toString()
+            : wallets.length > 0 ? wallets[0]!.id!.toString() : ''
         );
         setToWalletId('');
         setCategoryName('');
@@ -174,7 +178,7 @@ export function useTransactionForm({
         setType(initialType);
       }
     }
-  }, [isOpen, txToEdit, categories, wallets, initialType, initialDescription]);
+  }, [isOpen, txToEdit, categories, wallets, initialType, initialDescription, initialFromWalletId]);
 
   // Fix stale walletId when wallets load after form opens
   useEffect(() => {
@@ -258,8 +262,8 @@ export function useTransactionForm({
             catId = await (async (name: string): Promise<number | null> => {
               const existingCat = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
               if (existingCat) return existingCat.id!;
-              const usedColors = categories.map((c) => c.color);
-              const available = CURATED_PALETTE.filter((c) => !usedColors.includes(c));
+              const usedColors = new Set(categories.map((c) => c.color));
+              const available = CURATED_PALETTE.filter((c) => !usedColors.has(c));
               const color = available.length > 0
                 ? available[Math.floor(Math.random() * available.length)]!
                 : CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!;

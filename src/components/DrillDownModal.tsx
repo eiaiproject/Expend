@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import { Transaction } from '../db/db';
 import { FALLBACK_CATEGORY_NAME } from '../utils/categoryDisplay';
 import { displayDateShort } from '../utils/dateUtils';
+import { formatCurrency } from '../utils/formatUtils';
+import { usePrivacy } from '../contexts/PrivacyContext';
 import { X } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -16,6 +18,7 @@ interface DrillDownModalProps {
 
 export function DrillDownModal({ isOpen, onClose, title, transactions, categoryMap }: DrillDownModalProps) {
   const { t, i18n } = useTranslation();
+  const { hideAmount } = usePrivacy();
   const dialogRef = useFocusTrap(isOpen);
 
   // Close on Escape
@@ -66,7 +69,7 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
                         </p>
                       </div>
                       <span className={`font-mono text-sm font-semibold ml-3 ${tx.type === 'expense' || (tx.type === 'balance_adjustment' && tx.amount < 0) ? 'text-[var(--expense)]' : 'text-[var(--accent)]'}`}>
-                        {tx.type === 'expense' || (tx.type === 'balance_adjustment' && tx.amount < 0) ? '-' : '+'}Rp {Math.abs(tx.amount).toLocaleString('id-ID')}
+                        {hideAmount ? '•••••' : `${tx.type === 'expense' || (tx.type === 'balance_adjustment' && tx.amount < 0) ? '-' : '+'}Rp ${Math.abs(tx.amount).toLocaleString('id-ID')}`}
                       </span>
                     </div>
                   );

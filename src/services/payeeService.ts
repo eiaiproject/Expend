@@ -33,7 +33,7 @@ export interface PayeeAggregateFilters {
   maxTransactionCount?: number;
 }
 
-export interface GetPayeeStatsOptions {
+interface GetPayeeStatsOptions {
   transactionFilters?: PayeeTransactionFilters;
   aggregateFilters?: PayeeAggregateFilters;
   sort?: PayeeSortConfig;
@@ -58,33 +58,42 @@ export function normalizePayeeKey(raw: string): string {
 }
 
 /**
+ * Apply category/wallet/date filters to expense transactions.
+ */
+function applyTransactionFilters(
+  transactions: Transaction[],
+  filters?: PayeeTransactionFilters,
+): Transaction[] {
+  if (!filters) return transactions;
+  const { categoryIds, walletIds, startDate, endDate } = filters;
+  if (categoryIds && categoryIds.length > 0) {
+    transactions = transactions.filter(tx => tx.categoryId != null && categoryIds.includes(tx.categoryId));
+  }
+  if (walletIds && walletIds.length > 0) {
+    transactions = transactions.filter(tx => walletIds.includes(tx.walletId));
+  }
+  if (startDate) {
+    transactions = transactions.filter(tx => normaliseDate(tx.date) >= startDate);
+  }
+  if (endDate) {
+    transactions = transactions.filter(tx => normaliseDate(tx.date) <= endDate);
+  }
+  return transactions;
+}
+
+/**
  * Generates a list of payees and their statistics from expense transactions.
  */
 export async function getPayeeStatsFromTransactions(options?: GetPayeeStatsOptions): Promise<PayeeStats[]> {
   const { transactionFilters, aggregateFilters, sort } = options ?? {};
 
-  // 1. Fetch expense transactions
+  // 1. Fetch and filter expense transactions
   let transactions = await db.transactions
     .where('type')
     .equals('expense')
     .toArray();
 
-  // 2. Apply transaction-level filters (before grouping)
-  if (transactionFilters) {
-    const { categoryIds, walletIds, startDate, endDate } = transactionFilters;
-    if (categoryIds && categoryIds.length > 0) {
-      transactions = transactions.filter(tx => tx.categoryId != null && categoryIds.includes(tx.categoryId));
-    }
-    if (walletIds && walletIds.length > 0) {
-      transactions = transactions.filter(tx => walletIds.includes(tx.walletId));
-    }
-    if (startDate) {
-      transactions = transactions.filter(tx => normaliseDate(tx.date) >= startDate);
-    }
-    if (endDate) {
-      transactions = transactions.filter(tx => normaliseDate(tx.date) <= endDate);
-    }
-  }
+  transactions = applyTransactionFilters(transactions, transactionFilters);
 
   // 3. Group into payee stats
   const payeeMap = new Map<string, {
@@ -131,15 +140,15 @@ export async function getPayeeStatsFromTransactions(options?: GetPayeeStatsOptio
     const categoryEntries = Object.entries(data.categories);
     let mostCommonCategory: number | null = null;
     if (categoryEntries.length > 0) {
-      const [catId] = categoryEntries.reduce((a, b) => (a[1] > b[1] ? a : b));
-      mostCommonCategory = parseInt(catId);
+      const [catId] = categoryEntries.reduce((a, b) => (a[1] > b[1] ? a : b), categoryEntries[0]!);
+      mostCommonCategory = Number.parseInt(catId);
     }
 
     const walletEntries = Object.entries(data.wallets);
     let mostCommonWallet: number = 1;
     if (walletEntries.length > 0) {
-      const [walletId] = walletEntries.reduce((a, b) => (a[1] > b[1] ? a : b));
-      mostCommonWallet = parseInt(walletId);
+      const [walletId] = walletEntries.reduce((a, b) => (a[1] > b[1] ? a : b), walletEntries[0]!);
+      mostCommonWallet = Number.parseInt(walletId);
     }
 
     results.push({
@@ -157,38 +166,49 @@ export async function getPayeeStatsFromTransactions(options?: GetPayeeStatsOptio
   // 4. Apply aggregate-level filters (after grouping)
   let filtered = results;
   if (aggregateFilters) {
-    const { minTotalExpense, maxTotalExpense, minTransactionCount, maxTransactionCount } = aggregateFilters;
-    if (minTotalExpense != null) {
-      filtered = filtered.filter(p => p.totalExpense >= minTotalExpense);
-    }
-    if (maxTotalExpense != null) {
-      filtered = filtered.filter(p => p.totalExpense <= maxTotalExpense);
-    }
-    if (minTransactionCount != null) {
-      filtered = filtered.filter(p => p.transactionCount >= minTransactionCount);
-    }
-    if (maxTransactionCount != null) {
-      filtered = filtered.filter(p => p.transactionCount <= maxTransactionCount);
-    }
+    filtered = applyAggregateFilters(filtered, aggregateFilters);
   }
 
   // 5. Sort
-  if (sort) {
-    const { field, order } = sort;
-    const dir = order === 'asc' ? 1 : -1;
-    filtered.sort((a, b) => {
-      const aVal = a[field];
-      const bVal = b[field];
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return dir * aVal.localeCompare(bVal);
-      }
-      return dir * ((aVal as number) - (bVal as number));
-    });
-  } else {
-    filtered.sort((a, b) => b.totalExpense - a.totalExpense);
-  }
+  filtered = sortPayeeStats(filtered, sort);
 
   return filtered;
+}
+
+/**
+ * Apply aggregate-level filters to payee stats.
+ */
+function applyAggregateFilters(
+  payees: PayeeStats[],
+  filters: PayeeAggregateFilters,
+): PayeeStats[] {
+  const { minTotalExpense, maxTotalExpense, minTransactionCount, maxTransactionCount } = filters;
+  return payees.filter(p =>
+    (minTotalExpense == null || p.totalExpense >= minTotalExpense) &&
+    (maxTotalExpense == null || p.totalExpense <= maxTotalExpense) &&
+    (minTransactionCount == null || p.transactionCount >= minTransactionCount) &&
+    (maxTransactionCount == null || p.transactionCount <= maxTransactionCount)
+  );
+}
+
+/**
+ * Sort payee stats by field and order.
+ */
+function sortPayeeStats(
+  payees: PayeeStats[],
+  sort?: PayeeSortConfig,
+): PayeeStats[] {
+  if (!sort) return [...payees].sort((a, b) => b.totalExpense - a.totalExpense);
+  const { field, order } = sort;
+  const dir = order === 'asc' ? 1 : -1;
+  return [...payees].sort((a, b) => {
+    const aVal = a[field];
+    const bVal = b[field];
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      return dir * aVal.localeCompare(bVal);
+    }
+    return dir * ((aVal as number) - (bVal as number));
+  });
 }
 
 /**
@@ -204,25 +224,6 @@ export async function filterTransactionsByPayee(
     .equals('expense')
     .toArray();
 
-  // Filter by payee first
   transactions = transactions.filter(tx => normalizePayeeKey(tx.description) === payeeKey);
-
-  // Apply additional transaction-level filters
-  if (transactionFilters) {
-    const { categoryIds, walletIds, startDate, endDate } = transactionFilters;
-    if (categoryIds && categoryIds.length > 0) {
-      transactions = transactions.filter(tx => tx.categoryId != null && categoryIds.includes(tx.categoryId));
-    }
-    if (walletIds && walletIds.length > 0) {
-      transactions = transactions.filter(tx => walletIds.includes(tx.walletId));
-    }
-    if (startDate) {
-      transactions = transactions.filter(tx => normaliseDate(tx.date) >= startDate);
-    }
-    if (endDate) {
-      transactions = transactions.filter(tx => normaliseDate(tx.date) <= endDate);
-    }
-  }
-
-  return transactions;
+  return applyTransactionFilters(transactions, transactionFilters);
 }

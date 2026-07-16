@@ -96,7 +96,7 @@ export function InfoPopup({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             className="w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl flex items-center justify-center gap-2 font-medium transition-colors active:scale-95 shadow-md"
           >
             <Coffee size={18} />
-            {t('Buy Me A Coffee')}
+            {t('settings.supportOnTrakteer')}
           </a>
         </div>
       </div>

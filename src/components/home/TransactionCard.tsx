@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDownCircle, ArrowUpRight, ArrowDownLeft, RefreshCw, Edit2, Trash2, CheckCircle2, MoreVertical, Eye } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpRight, ArrowDownLeft, RefreshCw, Edit2, Trash2, MoreVertical, Eye, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { FALLBACK_CATEGORY_NAME } from '../../utils/categoryDisplay';
-import { formatCurrencyValue } from '../../utils/formatUtils';
+import { formatCurrencyValue, formatSignedCurrency } from '../../utils/formatUtils';
 import { displayDateShort } from '../../utils/dateUtils';
 import { SearchHighlight } from '../SearchHighlight';
 import type { Transaction, Category, Wallet } from '../../db/db';
@@ -21,6 +21,25 @@ interface TransactionCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onViewDetail?: () => void;
+}
+
+function txAccessibleLabel(tx: Transaction, categoryName: string, hideAmount: boolean, t: (key: string, opts?: any) => string): string {
+  const typeLabel =
+    tx.type === 'expense' ? t('home.typeExpense') :
+    tx.type === 'transfer_out' || tx.type === 'transfer_in' ? t('home.typeTransfer') :
+    tx.type === 'balance_adjustment' ? t('Balance Adjustment') :
+    tx.type;
+  if (hideAmount) {
+    return `${tx.description}, ${typeLabel}, ${categoryName}`;
+  }
+  return `${tx.description}, ${typeLabel}, ${formatCurrencyValue(tx.amount, false)}`;
+}
+
+function txActionsLabel(tx: Transaction, hideAmount: boolean, t: (key: string, opts?: any) => string): string {
+  if (hideAmount) {
+    return t('home.actionsFor', { name: tx.description });
+  }
+  return t('home.actionsFor', { name: `${tx.description} - ${formatCurrencyValue(tx.amount, false)}` });
 }
 
 export function TransactionCard({
@@ -49,68 +68,78 @@ export function TransactionCard({
   const isExpenseOrTransferOut = tx.type === 'expense' || tx.type === 'transfer_out' || 
     (tx.type === 'balance_adjustment' && tx.amount < 0);
 
-  // Close menu on click outside
+  // Close menu on click outside or Escape
   useEffect(() => {
     if (!isMenuOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMenuOpen(false);
+        // Return focus to menu trigger
+        const trigger = menuRef.current?.previousElementSibling as HTMLElement;
+        trigger?.focus();
+      }
+    };
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setIsMenuOpen(false);
       }
     };
+    document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isMenuOpen]);
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      if (isSelectionMode) {
-        onSelect(tx.id!);
-        return;
-      }
+  const handleMainClick = useCallback(() => {
+    if (isSelectionMode) {
+      onSelect(tx.id!);
+    } else {
       onClick();
     }
-  };
+  }, [isSelectionMode, onSelect, onClick, tx.id]);
+
+  const handleMainKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleMainClick();
+    }
+  }, [handleMainClick]);
+
+  const accessibleLabel = txAccessibleLabel(tx, categoryName, hideAmount, t);
+  const actionsLabel = txActionsLabel(tx, hideAmount, t);
 
   return (
-    <div className={cn("relative group rounded-[16px]", isMenuOpen && "z-40")}>
-      {/* Transaction Card */}
-      <div
-        className={cn(
-          "relative z-10 bg-[var(--card)] p-4 rounded-[16px] flex items-center shadow-sm border transition-[border-color,background-color,box-shadow] select-none",
-          isSelectionMode 
-            ? (isSelected ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/20" : "border-[var(--border)]") 
-            : "border-[var(--border)]"
-        )}
-        role="button"
-        tabIndex={0}
-        data-testid="transaction-row"
-        data-tx-id={tx.id}
-        data-tx-type={tx.type}
-        onKeyDown={handleKeyDown}
-        onClick={() => {
-          if (isSelectionMode) {
-            onSelect(tx.id!);
-          } else {
-            onClick();
-          }
-        }}
-      >
+    <article
+      className={cn("relative rounded-[16px] bg-[var(--card)] border transition-[border-color,background-color,box-shadow]",
+        isSelectionMode 
+          ? (isSelected ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/20" : "border-[var(--border)]") 
+          : "border-[var(--border)]",
+        isMenuOpen && "z-40"
+      )}
+      data-testid="transaction-row"
+      data-tx-id={tx.id}
+      data-tx-type={tx.type}
+    >
+      <div className="flex items-center p-4 gap-3">
+        {/* Selection checkbox */}
         {isSelectionMode && (
           <div className={cn(
-            "w-5 h-5 rounded-full border-2 mr-4 flex items-center justify-center transition-colors shrink-0",
+            "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
             isSelected
               ? "bg-[var(--accent)] border-[var(--accent)] text-white" 
               : "border-[var(--border)] text-transparent"
-          )}>
+          )} aria-hidden="true">
             <CheckCircle2 size={14} />
           </div>
         )}
-        
+
+        {/* Type icon */}
         {!isSelectionMode && (
           <div 
             className={cn(
-              "w-8 h-8 rounded-full mr-4 mt-0.5 shrink-0 flex items-center justify-center",
+              "w-8 h-8 rounded-full shrink-0 flex items-center justify-center",
               tx.type === 'expense' && "bg-red-500/10 text-red-500",
               tx.type === 'transfer_out' && "bg-orange-500/10 text-orange-500",
               tx.type === 'transfer_in' && "bg-green-500/10 text-green-500",
@@ -124,8 +153,15 @@ export function TransactionCard({
             {tx.type === 'balance_adjustment' && <RefreshCw size={16} />}
           </div>
         )}
-        
-        <div className="flex-1 min-w-0">
+
+        {/* Main content area — button for detail */}
+        <button
+          type="button"
+          onClick={handleMainClick}
+          onKeyDown={handleMainKeyDown}
+          className="flex-1 min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30 focus-visible:rounded-lg"
+          aria-label={accessibleLabel}
+        >
           <div className="flex items-center gap-2">
             <p className="font-medium text-[14px] truncate">
               {tx.type === 'balance_adjustment' ? t('Balance Adjustment') : (
@@ -134,7 +170,10 @@ export function TransactionCard({
             </p>
           </div>
           <p className="text-[12px] text-[var(--text-secondary)]">
-            {categoryName} • {displayDateShort(tx.date, i18n.language)}
+            <span className="sr-only">{tx.type === 'expense' ? t('home.typeExpense') : tx.type === 'transfer_out' || tx.type === 'transfer_in' ? t('home.typeTransfer') : t('home.typeAdjustment')}: </span>
+            {categoryName}
+            {' · '}
+            {displayDateShort(tx.date, i18n.language)}
           </p>
           <div className="flex items-center gap-1 mt-0.5">
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--border)] text-[var(--text-primary)] font-medium">
@@ -146,39 +185,38 @@ export function TransactionCard({
               </p>
             )}
           </div>
-        </div>
+        </button>
 
-        <div className="text-right ml-2">
+        {/* Amount — single formatted string, no separate minus */}
+        <div className="text-right shrink-0">
           <p className={cn(
-            "font-mono font-semibold text-[15px] inline-flex items-baseline",
+            "font-mono font-semibold text-[15px]",
             isExpenseOrTransferOut ? "text-[var(--expense)]" : "text-[var(--accent)]"
           )}>
-            <span className="w-4 text-right mr-1">
-              {isExpenseOrTransferOut ? '-' : '+'}
-            </span>
-
-            <span>{renderAmountValue(tx.amount)}</span>
+            {formatSignedCurrency(tx.amount, hideAmount)}
           </p>
         </div>
 
-        {/* Kebab Menu Button */}
+        {/* Kebab menu — sibling, not nested */}
         {!isSelectionMode && (
-          <div ref={menuRef} className="relative ml-1">
+          <div ref={menuRef} className="relative shrink-0">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsMenuOpen(!isMenuOpen);
               }}
-              className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--bg)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label={t('Open transaction actions')}
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--bg)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+              aria-label={actionsLabel}
               aria-haspopup="menu"
               aria-expanded={isMenuOpen}
+              aria-controls={isMenuOpen ? `tx-menu-${tx.id}` : undefined}
             >
               <MoreVertical size={16} />
             </button>
             {isMenuOpen && (
               <div
+                id={`tx-menu-${tx.id}`}
                 role="menu"
                 className="absolute right-0 top-full mt-1 w-44 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-30 py-1"
               >
@@ -227,6 +265,6 @@ export function TransactionCard({
           </div>
         )}
       </div>
-    </div>
+    </article>
   );
 }

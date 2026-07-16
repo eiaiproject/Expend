@@ -6,9 +6,10 @@ import {
   type Setting,
   type Transaction,
   type Wallet,
+  type Merchant,
 } from '../db/db';
 import { findPairedTransfer, assignTransferGroupId } from '../utils/transferUtils';
-import { VALID_TX_TYPES, MAX_IMPORT_FILE_SIZE } from '../utils/constants';
+import { VALID_TX_TYPES } from '../utils/constants';
 import { recomputeWalletCurrentBalances } from '../utils/balanceUtils';
 import { getTodayStr } from '../utils/dateUtils';
 
@@ -59,6 +60,7 @@ export interface ExportData {
   debts: Debt[];
   debtPayments: DebtPayment[];
   debt_payments?: DebtPayment[];
+  merchants?: Merchant[]; // v2.2+
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -120,6 +122,7 @@ export async function generateExport(): Promise<ExportData> {
     debts: await db.debts.toArray(),
     debtPayments: await db.debtPayments.toArray(),
     settings: sanitizedSettings,
+    merchants: await db.merchants.toArray(),
   };
 }
 
@@ -560,7 +563,7 @@ export async function importData(data: ExportData): Promise<void> {
   const sanitizedData = sanitizeImportData(data);
   // ... (rest of the function)
 
-  await db.transaction('rw', [db.wallets, db.categories, db.transactions, db.debts, db.debtPayments, db.settings], async () => {
+  await db.transaction('rw', [db.wallets, db.categories, db.transactions, db.debts, db.debtPayments, db.settings, db.merchants], async () => {
     const localSecurity = await db.settings.get('security');
     const walletsWithBalances = recomputeWalletCurrentBalances(
       sanitizedData.wallets,
@@ -576,6 +579,7 @@ export async function importData(data: ExportData): Promise<void> {
     await db.debts.clear();
     await db.debtPayments.clear();
     await db.settings.clear();
+    await db.merchants.clear();
 
     // Import using bulkPut to preserve IDs and avoid auto-increment conflicts
     if (walletsWithBalances.length > 0) await db.wallets.bulkPut(walletsWithBalances);
@@ -585,6 +589,9 @@ export async function importData(data: ExportData): Promise<void> {
     if (sanitizedData.debtPayments.length > 0) await db.debtPayments.bulkPut(sanitizedData.debtPayments);
     if (sanitizedData.settings.length > 0) await db.settings.bulkPut(sanitizedData.settings);
     if (localSecurity) await db.settings.put(localSecurity);
+    if (sanitizedData.merchants && sanitizedData.merchants.length > 0) {
+      await db.merchants.bulkPut(sanitizedData.merchants);
+    }
 
     // Normalize imported transfers: assign transferGroupId to legacy pairs
     const transfers = await db.transactions

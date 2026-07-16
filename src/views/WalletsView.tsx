@@ -1,37 +1,58 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, Wallet } from '../db/db';
-import { Wallet as WalletIcon, AlertCircle, HelpCircle, Plus, Edit2, Check, X, Trash2, TrendingUp, TrendingDown, Minus, Handshake } from 'lucide-react';
+import { db } from '../db/db';
+import { Wallet as WalletIcon, HelpCircle, Plus, Search, XCircle, Handshake, ArrowUpDown } from 'lucide-react';
 import { confirm } from '../components/ConfirmDialog';
 import { toast } from '../components/Toaster';
-import { deleteWalletSafely, adjustWalletBalance } from '../services/walletService';
-import { formatAmountLocal, formatCurrency } from '../utils/formatUtils';
-import { daysBetweenDateOnly, displayDateMedium, getTodayStr } from '../utils/dateUtils';
-import { WALLET_STALE_DAYS, SPENDING_TREND_RECENT_DAYS, SPENDING_TREND_PREVIOUS_DAYS } from '../utils/constants';
+import { deleteWalletSafely, deactivateWallet, reactivateWallet } from '../services/walletService';
+import { usePrivacy } from '../contexts/PrivacyContext';
+import { formatCurrency } from '../utils/formatUtils';
+import { getTodayStr } from '../utils/dateUtils';
+import { SPENDING_TREND_RECENT_DAYS, SPENDING_TREND_PREVIOUS_DAYS } from '../utils/constants';
 import { EmptyState } from '../components/EmptyState';
+import { WalletCard } from '../components/wallet/WalletCard';
+import { AddWalletSheet } from '../components/wallet/AddWalletSheet';
+import { EditWalletSheet } from '../components/wallet/EditWalletSheet';
+import { ReconcileBalanceSheet } from '../components/wallet/ReconcileBalanceSheet';
+import type { SpendingTrend } from '../types/wallet';
+import type { TransactionType } from '../hooks/useTransactionForm';
 
-export type SpendingTrend = {
-  recentSpent: number;
-  previousSpent: number;
-  change: number;
-  isUp: boolean;
-} | null;
+type SortOption = 'default' | 'name' | 'balance' | 'activity';
 
 export default function WalletsView() {
   const { t } = useTranslation();
-  const [isAddWalletOpen, setIsAddWalletOpen] = useState(false);
+  const { hideAmount } = usePrivacy();
+
+  // Sheets
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editWallet, setEditWallet] = useState<null | { id: number; name: string; color?: string }>(null);
+  const [isReconcileOpen, setIsReconcileOpen] = useState(false);
+  const [reconcileWallet, setReconcileWallet] = useState<null | { id: number; name: string; currentBalance: number; initialBalance: number }>(null);
+
+  // Transfer state
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [transferFromWalletId, setTransferFromWalletId] = useState<number | null>(null);
+
+  // Help
   const [showHelp, setShowHelp] = useState(false);
-  
-  const wallets = useLiveQuery(() => db.wallets.toArray()) || [];
 
-  const [newWalletName, setNewWalletName] = useState('');
-  const [newWalletBal, setNewWalletBal] = useState('');
+  // Search
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Compute spending trends for all wallets in a single query
+  // Sort
+  const [sortBy, setSortBy] = useState<SortOption>('default');
+  const [isSortOpen, setIsSortOpen] = useState(false);
+
+  // Data
+  const wallets = useLiveQuery(() => db.wallets.toArray(), [], undefined);
+  const isLoading = wallets === undefined;
+
+  // Spending trends — single query for all wallets
   const spendingTrends = useLiveQuery(async (): Promise<Record<number, SpendingTrend>> => {
-    if (wallets.length === 0) return {} as Record<number, SpendingTrend>;
+    if (!wallets || wallets.length === 0) return {};
 
     const now = new Date();
     const todayStr = getTodayStr(now);
@@ -39,7 +60,7 @@ export default function WalletsView() {
     const previousDaysAgoStr = getTodayStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - SPENDING_TREND_PREVIOUS_DAYS));
 
     const walletIds = wallets.map(w => w.id!).filter(Boolean);
-    if (walletIds.length === 0) return {} as Record<number, SpendingTrend>;
+    if (walletIds.length === 0) return {};
 
     const txs = await db.transactions
       .where('walletId')
@@ -75,376 +96,509 @@ export default function WalletsView() {
     return result;
   }, [wallets], {} as Record<number, SpendingTrend>);
 
-  const handleAddWallet = async () => {
-    if (!newWalletName.trim()) return;
-    
-    try {
-      // Check for duplicate name
-      const existing = wallets.find(w => w.name.toLowerCase() === newWalletName.trim().toLowerCase());
-      if (existing) {
-        toast.add(t('A wallet with this name already exists'));
-        return;
-      }
+  // Last activity dates per wallet — single query
+  const lastActivityDates = useLiveQuery(async (): Promise<Record<number, string | null>> => {
+    if (!wallets || wallets.length === 0) return {};
 
-      const initialBalance = parseInt(newWalletBal.replace(/[^0-9]/g, ''), 10) || 0;
+    const walletIds = wallets.map(w => w.id!).filter(Boolean);
+    if (walletIds.length === 0) return {};
 
-      await db.wallets.add({
-        name: newWalletName.trim(),
-        currency: 'IDR',
-        initialBalance,
-        currentBalance: initialBalance, // ponytail: same as onboarding — keep currentBalance queryable post-create
-        lastUpdated: new Date().toISOString()
-      });
-      setNewWalletName('');
-      setNewWalletBal('');
-      setIsAddWalletOpen(false);
-    } catch (err) {
-      toast.add(t('Error adding wallet'));
+    const txs = await db.transactions
+      .where('walletId')
+      .anyOf(walletIds)
+      .reverse()
+      .sortBy('date');
+
+    const result: Record<number, string | null> = {};
+    for (const walletId of walletIds) {
+      const lastTx = txs.find(t => t.walletId === walletId);
+      result[walletId] = lastTx?.date ?? null;
     }
-  };
+    return result;
+  }, [wallets], {} as Record<number, string | null>);
 
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">{t('Wallets')}</h1>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowHelp(!showHelp)}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-            aria-label={t('Help')}
-          >
-            <HelpCircle size={20} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsAddWalletOpen(true)}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow transition-colors hover:opacity-90"
-            aria-label={t('Add Wallet')}
-          >
-            <Plus size={20} />
-          </button>
+  // Split wallets into active / inactive
+  const { activeWallets, inactiveWallets } = useMemo(() => {
+    if (!wallets) return { activeWallets: [], inactiveWallets: [] };
+    const active = wallets.filter(w => !w.archivedAt);
+    const inactive = wallets.filter(w => !!w.archivedAt);
+    return { activeWallets: active, inactiveWallets: inactive };
+  }, [wallets]);
+
+  // Sort wallets
+  const sortWallets = useCallback((list: typeof activeWallets) => {
+    if (sortBy === 'default') return list;
+
+    const sorted = [...list];
+    switch (sortBy) {
+      case 'name':
+        return sorted.sort((a, b) => a.name.localeCompare(b.name));
+      case 'balance':
+        return sorted.sort((a, b) => (b.currentBalance ?? b.initialBalance) - (a.currentBalance ?? a.initialBalance));
+      case 'activity':
+        return sorted.sort((a, b) => {
+          const aDate = lastActivityDates?.[a.id!] ?? a.lastUpdated;
+          const bDate = lastActivityDates?.[b.id!] ?? b.lastUpdated;
+          return bDate.localeCompare(aDate);
+        });
+      default:
+        return sorted;
+    }
+  }, [sortBy, lastActivityDates]);
+
+  // Filter by search
+  const filteredActive = useMemo(() => {
+    let list = activeWallets;
+    if (searchTerm.trim()) {
+      const term = searchTerm.trim().toLowerCase();
+      list = list.filter(w => w.name.toLowerCase().includes(term));
+    }
+    return sortWallets(list);
+  }, [activeWallets, searchTerm, sortWallets]);
+
+  const filteredInactive = useMemo(() => {
+    if (!searchTerm.trim()) return inactiveWallets;
+    const term = searchTerm.trim().toLowerCase();
+    return inactiveWallets.filter(w => w.name.toLowerCase().includes(term));
+  }, [inactiveWallets, searchTerm]);
+
+  // Total balance of active wallets only
+  const totalBalance = useMemo(() => {
+    return activeWallets.reduce((sum, w) => sum + (w.currentBalance ?? w.initialBalance), 0);
+  }, [activeWallets]);
+
+  // Handlers
+  const handleEdit = useCallback((wallet: { id: number; name: string; color?: string }) => {
+    setEditWallet(wallet);
+    setIsEditOpen(true);
+  }, []);
+
+  const handleReconcile = useCallback((wallet: { id: number; name: string; currentBalance: number; initialBalance: number }) => {
+    setReconcileWallet(wallet);
+    setIsReconcileOpen(true);
+  }, []);
+
+  const handleTransfer = useCallback((walletId: number) => {
+    setTransferFromWalletId(walletId);
+    setIsTransferOpen(true);
+  }, []);
+
+  const handleDeactivate = useCallback(async (wallet: { id: number; name: string }) => {
+    const confirmed = await confirm({
+      title: t('wallet.deactivateTitle', { name: wallet.name }),
+      message: t('wallet.deactivateDesc'),
+      confirmLabel: t('wallet.deactivateCta'),
+    });
+    if (!confirmed) return;
+    try {
+      await deactivateWallet(wallet.id);
+      toast.add(t('wallet.deactivated'));
+    } catch {
+      toast.add(t('wallet.reconcileError'));
+    }
+  }, [t]);
+
+  const handleReactivate = useCallback(async (wallet: { id: number; name: string }) => {
+    try {
+      await reactivateWallet(wallet.id);
+      toast.add(t('wallet.reactivated'));
+    } catch {
+      toast.add(t('wallet.reconcileError'));
+    }
+  }, [t]);
+
+  const handleDelete = useCallback(async (wallet: { id: number; name: string }) => {
+    const confirmed = await confirm({
+      title: t('wallet.deleteTitle', { name: wallet.name }),
+      message: t('wallet.deleteDesc'),
+      confirmLabel: t('wallet.deleteCta'),
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      const result = await deleteWalletSafely(wallet.id);
+      if (!result.success) {
+        toast.add(result.reasonKey ? t(result.reasonKey, result.reasonOptions) : t('wallet.deleteError'));
+      } else {
+        toast.add(t('wallet.deleteSuccess'));
+      }
+    } catch {
+      toast.add(t('wallet.deleteError'));
+    }
+  }, [t]);
+
+  const sortLabel = useMemo(() => {
+    switch (sortBy) {
+      case 'name': return t('wallet.sortName');
+      case 'balance': return t('wallet.sortBalance');
+      case 'activity': return t('wallet.sortActivity');
+      default: return t('wallet.sortDefault');
+    }
+  }, [sortBy, t]);
+
+  // ── Loading state ────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="space-y-6" role="status" aria-label={t('Loading...')}>
+        <div className="h-8 w-32 bg-[var(--card)] rounded-lg animate-pulse" />
+        <div className="h-4 w-48 bg-[var(--card)] rounded animate-pulse" />
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-28 bg-[var(--card)] rounded-[16px] animate-pulse" />
+          ))}
         </div>
       </div>
+    );
+  }
 
-      {showHelp && (
-        <div className="rounded-[16px] border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4">
-          <h3 className="font-bold text-[var(--accent)] mb-2">{t('How Wallets Work')}</h3>
-          <ul className="text-sm text-[var(--text-secondary)] space-y-1">
-            <li>• {t('Each wallet tracks its own balance')}</li>
-            <li>• {t('Initial balance is your starting point')}</li>
-            <li>• {t('Transfers move money between wallets')}</li>
-            <li>• {t('Stale wallets show a warning after 30 days')}</li>
-          </ul>
+  // ── Empty state (no wallets at all) ──────────────────────────
+  if (wallets && wallets.length === 0) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          onHelp={() => setShowHelp(!showHelp)}
+          onAdd={() => setIsAddOpen(true)}
+          showHelp={showHelp}
+          t={t}
+        />
+        {showHelp && <HelpPanel t={t} />}
+        <EmptyState
+          icon={<WalletIcon size={48} className="opacity-20" />}
+          title={t('wallet.emptyTitle')}
+          description={t('wallet.emptyDesc')}
+          action={{
+            label: t('wallet.emptyCta'),
+            onClick: () => setIsAddOpen(true),
+          }}
+        />
+        <AddWalletSheet isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
+      </div>
+    );
+  }
+
+  // ── Main content ─────────────────────────────────────────────
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        onHelp={() => setShowHelp(!showHelp)}
+        onAdd={() => setIsAddOpen(true)}
+        showHelp={showHelp}
+        t={t}
+      />
+
+      {showHelp && <HelpPanel t={t} />}
+
+      {/* Summary — only if there are active wallets */}
+      {activeWallets.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-sm font-medium">
+            {t('wallet.activeCount', { count: activeWallets.length })}
+          </p>
+          <p className="text-xs text-[var(--text-secondary)]">
+            {t('wallet.totalBalance')}: {hideAmount ? '•••••' : formatCurrency(totalBalance)}
+          </p>
         </div>
       )}
 
-      {isAddWalletOpen && (
-        <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border)] shadow-sm space-y-4">
-          <h2 className="font-bold">{t('New Wallet')}</h2>
-          <div>
-            <label htmlFor="new-wallet-name" className="block text-sm font-medium mb-1">{t('Name')}</label>
-            <input 
-              id="new-wallet-name"
-              type="text"
-              name="walletName"
-              autoComplete="off"
-              placeholder={t('e.g. Main Wallet')}
-              value={newWalletName}
-              onChange={(e) => setNewWalletName(e.target.value)}
-              className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-            />
-          </div>
-          <div>
-            <label htmlFor="new-wallet-balance" className="block text-sm font-medium mb-1">{t('Initial Balance')}</label>
-            <input 
-              id="new-wallet-balance"
-              type="text"
-              inputMode="numeric"
-              name="initialBalance"
-              autoComplete="off"
-              placeholder="0"
-              value={newWalletBal}
-              onChange={(e) => {
-                 const val = e.target.value.replace(/[^0-9]/g, '');
-                 setNewWalletBal(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
-              }}
-              className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 font-mono focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setIsAddWalletOpen(false)} className="px-4 py-2 text-[var(--text-secondary)]">{t('Cancel')}</button>
-            <button type="button" onClick={handleAddWallet} className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg">{t('Save')}</button>
-          </div>
+      {/* All wallets inactive state */}
+      {activeWallets.length === 0 && inactiveWallets.length > 0 && !searchTerm && (
+        <div className="rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-4 text-center">
+          <p className="text-sm font-medium">{t('wallet.activeCountZero')}</p>
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            {t('wallet.emptyDesc')}
+          </p>
         </div>
       )}
 
+      {/* Search + Sort — progressive: show when > 3 wallets */}
+      {(activeWallets.length + inactiveWallets.length) > 3 && (
+        <div className="flex gap-2">
+          <search role="search" aria-label={t('wallet.searchPh')} className="flex-1">
+            <label htmlFor="wallet-search" className="sr-only">{t('wallet.searchPh')}</label>
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] transition-colors" size={18} aria-hidden="true" />
+              <input
+                id="wallet-search"
+                type="search"
+                name="walletSearch"
+                autoComplete="off"
+                placeholder={t('wallet.searchPh')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-12 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] placeholder:text-[var(--text-secondary)]"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors -mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+                  aria-label={t('wallet.emptySearchClear')}
+                >
+                  <XCircle size={18} />
+                </button>
+              )}
+            </div>
+          </search>
+
+          {/* Sort button */}
+          <button
+            type="button"
+            onClick={() => setIsSortOpen(!isSortOpen)}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30 shrink-0"
+            aria-label={t('wallet.sortLabel') + ': ' + sortLabel}
+            aria-haspopup="listbox"
+            aria-expanded={isSortOpen}
+          >
+            <ArrowUpDown size={18} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
+      {/* Sort dropdown */}
+      {isSortOpen && (
+        <div
+          className="bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden"
+          role="listbox"
+          aria-label={t('wallet.sortLabel')}
+        >
+          {([
+            { value: 'default', label: t('wallet.sortDefault') },
+            { value: 'name', label: t('wallet.sortName') },
+            { value: 'balance', label: t('wallet.sortBalance') },
+            { value: 'activity', label: t('wallet.sortActivity') },
+          ] as const).map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="option"
+              aria-selected={sortBy === option.value}
+              onClick={() => { setSortBy(option.value); setIsSortOpen(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
+                sortBy === option.value
+                  ? 'bg-[var(--accent)]/10 text-[var(--accent)] font-medium'
+                  : 'hover:bg-[var(--bg)]'
+              }`}
+            >
+              {option.label}
+              {sortBy === option.value && <span aria-hidden="true">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Active wallets */}
+      {filteredActive.length > 0 && (
+        <section aria-labelledby="wallets-active">
+          <h2 id="wallets-active" className="sticky top-0 z-10 bg-[var(--bg)] pt-1 pb-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+            {t('wallet.sectionActive')}
+          </h2>
+          <div className="space-y-3">
+            {filteredActive.map(wallet => (
+              <WalletCard
+                key={wallet.id}
+                wallet={wallet}
+                balance={wallet.currentBalance ?? wallet.initialBalance}
+                spendingTrend={spendingTrends?.[wallet.id!] ?? null}
+                lastActivityDate={lastActivityDates?.[wallet.id!] ?? null}
+                onEdit={() => handleEdit({ id: wallet.id!, name: wallet.name, color: wallet.color })}
+                onTransfer={() => handleTransfer(wallet.id!)}
+                onReconcile={() => handleReconcile({
+                  id: wallet.id!,
+                  name: wallet.name,
+                  currentBalance: wallet.currentBalance ?? wallet.initialBalance,
+                  initialBalance: wallet.initialBalance,
+                })}
+                onDeactivate={() => handleDeactivate({ id: wallet.id!, name: wallet.name })}
+                onReactivate={() => handleReactivate({ id: wallet.id!, name: wallet.name })}
+                onDelete={() => handleDelete({ id: wallet.id!, name: wallet.name })}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Inactive wallets — collapsible */}
+      {filteredInactive.length > 0 && (
+        <section aria-labelledby="wallets-inactive">
+          <h2 id="wallets-inactive" className="sticky top-0 z-10 bg-[var(--bg)] pt-1 pb-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+            {t('wallet.sectionInactive')} ({t('wallet.inactiveCount', { count: filteredInactive.length })})
+          </h2>
+          <div className="space-y-3">
+            {filteredInactive.map(wallet => (
+              <WalletCard
+                key={wallet.id}
+                wallet={wallet}
+                balance={wallet.currentBalance ?? wallet.initialBalance}
+                spendingTrend={spendingTrends?.[wallet.id!] ?? null}
+                lastActivityDate={lastActivityDates?.[wallet.id!] ?? null}
+                onEdit={() => handleEdit({ id: wallet.id!, name: wallet.name, color: wallet.color })}
+                onTransfer={() => handleTransfer(wallet.id!)}
+                onReconcile={() => handleReconcile({
+                  id: wallet.id!,
+                  name: wallet.name,
+                  currentBalance: wallet.currentBalance ?? wallet.initialBalance,
+                  initialBalance: wallet.initialBalance,
+                })}
+                onDeactivate={() => handleDeactivate({ id: wallet.id!, name: wallet.name })}
+                onReactivate={() => handleReactivate({ id: wallet.id!, name: wallet.name })}
+                onDelete={() => handleDelete({ id: wallet.id!, name: wallet.name })}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Search empty state */}
+      {searchTerm && filteredActive.length === 0 && filteredInactive.length === 0 && (
+        <EmptyState
+          title={t('wallet.emptySearchTitle')}
+          description=""
+          action={{
+            label: t('wallet.emptySearchClear'),
+            onClick: () => setSearchTerm(''),
+          }}
+        />
+      )}
+
+      {/* Debt link — secondary, after wallet list */}
       <Link
         to="/debts"
-        className="block rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:border-[var(--accent)]/40"
+        className="block rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:border-[var(--accent)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
       >
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
-            <Handshake size={20} />
+            <Handshake size={20} aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="font-bold">{t('Debts & Receivables')}</h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              {t('Manage money lent or borrowed')}
-            </p>
+            <p className="text-sm text-[var(--text-secondary)]">{t('wallet.debtLinkText')}</p>
           </div>
-          <span className="shrink-0 text-xs font-bold text-[var(--accent)]">{t('View')}</span>
+          <span className="shrink-0 text-xs font-bold text-[var(--accent)]">{t('wallet.debtLinkCta')}</span>
         </div>
       </Link>
 
-      <div className="space-y-4">
-        {wallets.length === 0 ? (
-          <EmptyState
-            icon={<WalletIcon size={48} className="opacity-20" />}
-            title={t('No Wallets')}
-            description={t('Create a wallet to start tracking your balance and transactions.')}
-            action={{
-              label: t('Add Wallet'),
-              onClick: () => setIsAddWalletOpen(true),
-            }}
-          />
-        ) : (
-          wallets.map(wallet => {
-            // Use pre-computed currentBalance from DB (set by transactionSaveService)
-            const balance = wallet.currentBalance ?? wallet.initialBalance;
-            const isStale = daysBetweenDateOnly(new Date(), wallet.lastUpdated) >= WALLET_STALE_DAYS;
+      {/* Sheets */}
+      <AddWalletSheet isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
 
-            return (
-               <WalletCard 
-                 key={wallet.id}
-                 wallet={wallet}
-                 balance={balance}
-                 isStale={isStale}
-                 spendingTrend={spendingTrends?.[wallet.id!] ?? null}
-               />
-            );
-          })
-        )}
+      {editWallet && (
+        <EditWalletSheet
+          isOpen={isEditOpen}
+          onClose={() => { setIsEditOpen(false); setEditWallet(null); }}
+          wallet={{
+            id: editWallet.id,
+            name: editWallet.name,
+            currency: 'IDR',
+            lastUpdated: '',
+            initialBalance: 0,
+            currentBalance: 0,
+            color: editWallet.color,
+          }}
+        />
+      )}
+
+      {reconcileWallet && (
+        <ReconcileBalanceSheet
+          isOpen={isReconcileOpen}
+          onClose={() => { setIsReconcileOpen(false); setReconcileWallet(null); }}
+          wallet={{
+            id: reconcileWallet.id,
+            name: reconcileWallet.name,
+            currency: 'IDR',
+            lastUpdated: '',
+            initialBalance: reconcileWallet.initialBalance,
+            currentBalance: reconcileWallet.currentBalance,
+          }}
+        />
+      )}
+
+      {/* Transfer form — opens TransactionFormSheet with transfer type and pre-selected wallet */}
+      {isTransferOpen && transferFromWalletId && (
+        <TransferFormWrapper
+          isOpen={isTransferOpen}
+          onClose={() => { setIsTransferOpen(false); setTransferFromWalletId(null); }}
+          fromWalletId={transferFromWalletId}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Sub-components ──────────────────────────────────────────
+
+function PageHeader({ onHelp, onAdd, showHelp, t }: {
+  onHelp: () => void;
+  onAdd: () => void;
+  showHelp: boolean;
+  t: (key: string) => string;
+}) {
+  return (
+    <div className="flex justify-between items-start">
+      <h1 className="text-2xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+        {t('Wallets')}
+      </h1>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onHelp}
+          className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+          aria-label={t('wallet.helpLabel')}
+          aria-pressed={showHelp}
+        >
+          <HelpCircle size={20} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-white px-4 shadow transition-colors hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+          aria-label={t('wallet.addLabel')}
+        >
+          <Plus size={18} aria-hidden="true" />
+          <span className="text-sm font-semibold hidden sm:inline">{t('wallet.addLabel')}</span>
+        </button>
       </div>
     </div>
   );
 }
 
-interface WalletCardProps {
-  wallet: Wallet;
-  balance: number;
-  isStale: boolean;
-  spendingTrend: SpendingTrend;
+function HelpPanel({ t }: { t: (key: string) => string }) {
+  return (
+    <div className="rounded-[16px] border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4" role="region" aria-label={t('wallet.helpTitle')}>
+      <h2 className="font-bold text-[var(--accent)] mb-2">{t('wallet.helpTitle')}</h2>
+      <ul className="text-sm text-[var(--text-secondary)] space-y-1 list-disc list-inside">
+        <li>{t('wallet.helpBullet1')}</li>
+        <li>{t('wallet.helpBullet2')}</li>
+        <li>{t('wallet.helpBullet3')}</li>
+        <li>{t('wallet.helpBullet4')}</li>
+        <li>{t('wallet.helpBullet5')}</li>
+      </ul>
+    </div>
+  );
 }
 
-const WalletCard: React.FC<WalletCardProps> = ({ wallet, balance, isStale, spendingTrend }) => {
-  const { t, i18n } = useTranslation();
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [absoluteBalance, setAbsoluteBalance] = useState('');
-  const staleDays = daysBetweenDateOnly(new Date(), wallet.lastUpdated);
-  
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editName, setEditName] = useState(wallet.name);
-  const editInputRef = useRef<HTMLInputElement>(null);
-  const balanceInputRef = useRef<HTMLInputElement>(null);
+/**
+ * Wrapper that opens TransactionFormSheet with transfer type and pre-selected source wallet.
+ */
+function TransferFormWrapper({ isOpen, onClose, fromWalletId }: {
+  isOpen: boolean;
+  onClose: () => void;
+  fromWalletId: number;
+}) {
+  // Lazy load TransactionFormSheet
+  const [FormSheet, setFormSheet] = useState<React.ComponentType<any> | null>(null);
 
-  useEffect(() => {
-    if (isEditingName && editInputRef.current) {
-      editInputRef.current.focus();
-    }
-  }, [isEditingName]);
+  useMemo(() => {
+    import('../components/TransactionFormSheet').then(m => {
+      setFormSheet(() => m.TransactionFormSheet);
+    });
+  }, []);
 
-  useEffect(() => {
-    if (isUpdating && balanceInputRef.current) {
-      balanceInputRef.current.focus();
-    }
-  }, [isUpdating]);
-
-  const handleSaveName = async () => {
-    if (!editName.trim()) {
-      setIsEditingName(false);
-      return;
-    }
-    if (editName.trim() !== wallet.name) {
-      try {
-        // Check for duplicate name
-        const allWallets = await db.wallets.toArray();
-        const duplicate = allWallets.find(w => w.id !== wallet.id && w.name.toLowerCase() === editName.trim().toLowerCase());
-        if (duplicate) {
-          toast.add(t('A wallet with this name already exists'));
-          setIsEditingName(false);
-          return;
-        }
-        await db.wallets.update(wallet.id!, { name: editName.trim() });
-      } catch (err) {
-        console.error('Failed to rename wallet:', err);
-        toast.add(t('Error renaming wallet'));
-      }
-    }
-    setIsEditingName(false);
-  };
-
-  const handleDelete = async () => {
-    const confirmed = await confirm({ title: t('Delete Wallet'), message: t('Delete Wallet Confirmation'), variant: 'danger' });
-    if (!confirmed) return;
-    try {
-      const result = await deleteWalletSafely(wallet.id!);
-      if (!result.success) {
-        toast.add(result.reasonKey ? t(result.reasonKey, result.reasonOptions) : result.reason || t('Error deleting wallet'));
-      } else {
-        toast.add(t('Wallet deleted successfully'));
-      }
-    } catch (err) {
-      console.error('Failed to delete wallet:', err);
-      toast.add(t('Error deleting wallet'));
-    }
-  };
-
-  const handleUpdate = async () => {
-    const absBal = parseInt(absoluteBalance.replace(/[^0-9]/g, ''), 10);
-    if (isNaN(absBal)) return;
-
-    try {
-      await adjustWalletBalance(wallet.id!, absBal, {
-        description: t('Balance Update Description'),
-      });
-
-      setIsUpdating(false);
-      setAbsoluteBalance('');
-    } catch (err) {
-      console.error('Failed to update balance:', err);
-      toast.add(t('Error updating balance'));
-    }
-  };
+  if (!FormSheet) return null;
 
   return (
-    <div data-wallet-card={wallet.name} data-testid="wallet-card" className={`bg-[var(--card)] rounded-[16px] p-5 shadow-sm border relative overflow-hidden ${isStale ? 'border-amber-500/30' : 'border-[var(--border)]'}`}>
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-3 w-full">
-          <div className="p-2 bg-[var(--bg)] rounded-lg text-[var(--accent)] shrink-0">
-            <WalletIcon size={24} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              {isEditingName ? (
-                <div className="flex items-center gap-2 flex-1">
-                  <input
-                    ref={editInputRef}
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
-                    className="flex-1 min-w-0 bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-sm font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-                  />
-                  <button onClick={handleSaveName} className="p-1 text-green-500 hover:bg-green-500/10 rounded" aria-label={t('Save')}>
-                    <Check size={18} />
-                  </button>
-                  <button onClick={() => { setEditName(wallet.name); setIsEditingName(false); }} className="p-1 text-red-500 hover:bg-red-500/10 rounded" aria-label={t('Cancel')}>
-                    <X size={18} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold truncate">{wallet.name}</h3>
-                  </div>
-                  <div className="flex items-center">
-                    <button 
-                      onClick={() => setIsEditingName(true)} 
-                      className="p-1 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors shrink-0"
-                      aria-label={t('Edit Wallet')}
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    <button 
-                      onClick={handleDelete} 
-                      className="p-1 text-[var(--text-secondary)] hover:text-red-500 transition-colors shrink-0 ml-1"
-                      aria-label={t('Delete Wallet')}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-            <p className="text-xs text-[var(--text-secondary)]">
-              {t('Last Update')}: {displayDateMedium(wallet.lastUpdated, i18n.language)}
-              {isStale && (
-                <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 text-amber-600 text-[10px] font-semibold rounded">
-                  <AlertCircle size={10} />
-                  {staleDays}d {t('stale')}
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-4">
-        <p className="font-mono text-2xl font-bold" data-testid="wallet-balance">
-          {formatCurrency(balance)}
-        </p>
-        {spendingTrend && (
-          <div className="flex items-center gap-1.5 mt-1">
-            {spendingTrend.isUp ? (
-              <TrendingUp size={14} className="text-red-500" />
-            ) : (
-              <TrendingDown size={14} className="text-green-500" />
-            )}
-            <span className={`text-xs font-medium ${spendingTrend.isUp ? 'text-red-500' : 'text-green-500'}`}>
-              {spendingTrend.isUp ? '+' : ''}{spendingTrend.change.toFixed(0)}%
-            </span>
-            <span className="text-xs text-[var(--text-secondary)]">
-              {t('last 7 days')}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {isStale && !isUpdating && (
-        <div className="mb-3 p-3 bg-amber-500/5 rounded-xl border border-amber-500/20">
-          <p className="text-xs text-amber-700 font-medium text-center">
-            {t('Stale Wallet Prompt', { days: staleDays })}
-          </p>
-        </div>
-      )}
-
-      {!isUpdating ? (
-        <button 
-          type="button"
-          onClick={() => setIsUpdating(true)}
-          className={`w-full py-2 rounded-lg font-medium border transition-colors active:scale-95 ${
-            isStale 
-              ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600' 
-              : 'bg-[var(--bg)] text-[var(--accent)] border-[var(--accent)]'
-          }`}
-        >
-          {isStale ? t('Update Now') : t('Update Balance')}
-        </button>
-      ) : (
-        <div className="space-y-3 mt-4 border-t border-[var(--border)] pt-4">
-          <p className="text-sm font-medium">{t('Absolute Balance')}</p>
-          <p className="text-xs text-[var(--text-secondary)]">{t('Balance update creates an adjustment transaction.')}</p>
-          <input 
-            type="text" 
-            inputMode="numeric"
-            name="absoluteBalance"
-            autoComplete="off"
-            value={absoluteBalance}
-            onChange={(e) => {
-               const val = e.target.value.replace(/[^0-9]/g, '');
-               setAbsoluteBalance(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
-            }}
-            placeholder={t('Balance Input Placeholder')}
-            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 font-mono"
-            ref={balanceInputRef}
-          />
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setIsUpdating(false)} className="px-4 py-2 text-[var(--text-secondary)]">{t('Cancel')}</button>
-            <button type="button" onClick={handleUpdate} className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg">{t('Save')}</button>
-          </div>
-        </div>
-      )}
-    </div>
+    <FormSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      initialType={'transfer' as TransactionType}
+      initialFromWalletId={fromWalletId}
+    />
   );
 }

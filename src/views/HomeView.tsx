@@ -3,16 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
-import { Eye, EyeOff, Moon, Sun, ClipboardList, Filter, ArrowUpDown, Search, XCircle, X, Trash2, Handshake } from 'lucide-react';
+import { Eye, EyeOff, Moon, Sun, Filter, ArrowUpDown, Search, XCircle, X, Trash2, Handshake } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useTheme } from '../contexts/ThemeContext';
+import { usePrivacy } from '../contexts/PrivacyContext';
 import { TransactionDetailSheet } from '../components/TransactionDetailSheet';
-import { InfoPopup } from '../components/InfoPopup';
 import { toast } from '../components/Toaster';
 import { deleteTransactionsWithPairs, restoreTransactions } from '../services/deleteTransactionService';
 import { computeDailySpending, generateInsight } from '../services/budgetService';
 import { buildDebtPaymentsMap, summarizeDebts } from '../services/debtService';
-
 
 import { Skeleton } from '../components/Skeleton';
 import { displayDateLong, getTodayStr, getYesterdayStr, getWeekStartStr, getMonthStartStr, normaliseDate } from '../utils/dateUtils';
@@ -34,13 +33,12 @@ const TRANSACTION_RENDER_PAGE_SIZE = 100;
 export default function HomeView() {
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
-  const [hideAmount, setHideAmount] = useState(false);
+  const { hideAmount, toggleHideAmount } = usePrivacy();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isInfoOpen, setIsInfoOpen] = useState(false);
-  
+
   const [expensePeriod, setExpensePeriod] = useState<'month' | 'all'>('month');
   const [visibleTransactionCount, setVisibleTransactionCount] = useState(TRANSACTION_RENDER_PAGE_SIZE);
   const [sortConfig, setSortConfig] = useState<{ field: string; order: 'asc' | 'desc' }>({
@@ -55,7 +53,7 @@ export default function HomeView() {
     }));
   }, []);
 
-  const { isSelectionMode, selectedIds, enterSelectionMode, exitSelectionMode, toggleSelection, handleBulkDelete, isSelected } = useTransactionSelection(t);
+  const { isSelectionMode, selectedIds, enterSelectionMode, exitSelectionMode, toggleSelection, handleBulkDelete, isSelected, selectAll, deselectAll } = useTransactionSelection(t);
 
   // Database queries
   const transactions = useLiveQuery(() => {
@@ -71,7 +69,7 @@ export default function HomeView() {
   const debtRecords = useLiveQuery(() => db.debts.toArray(), [], undefined);
   const debtPayments = useLiveQuery(() => db.debtPayments.toArray(), [], undefined);
 
-  // Filter hook (must be after transactions query)
+  // Filter hook
   const {
     filters,
     actions: filterActions,
@@ -128,15 +126,15 @@ export default function HomeView() {
     initDefaults();
   }, [t]);
 
-
-
-  // Keyboard shortcuts for the home view
+  // Keyboard shortcuts — disabled when typing or in modal
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       const tag = target.tagName;
       const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable || target.hasAttribute('contenteditable') || target.getAttribute('role') === 'textbox';
       if (isEditable) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       if (e.key === '/') {
         e.preventDefault();
@@ -152,8 +150,6 @@ export default function HomeView() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [searchRef, toggleSortOrder]);
-
-
 
   const dailySummary = useMemo(() => {
     if (!transactions) return { today: 0, yesterday: 0 };
@@ -173,7 +169,7 @@ export default function HomeView() {
     const yesterdayStr = getYesterdayStr();
     const weekStartStr = getWeekStartStr();
 
-    const groups: { labelKey: string; transactions: Transaction[] }[] = [];
+    const groups: { labelKey: string; count: number; transactions: Transaction[] }[] = [];
 
     const todayTxs: Transaction[] = [];
     const yesterdayTxs: Transaction[] = [];
@@ -193,30 +189,24 @@ export default function HomeView() {
       }
     }
 
-    if (todayTxs.length > 0) groups.push({ labelKey: 'Today', transactions: todayTxs });
-    if (yesterdayTxs.length > 0) groups.push({ labelKey: 'Yesterday', transactions: yesterdayTxs });
-    if (weekTxs.length > 0) groups.push({ labelKey: 'This Week', transactions: weekTxs });
-    if (earlierTxs.length > 0) groups.push({ labelKey: 'Earlier', transactions: earlierTxs });
+    if (todayTxs.length > 0) groups.push({ labelKey: 'home.groupToday', count: todayTxs.length, transactions: todayTxs });
+    if (yesterdayTxs.length > 0) groups.push({ labelKey: 'home.groupYesterday', count: yesterdayTxs.length, transactions: yesterdayTxs });
+    if (weekTxs.length > 0) groups.push({ labelKey: 'home.groupThisWeek', count: weekTxs.length, transactions: weekTxs });
+    if (earlierTxs.length > 0) groups.push({ labelKey: 'home.groupEarlier', count: earlierTxs.length, transactions: earlierTxs });
 
     return groups;
   }, [visibleFilteredTransactions]);
 
-  // Calculate summary based on filtered transactions and selected period
+  // Calculate summary
   const totalExpense = useMemo(() => {
     const expenseTxs = filteredTransactions.filter(tx => tx.type === 'expense');
-    
     if (expensePeriod === 'month') {
       const monthStart = getMonthStartStr();
-      return expenseTxs
-        .filter(tx => normaliseDate(tx.date) >= monthStart)
-        .reduce((sum, tx) => sum + tx.amount, 0);
+      return expenseTxs.filter(tx => normaliseDate(tx.date) >= monthStart).reduce((sum, tx) => sum + tx.amount, 0);
     }
-    
-    // All time
     return expenseTxs.reduce((sum, tx) => sum + tx.amount, 0);
   }, [filteredTransactions, expensePeriod]);
 
-  // Use pre-computed currentBalance from DB (set by transactionSaveService)
   const walletsTotal = useMemo(() => {
     if (!wallets) return 0;
     return wallets.reduce((sum, w) => sum + (w.currentBalance ?? w.initialBalance), 0);
@@ -228,6 +218,18 @@ export default function HomeView() {
   }, [debtPayments, debtRecords]);
 
   const showDebtSummaryCard = debtSummary.activeCount > 0 || debtSummary.attentionCount > 0;
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.type !== 'all') count++;
+    count += filters.categories.length;
+    count += filters.wallets.length;
+    if (filters.minAmount) count++;
+    if (filters.maxAmount) count++;
+    if (filters.startDate) count++;
+    if (filters.endDate) count++;
+    return count;
+  }, [filters]);
 
   const handleEdit = useCallback((tx: Transaction) => {
     setEditTx(tx);
@@ -249,49 +251,43 @@ export default function HomeView() {
     });
   }, [t]);
 
+  const sortLabel = sortConfig.order === 'desc' ? t('home.sortNewest') : t('home.sortOldest');
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col">
-            <h1 className="text-2xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-              Expend
-            </h1>
-            <p className="text-xs text-[var(--text-secondary)] mt-1">
-              {displayDateLong(new Date(), i18n.language)}
-            </p>
-          </div>
-          
-          <button
-            onClick={() => setIsInfoOpen(true)}
-            className="ml-1 p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors rounded-lg hover:bg-[var(--card)]"
-            aria-label={t('Project Information')}
-          >
-            <div className="w-[18px] h-[18px] rounded-full border border-current flex items-center justify-center text-[10px] font-bold">
-              i
-            </div>
-          </button>
+      {/* Page Header — single H1 */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+            {t('home.title')}
+          </h1>
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            {displayDateLong(new Date(), i18n.language)}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button 
+        <div className="flex items-center gap-1">
+          <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-2 bg-[var(--card)] rounded-full border border-[var(--border)]"
-            aria-label={theme === 'dark' ? t('Switch to light mode') : t('Switch to dark mode')}
+            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+            aria-label={theme === 'dark' ? t('home.useLightTheme') : t('home.useDarkTheme')}
           >
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <button 
-            onClick={() => setHideAmount(!hideAmount)}
-            className="p-2 bg-[var(--card)] rounded-full border border-[var(--border)]"
-            aria-label={hideAmount ? t('Show Balance') : t('Hide Balance')}
+          <button
+            onClick={toggleHideAmount}
+            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+            aria-label={hideAmount ? t('home.showBalance') : t('home.hideBalance')}
+            aria-pressed={hideAmount}
           >
             {hideAmount ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
       </div>
-      
-      <InfoPopup isOpen={isInfoOpen} onClose={() => setIsInfoOpen(false)} />
+
+      {/* Live region for privacy mode announcement */}
+      <div className="sr-only" aria-live="polite">
+        {hideAmount ? t('home.amountsHidden') : t('home.amountsShown')}
+      </div>
 
       {/* Summary Card */}
       <SummaryCard
@@ -305,10 +301,11 @@ export default function HomeView() {
         hideAmount={hideAmount}
       />
 
+      {/* Debt Summary */}
       {showDebtSummaryCard && (
         <Link
           to="/debts"
-          className="block rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:border-[var(--accent)]/40"
+          className="block rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:border-[var(--accent)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
         >
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -322,11 +319,15 @@ export default function HomeView() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between gap-3">
               <span className="text-[var(--text-secondary)]">{t('Active Debts')}</span>
-              <span className="font-mono font-bold text-amber-500">{formatCurrency(debtSummary.payableTotal, hideAmount)}</span>
+              <span className="font-mono font-bold text-amber-500" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                {hideAmount ? '•••••' : formatCurrency(debtSummary.payableTotal)}
+              </span>
             </div>
             <div className="flex justify-between gap-3">
               <span className="text-[var(--text-secondary)]">{t('Active Receivables')}</span>
-              <span className="font-mono font-bold text-[var(--accent)]">{formatCurrency(debtSummary.receivableTotal, hideAmount)}</span>
+              <span className="font-mono font-bold text-[var(--accent)]" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                {hideAmount ? '•••••' : formatCurrency(debtSummary.receivableTotal)}
+              </span>
             </div>
             {debtSummary.attentionCount > 0 && (
               <p className="text-xs font-bold text-red-500">{t('needs attention count', { count: debtSummary.attentionCount })}</p>
@@ -335,36 +336,39 @@ export default function HomeView() {
         </Link>
       )}
 
-      {/* Search Bar */}
-      <div className="relative group">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] transition-colors" size={18} />
-        <input 
-          ref={searchRef}
-          type="text" 
-          name="search"
-          autoComplete="off"
-          aria-label={t('Search Placeholder')}
-          placeholder={t('Search Placeholder')} 
-          value={filters.searchTerm}
-          onChange={(e) => filterActions.setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-12 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] placeholder:text-[var(--text-secondary)]"
-        />
-        {filters.searchTerm && (
-          <button
-            type="button"
-            onClick={() => filterActions.setSearchTerm('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-            aria-label={t('Clear search')}
-          >
-            <XCircle size={16} />
-          </button>
-        )}
-        {!filters.searchTerm && (
-          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:inline-flex items-center justify-center w-6 h-6 rounded border border-[var(--border)] bg-[var(--bg)] text-[10px] font-mono font-bold text-[var(--text-secondary)]">
-            /
-          </kbd>
-        )}
-      </div>
+      {/* Search */}
+      <search role="search" aria-label={t('home.searchLabel')}>
+        <label htmlFor="home-search" className="sr-only">{t('home.searchLabel')}</label>
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] transition-colors" size={18} aria-hidden="true" />
+          <input
+            ref={searchRef}
+            id="home-search"
+            type="search"
+            name="search"
+            autoComplete="off"
+            placeholder={t('home.searchPlaceholder')}
+            value={filters.searchTerm}
+            onChange={(e) => filterActions.setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-12 py-3 bg-[var(--card)] border border-[var(--border)] rounded-xl focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] placeholder:text-[var(--text-secondary)]"
+          />
+          {filters.searchTerm && (
+            <button
+              type="button"
+              onClick={() => filterActions.setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors -mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+              aria-label={t('home.clearSearch')}
+            >
+              <XCircle size={18} />
+            </button>
+          )}
+          {!filters.searchTerm && (
+            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:inline-flex items-center justify-center w-6 h-6 rounded border border-[var(--border)] bg-[var(--bg)] text-[10px] font-mono font-bold text-[var(--text-secondary)] pointer-events-none" aria-hidden="true">
+              /
+            </kbd>
+          )}
+        </div>
+      </search>
 
       {/* Active Filter Chips */}
       <ActiveFilterChips
@@ -376,211 +380,239 @@ export default function HomeView() {
 
       {/* Quick Filter Chips */}
       {!isSelectionMode && (
-        <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-none">
-          {(['today', 'week', 'transfers'] as const).map(qf => (
+        <div
+          className="flex gap-2 overflow-x-auto pb-1"
+          role="group"
+          aria-label={t('home.filterTransactions')}
+          style={{ scrollbarWidth: 'auto', scrollPaddingInline: '1rem' }}
+        >
+          {(['today', 'week', 'transfers'] as const).map(qf => {
+            const label = qf === 'today' ? t('home.filterToday') : qf === 'week' ? t('home.filterThisWeek') : t('home.filterTransfers');
+            return (
+              <button
+                key={qf}
+                onClick={() => filterActions.setQuickFilter(filters.quickFilter === qf ? null : qf)}
+                aria-pressed={filters.quickFilter === qf}
+                className={cn(
+                  "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
+                  filters.quickFilter === qf
+                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                    : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+          {filters.quickFilter && (
             <button
-              key={qf}
-              onClick={() => filterActions.setQuickFilter(filters.quickFilter === qf ? null : qf)}
-              aria-pressed={filters.quickFilter === qf}
-              className={cn(
-                "shrink-0 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border transition-colors active:scale-95",
-                filters.quickFilter === qf
-                  ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                  : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
-              )}
+              onClick={() => filterActions.setQuickFilter(null)}
+              className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--expense)] transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
             >
-              {qf === 'today' ? t('Today') : qf === 'week' ? t('This Week') : t('Transfers Only')}
+              {t('home.clearFilters')}
             </button>
-          ))}
+          )}
         </div>
       )}
 
-      {/* Transaction List */}
-      <div className="relative">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            {!isSelectionMode && <h2 className="text-lg font-bold">{t('Recent Transactions')}</h2>}
-            {isSelectionMode && (
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={exitSelectionMode}
-                  className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                  aria-label={t('Close')}
-                >
-                  <XCircle size={20} />
-                </button>
-                <span className="text-lg font-bold">{selectedIds.length} {t('Selected')}</span>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            {!isSelectionMode && (
-              <button 
+      {/* Transaction List Header + Controls */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          {!isSelectionMode ? (
+            <h2 className="text-lg font-bold">{t('Recent Transactions')}</h2>
+          ) : (
+            <>
+              <button
+                onClick={exitSelectionMode}
+                className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+                aria-label={t('home.cancelSelection')}
+              >
+                <XCircle size={20} />
+              </button>
+              <span className="text-lg font-bold">{t('home.selectedCount', { count: selectedIds.length })}</span>
+            </>
+          )}
+        </div>
+        <div className="flex gap-1">
+          {!isSelectionMode ? (
+            <>
+              <button
+                onClick={enterSelectionMode}
+                className="h-11 px-3 flex items-center justify-center rounded-lg text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+              >
+                {t('home.selectTransactions')}
+              </button>
+              <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className={cn(
-                  "relative p-2 rounded-lg border transition-colors group",
-                  isFilterOpen 
-                    ? "bg-[var(--accent)] text-white border-[var(--accent)]" 
-                    : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] active:bg-[var(--border)]"
+                  "relative w-11 h-11 flex items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
+                  isFilterOpen
+                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                    : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
                 )}
-                title={t('Filter Type')}
-                aria-label={t('Filter Type')}
+                aria-label={activeFilterCount > 0 ? t('home.filterTransactions') + ', ' + t('home.filterActive', { count: activeFilterCount }) : t('home.filterTransactions')}
+                aria-expanded={isFilterOpen}
+                aria-haspopup="dialog"
               >
-                <Filter size={16} />
-                <kbd className="absolute -top-1.5 -right-1.5 hidden md:inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--border)] bg-[var(--bg)] text-[8px] font-mono font-bold text-[var(--text-secondary)] shadow-sm">
+                <Filter size={18} />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--accent)] text-white text-[9px] font-bold flex items-center justify-center">
+                    {activeFilterCount}
+                  </span>
+                )}
+                <kbd className="absolute -bottom-1 -right-1 hidden md:inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--border)] bg-[var(--bg)] text-[8px] font-mono font-bold text-[var(--text-secondary)] shadow-sm" aria-hidden="true">
                   F
                 </kbd>
               </button>
-            )}
-            {!isSelectionMode && (
-              <button 
+              <button
                 onClick={toggleSortOrder}
-                className="relative p-2 bg-[var(--card)] rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] active:bg-[var(--border)] transition-colors group"
-                title={t('Sort Date')}
-                aria-label={t('Sort Date')}
+                className="relative w-11 h-11 flex items-center justify-center rounded-lg border bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+                aria-label={sortLabel}
               >
-                <ArrowUpDown size={16} />
-                <kbd className="absolute -top-1.5 -right-1.5 hidden md:inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--border)] bg-[var(--bg)] text-[8px] font-mono font-bold text-[var(--text-secondary)] shadow-sm">
+                <ArrowUpDown size={18} />
+                <kbd className="absolute -bottom-1 -right-1 hidden md:inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--border)] bg-[var(--bg)] text-[8px] font-mono font-bold text-[var(--text-secondary)] shadow-sm" aria-hidden="true">
                   S
                 </kbd>
               </button>
-            )}
-            {isSelectionMode && (
-              <button 
-                onClick={handleBulkDelete}
-                className="p-2 bg-red-500 text-white rounded-lg border border-red-600 transition-colors hover:bg-red-600 active:scale-95"
-                title={t('Bulk Delete')}
-                aria-label={t('Bulk Delete')}
-              >
-                <Trash2 size={16} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {!isLoading && (
-          <Suspense fallback={null}>
-            <FilterSheet 
-              isOpen={isFilterOpen} 
-              onClose={() => setIsFilterOpen(false)}
-              categories={activeCategories || []}
-              wallets={activeWallets || []}
-              filters={{
-                type: filters.type,
-                setType: filterActions.setType,
-                categories: filters.categories,
-                setCategories: filterActions.setCategories,
-                wallets: filters.wallets,
-                setWallets: filterActions.setWallets,
-                startDate: filters.startDate,
-                setStartDate: filterActions.setStartDate,
-                endDate: filters.endDate,
-                setEndDate: filterActions.setEndDate,
-                minAmount: filters.minAmount,
-                setMinAmount: filterActions.setMinAmount,
-                maxAmount: filters.maxAmount,
-                setMaxAmount: filterActions.setMaxAmount,
-              }}
-            />
-          </Suspense>
-        )}
-        
-        {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map(i => (
-              <Skeleton key={i} className="w-full h-20 rounded-[16px]" />
-            ))}
-          </div>
-        ) : filteredTransactions.length === 0 ? (
-          filters.searchTerm || filters.categories.length > 0 || filters.wallets.length > 0 || filters.startDate || filters.endDate ? (
-            <EmptyState
-              title={t('No matching transactions')}
-              description={t('Try changing your filter or search keywords.')}
-              action={{
-                label: t('Reset All'),
-                onClick: () => {
-                  filterActions.setType('all');
-                  filterActions.setCategories([]);
-                  filterActions.setWallets([]);
-                  filterActions.setStartDate('');
-                  filterActions.setEndDate('');
-                  filterActions.setMinAmount('');
-                  filterActions.setMaxAmount('');
-                  filterActions.setSearchTerm('');
-                },
-              }}
-            />
+            </>
           ) : (
-            <EmptyState
-              title={t('No Transactions')}
-              description={t('Add your first transaction to start seeing your spending summary.')}
-              action={{
-                label: t('Add Transaction'),
-                onClick: () => setIsFormOpen(true),
-              }}
-            />
-          )
-        ) : (
-          <div className="space-y-6">
-            {/* Selection Mode Toggle */}
-            {!isSelectionMode && (
-              <button 
-                onClick={enterSelectionMode}
-                className="w-full p-2 text-xs font-bold text-[var(--accent)] uppercase tracking-wider text-right mb-2 hover:underline"
-              >
-                {t('Select Multiple')}
-              </button>
-            )}
-
-            {groupedTransactions.map(group => (
-              <div key={group.labelKey}>
-                <h3 className="sticky top-0 z-10 bg-[var(--bg)] pt-1 pb-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-2">
-                  <span>{t(group.labelKey)}</span>
-                  <span className="text-[10px] font-mono text-[var(--text-secondary)]/50">{group.transactions.length}</span>
-                </h3>
-                <div className="space-y-2">
-                  <>
-                    {group.transactions.map(tx => (
-                      <div
-                        key={tx.id}
-                      >
-                        <TransactionCard
-                          tx={tx}
-                          categoryMap={categoryMap}
-                          walletMap={walletMap}
-                          searchTerm={filters.searchTerm}
-                          hideAmount={hideAmount}
-                          isSelectionMode={isSelectionMode}
-                          isSelected={isSelected(tx.id!)}
-                          onSelect={toggleSelection}
-                          onClick={() => setSelectedTx(tx)}
-                          onEdit={() => handleEdit(tx)}
-                          onDelete={() => handleDelete(tx)}
-                          onViewDetail={() => setSelectedTx(tx)}
-                        />
-                      </div>
-                    ))}
-                  </>
-                </div>
-              </div>
-            ))}
-
-            {hasMoreTransactions && (
+            <>
               <button
-                type="button"
-                onClick={() => setVisibleTransactionCount((count) => count + TRANSACTION_RENDER_PAGE_SIZE)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+                onClick={selectedIds.length === filteredTransactions.length ? deselectAll : () => selectAll(filteredTransactions.map(tx => tx.id!).filter(id => id != null))}
+                className="h-11 px-3 flex items-center justify-center rounded-lg text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
               >
-                {t('Load More')}
+                {selectedIds.length === filteredTransactions.length ? t('home.deselectAll') : t('home.selectAll')}
               </button>
-            )}
-          </div>
-        )}
+              {selectedIds.length > 0 && (
+                <button
+                  onClick={handleBulkDelete}
+                  className="h-11 px-3 flex items-center justify-center gap-2 bg-red-500 text-white rounded-lg border border-red-600 transition-colors hover:bg-red-600 active:scale-95 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/30"
+                  aria-label={t('Bulk Delete')}
+                >
+                  <Trash2 size={16} />
+                  {t('Delete')}
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
-      <TransactionDetailSheet 
-        tx={selectedTx} 
-        onClose={() => setSelectedTx(null)} 
+      {/* Filter Sheet */}
+      {!isLoading && (
+        <Suspense fallback={null}>
+          <FilterSheet
+            isOpen={isFilterOpen}
+            onClose={() => setIsFilterOpen(false)}
+            categories={activeCategories || []}
+            wallets={activeWallets || []}
+            filters={{
+              type: filters.type,
+              setType: filterActions.setType,
+              categories: filters.categories,
+              setCategories: filterActions.setCategories,
+              wallets: filters.wallets,
+              setWallets: filterActions.setWallets,
+              startDate: filters.startDate,
+              setStartDate: filterActions.setStartDate,
+              endDate: filters.endDate,
+              setEndDate: filterActions.setEndDate,
+              minAmount: filters.minAmount,
+              setMinAmount: filterActions.setMinAmount,
+              maxAmount: filters.maxAmount,
+              setMaxAmount: filterActions.setMaxAmount,
+            }}
+          />
+        </Suspense>
+      )}
+
+      {/* Transaction List */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map(i => (
+            <Skeleton key={i} className="w-full h-20 rounded-[16px]" />
+          ))}
+        </div>
+      ) : filteredTransactions.length === 0 ? (
+        filters.searchTerm || filters.categories.length > 0 || filters.wallets.length > 0 || filters.startDate || filters.endDate || filters.type !== 'all' || filters.quickFilter ? (
+          <EmptyState
+            title={t('home.emptySearchTitle')}
+            description={t('home.emptySearchDescription')}
+            action={{
+              label: t('Reset All'),
+              onClick: () => {
+                filterActions.setType('all');
+                filterActions.setCategories([]);
+                filterActions.setWallets([]);
+                filterActions.setStartDate('');
+                filterActions.setEndDate('');
+                filterActions.setMinAmount('');
+                filterActions.setMaxAmount('');
+                filterActions.setSearchTerm('');
+                filterActions.setQuickFilter(null);
+              },
+            }}
+          />
+        ) : (
+          <EmptyState
+            title={t('home.emptyTitle')}
+            description={t('home.emptyDescription')}
+            action={{
+              label: t('Add Transaction'),
+              onClick: () => setIsFormOpen(true),
+            }}
+          />
+        )
+      ) : (
+        <div className="space-y-6">
+          {groupedTransactions.map(group => {
+            const groupId = group.labelKey.replace('home.group', '').toLowerCase();
+            return (
+              <section key={group.labelKey} aria-labelledby={`tx-group-${groupId}`}>
+                <h3
+                  id={`tx-group-${groupId}`}
+                  className="sticky top-0 z-10 bg-[var(--bg)] pt-1 pb-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider"
+                >
+                  {t(group.labelKey, { count: group.count })}
+                </h3>
+                <div className="space-y-2">
+                  {group.transactions.map(tx => (
+                    <TransactionCard
+                      key={tx.id}
+                      tx={tx}
+                      categoryMap={categoryMap}
+                      walletMap={walletMap}
+                      searchTerm={filters.searchTerm}
+                      hideAmount={hideAmount}
+                      isSelectionMode={isSelectionMode}
+                      isSelected={isSelected(tx.id!)}
+                      onSelect={toggleSelection}
+                      onClick={() => setSelectedTx(tx)}
+                      onEdit={() => handleEdit(tx)}
+                      onDelete={() => handleDelete(tx)}
+                      onViewDetail={() => setSelectedTx(tx)}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+
+          {hasMoreTransactions && (
+            <button
+              type="button"
+              onClick={() => setVisibleTransactionCount((count) => count + TRANSACTION_RENDER_PAGE_SIZE)}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+            >
+              {t('Load More')}
+            </button>
+          )}
+        </div>
+      )}
+
+      <TransactionDetailSheet
+        tx={selectedTx}
+        onClose={() => setSelectedTx(null)}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onRepeat={handleRepeat}
@@ -593,7 +625,6 @@ export default function HomeView() {
           txToEdit={editTx}
         />
       </Suspense>
-
     </div>
   );
 }

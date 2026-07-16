@@ -6,8 +6,8 @@ import { db, type Debt, type Wallet } from '../../db/db';
 import { recordDebtPayment } from '../../services/debtService';
 import { getKnownErrorMessage, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '../../services/errors';
 import { getTodayStr } from '../../utils/dateUtils';
-import { formatCurrency } from '../../utils/formatUtils';
-import { parseAmount, formatAmountInput } from '../../utils/formatUtils';
+import { formatCurrency, parseAmount, formatAmountInput } from '../../utils/formatUtils';
+import { cn } from '../../utils/cn';
 import { BottomSheetShell } from '../BottomSheetShell';
 import { DatePicker } from '../DatePicker';
 import { toast } from '../Toaster';
@@ -52,6 +52,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
   const rawAmount = parseAmount(amount);
   const walletBalance = selectedWallet ? (selectedWallet.currentBalance ?? selectedWallet.initialBalance) : 0;
   const hasInsufficientBalance = isPayable && rawAmount > 0 && selectedWallet != null && rawAmount > walletBalance;
+  const remainingAfterPayment = Math.max(0, debt.remainingAmount - rawAmount);
   const title = isPayable ? t('Pay debt') : t('Receive payment');
 
   const setQuickAmount = (ratio: number) => {
@@ -71,7 +72,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
         date,
         notes,
       });
-      toast.add(t('Payment recorded'));
+      toast.add(t('debt.toastPaymentRecorded'));
       onClose();
     } catch (error) {
       toast.add(getKnownErrorMessage(error, t, 'Save payment failed'));
@@ -89,16 +90,19 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
       heightClass="h-[82vh]"
     >
       <form onSubmit={handleSubmit} className="px-3 py-4 space-y-5">
+        {/* Debt info */}
         <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-4">
           <p className="font-bold">{debt.personName}</p>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            {isPayable ? t('Remaining payable') : t('Remaining receivable')}: <span className="font-mono font-bold">{formatCurrency(debt.remainingAmount, hideAmount)}</span>
+          {debt.title && <p className="text-xs text-[var(--text-secondary)]">{debt.title}</p>}
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">
+            {isPayable ? t('debt.payCurrentOutstanding') : t('debt.payCurrentOutstanding')}: <span className="font-mono font-bold">{formatCurrency(debt.remainingAmount, hideAmount)}</span>
           </p>
         </div>
 
+        {/* Amount */}
         <div>
           <label htmlFor={`${formId}-amount`} className="block text-sm font-medium mb-1">
-            {t('Payment amount')} *
+            {t('debt.payPayment')} *
           </label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-[var(--text-secondary)]">
@@ -126,7 +130,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
                 key={option.label}
                 type="button"
                 onClick={() => setQuickAmount(option.ratio)}
-                className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-2 text-xs font-bold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-2 min-h-[36px] text-xs font-bold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
               >
                 {option.label}
               </button>
@@ -134,9 +138,30 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
           </div>
         </div>
 
+        {/* Payment preview */}
+        {rawAmount > 0 && (
+          <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-[var(--text-secondary)]">{t('debt.payCurrentOutstanding')}</span>
+              <span className="font-mono font-bold">{formatCurrency(debt.remainingAmount, hideAmount)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm mt-1">
+              <span className="text-[var(--text-secondary)]">{t('debt.payPayment')}</span>
+              <span className="font-mono font-bold text-amber-500">-{formatCurrency(rawAmount, hideAmount)}</span>
+            </div>
+            <div className="border-t border-[var(--border)] mt-2 pt-2 flex items-center justify-between text-sm font-bold">
+              <span>{t('debt.payRemaining')}</span>
+              <span className={cn('font-mono', remainingAfterPayment === 0 ? 'text-green-500' : 'text-[var(--text-primary)]')}>
+                {formatCurrency(remainingAfterPayment, hideAmount)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Wallet */}
         <div>
           <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
-            {isPayable ? t('Money from wallet') : t('Money into wallet')} *
+            {isPayable ? t('debt.payFromWallet') : t('debt.payToWallet')} *
           </label>
           <WalletSelect
             id={`${formId}-wallet`}
@@ -151,8 +176,16 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
               <span>{t(INSUFFICIENT_WALLET_BALANCE_MESSAGE)}</span>
             </div>
           )}
+          {selectedWallet && rawAmount > 0 && !hasInsufficientBalance && (
+            <p className="mt-2 text-xs text-[var(--text-secondary)]">
+              {t('debt.payWalletImpact')}: <span className="font-mono font-bold">
+                {isPayable ? '-' : '+'}{formatCurrency(rawAmount, hideAmount)}
+              </span>
+            </p>
+          )}
         </div>
 
+        {/* Date */}
         <DatePicker
           id={`${formId}-date`}
           value={date}
@@ -161,6 +194,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
           required
         />
 
+        {/* Notes */}
         <div>
           <label htmlFor={`${formId}-notes`} className="block text-sm font-medium mb-1">
             {t('Notes')}
@@ -174,11 +208,12 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
           />
         </div>
 
+        {/* Submit */}
         <div className="pt-2 pb-6">
           <button
             type="submit"
-            disabled={isSubmitting || hasInsufficientBalance}
-            className="w-full rounded-xl bg-[var(--accent)] py-4 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
+            disabled={isSubmitting || hasInsufficientBalance || rawAmount <= 0}
+            className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] py-3 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
           >
             {title}
           </button>

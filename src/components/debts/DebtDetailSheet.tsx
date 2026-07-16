@@ -24,21 +24,21 @@ interface DebtDetailSheetProps {
 function paymentCopy(debt: Debt, payment: DebtPayment, t: (key: string) => string): { label: string; sign: '+' | '-' | ''; className: string } {
   if (payment.type === 'initial') {
     return debt.type === 'payable'
-      ? { label: t('Loan received'), sign: '+', className: 'text-[var(--accent)]' }
-      : { label: t('Loan given'), sign: '-', className: 'text-amber-500' };
+      ? { label: t('debt.detailLoanReceived'), sign: '+', className: 'text-[var(--accent)]' }
+      : { label: t('debt.detailLoanGiven'), sign: '-', className: 'text-amber-500' };
   }
 
   if (payment.type === 'repayment') {
     return debt.type === 'payable'
-      ? { label: t('Debt payment'), sign: '-', className: 'text-amber-500' }
-      : { label: t('Payment received'), sign: '+', className: 'text-[var(--accent)]' };
+      ? { label: t('debt.detailPayment'), sign: '-', className: 'text-amber-500' }
+      : { label: t('debt.detailReceived'), sign: '+', className: 'text-[var(--accent)]' };
   }
 
   if (payment.type === 'write_off') {
-    return { label: t('Written off'), sign: '', className: 'text-[var(--text-secondary)]' };
+    return { label: t('debt.detailWrittenOff'), sign: '', className: 'text-[var(--text-secondary)]' };
   }
 
-  return { label: t('Marked paid'), sign: '', className: 'text-[var(--text-secondary)]' };
+  return { label: t('debt.detailMarkedPaid'), sign: '', className: 'text-[var(--text-secondary)]' };
 }
 
 export function DebtDetailSheet({
@@ -70,13 +70,13 @@ export function DebtDetailSheet({
       message: hideAmount
         ? t('Mark paid desc', { type: isPayable ? t('Payable') : t('Receivable') })
         : t('Mark paid desc amount', { type: isPayable ? t('Payable') : t('Receivable') }),
-      confirmLabel: t('Mark Paid'),
+      confirmLabel: t('Status Paid'),
     });
     if (!confirmed) return;
 
     try {
       await markDebtPaidWithoutCashflow(debt.id);
-      toast.add(isPayable ? t('Payable marked paid') : t('Receivable marked paid'));
+      toast.add(t('debt.toastSettled'));
     } catch (error) {
       toast.add(getKnownErrorMessage(error, t, 'Action failed'));
     }
@@ -84,7 +84,7 @@ export function DebtDetailSheet({
 
   const handleWriteOff = async () => {
     const confirmed = await confirm({
-      title: t('Write off receivable?'),
+      title: t('debt.writeOff'),
       message: hideAmount
         ? t('Write off desc')
         : t('Write off desc amount'),
@@ -95,7 +95,7 @@ export function DebtDetailSheet({
 
     try {
       await writeOffReceivable(debt.id);
-      toast.add(t('Receivable written off'));
+      toast.add(t('debt.toastWrittenOff'));
     } catch (error) {
       toast.add(getKnownErrorMessage(error, t, 'Action failed'));
     }
@@ -128,6 +128,7 @@ export function DebtDetailSheet({
       heightClass="h-[90vh]"
     >
       <div className="px-3 py-4 space-y-5">
+        {/* Debt info */}
         <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -140,29 +141,38 @@ export function DebtDetailSheet({
               status === 'overdue' ? 'bg-red-500/10 text-red-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]',
             )}>
               {{
-                open: t('Status Active'),
-                partial: t('Status Partial'),
-                paid: t('Status Paid'),
-                overdue: t('Status Overdue'),
-                written_off: t('Status Written Off'),
+                open: t('debt.statusOpen'),
+                partial: t('debt.statusPartialSettled'),
+                paid: t('debt.statusPaidLabel'),
+                overdue: t('debt.statusOverdueLabel'),
+                written_off: t('debt.statusWrittenOffLabel'),
               }[status]}
             </span>
           </div>
 
+          {/* Remaining amount */}
           <div className="mt-5">
             <p className="font-mono text-2xl font-bold">{formatCurrency(debt.remainingAmount, hideAmount)}</p>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              {t('Remaining of', { amount: formatCurrency(debt.principalAmount, hideAmount) })}
+              {t('debt.detailOutstanding')} / {formatCurrency(debt.principalAmount, hideAmount)}
             </p>
           </div>
 
+          {/* Progress bar */}
           {!hideAmount && (
             <div className="mt-4">
               <div className="mb-1 flex justify-between text-xs text-[var(--text-secondary)]">
                 <span>{t('Part paid percent', { percent: paidRatio.toFixed(0) })}</span>
                 <span>{walletMap[debt.walletId]?.name ?? t('Wallet not found')}</span>
               </div>
-              <div className="h-2 rounded-full bg-[var(--border)]">
+              <div
+                className="h-2 rounded-full bg-[var(--border)]"
+                role="progressbar"
+                aria-valuenow={paidRatio}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={t('Part paid percent', { percent: paidRatio.toFixed(0) })}
+              >
                 <div
                   className={cn('h-full rounded-full', isPayable ? 'bg-amber-500' : 'bg-[var(--accent)]')}
                   style={{ width: `${paidRatio}%` }}
@@ -171,6 +181,7 @@ export function DebtDetailSheet({
             </div>
           )}
 
+          {/* Dates */}
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t('Loan date')}</p>
@@ -187,83 +198,91 @@ export function DebtDetailSheet({
           )}
         </div>
 
+        {/* Primary action */}
         {!closed && (
           <button
             type="button"
             onClick={() => onPayment(debt)}
-            className="w-full rounded-xl bg-[var(--accent)] py-3.5 font-bold text-white shadow-lg shadow-[var(--accent)]/20 active:scale-95"
+            className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] py-3 font-bold text-white shadow-lg shadow-[var(--accent)]/20 active:scale-95"
           >
             {isPayable ? t('Pay debt') : t('Receive payment')}
           </button>
         )}
 
+        {/* Secondary actions */}
         <div className="grid grid-cols-3 gap-2">
           <button
             type="button"
             onClick={() => onEdit(debt)}
-            className="inline-flex items-center justify-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-3 text-sm font-bold text-[var(--text-secondary)]"
+            className="inline-flex min-h-[44px] items-center justify-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-3 text-sm font-bold text-[var(--text-secondary)]"
           >
-            <Pencil size={15} /> {t('Edit')}
+            <Pencil size={15} /> {t('debt.editRecord')}
           </button>
           <button
             type="button"
             disabled={closed}
             onClick={handleMarkPaid}
-            className="inline-flex items-center justify-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-3 text-sm font-bold text-[var(--text-secondary)] disabled:opacity-40"
+            className="inline-flex min-h-[44px] items-center justify-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-3 text-sm font-bold text-[var(--text-secondary)] disabled:opacity-40"
           >
-            <CheckCircle2 size={15} /> {t('Status Paid')}
+            <CheckCircle2 size={15} /> {t('debt.markSettled')}
           </button>
           <button
             type="button"
             onClick={handleArchive}
-            className="inline-flex items-center justify-center gap-1 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-3 text-sm font-bold text-red-500"
+            className="inline-flex min-h-[44px] items-center justify-center gap-1 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-3 text-sm font-bold text-red-500"
           >
             <Trash2 size={15} /> {t('Delete')}
           </button>
         </div>
 
+        {/* Write off — only for open receivables */}
         {!isPayable && !closed && (
           <button
             type="button"
             onClick={handleWriteOff}
-            className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 py-3 text-sm font-bold text-amber-600 dark:text-amber-300"
+            className="w-full min-h-[44px] rounded-xl border border-amber-500/30 bg-amber-500/10 py-3 text-sm font-bold text-amber-600 dark:text-amber-300"
           >
-            {t('Write Off')}
+            {t('debt.writeOff')}
           </button>
         )}
 
+        {/* Payment history */}
         <div>
-          <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t('History')}</h3>
-          <div className="space-y-3">
-            {sortedPayments.map((payment) => {
-              const copy = paymentCopy(debt, payment, t);
-              return (
-                <div key={payment.id} className="flex items-start gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-3">
-                  <div className={cn('mt-0.5 rounded-full p-2', isPayable ? 'bg-amber-500/10 text-amber-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]')}>
-                    {copy.sign === '-' ? <ArrowUpRight size={15} /> : <ArrowDownLeft size={15} />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-bold">{displayDateShort(payment.date, i18n.language)} • {copy.label}</p>
-                        <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                          {walletMap[payment.walletId]?.name ?? t('Wallet not found')}
+          <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t('debt.detailPaymentHistory')}</h3>
+          {sortedPayments.length === 0 ? (
+            <p className="text-sm text-[var(--text-secondary)]">{t('debt.detailNoPayments')}</p>
+          ) : (
+            <div className="space-y-3">
+              {sortedPayments.map((payment) => {
+                const copy = paymentCopy(debt, payment, t);
+                return (
+                  <div key={payment.id} className="flex items-start gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-3">
+                    <div className={cn('mt-0.5 rounded-full p-2', isPayable ? 'bg-amber-500/10 text-amber-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]')}>
+                      {copy.sign === '-' ? <ArrowUpRight size={15} aria-hidden="true" /> : <ArrowDownLeft size={15} aria-hidden="true" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-bold">{displayDateShort(payment.date, i18n.language)} • {copy.label}</p>
+                          <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                            {walletMap[payment.walletId]?.name ?? t('Wallet not found')}
+                          </p>
+                        </div>
+                        <p className={cn('shrink-0 font-mono text-sm font-bold', copy.className)}>
+                          {copy.sign}{formatCurrency(payment.amount, hideAmount)}
                         </p>
                       </div>
-                      <p className={cn('shrink-0 font-mono text-sm font-bold', copy.className)}>
-                        {copy.sign}{formatCurrency(payment.amount, hideAmount)}
-                      </p>
+                      {payment.notes && (
+                        <p className="mt-2 text-xs text-[var(--text-secondary)]">
+                          {getDisplayDebtPaymentNote(payment.notes, t)}
+                        </p>
+                      )}
                     </div>
-                    {payment.notes && (
-                      <p className="mt-2 text-xs text-[var(--text-secondary)]">
-                        {getDisplayDebtPaymentNote(payment.notes, t)}
-                      </p>
-                    )}
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </BottomSheetShell>

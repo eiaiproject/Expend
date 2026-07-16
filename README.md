@@ -2,7 +2,7 @@
 
 Expend is a local-first personal finance tracker for expenses, budgets, wallets, debts, receivables, and monthly reports. It is built as an offline-capable Progressive Web App (PWA), stores financial data locally in IndexedDB, and does not require an account or cloud sync.
 
-[![Version](https://img.shields.io/badge/version-1.7.0-teal)](https://github.com/eiaiproject/Expend/releases)
+[![Version](https://img.shields.io/badge/version-1.10.0-teal)](https://github.com/eiaiproject/Expend/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](#license)
 
 ## Live Demo

@@ -1,14 +1,13 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
-import { db, type Debt, type DebtType, type Wallet } from '../../db/db';
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Wallet, Ban } from 'lucide-react';
+import { db, type Debt, type DebtType, type Wallet as WalletType } from '../../db/db';
 import { createDebt, updateDebt } from '../../services/debtService';
 import { getKnownErrorMessage, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '../../services/errors';
 import { getTodayStr } from '../../utils/dateUtils';
-import { formatCurrency } from '../../utils/formatUtils';
+import { formatCurrency, parseAmount, formatAmountInput } from '../../utils/formatUtils';
 import { cn } from '../../utils/cn';
-import { parseAmount, formatAmountInput } from '../../utils/formatUtils';
 import { BottomSheetShell } from '../BottomSheetShell';
 import { DatePicker } from '../DatePicker';
 import { toast } from '../Toaster';
@@ -21,7 +20,7 @@ interface DebtFormSheetProps {
   debtToEdit?: Debt | null;
 }
 
-const EMPTY_WALLETS: Wallet[] = [];
+const EMPTY_WALLETS: WalletType[] = [];
 const EMPTY_DEBTS: Debt[] = [];
 
 export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit = null }: DebtFormSheetProps) {
@@ -39,6 +38,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [walletId, setWalletId] = useState('');
+  const [hasWalletMovement, setHasWalletMovement] = useState(true);
   const [startDate, setStartDate] = useState(getTodayStr());
   const [dueDate, setDueDate] = useState('');
   const [noDueDate, setNoDueDate] = useState(false);
@@ -58,6 +58,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
       setTitle(debtToEdit.title ?? '');
       setAmount(debtToEdit.principalAmount.toLocaleString('id-ID'));
       setWalletId(String(debtToEdit.walletId));
+      setHasWalletMovement(true);
       setStartDate(debtToEdit.startDate);
       setDueDate(debtToEdit.dueDate ?? '');
       setNoDueDate(!debtToEdit.dueDate);
@@ -71,15 +72,13 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
     setTitle('');
     setAmount('');
     setWalletId(wallets[0]?.id != null ? String(wallets[0].id) : '');
+    setHasWalletMovement(true);
     setStartDate(getTodayStr());
     setDueDate('');
     setNoDueDate(false);
     setNotes('');
   }, [debtToEdit, isOpen, wallets]);
 
-  // ponytail: fallback for new debts whose wallets list resolves after
-  // the form opens. Skipped entirely for edits so we never overwrite the
-  // authoritative debtToEdit.walletId. Fixes silent wallet reassignment.
   useEffect(() => {
     if (isOpen && !walletId && !debtToEdit && wallets[0]?.id != null) {
       setWalletId(String(wallets[0].id));
@@ -104,18 +103,21 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
   const rawAmount = parseAmount(amount);
   const isPayable = type === 'payable';
   const walletBalance = selectedWallet ? (selectedWallet.currentBalance ?? selectedWallet.initialBalance) : 0;
-  const hasInsufficientBalance = !isEdit && !isPayable && rawAmount > 0 && selectedWallet != null && rawAmount > walletBalance;
+  const hasInsufficientBalance = isEdit && !isPayable && rawAmount > 0 && selectedWallet != null && rawAmount > walletBalance;
+
   const titleText = isEdit
     ? (isPayable ? t('Edit Payable') : t('Edit Receivable'))
     : step === 'type'
-      ? t('Record Payable')
+      ? t('debt.formWhat')
       : isPayable
         ? t('I Owe')
         : t('I Lend');
 
-  const impactText = isPayable
-    ? t('wallet increases', { wallet: selectedWallet?.name ?? t('Wallet'), amount: formatCurrency(rawAmount, hideAmount) })
-    : t('wallet decreases', { wallet: selectedWallet?.name ?? t('Wallet'), amount: formatCurrency(rawAmount, hideAmount) });
+  const impactText = !hasWalletMovement
+    ? t('debt.formNoImpact')
+    : isPayable
+      ? t('wallet increases', { wallet: selectedWallet?.name ?? t('Wallet'), amount: formatCurrency(rawAmount, hideAmount) })
+      : t('wallet decreases', { wallet: selectedWallet?.name ?? t('Wallet'), amount: formatCurrency(rawAmount, hideAmount) });
 
   const handleSelectType = (nextType: DebtType) => {
     setType(nextType);
@@ -131,7 +133,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
         personName,
         title,
         principalAmount: rawAmount,
-        walletId: Number(walletId),
+        walletId: hasWalletMovement ? Number(walletId) : (wallets[0]?.id ?? 1),
         startDate,
         dueDate: noDueDate ? null : dueDate || null,
         notes,
@@ -142,7 +144,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
         toast.add(t('Debt updated'));
       } else {
         await createDebt({ ...payload, type });
-        toast.add(isPayable ? t('Debt recorded') : t('Receivable recorded'));
+        toast.add(isPayable ? t('debt.toastDebtRecorded') : t('debt.toastReceivableRecorded'));
       }
 
       onClose();
@@ -163,7 +165,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
     >
       {step === 'type' && !isEdit ? (
         <div className="px-3 py-4 space-y-4">
-          <p className="text-sm font-medium text-[var(--text-secondary)]">{t('What happened?')}</p>
+          <p className="text-sm font-medium text-[var(--text-secondary)]">{t('debt.formWhat')}</p>
           <button
             type="button"
             onClick={() => handleSelectType('payable')}
@@ -174,8 +176,8 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
                 <ArrowDownLeft size={20} />
               </div>
               <div>
-                <h3 className="font-bold">{t('I Owe Money')}</h3>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">{t('I Owe Money Desc')}</p>
+                <h3 className="font-bold">{t('debt.formIOwe')}</h3>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">{t('debt.formIOweDesc')}</p>
               </div>
             </div>
           </button>
@@ -189,17 +191,18 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
                 <ArrowUpRight size={20} />
               </div>
               <div>
-                <h3 className="font-bold">{t('I Lent Money')}</h3>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">{t('I Lent Money Desc')}</p>
+                <h3 className="font-bold">{t('debt.formOwedToMe')}</h3>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">{t('debt.formOwedToMeDesc')}</p>
               </div>
             </div>
           </button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="px-3 py-4 space-y-5">
+          {/* Person */}
           <div className="relative">
             <label htmlFor={`${formId}-person`} className="block text-sm font-medium mb-1">
-              {isPayable ? t('From whom?') : t('To whom?')} *
+              {t('debt.formPerson')} *
             </label>
             <input
               ref={personInputRef}
@@ -217,10 +220,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
                 if (!showPersonSuggestions || personSuggestions.length === 0) return;
                 if (e.key === 'ArrowDown') {
                   e.preventDefault();
-                  suggestionIndexRef.current = Math.min(
-                    suggestionIndexRef.current + 1,
-                    personSuggestions.length - 1
-                  );
+                  suggestionIndexRef.current = Math.min(suggestionIndexRef.current + 1, personSuggestions.length - 1);
                   setPersonName(personSuggestions[suggestionIndexRef.current]!);
                 } else if (e.key === 'ArrowUp') {
                   e.preventDefault();
@@ -255,6 +255,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
             )}
           </div>
 
+          {/* Title */}
           <div>
             <label htmlFor={`${formId}-title`} className="block text-sm font-medium mb-1">
               {t('Title')}
@@ -269,6 +270,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
             />
           </div>
 
+          {/* Amount */}
           <div>
             <label htmlFor={`${formId}-amount`} className="block text-sm font-medium mb-1">
               {t('Amount')} *
@@ -290,25 +292,66 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
             </div>
           </div>
 
+          {/* Wallet movement */}
           <div>
-            <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
-              {isPayable ? t('Money into wallet') : t('Money from wallet')} *
-            </label>
-            <WalletSelect
-              id={`${formId}-wallet`}
-              value={walletId}
-              wallets={wallets}
-              placeholder={t('Select wallet')}
-              onChange={setWalletId}
-            />
-            {hasInsufficientBalance && (
-              <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300">
-                <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                <span>{t(INSUFFICIENT_WALLET_BALANCE_MESSAGE)}</span>
-              </div>
-            )}
+            <p className="block text-sm font-medium mb-2">
+              {isPayable ? t('debt.formFundsReceived') : t('debt.formFundsProvided')}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setHasWalletMovement(true)}
+                className={cn(
+                  'flex items-center gap-2 rounded-xl border px-3 py-3 text-sm font-bold transition-colors',
+                  hasWalletMovement
+                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                    : 'border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)]',
+                )}
+                aria-pressed={hasWalletMovement}
+              >
+                <Wallet size={16} />
+                {isPayable ? t('debt.formYesWallet') : t('debt.formYesWallet')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setHasWalletMovement(false)}
+                className={cn(
+                  'flex items-center gap-2 rounded-xl border px-3 py-3 text-sm font-bold transition-colors',
+                  !hasWalletMovement
+                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                    : 'border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)]',
+                )}
+                aria-pressed={!hasWalletMovement}
+              >
+                <Ban size={16} />
+                {t('debt.formNoWallet')}
+              </button>
+            </div>
           </div>
 
+          {/* Wallet select — only when wallet movement */}
+          {hasWalletMovement && (
+            <div>
+              <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
+                {isPayable ? t('Money into wallet') : t('Money from wallet')} *
+              </label>
+              <WalletSelect
+                id={`${formId}-wallet`}
+                value={walletId}
+                wallets={wallets}
+                placeholder={t('Select wallet')}
+                onChange={setWalletId}
+              />
+              {hasInsufficientBalance && (
+                <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300">
+                  <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                  <span>{t(INSUFFICIENT_WALLET_BALANCE_MESSAGE)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Dates */}
           <DatePicker
             id={`${formId}-start-date`}
             value={startDate}
@@ -341,6 +384,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
             </label>
           </div>
 
+          {/* Notes */}
           <div>
             <label htmlFor={`${formId}-notes`} className="block text-sm font-medium mb-1">
               {t('Notes')}
@@ -353,21 +397,26 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
             />
           </div>
 
+          {/* Balance impact */}
           <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t('Balance impact')}</p>
-            <p className={cn('mt-2 font-mono text-sm font-bold', isPayable ? 'text-[var(--accent)]' : 'text-amber-500')}>
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t('debt.formBalanceImpact')}</p>
+            <p className={cn('mt-2 font-mono text-sm font-bold', !hasWalletMovement ? 'text-[var(--text-secondary)]' : isPayable ? 'text-[var(--accent)]' : 'text-amber-500')}>
               {impactText}
             </p>
             <p className="mt-1 text-xs text-[var(--text-secondary)]">
-              {isPayable ? t('Payable active increases') : t('Receivable active increases')}
+              {hasWalletMovement
+                ? (isPayable ? t('Payable active increases') : t('Receivable active increases'))
+                : t('debt.formNoImpact')
+              }
             </p>
           </div>
 
+          {/* Submit */}
           <div className="pt-2 pb-6">
             <button
               type="submit"
               disabled={isSubmitting || hasInsufficientBalance}
-              className="w-full rounded-xl bg-[var(--accent)] py-4 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
+              className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] py-3 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
             >
               {isEdit ? t('Save Changes') : isPayable ? t('Save Payable') : t('Save Receivable')}
             </button>

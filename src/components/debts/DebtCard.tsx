@@ -1,10 +1,14 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, AlertTriangle, MoreHorizontal, Pencil, Trash2, HandCoins } from 'lucide-react';
 import { type Debt, type DebtPayment, type Wallet } from '../../db/db';
-import { calculateDebtStatus, isDebtClosed } from '../../services/debtService';
+import { calculateDebtStatus, isDebtClosed, archiveDebt, markDebtPaidWithoutCashflow, writeOffReceivable } from '../../services/debtService';
+import { getKnownErrorMessage } from '../../services/errors';
 import { cn } from '../../utils/cn';
 import { formatCurrency } from '../../utils/formatUtils';
 import { daysBetweenDateOnly, displayDateShort, getTodayStr } from '../../utils/dateUtils';
+import { confirm } from '../ConfirmDialog';
+import { toast } from '../Toaster';
 
 interface DebtCardProps {
   debt: Debt;
@@ -13,6 +17,7 @@ interface DebtCardProps {
   hideAmount?: boolean;
   onClick: () => void;
   onPayment: () => void;
+  onEdit: () => void;
 }
 
 function getDueLabel(debt: Debt, t: (key: string, options?: Record<string, string | number>) => string, locale?: string): string {
@@ -27,7 +32,7 @@ function getDueLabel(debt: Debt, t: (key: string, options?: Record<string, strin
   return displayDateShort(debt.dueDate, locale);
 }
 
-export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, onPayment }: DebtCardProps) {
+export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, onPayment, onEdit }: DebtCardProps) {
   const { t, i18n } = useTranslation();
   const status = calculateDebtStatus(debt, payments);
   const isPayable = debt.type === 'payable';
@@ -36,124 +41,277 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
     : 0;
   const closed = isDebtClosed(status);
 
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuItemsRef = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false);
+    triggerRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) closeMenu();
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeMenu();
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [menuOpen, closeMenu]);
+
+  const handleMenuKeyDown = (e: React.KeyboardEvent) => {
+    const items = menuItemsRef.current.filter(Boolean) as HTMLButtonElement[];
+    const idx = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      items[(idx + 1) % items.length]?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      items[(idx - 1 + items.length) % items.length]?.focus();
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      items[0]?.focus();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      items[items.length - 1]?.focus();
+    }
+  };
+
+  const handleMarkPaid = async () => {
+    closeMenu();
+    const confirmed = await confirm({
+      title: t('debt.toastSettled'),
+      message: t('Mark paid desc', { type: isPayable ? t('Payable') : t('Receivable') }),
+      confirmLabel: t('Status Paid'),
+    });
+    if (!confirmed) return;
+    try {
+      await markDebtPaidWithoutCashflow(debt.id);
+      toast.add(t('debt.toastSettled'));
+    } catch (error) {
+      toast.add(getKnownErrorMessage(error, t, 'Action failed'));
+    }
+  };
+
+  const handleWriteOff = async () => {
+    closeMenu();
+    const confirmed = await confirm({
+      title: t('debt.writeOff'),
+      message: t('Write off desc amount'),
+      confirmLabel: t('Write Off'),
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await writeOffReceivable(debt.id);
+      toast.add(t('debt.toastWrittenOff'));
+    } catch (error) {
+      toast.add(getKnownErrorMessage(error, t, 'Action failed'));
+    }
+  };
+
+  const handleArchive = async () => {
+    closeMenu();
+    const confirmed = await confirm({
+      title: t('Delete debt?'),
+      message: t('Delete debt desc'),
+      confirmLabel: t('Delete'),
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await archiveDebt(debt.id);
+      toast.add(isPayable ? t('Payable deleted') : t('Receivable deleted'));
+    } catch (error) {
+      toast.add(getKnownErrorMessage(error, t, 'Action failed'));
+    }
+  };
+
   const statusLabel = {
-    open: t('Status Active'),
-    partial: t('Status Partial'),
-    paid: t('Status Paid'),
-    overdue: t('Status Overdue'),
-    written_off: t('Status Written Off'),
+    open: t('debt.statusOpen'),
+    partial: t('debt.statusPartialSettled'),
+    paid: t('debt.statusPaidLabel'),
+    overdue: t('debt.statusOverdueLabel'),
+    written_off: t('debt.statusWrittenOffLabel'),
   }[status];
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <article
       data-testid="debt-row"
       data-debt-id={debt.id}
       data-debt-type={debt.type}
-      onClick={onClick}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onClick();
-        }
-      }}
       className={cn(
-        'w-full cursor-pointer rounded-[16px] border bg-[var(--card)] p-4 text-left shadow-sm transition-[border-color,box-shadow] active:scale-[0.98] hover:border-[var(--accent)]/40',
+        'w-full rounded-[16px] border bg-[var(--card)] p-4 shadow-sm transition-[border-color,box-shadow]',
         status === 'overdue' ? 'border-red-500/30' : 'border-[var(--border)]',
       )}
     >
       <div className="flex items-start gap-3">
-        <div
+        {/* Type icon */}
+        <button
+          type="button"
+          onClick={onClick}
           className={cn(
-            'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+            'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95',
             isPayable ? 'bg-amber-500/10 text-amber-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]',
             status === 'overdue' && 'bg-red-500/10 text-red-500',
             closed && 'bg-green-500/10 text-green-500',
           )}
-          aria-hidden="true"
+          aria-label={t('debt.viewDetail')}
         >
+          <span className="sr-only">{t('debt.viewDetail')}</span>
           {status === 'overdue' ? (
-            <AlertTriangle size={18} />
+            <AlertTriangle size={18} aria-hidden="true" />
           ) : closed ? (
-            <CheckCircle2 size={18} />
+            <CheckCircle2 size={18} aria-hidden="true" />
           ) : isPayable ? (
-            <ArrowDownLeft size={18} />
+            <ArrowDownLeft size={18} aria-hidden="true" />
           ) : (
-            <ArrowUpRight size={18} />
+            <ArrowUpRight size={18} aria-hidden="true" />
           )}
-        </div>
+        </button>
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-[var(--text-primary)]">{debt.personName}</p>
+              <button type="button" onClick={onClick} className="truncate text-sm font-bold text-[var(--text-primary)] hover:underline">
+                {debt.personName}
+              </button>
               {debt.title && (
                 <p className="truncate text-xs text-[var(--text-secondary)]">{debt.title}</p>
               )}
             </div>
-            <div className="text-right">
-              <p className={cn('font-mono text-sm font-bold', isPayable ? 'text-amber-500' : 'text-[var(--accent)]')}>
-                {formatCurrency(debt.remainingAmount, hideAmount)}
-              </p>
-              <span className={cn(
-                'mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider',
-                isPayable ? 'bg-amber-500/10 text-amber-600 dark:text-amber-300' : 'bg-[var(--accent)]/10 text-[var(--accent)]',
-              )}>
-                {isPayable ? t('Payable') : t('Receivable')}
-              </span>
+            <div className="flex items-start gap-2">
+              <div className="text-right">
+                <p className={cn('font-mono text-sm font-bold', isPayable ? 'text-amber-500' : 'text-[var(--accent)]')}>
+                  {formatCurrency(debt.remainingAmount, hideAmount)}
+                </p>
+                <span className={cn(
+                  'mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider',
+                  isPayable ? 'bg-amber-500/10 text-amber-600 dark:text-amber-300' : 'bg-[var(--accent)]/10 text-[var(--accent)]',
+                )}>
+                  {isPayable ? t('Payable') : t('Receivable')}
+                </span>
+              </div>
+              {/* Overflow menu — sibling of clickable area, not nested */}
+              {!closed && (
+                <div className="relative" ref={menuRef}>
+                  <button
+                    ref={triggerRef}
+                    type="button"
+                    aria-label={t('debt.actionsFor', { name: debt.personName })}
+                    aria-haspopup="menu"
+                    aria-expanded={menuOpen}
+                    onClick={() => setMenuOpen(!menuOpen)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg)]"
+                  >
+                    <MoreHorizontal size={18} />
+                  </button>
+                  {menuOpen && (
+                    <div
+                      role="menu"
+                      aria-label={t('debt.actionsFor', { name: debt.personName })}
+                      onKeyDown={handleMenuKeyDown}
+                      className="absolute right-0 z-20 mt-1 w-48 rounded-xl border border-[var(--border)] bg-[var(--card)] py-1 shadow-lg"
+                    >
+                      <button
+                        ref={(el) => { menuItemsRef.current[0] = el; }}
+                        role="menuitem"
+                        onClick={() => { closeMenu(); onClick(); }}
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]"
+                      >
+                        <CheckCircle2 size={15} /> {t('debt.viewDetail')}
+                      </button>
+                      <button
+                        ref={(el) => { menuItemsRef.current[1] = el; }}
+                        role="menuitem"
+                        onClick={() => { closeMenu(); onPayment(); }}
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]"
+                      >
+                        <HandCoins size={15} /> {t('debt.recordPayment')}
+                      </button>
+                      <button
+                        ref={(el) => { menuItemsRef.current[2] = el; }}
+                        role="menuitem"
+                        onClick={() => { closeMenu(); onEdit(); }}
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]"
+                      >
+                        <Pencil size={15} /> {t('debt.editRecord')}
+                      </button>
+                      <div className="my-1 border-t border-[var(--border)]" role="separator" />
+                      <button
+                        ref={(el) => { menuItemsRef.current[3] = el; }}
+                        role="menuitem"
+                        onClick={handleMarkPaid}
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]"
+                      >
+                        <CheckCircle2 size={15} /> {t('debt.markSettled')}
+                      </button>
+                      {debt.type === 'receivable' && (
+                        <button
+                          ref={(el) => { menuItemsRef.current[4] = el; }}
+                          role="menuitem"
+                          onClick={handleWriteOff}
+                          className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left text-amber-600 dark:text-amber-300 hover:bg-[var(--bg)]"
+                        >
+                          <Trash2 size={15} /> {t('debt.writeOff')}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
+          {/* Meta row */}
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--text-secondary)]">
-            <span>{statusLabel}</span>
+            <span className={cn(status === 'overdue' && 'font-bold text-red-500')}>{statusLabel}</span>
             <span aria-hidden="true">•</span>
             <span className={status === 'overdue' ? 'text-red-500' : undefined}>{getDueLabel(debt, t, i18n.language)}</span>
-          </div>
-
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--text-secondary)]">
+            <span aria-hidden="true">•</span>
             <span>{wallet?.name ?? t('Wallet not found')}</span>
-            {!hideAmount && (
-              <>
-                <span aria-hidden="true">•</span>
-                <span>{t('Part paid percent', { percent: paidRatio.toFixed(0) })}</span>
-              </>
-            )}
-            {hideAmount && debt.remainingAmount < debt.principalAmount && (
-              <>
-                <span aria-hidden="true">•</span>
-                <span>{t('Partially paid')}</span>
-              </>
-            )}
           </div>
 
+          {/* Progress bar */}
           {!hideAmount && (
-            <div className="mt-3 h-2 rounded-full bg-[var(--border)]" aria-label={t('Part paid percent', { percent: paidRatio.toFixed(0) })}>
+            <div className="mt-3">
+              <div className="mb-1 flex justify-between text-xs text-[var(--text-secondary)]">
+                <span>{t('Part paid percent', { percent: paidRatio.toFixed(0) })}</span>
+                <span className="sr-only">{t('debt.remaining', { amount: formatCurrency(debt.remainingAmount) })}</span>
+              </div>
               <div
-                className={cn('h-full rounded-full', isPayable ? 'bg-amber-500' : 'bg-[var(--accent)]')}
-                style={{ width: `${paidRatio}%` }}
-              />
+                className="h-2 rounded-full bg-[var(--border)]"
+                role="progressbar"
+                aria-valuenow={paidRatio}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={t('Part paid percent', { percent: paidRatio.toFixed(0) })}
+              >
+                <div
+                  className={cn('h-full rounded-full', isPayable ? 'bg-amber-500' : 'bg-[var(--accent)]')}
+                  style={{ width: `${paidRatio}%` }}
+                />
+              </div>
             </div>
           )}
 
-          {!closed && (
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onPayment();
-                }}
-                onKeyDown={(event) => event.stopPropagation()}
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--accent)] px-4 text-xs font-bold text-white shadow-lg shadow-[var(--accent)]/10"
-              >
-                <Clock size={14} className="mr-1.5" />
-                {isPayable ? t('Pay debt') : t('Receive payment')}
-              </button>
+          {/* Quick payment button for closed cards */}
+          {closed && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+              <CheckCircle2 size={14} className="text-green-500" />
+              <span>{status === 'paid' ? t('debt.statusPaidLabel') : t('debt.statusWrittenOffLabel')}</span>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }

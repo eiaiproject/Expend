@@ -18,10 +18,12 @@ interface SecurityContextType {
   securityEnabled: boolean;
   pinLength: number;
   isSecurityLoaded: boolean;
+  autoLockTimeout: number;
   lock: () => void;
   unlock: (pin?: string) => Promise<boolean>;
   setupPin: (pin: string) => Promise<void>;
   disableSecurity: () => Promise<void>;
+  updateAutoLockTimeout: (ms: number) => Promise<void>;
   checkSecurityAvailable: () => { pin: boolean };
 }
 
@@ -38,12 +40,28 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   const [securityEnabled, setSecurityEnabled] = useState(false);
   const [pinLength, setPinLength] = useState(4);
   const [isSecurityLoaded, setIsSecurityLoaded] = useState(false);
+  const [autoLockTimeout, setAutoLockTimeout] = useState(AUTO_LOCK_TIMEOUT_MS);
   const lastActiveRef = useRef(Date.now());
   const securitySettingsPromiseRef = useRef<Promise<SecuritySettingsValue | null> | undefined>(undefined);
   const securitySettingsRef = useRef<SecuritySettingsValue | null>(null);
 
   useEffect(() => {
     loadSecuritySettings();
+    loadAutoLockTimeout();
+  }, []);
+
+  const loadAutoLockTimeout = async () => {
+    try {
+      const setting = await db.settings.get('autoLockTimeout');
+      if (setting && typeof setting.value === 'number') {
+        setAutoLockTimeout(setting.value);
+      }
+    } catch { /* ignore */ }
+  };
+
+  const updateAutoLockTimeout = useCallback(async (ms: number) => {
+    setAutoLockTimeout(ms);
+    await db.settings.put({ key: 'autoLockTimeout', value: ms });
   }, []);
 
   // Auto-lock when app comes back to foreground after inactivity
@@ -51,8 +69,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         const elapsed = Date.now() - lastActiveRef.current;
-        // Lock if app was hidden for more than configured timeout
-        if (securityEnabled && elapsed > AUTO_LOCK_TIMEOUT_MS) {
+        if (securityEnabled && autoLockTimeout > 0 && elapsed > autoLockTimeout) {
           setIsLocked(true);
         }
       } else if (document.visibilityState === 'hidden') {
@@ -62,7 +79,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [securityEnabled]);
+  }, [securityEnabled, autoLockTimeout]);
 
   const loadSecuritySettings = async () => {
     const promise = (async () => {
@@ -227,10 +244,12 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       pinLength,
       securityEnabled,
       isSecurityLoaded,
+      autoLockTimeout,
       lock,
       unlock,
       setupPin,
       disableSecurity,
+      updateAutoLockTimeout,
       checkSecurityAvailable
     }}>
       {children}

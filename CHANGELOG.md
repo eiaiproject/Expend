@@ -2,6 +2,33 @@
 
 All notable changes to Expend are documented here.
 
+## 1.10.0 - 2026-07-05
+
+### Added
+
+- Wallet module: dedicated `WalletCard`, `AddWalletSheet`, `EditWalletSheet`, `ReconcileBalanceSheet`, `WalletOverflowMenu`, and `WalletDetailView` with wallet-level service/types.
+- Landing page sections: `FinalCTASection`, `HowItWorksSection`, `PrivacySection`; removed `SocialProofSection`.
+- `RevealOnScroll` component and `useNearViewport` hook for viewport-driven animation reveal.
+- `PrivacyContext` for global privacy state shared across views.
+- `merchantService` consolidating merchant handling.
+- `CategoryForm`, `CategoryOverflowMenu`, and `HelpDialog` under `components/categories`.
+- E2E flow coverage: new `tests/e2e/flows.spec.ts` covering wallet, category, and payee workflows.
+- Lighthouse CI config (`.lighthouserc.json`) wired into CI workflow.
+
+### Changed
+
+- Landing sections (`Hero`, `Features`, `Install`, `TechStack`, `FAQ`) restructured for consistency and reduced copy.
+- View layouts rewritten: `HomeView`, `WalletsView`, `DebtsView`, `CategoriesView`, `PayeesView`, `SettingsView`, `StatsView`, `LandingView`.
+- `App`, `SidebarNav`, `BottomNav`, onboarding, debt components, summary/transaction cards, settings accordion, and toaster refactored for new shared primitives.
+- DB layer (`src/db/db.ts`) and `walletService` consolidated; `payeeService` and `budgetService` adjusted for new shared types.
+- Locale files (`en.json`, `id.json`) expanded to cover new UI strings across landing and wallets.
+- CI workflow updated to include Lighthouse check.
+
+### Removed
+
+- `SocialProofSection` from landing page.
+- Redundant utility code in `formatUtils` and `migration` tests trimmed.
+
 ## 1.7.0 - 2026-07-05
 
 ### Added
