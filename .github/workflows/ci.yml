@@ -53,9 +53,10 @@ jobs:
       - name: Deploy to Cloudflare Pages
         # Step ini hanya berjalan jika job quality-gate berhasil dan berada di branch main
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        continue-on-error: true
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: expend # Sesuaikan dengan nama project di Cloudflare
+          projectName: expend
           directory: dist
