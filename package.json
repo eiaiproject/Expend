@@ -21,6 +21,7 @@
     "test:e2e:chromium": "playwright test --project=chromium",
     "test:e2e:ui": "playwright test --ui",
     "playwright:install": "playwright install --with-deps chromium firefox webkit",
+    "version": "node scripts/sync-version.mjs",
     "qa:automated": "npm run lint -- --max-warnings=0 && npm run typecheck && npm run i18n:check && npm run test:unit && npm run build && npm run test:e2e:chromium",
     "i18n:check": "node scripts/check-i18n-keys.mjs"
   },
