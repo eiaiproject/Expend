@@ -456,7 +456,7 @@ export default function HomeView() {
               >
                 <Filter size={18} />
                 {activeFilterCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--accent)] text-white text-[9px] font-bold flex items-center justify-center">
+                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[var(--accent)] text-white text-[9px] font-bold flex items-center justify-center pointer-events-none">
                     {activeFilterCount}
                   </span>
                 )}
