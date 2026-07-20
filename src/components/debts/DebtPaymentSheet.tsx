@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'reicon-react';
 import { db, type Debt, type Wallet } from '../../db/db';
 import { recordDebtPayment } from '../../services/debtService';
 import { getKnownErrorMessage, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '../../services/errors';

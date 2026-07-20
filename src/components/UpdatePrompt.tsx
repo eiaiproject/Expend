@@ -1,6 +1,6 @@
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useTranslation } from 'react-i18next';
-import { RefreshCw, X } from 'lucide-react';
+import { Refresh, X } from 'reicon-react';
 import { useState, useEffect, useRef } from 'react';
 
 // Re-show update prompt after this interval (10 minutes)
@@ -56,7 +56,7 @@ export function UpdatePrompt() {
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] animate-in fade-in slide-in-from-top-4 duration-300" aria-live="polite">
       <div className="flex items-center gap-3 bg-[var(--accent)] text-white pl-4 pr-2 py-2.5 rounded-2xl shadow-lg shadow-black/20 max-w-md">
-        <RefreshCw size={16} className="shrink-0 animate-spin" style={{ animationDuration: '3s' }} />
+        <Refresh size={16} className="shrink-0 animate-spin" style={{ animationDuration: '3s' }} />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">
             {t('New version available!')}

@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Wallet, Ban } from 'lucide-react';
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Wallet, Ban } from 'reicon-react';
 import { db, type Debt, type DebtType, type Wallet as WalletType } from '../../db/db';
 import { createDebt, updateDebt } from '../../services/debtService';
 import { getKnownErrorMessage, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '../../services/errors';

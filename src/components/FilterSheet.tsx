@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Check } from 'lucide-react';
+import { Check } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../utils/cn';
 import { BottomSheetShell } from './BottomSheetShell';

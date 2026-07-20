@@ -1,5 +1,5 @@
 import { useId, useState, useCallback } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'reicon-react';
 
 interface SettingsAccordionProps {
   title: string;

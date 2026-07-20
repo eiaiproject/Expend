@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { MAX_PIN_LENGTH, MIN_PIN_LENGTH } from '../../utils/constants';
-import { Lock, X, Eye, EyeOff, Info } from 'lucide-react';
+import { Lock, X, Eye, EyeOff, Information } from 'reicon-react';
 
 interface PinSetupModalProps {
   isOpen: boolean;
@@ -99,7 +99,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
         {step === 1 && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-left dark:border-amber-800 dark:bg-amber-900/20">
             <div className="flex items-start gap-2">
-              <Info size={16} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <Information size={16} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
               <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
                 {t('Security Disclosure')}
               </p>

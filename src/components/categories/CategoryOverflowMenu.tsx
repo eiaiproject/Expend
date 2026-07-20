@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { MoreVertical } from 'lucide-react';
+import { More } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 
 interface MenuItem {
@@ -62,7 +62,7 @@ export function CategoryOverflowMenu({ categoryName, items, disabled }: Category
         aria-expanded={isOpen}
         aria-controls={isOpen ? menuId : undefined}
       >
-        <MoreVertical size={18} aria-hidden="true" />
+        <More size={18} aria-hidden="true" />
       </button>
 
       {isOpen && (

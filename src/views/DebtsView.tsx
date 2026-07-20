@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { AlertTriangle, Handshake, HelpCircle, Plus, Search, X } from 'lucide-react';
+import { AlertTriangle, Handshake, HelpCircle, Plus, Search, X } from 'reicon-react';
 import { db, type Debt, type DebtPayment, type Wallet } from '../db/db';
 import { DebtCard } from '../components/debts/DebtCard';
 import { DebtDetailSheet } from '../components/debts/DebtDetailSheet';

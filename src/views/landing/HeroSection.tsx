@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown } from 'reicon-react';
 
 export function HeroSection({ onEnter }: { onEnter?: () => void }) {
   const { t } = useTranslation();

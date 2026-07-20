@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { X } from 'lucide-react';
+import { X } from 'reicon-react';
 import { FALLBACK_CATEGORY_NAME } from '../../utils/constants';
 
 interface FilterState {

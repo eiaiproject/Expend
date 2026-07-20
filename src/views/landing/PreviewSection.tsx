@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { BarChart3, PieChart, Wallet, TrendingUp, Search, Tags } from 'lucide-react';
+import { ChartBar, ChartPie, Wallet, TrendUp, Search, Tags } from 'reicon-react';
 
 interface PreviewCardProps {
   icon: React.ReactNode;
@@ -64,7 +64,7 @@ function DashboardMockup() {
       {/* Insight */}
       <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-          <TrendingUp size={14} className="text-red-400" />
+          <TrendUp size={14} className="text-red-400" />
         </div>
         <div>
           <p className="text-[10px] text-red-400 font-medium">{t('Spending up')}</p>
@@ -102,7 +102,7 @@ function StatsMockup() {
       <div className="bg-[var(--card)] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-bold text-white">{t('Spending by Category')}</p>
-          <PieChart size={14} className="text-[var(--accent)]" />
+          <ChartPie size={14} className="text-[var(--accent)]" />
         </div>
         <div className="flex items-center gap-4">
           <div className="relative w-20 h-20" role="img" aria-label={t('landing.previewCategoryAria')}>
@@ -168,7 +168,7 @@ function StatsMockup() {
       <div className="bg-[var(--card)] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-bold text-white">{t('Monthly Comparison')}</p>
-          <BarChart3 size={14} className="text-[var(--accent)]" />
+          <ChartBar size={14} className="text-[var(--accent)]" />
         </div>
         <div className="flex items-end gap-1.5 h-16">
           {[40, 55, 35, 70, 45, 80, 60, 50, 75, 65, 85, 45].map((h, i) => (
@@ -240,7 +240,7 @@ export function PreviewSection() {
       index: 0,
     },
     {
-      icon: <BarChart3 size={18} className="text-[var(--accent)]" />,
+      icon: <ChartBar size={18} className="text-[var(--accent)]" />,
       title: t('landing.previewStats'),
       description: t('landing.previewStatsDesc'),
       mockup: <StatsMockup />,

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { Wallet as WalletIcon, HelpCircle, Plus, Search, XCircle, Handshake, ArrowUpDown } from 'lucide-react';
+import { Wallet as WalletIcon, HelpCircle, Plus, Search, XCircle, Handshake, SortV } from 'reicon-react';
 import { confirm } from '../components/ConfirmDialog';
 import { toast } from '../components/Toaster';
 import { deleteWalletSafely, deactivateWallet, reactivateWallet } from '../services/walletService';
@@ -349,7 +349,7 @@ export default function WalletsView() {
             aria-haspopup="listbox"
             aria-expanded={isSortOpen}
           >
-            <ArrowUpDown size={18} aria-hidden="true" />
+            <SortV size={18} aria-hidden="true" />
           </button>
         </div>
       )}

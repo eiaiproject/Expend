@@ -1,7 +1,7 @@
 import { useId, useRef, type KeyboardEvent } from 'react';
 import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
-import { X, ArrowDownCircle, Repeat, Plus } from 'lucide-react';
+import { X, ArrowDownCircle, Repeat, Plus } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { type Transaction } from '../db/db';
 import { cn } from '../utils/cn';

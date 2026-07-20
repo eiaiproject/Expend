@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Coffee, Keyboard, X } from 'lucide-react';
+import { Coffee, Keyboard, X } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 

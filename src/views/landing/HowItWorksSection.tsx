@@ -1,10 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { Plus, RefreshCw, BarChart3 } from 'lucide-react';
+import { Plus, Refresh, ChartBar } from 'reicon-react';
 
 const steps = [
   { icon: Plus, key: 1 },
-  { icon: RefreshCw, key: 2 },
-  { icon: BarChart3, key: 3 },
+  { icon: Refresh, key: 2 },
+  { icon: ChartBar, key: 3 },
 ] as const;
 
 export function HowItWorksSection() {
