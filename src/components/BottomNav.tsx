@@ -27,15 +27,16 @@ export function FabButton({ onAddClick }: { onAddClick: () => void }) {
   const { t } = useTranslation();
 
   return (
-    <button
-      type="button"
-      onClick={onAddClick}
-      className="fixed right-[16px] w-[56px] h-[56px] rounded-[16px] bg-[var(--accent-fill)] text-[var(--accent-ink)] flex items-center justify-center shadow-lg shadow-[var(--accent-fill)]/30 active:scale-95 transition-transform z-50 lg:hidden touch-manipulation"
-      style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 16px)' }}
-      aria-label={t('Add Transaction')}
-    >
-      <Plus size={28} aria-hidden="true" />
-    </button>
+    <div className="fixed right-[16px] z-50 pointer-events-none" style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 16px)' }}>
+      <button
+        type="button"
+        onClick={onAddClick}
+        className="w-[56px] h-[56px] rounded-[16px] bg-[var(--accent-fill)] text-[var(--accent-ink)] flex items-center justify-center shadow-lg shadow-[var(--accent-fill)]/30 active:scale-95 transition-transform pointer-events-auto lg:hidden touch-manipulation"
+        aria-label={t('Add Transaction')}
+      >
+        <Plus size={28} aria-hidden="true" />
+      </button>
+    </div>
   );
 }
 
