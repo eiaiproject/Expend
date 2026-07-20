@@ -2,6 +2,24 @@
 
 All notable changes to Expend are documented here.
 
+## 1.11.0 - 2026-07-20
+### Added
+
+- Add scroll-fade-bottom utility class
+- Add bottom scroll-fade indicator to FilterSheet
+
+### Changed
+
+- Migrate all icons from lucide-react to reicon-react
+- Migrate App.tsx icons to reicon-react
+
+### Fixed
+
+- Wrap FAB in pointer-events-none so it stops blocking transaction card actions
+- Reposition filter count badge to avoid overflow
+- Tighten BottomNav spacing for narrow screens
+
+
 ## 1.10.2 - 2026-07-16
 
 ### Fixed
