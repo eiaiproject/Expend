@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useInstallPrompt } from '../utils/pwaUtils';
 import { useTranslation } from 'react-i18next';
-import { ArrowUp, Globe } from 'lucide-react';
+import { ArrowUp, Globe } from 'reicon-react';
 import { HeroSection } from './landing/HeroSection';
 import { HowItWorksSection } from './landing/HowItWorksSection';
 import { FeaturesSection } from './landing/FeaturesSection';

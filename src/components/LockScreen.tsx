@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSecurity } from '../contexts/SecurityContext';
-import { Lock, X } from 'lucide-react';
+import { Lock, X } from 'reicon-react';
 import { MAX_PIN_LENGTH } from '../utils/constants';
 
 export function LockScreen() {

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ShieldCheck, ShieldAlert, ClipboardCheck } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, ClipboardCheck } from 'reicon-react';
 
 export function PrivacySection() {
   const { t } = useTranslation();

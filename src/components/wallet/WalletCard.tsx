@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Wallet as WalletIcon, AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
+import { Wallet as WalletIcon, AlertCircle, TrendUp, TrendDown } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import type { Wallet } from '../../db/db';
 import type { SpendingTrend } from '../../types/wallet';
@@ -137,9 +137,9 @@ export function WalletCard({
         {spendingTrend && (
           <div className="flex items-center gap-1.5 mt-1">
             {spendingTrend.isUp ? (
-              <TrendingUp size={14} className="text-red-500" aria-hidden="true" />
+              <TrendUp size={14} className="text-red-500" aria-hidden="true" />
             ) : (
-              <TrendingDown size={14} className="text-green-500" aria-hidden="true" />
+              <TrendDown size={14} className="text-green-500" aria-hidden="true" />
             )}
             <span className={`text-xs font-medium ${spendingTrend.isUp ? 'text-red-500' : 'text-green-500'}`}>
               {spendingTrend.isUp ? '+' : ''}{spendingTrend.change.toFixed(0)}%

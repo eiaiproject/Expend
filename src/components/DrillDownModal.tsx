@@ -5,7 +5,7 @@ import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
 import { displayDateShort } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/formatUtils';
 import { usePrivacy } from '../contexts/PrivacyContext';
-import { X } from 'lucide-react';
+import { X } from 'reicon-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface DrillDownModalProps {

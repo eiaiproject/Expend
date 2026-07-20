@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { Calendar, Check, Wallet as WalletIcon } from 'lucide-react';
+import { Calendar, Check, Wallet as WalletIcon } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import type { Category, Wallet } from '../db/db';
 import { cn } from '../utils/cn';

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, Check, X } from 'lucide-react';
+import { ChevronDown, Check, X } from 'reicon-react';
 import { cn } from '../utils/cn';
 import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
 import { Category } from '../db/db';

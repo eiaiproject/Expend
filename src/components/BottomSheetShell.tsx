@@ -1,5 +1,5 @@
 import { useEffect, useId, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { X } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 

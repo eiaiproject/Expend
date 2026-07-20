@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDownCircle, ArrowUpRight, ArrowDownLeft, RefreshCw, Edit2, Trash2, MoreVertical, Eye, CheckCircle2 } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpRight, ArrowDownLeft, Refresh, Edit2, Trash2, More, Eye, CheckCircle } from 'reicon-react';
 import { cn } from '../../utils/cn';
 import { FALLBACK_CATEGORY_NAME } from '../../utils/constants';
 import { formatCurrencyValue, formatSignedCurrency } from '../../utils/formatUtils';
@@ -131,7 +131,7 @@ export function TransactionCard({
               ? "bg-[var(--accent)] border-[var(--accent)] text-white" 
               : "border-[var(--border)] text-transparent"
           )} aria-hidden="true">
-            <CheckCircle2 size={14} />
+            <CheckCircle size={14} />
           </div>
         )}
 
@@ -150,7 +150,7 @@ export function TransactionCard({
             {tx.type === 'expense' && <ArrowDownCircle size={16} />}
             {tx.type === 'transfer_out' && <ArrowUpRight size={16} />}
             {tx.type === 'transfer_in' && <ArrowDownLeft size={16} />}
-            {tx.type === 'balance_adjustment' && <RefreshCw size={16} />}
+            {tx.type === 'balance_adjustment' && <Refresh size={16} />}
           </div>
         )}
 
@@ -212,7 +212,7 @@ export function TransactionCard({
               aria-expanded={isMenuOpen}
               aria-controls={isMenuOpen ? `tx-menu-${tx.id}` : undefined}
             >
-              <MoreVertical size={16} />
+              <More size={16} />
             </button>
             {isMenuOpen && (
               <div

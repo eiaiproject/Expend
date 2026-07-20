@@ -4,10 +4,10 @@ import { db } from '../db/db';
 import { useSecurity } from '../contexts/SecurityContext';
 import {
   Moon, Sun, Monitor, Download, Upload, Lock, Trash2, Check,
-  Info, Tag, ShoppingBag, Database, HardDrive,
-  ExternalLink, ChevronRight, Eye, EyeOff, Smartphone,
+  Information, Tag, ShoppingBag, Database, HardDrive,
+  Link as ExternalLinkIcon, ChevronRight, Eye, EyeOff, Mobile,
   Clock, AlertTriangle
-} from 'lucide-react';
+} from 'reicon-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { Link } from 'react-router-dom';
@@ -777,7 +777,7 @@ export default function SettingsView() {
           <div className="px-4 pb-4 space-y-3">
             <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
               <div className="flex items-start gap-2">
-                <Info size={16} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                <Information size={16} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
                 <div className="space-y-1">
                   <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">{t('Security Disclosure')}</p>
                   <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">{t('Security Disclosure Tip')}</p>
@@ -799,7 +799,7 @@ export default function SettingsView() {
           <>
             <div className="p-4 border-t border-[var(--border)]">
               <div className="flex items-start gap-2">
-                <Info size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+                <Information size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />
                 <p className="text-xs leading-relaxed text-[var(--text-secondary)]">{t('settings.pinLimitation')}</p>
               </div>
             </div>
@@ -882,9 +882,9 @@ export default function SettingsView() {
           rel="noopener noreferrer"
           className="w-full flex items-center gap-3 p-4 border-t border-[var(--border)] text-left hover:bg-[var(--bg)] transition-colors min-h-[44px]"
         >
-          <ExternalLink size={18} className="text-[var(--text-secondary)]" aria-hidden="true" />
+          <ExternalLinkIcon size={18} className="text-[var(--text-secondary)]" aria-hidden="true" />
           <span className="text-sm font-medium text-[var(--text-primary)] flex-1">{t('settings.viewSourceCode')}</span>
-          <ExternalLink size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
+          <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
         </a>
 
 
@@ -902,7 +902,7 @@ export default function SettingsView() {
             onClick={showInstallPrompt}
             className="w-full flex items-center gap-3 p-4 border-t border-[var(--border)] text-left hover:bg-[var(--bg)] transition-colors min-h-[44px]"
           >
-            <Smartphone size={18} className="text-[var(--accent)]" aria-hidden="true" />
+            <Mobile size={18} className="text-[var(--accent)]" aria-hidden="true" />
             <div className="flex-1">
               <span className="text-sm font-medium text-[var(--text-primary)]">{t('settings.installAppLabel')}</span>
               <p className="text-xs text-[var(--text-secondary)]">{t('settings.installAppDesc')}</p>
@@ -919,7 +919,7 @@ export default function SettingsView() {
         >
           <HardDrive size={18} className="text-[var(--text-secondary)]" aria-hidden="true" />
           <span className="text-sm font-medium text-[var(--text-primary)] flex-1">{t('settings.supportOnTrakteer')}</span>
-          <ExternalLink size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
+          <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
         </a>
       </div>
 

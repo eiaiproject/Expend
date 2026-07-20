@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Merchant } from '../db/db';
 import {
-  Search, ArrowLeft, ShoppingBag, Plus, X, Filter, ArrowUpDown
-} from 'lucide-react';
+  Search, ArrowLeft, ShoppingBag, Plus, X, Filter, SortV
+} from 'reicon-react';
 import { cn } from '../utils/cn';
 import { formatCurrency } from '../utils/formatUtils';
 import { displayDateMedium } from '../utils/dateUtils';
@@ -389,7 +389,7 @@ export default function PayeesView() {
           <button type="button" onClick={() => setIsSortOpen(true)}
             className="flex items-center gap-2 px-3 py-2.5 rounded-lg border bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] text-sm font-medium min-h-[44px]"
             aria-label={t('payees.sortLabel')} aria-haspopup="dialog" aria-expanded={isSortOpen}>
-            <ArrowUpDown size={14} aria-hidden="true" /><span>{t('payees.sortLabel')}</span>
+            <SortV size={14} aria-hidden="true" /><span>{t('payees.sortLabel')}</span>
           </button>
         </div>
 

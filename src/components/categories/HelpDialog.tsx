@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Tag, DollarSign, Eye, Archive, Trash2, ArrowRightLeft, Wallet } from 'lucide-react';
+import { X, Tag, DollarSign, Eye, Archive, Trash2, ArrowSwapHorizontal, Wallet } from 'reicon-react';
 
 interface HelpDialogProps {
   isOpen: boolean;
@@ -59,7 +59,7 @@ export function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
             <h3 className="text-sm font-bold text-[var(--text-primary)] mb-2">{t('Categories')}</h3>
             <ul className="space-y-0">
               <HelpItem icon={Tag} text={t('categories.helpCategoryWhat')} />
-              <HelpItem icon={ArrowRightLeft} text={t('categories.helpCategoryImpact')} />
+              <HelpItem icon={ArrowSwapHorizontal} text={t('categories.helpCategoryImpact')} />
             </ul>
           </div>
 
@@ -70,7 +70,7 @@ export function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
               <HelpItem icon={Wallet} text={t('categories.helpBudgetNotBalance')} />
               <HelpItem icon={DollarSign} text={t('categories.helpBudgetNotTransaction')} />
               <HelpItem icon={DollarSign} text={t('categories.helpBudgetCounted')} />
-              <HelpItem icon={ArrowRightLeft} text={t('categories.helpTransferExcluded')} />
+              <HelpItem icon={ArrowSwapHorizontal} text={t('categories.helpTransferExcluded')} />
               <HelpItem icon={Wallet} text={t('categories.helpBalanceAdjExcluded')} />
             </ul>
           </div>

@@ -1,14 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { Code2, Smartphone, Database, Shield, BarChart3, Zap, Github, ChevronDown } from 'lucide-react';
+import { Code2, Mobile, Database, Shield, ChartBar, Bolt, Code, ChevronDown } from 'reicon-react';
 import { useState, useCallback } from 'react';
 
 const techItems = [
   { icon: Code2, nameKey: 'landing.techReact', descKey: 'landing.techReactDesc' },
-  { icon: Smartphone, nameKey: 'landing.techPwa', descKey: 'landing.techPwaDesc' },
+  { icon: Mobile, nameKey: 'landing.techPwa', descKey: 'landing.techPwaDesc' },
   { icon: Database, nameKey: 'landing.techDatabase', descKey: 'landing.techDatabaseDesc' },
   { icon: Shield, nameKey: 'landing.techSecurity', descKey: 'landing.techSecurityDesc' },
-  { icon: BarChart3, nameKey: 'landing.techCharts', descKey: 'landing.techChartsDesc' },
-  { icon: Zap, nameKey: 'landing.techBuild', descKey: 'landing.techBuildDesc' },
+  { icon: ChartBar, nameKey: 'landing.techCharts', descKey: 'landing.techChartsDesc' },
+  { icon: Bolt, nameKey: 'landing.techBuild', descKey: 'landing.techBuildDesc' },
 ];
 
 export function TechStackSection() {
@@ -71,7 +71,7 @@ export function TechStackSection() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-sm text-[var(--accent)] hover:underline"
             >
-              <Github size={16} aria-hidden="true" />
+              <Code size={16} aria-hidden="true" />
               {t('landing.source', 'View Source Code')} →
             </a>
           </div>

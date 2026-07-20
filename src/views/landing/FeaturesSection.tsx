@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { Zap, Shield, Wifi, Wallet, Tags, ArrowLeftRight, Handshake, BarChart3, Search } from 'lucide-react';
+import { Bolt, Shield, Wifi, Wallet, Tags, TransferH, Handshake, ChartBar, Search } from 'reicon-react';
 
 const benefits = [
-  { icon: Zap, titleKey: 'landing.benefit1Title', descKey: 'landing.benefit1Desc' },
+  { icon: Bolt, titleKey: 'landing.benefit1Title', descKey: 'landing.benefit1Desc' },
   { icon: Shield, titleKey: 'landing.benefit2Title', descKey: 'landing.benefit2Desc' },
   { icon: Wifi, titleKey: 'landing.benefit3Title', descKey: 'landing.benefit3Desc' },
 ];
@@ -10,9 +10,9 @@ const benefits = [
 const features = [
   { icon: Wallet, titleKey: 'landing.featureWalletTitle', descKey: 'landing.featureWalletDesc' },
   { icon: Tags, titleKey: 'landing.featureBudgetTitle', descKey: 'landing.featureBudgetDesc' },
-  { icon: ArrowLeftRight, titleKey: 'landing.featureTransferTitle', descKey: 'landing.featureTransferDesc' },
+  { icon: TransferH, titleKey: 'landing.featureTransferTitle', descKey: 'landing.featureTransferDesc' },
   { icon: Handshake, titleKey: 'landing.featureDebtTitle', descKey: 'landing.featureDebtDesc' },
-  { icon: BarChart3, titleKey: 'landing.featureChartsTitle', descKey: 'landing.featureChartsDesc' },
+  { icon: ChartBar, titleKey: 'landing.featureChartsTitle', descKey: 'landing.featureChartsDesc' },
   { icon: Search, titleKey: 'landing.featureSearchTitle', descKey: 'landing.featureSearchDesc' },
 ];
 

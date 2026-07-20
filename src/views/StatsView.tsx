@@ -21,7 +21,7 @@ import { formatCurrency } from '../utils/formatUtils';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { DrillDownModal } from '../components/DrillDownModal';
 import { EmptyState } from '../components/EmptyState';
-import { BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChartBar, ChevronDown, ChevronUp } from 'reicon-react';
 import { cn } from '../utils/cn';
 
 // ── Types ──────────────────────────────────────────────────────
@@ -495,7 +495,7 @@ export default function StatsView() {
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">{t('stats.statistics')}</h1>
         <EmptyState
-          icon={<BarChart3 size={36} />}
+          icon={<ChartBar size={36} />}
           title={t('stats.emptyFirstUse')}
           description={t('stats.emptyFirstUseDesc')}
           action={{ label: t('stats.emptyFirstUseCta'), onClick: () => window.location.href = '/' }}
@@ -567,7 +567,7 @@ export default function StatsView() {
       {/* No data in period */}
       {hasNoDataInPeriod && (
         <EmptyState
-          icon={<BarChart3 size={36} />}
+          icon={<ChartBar size={36} />}
           title={walletFilter != null ? t('stats.emptyNoWalletSpending') : t('stats.emptyNoPeriodSpending')}
           description={t('stats.emptyNoPeriodSpendingDesc')}
           action={walletFilter != null ? { label: t('All Wallets'), onClick: () => setWalletFilter(null) } : undefined}

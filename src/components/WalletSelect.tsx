@@ -1,4 +1,4 @@
-import { ChevronDown, Wallet as WalletIcon } from 'lucide-react';
+import { ChevronDown, Wallet as WalletIcon } from 'reicon-react';
 import type { Wallet } from '../db/db';
 
 interface WalletSelectProps {

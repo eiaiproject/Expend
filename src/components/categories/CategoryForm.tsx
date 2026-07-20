@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Save, X } from 'lucide-react';
+import { Save, X } from 'reicon-react';
 import { cn } from '../../utils/cn';
 import { CURATED_PALETTE } from '../../utils/constants';
 import type { Category } from '../../db/db';

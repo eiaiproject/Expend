@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Download, Check } from 'lucide-react';
+import { Download, Check } from 'reicon-react';
 import { isIOSDevice } from '../../utils/pwaUtils';
 import { useState, useEffect } from 'react';
 import { APP_VERSION } from '../../utils/constants';

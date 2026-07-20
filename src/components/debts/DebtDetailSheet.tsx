@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, CheckCircle, Edit, Trash2 } from 'reicon-react';
 import { type Debt, type DebtPayment, type Wallet } from '../../db/db';
 import { archiveDebt, calculateDebtStatus, isDebtClosed, markDebtPaidWithoutCashflow, writeOffReceivable } from '../../services/debtService';
 import { getDisplayDebtPaymentNote, getKnownErrorMessage } from '../../services/errors';
@@ -216,7 +216,7 @@ export function DebtDetailSheet({
             onClick={() => onEdit(debt)}
             className="inline-flex min-h-[44px] items-center justify-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-3 text-sm font-bold text-[var(--text-secondary)]"
           >
-            <Pencil size={15} /> {t('debt.editRecord')}
+            <Edit size={15} /> {t('debt.editRecord')}
           </button>
           <button
             type="button"
@@ -224,7 +224,7 @@ export function DebtDetailSheet({
             onClick={handleMarkPaid}
             className="inline-flex min-h-[44px] items-center justify-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-3 text-sm font-bold text-[var(--text-secondary)] disabled:opacity-40"
           >
-            <CheckCircle2 size={15} /> {t('debt.markSettled')}
+            <CheckCircle size={15} /> {t('debt.markSettled')}
           </button>
           <button
             type="button"

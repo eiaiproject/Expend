@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ArrowDownCircle, Handshake, Repeat } from 'lucide-react';
+import { ArrowDownCircle, Handshake, Repeat } from 'reicon-react';
 import { BottomSheetShell } from './BottomSheetShell';
 
 const LAST_ACTION_KEY = 'expend_last_action';

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MoreVertical, Eye, Pencil, ArrowRightLeft, Scale, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
+import { More, Eye, Edit, ArrowSwapHorizontal, Scale, Archive, ArchiveTick, Trash2 } from 'reicon-react';
 import type { Wallet } from '../../db/db';
 import { usePrivacy } from '../../contexts/PrivacyContext';
 
@@ -119,7 +119,7 @@ export function WalletOverflowMenu({
         aria-expanded={isOpen}
         aria-controls={isOpen ? menuId : undefined}
       >
-        <MoreVertical size={18} aria-hidden="true" />
+        <More size={18} aria-hidden="true" />
       </button>
 
       {isOpen && (
@@ -147,7 +147,7 @@ export function WalletOverflowMenu({
             onClick={closeAnd(onEdit)}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-[var(--bg)] transition-colors focus-visible:outline-none focus-visible:bg-[var(--bg)]"
           >
-            <Pencil size={16} aria-hidden="true" className="shrink-0" />
+            <Edit size={16} aria-hidden="true" className="shrink-0" />
             {t('wallet.editWallet')}
           </button>
 
@@ -157,7 +157,7 @@ export function WalletOverflowMenu({
             onClick={closeAnd(onTransfer)}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-[var(--bg)] transition-colors focus-visible:outline-none focus-visible:bg-[var(--bg)]"
           >
-            <ArrowRightLeft size={16} aria-hidden="true" className="shrink-0" />
+            <ArrowSwapHorizontal size={16} aria-hidden="true" className="shrink-0" />
             {t('wallet.transferFunds')}
           </button>
 
@@ -180,7 +180,7 @@ export function WalletOverflowMenu({
               onClick={closeAnd(onReactivate)}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-[var(--bg)] transition-colors focus-visible:outline-none focus-visible:bg-[var(--bg)]"
             >
-              <ArchiveRestore size={16} aria-hidden="true" className="shrink-0" />
+              <ArchiveTick size={16} aria-hidden="true" className="shrink-0" />
               {t('wallet.reactivateWallet')}
             </button>
           ) : (

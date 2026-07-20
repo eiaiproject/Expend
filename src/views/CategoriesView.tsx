@@ -4,9 +4,9 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, Link } from 'react-router-dom';
 import { db, type Category } from '../db/db';
 import {
-  Tag, Plus, ArrowLeft, HelpCircle, Search, X as XIcon, ArrowUpDown,
+  Tag, Plus, ArrowLeft, HelpCircle, Search, X as XIcon, SortV,
   ChevronDown, ChevronUp
-} from 'lucide-react';
+} from 'reicon-react';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { cn } from '../utils/cn';
 import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
@@ -572,7 +572,7 @@ export default function CategoriesView() {
               <option value="spending">{t('categories.sortBySpending')}</option>
               <option value="budget">{t('categories.sortByBudget')}</option>
             </select>
-            <ArrowUpDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-secondary)]" aria-hidden="true" />
+            <SortV size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-secondary)]" aria-hidden="true" />
           </div>
         </div>
       )}

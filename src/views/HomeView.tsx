@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
-import { Eye, EyeOff, Moon, Sun, Filter, ArrowUpDown, Search, XCircle, X, Trash2, Handshake } from 'lucide-react';
+import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, X, Trash2, Handshake } from 'reicon-react';
 import { cn } from '../utils/cn';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
@@ -456,7 +456,7 @@ export default function HomeView() {
               >
                 <Filter size={18} />
                 {activeFilterCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--accent)] text-white text-[9px] font-bold flex items-center justify-center">
+                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[var(--accent)] text-white text-[9px] font-bold flex items-center justify-center pointer-events-none">
                     {activeFilterCount}
                   </span>
                 )}
@@ -469,7 +469,7 @@ export default function HomeView() {
                 className="relative w-11 h-11 flex items-center justify-center rounded-lg border bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
                 aria-label={sortLabel}
               >
-                <ArrowUpDown size={18} />
+                <SortV size={18} />
                 <kbd className="absolute -bottom-1 -right-1 hidden md:inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--border)] bg-[var(--bg)] text-[8px] font-mono font-bold text-[var(--text-secondary)] shadow-sm" aria-hidden="true">
                   S
                 </kbd>

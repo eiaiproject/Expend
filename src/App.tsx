@@ -27,7 +27,7 @@ import './i18n/init';
 
 import LandingView from './views/LandingView';
 import { SidebarNav } from './components/SidebarNav';
-import { Download, WifiOff, X } from 'lucide-react';
+import { Download, WifiOff, X } from 'reicon-react';
 import OnboardingWizard from './components/OnboardingWizard';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { isIOSDevice, useInstallPrompt, useOnlineStatus } from './utils/pwaUtils';

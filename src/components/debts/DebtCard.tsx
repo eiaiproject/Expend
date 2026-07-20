@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, AlertTriangle, MoreHorizontal, Pencil, Trash2, HandCoins } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, CheckCircle, Clock, AlertTriangle, MoreH, Edit, Trash2, HandDollar } from 'reicon-react';
 import { type Debt, type DebtPayment, type Wallet } from '../../db/db';
 import { calculateDebtStatus, isDebtClosed, archiveDebt, markDebtPaidWithoutCashflow, writeOffReceivable } from '../../services/debtService';
 import { getKnownErrorMessage } from '../../services/errors';
@@ -170,7 +170,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
           {status === 'overdue' ? (
             <AlertTriangle size={18} aria-hidden="true" />
           ) : closed ? (
-            <CheckCircle2 size={18} aria-hidden="true" />
+            <CheckCircle size={18} aria-hidden="true" />
           ) : isPayable ? (
             <ArrowDownLeft size={18} aria-hidden="true" />
           ) : (
@@ -212,7 +212,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                     onClick={() => setMenuOpen(!menuOpen)}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg)]"
                   >
-                    <MoreHorizontal size={18} />
+                    <MoreH size={18} />
                   </button>
                   {menuOpen && (
                     <div
@@ -227,7 +227,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                         onClick={() => { closeMenu(); onClick(); }}
                         className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]"
                       >
-                        <CheckCircle2 size={15} /> {t('debt.viewDetail')}
+                        <CheckCircle size={15} /> {t('debt.viewDetail')}
                       </button>
                       <button
                         ref={(el) => { menuItemsRef.current[1] = el; }}
@@ -235,7 +235,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                         onClick={() => { closeMenu(); onPayment(); }}
                         className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]"
                       >
-                        <HandCoins size={15} /> {t('debt.recordPayment')}
+                        <HandDollar size={15} /> {t('debt.recordPayment')}
                       </button>
                       <button
                         ref={(el) => { menuItemsRef.current[2] = el; }}
@@ -243,7 +243,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                         onClick={() => { closeMenu(); onEdit(); }}
                         className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]"
                       >
-                        <Pencil size={15} /> {t('debt.editRecord')}
+                        <Edit size={15} /> {t('debt.editRecord')}
                       </button>
                       <div className="my-1 border-t border-[var(--border)]" role="separator" />
                       <button
@@ -252,7 +252,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                         onClick={handleMarkPaid}
                         className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]"
                       >
-                        <CheckCircle2 size={15} /> {t('debt.markSettled')}
+                        <CheckCircle size={15} /> {t('debt.markSettled')}
                       </button>
                       {debt.type === 'receivable' && (
                         <button
@@ -306,7 +306,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
           {/* Quick payment button for closed cards */}
           {closed && (
             <div className="mt-3 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-              <CheckCircle2 size={14} className="text-green-500" />
+              <CheckCircle size={14} className="text-green-500" />
               <span>{status === 'paid' ? t('debt.statusPaidLabel') : t('debt.statusWrittenOffLabel')}</span>
             </div>
           )}

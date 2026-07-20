@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Transaction } from '../db/db';
-import { Edit2, Trash2, Repeat } from 'lucide-react';
+import { Edit2, Trash2, Repeat } from 'reicon-react';
 import { displayDateFull } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/formatUtils';
 import { BottomSheetShell } from './BottomSheetShell';

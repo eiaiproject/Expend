@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { ArrowDownCircle, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
+import { ArrowDownCircle, TrendUp, TrendDown, ChartBar } from 'reicon-react';
 import { cn } from '../../utils/cn';
 import { formatCurrency, formatBalance } from '../../utils/formatUtils';
 import { Skeleton } from '../Skeleton';
@@ -100,11 +100,11 @@ export function SummaryCard({
           smartInsight.type === 'success' && "border-green-500/30",
         )}>
           {smartInsight.type === 'warning' ? (
-            <TrendingUp size={16} className="text-amber-500 shrink-0" aria-hidden="true" />
+            <TrendUp size={16} className="text-amber-500 shrink-0" aria-hidden="true" />
           ) : smartInsight.type === 'success' ? (
-            <TrendingDown size={16} className="text-green-500 shrink-0" aria-hidden="true" />
+            <TrendDown size={16} className="text-green-500 shrink-0" aria-hidden="true" />
           ) : (
-            <BarChart3 size={16} className="text-[var(--accent)] shrink-0" aria-hidden="true" />
+            <ChartBar size={16} className="text-[var(--accent)] shrink-0" aria-hidden="true" />
           )}
           <span className="text-[var(--text-secondary)]">{smartInsight.text}</span>
         </div>
@@ -116,7 +116,7 @@ export function SummaryCard({
           to="/stats"
           className="flex items-center justify-center gap-2 py-3 rounded-[16px] bg-[var(--card)] border border-[var(--border)] text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-colors"
         >
-          <BarChart3 size={16} aria-hidden="true" />
+          <ChartBar size={16} aria-hidden="true" />
           {t('home.viewStats')}
         </Link>
       )}

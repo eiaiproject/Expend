@@ -62,6 +62,12 @@
     overflow: hidden;
   }
 
+  /* Scrollable area with bottom fade indicator */
+  .scroll-fade-bottom {
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 24px), transparent 100%);
+    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 24px), transparent 100%);
+  }
+
   .font-mono {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;

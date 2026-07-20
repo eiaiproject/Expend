@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSecurity } from '../../contexts/SecurityContext';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { Lock, X } from 'lucide-react';
+import { Lock, X } from 'reicon-react';
 
 interface VerifyCurrentPinModalProps {
   isOpen: boolean;

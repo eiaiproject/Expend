@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList } from 'reicon-react';
 import type { ReactNode } from 'react';
 
 interface EmptyStateProps {
