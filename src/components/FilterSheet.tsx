@@ -129,7 +129,7 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets }: F
       ariaLabel={t('Transaction Filter')}
     >
       <div className="flex flex-col h-full">
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scroll-fade-bottom">
           <div className="space-y-3" role="group" aria-label={t('Filter Type')}>
             <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
               {t('Filter Type')}
