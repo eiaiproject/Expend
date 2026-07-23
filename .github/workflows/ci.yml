@@ -19,11 +19,11 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Install Playwright Browsers
         # Required so the playwright E2E step can actually launch browsers.
-        run: npx playwright install --with-deps chromium
+        run: node_modules/.bin/playwright install --with-deps chromium
 
       - name: Run QA Automated
         # Runs: strict lint, typecheck, i18n key check, unit tests, production build, and E2E (chromium).

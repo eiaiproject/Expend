@@ -1,4 +1,4 @@
-import { db } from '../db/db';
+import { db, type Transaction } from '../db/db';
 import Papa from 'papaparse';
 import { sanitizeCsvRows } from './importExportService';
 import { getTodayStr } from '../utils/dateUtils';
@@ -123,10 +123,26 @@ export async function exportDebtPaymentsCsv(): Promise<void> {
   downloadBlob(blob, `expend_payments_${getTodayStr()}.csv`);
 }
 
+/** CSV row data with both original fields (wallet/category names) and resolved IDs. */
+export interface CsvImportRow {
+  date: string;
+  wallet: string;
+  category: string;
+  recipient: string;
+  type: string;
+  notes: string;
+  transferGroupId: string | undefined;
+  // Resolved/validated fields
+  walletId: number;
+  categoryId: number | null;
+  description: string;
+  amount: number;
+}
+
 /**
  * Parse and validate CSV transaction rows.
  */
-export async function parseTransactionsCsv(file: File): Promise<{ rows: any[]; errors: string[] }> {
+export async function parseTransactionsCsv(file: File): Promise<{ rows: CsvImportRow[]; errors: string[] }> {
   return new Promise((resolve) => {
     Papa.parse(file, {
       header: true,
@@ -134,21 +150,22 @@ export async function parseTransactionsCsv(file: File): Promise<{ rows: any[]; e
       complete: async (results) => {
         const rows = results.data;
         const errors: string[] = [];
-        const validRows: any[] = [];
+        const validRows: CsvImportRow[] = [];
 
         const wallets = await db.wallets.toArray();
         const walletMap = new Map(wallets.map(w => [w.name.toLowerCase(), w.id!]));
         const categories = await db.categories.toArray();
         const categoryMap = new Map(categories.map(c => [c.name.toLowerCase(), c.id!]));
 
-        rows.forEach((row: any, index: number) => {
+        rows.forEach((row: unknown, index: number) => {
+          const csvRow = row as Record<string, string | undefined>;
           const rowNum = index + 1;
-          const date = row.date;
-          const walletName = row.wallet;
-          const categoryName = row.category;
-          const recipient = row.recipient;
-          const amountStr = row.amount;
-          const type = row.type;
+          const date = csvRow.date;
+          const walletName = csvRow.wallet;
+          const categoryName = csvRow.category;
+          const recipient = csvRow.recipient;
+          const amountStr = csvRow.amount;
+          const type = csvRow.type;
 
           if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
             errors.push(`Row ${rowNum}: Invalid date format (expected YYYY-MM-DD).`);
@@ -176,7 +193,7 @@ export async function parseTransactionsCsv(file: File): Promise<{ rows: any[]; e
             return;
           }
 
-          const amount = parseFloat(amountStr);
+          const amount = parseFloat(amountStr ?? '');
           if (!Number.isFinite(amount)) {
             errors.push(`Row ${rowNum}: Amount must be a valid number.`);
             return;
@@ -194,13 +211,16 @@ export async function parseTransactionsCsv(file: File): Promise<{ rows: any[]; e
 
           validRows.push({
             date,
-            walletId: walletMap.get(walletName.toLowerCase()!),
-            categoryId: type === 'expense' ? categoryMap.get(categoryName.toLowerCase()!) : null,
+            wallet: walletName,
+            category: categoryName || '',
+            recipient: recipient || '',
+            type: type || '',
+            notes: csvRow.notes || '',
+            transferGroupId: csvRow.transferGroupId || undefined,
+            walletId: walletMap.get(walletName!.toLowerCase())!,
+            categoryId: type === 'expense' ? categoryMap.get(categoryName!.toLowerCase())! : null,
             description: recipient || 'Imported',
             amount,
-            type,
-            notes: row.notes || '',
-            transferGroupId: row.transferGroupId || undefined,
           });
         });
 
@@ -213,10 +233,19 @@ export async function parseTransactionsCsv(file: File): Promise<{ rows: any[]; e
 /**
  * Import validated CSV transactions.
  */
-export async function importCsvTransactions(rows: any[]): Promise<void> {
+export async function importCsvTransactions(rows: CsvImportRow[]): Promise<void> {
   await db.transaction('rw', [db.transactions, db.wallets, db.debts, db.debtPayments, db.merchants], async () => {
     for (const row of rows) {
-      await db.transactions.add(row);
+      await db.transactions.add({
+        walletId: row.walletId,
+        categoryId: row.categoryId,
+        date: row.date,
+        description: row.description,
+        type: row.type as Transaction['type'],
+        amount: row.amount,
+        notes: row.notes || undefined,
+        transferGroupId: row.transferGroupId || undefined,
+      });
       // Auto-create merchant entry for expenses
       if (row.type === 'expense' && row.description) {
         await ensureMerchant(row.description);

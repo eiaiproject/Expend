@@ -17,13 +17,15 @@ import {
   generateExport,
   importData,
   validateImportData,
+  type ExportData,
 } from '../services/importExportService';
 import {
   exportTransactionsCsv,
   exportDebtsCsv,
   exportDebtPaymentsCsv,
   parseTransactionsCsv,
-  importCsvTransactions
+  importCsvTransactions,
+  type CsvImportRow,
 } from '../services/csvService';
 import { MAX_IMPORT_FILE_SIZE, STORAGE_KEYS, APP_VERSION, AUTO_LOCK_TIMEOUT_OPTIONS } from '../utils/constants';
 import { downloadBlob } from '../utils/downloadUtils';
@@ -140,19 +142,10 @@ function useBackupReminder() {
 
 // ── CSV Preview ────────────────────────────────────────────────
 
-interface CsvPreviewRow {
-  date: string;
-  wallet: string;
-  category: string;
-  recipient: string;
-  amount: string;
-  type: string;
-}
-
 function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
   isOpen: boolean;
   onClose: () => void;
-  rows: CsvPreviewRow[];
+  rows: CsvImportRow[];
   errors: string[];
   onConfirm: () => void;
 }) {
@@ -231,13 +224,13 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
 function RestorePreviewModal({ isOpen, onClose, data, onConfirm }: {
   isOpen: boolean;
   onClose: () => void;
-  data: { wallets: any[]; transactions: any[]; categories: any[]; debts: any[]; payments: any[]; exportedAt: string; version: string } | null;
+  data: ExportData | null;
   onConfirm: () => void;
 }) {
   const { t, i18n } = useTranslation();
   if (!isOpen || !data) return null;
 
-  const walletNames = data.wallets.map((w: any) => w.name).join(', ') || '—';
+  const walletNames = data.wallets.map((w) => w.name).join(', ') || '—';
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={t('settings.restorePreviewTitle')}>
@@ -271,7 +264,7 @@ function RestorePreviewModal({ isOpen, onClose, data, onConfirm }: {
             <span className="font-medium">{data.debts.length}</span>
 
             <span className="text-[var(--text-secondary)]">{t('settings.restorePayments')}</span>
-            <span className="font-medium">{data.payments.length}</span>
+            <span className="font-medium">{data.debtPayments.length}</span>
           </div>
 
           {data.wallets.length > 0 && (
@@ -312,10 +305,10 @@ export default function SettingsView() {
   const [isImporting, setIsImporting] = useState(false);
 
   // CSV Preview state
-  const [csvPreview, setCsvPreview] = useState<{ rows: CsvPreviewRow[]; errors: string[] } | null>(null);
+  const [csvPreview, setCsvPreview] = useState<{ rows: CsvImportRow[]; errors: string[] } | null>(null);
 
   // Restore Preview state
-  const [restoreData, setRestoreData] = useState<{ wallets: any[]; transactions: any[]; categories: any[]; debts: any[]; payments: any[]; exportedAt: string; version: string } | null>(null);
+  const [restoreData, setRestoreData] = useState<ExportData | null>(null);
 
   const {
     securityEnabled,
@@ -432,7 +425,8 @@ export default function SettingsView() {
         transactions: Array.isArray(json.transactions) ? json.transactions : [],
         categories: Array.isArray(json.categories) ? json.categories : [],
         debts: Array.isArray(json.debts) ? json.debts : [],
-        payments: Array.isArray(json.debtPayments || json.debt_payments) ? (json.debtPayments || json.debt_payments) : [],
+        debtPayments: Array.isArray(json.debtPayments || json.debt_payments) ? (json.debtPayments || json.debt_payments) : [],
+        settings: [],
         exportedAt: json.exportedAt || '',
         version: json.version || '',
       });
@@ -446,7 +440,7 @@ export default function SettingsView() {
   const handleRestoreConfirm = async () => {
     if (!restoreData) return;
     try {
-      await importData(restoreData as any);
+      await importData(restoreData);
       toast.add(t('settings.restoreSuccess'));
       setRestoreData(null);
       window.setTimeout(() => window.location.reload(), 600);

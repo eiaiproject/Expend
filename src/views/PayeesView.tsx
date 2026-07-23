@@ -13,7 +13,7 @@ import { confirm } from '../components/ConfirmDialog';
 import {
   getPayeeStatsFromTransactions, filterTransactionsByPayee,
   normalizePayeeKey, normalizePayeeName,
-  type PayeeStats, type PayeeSortConfig, type PayeeTransactionFilters, type PayeeAggregateFilters
+  type PayeeStats, type PayeeSortField, type PayeeSortConfig, type PayeeTransactionFilters, type PayeeAggregateFilters
 } from '../services/payeeService';
 import {
   ensureMerchant, renameMerchant, addMerchantAlias, removeMerchantAlias,
@@ -53,8 +53,12 @@ export default function PayeesView() {
   const [newMerchantName, setNewMerchantName] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
 
+  const sortField = searchParams.get('sort') ?? 'totalExpense';
+  const validatedSortField: PayeeSortField = ['name', 'totalExpense', 'transactionCount', 'averageAmount', 'lastTransactionDate'].includes(sortField as PayeeSortField)
+    ? sortField as PayeeSortField
+    : 'totalExpense';
   const [sortConfig, setSortConfig] = useState<PayeeSortConfig>({
-    field: (searchParams.get('sort') as any) ?? 'totalExpense', order: 'desc',
+    field: validatedSortField, order: 'desc',
   });
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -126,8 +130,8 @@ export default function PayeesView() {
     list.sort((a, b) => {
       if (field === 'name') return dir * a.displayName.localeCompare(b.displayName, i18n.language);
       if (field === 'lastTransactionDate') return dir * a.stats.lastTransactionDate.localeCompare(b.stats.lastTransactionDate);
-      const aVal = (a.stats as any)[field] ?? 0;
-      const bVal = (b.stats as any)[field] ?? 0;
+      const aVal = field === 'totalExpense' ? a.stats.totalExpense : field === 'transactionCount' ? a.stats.transactionCount : a.stats.averageAmount;
+      const bVal = field === 'totalExpense' ? b.stats.totalExpense : field === 'transactionCount' ? b.stats.transactionCount : b.stats.averageAmount;
       return dir * (aVal - bVal);
     });
     return list;
