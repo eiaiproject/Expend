@@ -45,7 +45,7 @@ function LangSwitcher() {
       type="button"
       onClick={toggle}
       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
-      aria-label={isEn ? 'Switch to Indonesian' : 'Switch to English'}
+      aria-label={isEn ? 'Switch to Indonesian (ID)' : 'Switch to English (EN)'}
     >
       <Globe size={14} aria-hidden="true" />
       {isEn ? 'ID' : 'EN'}

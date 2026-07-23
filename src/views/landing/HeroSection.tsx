@@ -74,7 +74,7 @@ export function HeroSection({ onEnter }: { onEnter?: () => void }) {
               <div className="bg-[var(--bg)] rounded-[1.15rem] overflow-hidden">
                 {/* Status Bar */}
                 <div className="h-10 flex items-center justify-between px-6 pt-2">
-                  <span className="text-[10px] text-white/50 font-medium">9:41</span>
+                  <span className="text-[10px] text-white/70 font-medium">9:41</span>
                   <div className="flex items-center gap-1.5">
                     <div className="w-3.5 h-2.5 bg-white/50 rounded-sm" />
                     <div className="w-4 h-2.5 bg-white/50 rounded-sm" />
@@ -87,21 +87,21 @@ export function HeroSection({ onEnter }: { onEnter?: () => void }) {
                   <div className="flex justify-between items-center mb-4 mt-1">
                     <div>
                       <h2 className="text-lg font-bold tracking-tight uppercase text-white">Expend</h2>
-                      <p className="text-[10px] text-white/40">{t('landing.demoDate')}</p>
+                      <p className="text-[10px] text-white/70">{t('landing.demoDate')}</p>
                     </div>
                   </div>
 
                   {/* Balance Card */}
-                  <div className="bg-[var(--accent)] rounded-2xl p-4 mb-4">
-                    <p className="text-white/70 text-[10px] font-medium mb-1">{t('Balance')}</p>
+                  <div className="bg-[var(--accent-fill)] rounded-2xl p-4 mb-4">
+                    <p className="text-white/85 text-[10px] font-medium mb-1">{t('Balance')}</p>
                     <p className="text-xl font-bold text-white font-mono">Rp 5.240.000</p>
                     <div className="flex gap-2 mt-3">
                       <div className="flex-1 bg-white/10 rounded-lg p-2">
-                        <p className="text-[8px] text-white/50 uppercase font-bold">{t('Today')}</p>
+                        <p className="text-[8px] text-white/80 uppercase font-bold">{t('Today')}</p>
                         <p className="text-xs font-bold text-white font-mono">Rp 150.000</p>
                       </div>
                       <div className="flex-1 bg-white/10 rounded-lg p-2">
-                        <p className="text-[8px] text-white/50 uppercase font-bold">{t('Yesterday')}</p>
+                        <p className="text-[8px] text-white/80 uppercase font-bold">{t('Yesterday')}</p>
                         <p className="text-xs font-bold text-white font-mono">Rp 85.000</p>
                       </div>
                     </div>
@@ -120,7 +120,7 @@ export function HeroSection({ onEnter }: { onEnter?: () => void }) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-white truncate">{tx.name}</p>
-                          <p className="text-[10px] text-white/40">{tx.time}</p>
+                          <p className="text-[10px] text-white/70">{tx.time}</p>
                         </div>
                         <p className="text-xs font-bold text-red-400 font-mono shrink-0">-{tx.amount}</p>
                       </div>
