@@ -361,9 +361,10 @@ test.describe('wallet balance smoke', () => {
     expect(wallet).toBeTruthy();
     expect(Number(wallet!.initialBalance)).toBe(1_000_000);
     expect(Number(wallet!.currentBalance)).not.toBe(999_999);
-    // ponytail: debt payments are imported but recomputeWalletCurrentBalances only factors
-    // in transactions (expense -100k, adjustment -50k). Debt cashflow not counted for balance.
-    expect(Number(wallet!.currentBalance)).toBe(850_000);
+    // recomputeWalletCurrentBalances factors in transactions (expense -100k, adjustment -50k)
+    // AND debt cashflow: initial receivable -200k, repayment +100k = -100k net.
+    // 1_000_000 - 100_000 - 50_000 - 200_000 + 100_000 = 750_000
+    expect(Number(wallet!.currentBalance)).toBe(750_000);
 
     // Assert supporting records were imported.
     const txs = await readTransactions(page);

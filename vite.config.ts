@@ -18,7 +18,9 @@ export default defineConfig(({mode}) => {
       __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
     },
     build: {
-      sourcemap: true,
+      // Enable source maps in dev/preview only; off in production
+      // to avoid exposing full source code to end users.
+      sourcemap: mode !== 'production',
     },
     plugins: [react(), tailwindcss(), VitePWA({
       registerType: 'autoUpdate',
