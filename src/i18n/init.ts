@@ -17,8 +17,7 @@ const updateDocumentLanguage = (language: string) => {
 const browserLanguage =
   typeof navigator !== 'undefined' && navigator.language.startsWith('en') ? 'en' : 'id';
 
-i18n.use(initReactI18next);
-await i18n.init({
+i18n.use(initReactI18next).init({
   resources,
   lng: browserLanguage,
   fallbackLng: 'id',
@@ -28,8 +27,7 @@ await i18n.init({
   react: {
     useSuspense: false,
   },
-});
-updateDocumentLanguage(i18n.language);
+}).then(() => updateDocumentLanguage(i18n.language));
 
 i18n.on('languageChanged', updateDocumentLanguage);
 
