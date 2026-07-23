@@ -99,7 +99,7 @@ export async function deleteWalletSafely(walletId: number): Promise<DeleteWallet
         .equals(groupId)
         .and(t => t.id !== tx.id)
         .first();
-      if (counterpart && counterpart.id != null) {
+      if (counterpart?.id != null) {
         pairsToDelete.add(counterpart.id);
         if (counterpart.walletId !== walletId) {
           pairedAffectedWalletIds.add(counterpart.walletId);

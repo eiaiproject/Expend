@@ -36,7 +36,6 @@ export function WalletOverflowMenu({
   onDelete,
 }: WalletOverflowMenuProps) {
   const { t } = useTranslation();
-  const { hideAmount } = usePrivacy();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);

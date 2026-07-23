@@ -7,11 +7,10 @@ import { HowItWorksSection } from './landing/HowItWorksSection';
 import { FeaturesSection } from './landing/FeaturesSection';
 import { PreviewSection } from './landing/PreviewSection';
 import { PrivacySection } from './landing/PrivacySection';
-import { InstallSection } from './landing/InstallSection';
+import { InstallSection, LandingFooter } from './landing/InstallSection';
 import { TechStackSection } from './landing/TechStackSection';
 import { FAQSection } from './landing/FAQSection';
 import { FinalCTASection } from './landing/FinalCTASection';
-import { LandingFooter } from './landing/InstallSection';
 import { StickyCta } from '../components/StickyCta';
 import { RevealOnScroll } from '../components/RevealOnScroll';
 import { useNearViewport } from '../hooks/useNearViewport';
@@ -32,7 +31,7 @@ function LazySection({ children }: { children: React.ReactNode }) {
 /*  Language Switcher                                                 */
 /* ------------------------------------------------------------------ */
 function LangSwitcher() {
-  const { i18n, t } = useTranslation();
+  const { i18n } = useTranslation();
   const isEn = i18n.language?.startsWith('en');
 
   const toggle = useCallback(() => {

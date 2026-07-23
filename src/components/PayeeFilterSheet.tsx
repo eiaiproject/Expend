@@ -81,7 +81,7 @@ export function PayeeFilterSheet({ isOpen, onClose, draft: initialDraft, onApply
   };
 
   const handleCountChange = (val: string, key: 'minTransactionCount' | 'maxTransactionCount') => {
-    updateDraft({ [key]: val.replace(/[^0-9]/g, '') });
+    updateDraft({ [key]: val.replace(/\D/g, '') });
   };
 
   const draftActiveCount = [

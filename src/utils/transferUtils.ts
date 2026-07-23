@@ -16,7 +16,7 @@ export async function findPairedTransfer(
   const paired = await db.transactions
     .where('transferGroupId')
     .equals(tx.transferGroupId)
-    .and(t => t.id !== tx.id && (!options?.excludeIds || !options.excludeIds.has(t.id!)))
+    .and(t => t.id !== tx.id && !options?.excludeIds?.has(t.id!))
     .first();
   return paired || null;
 }

@@ -176,7 +176,7 @@ export async function parseTransactionsCsv(file: File): Promise<{ rows: any[]; e
             return;
           }
 
-          const amount = parseFloat(amountStr);
+          const amount = Number.parseFloat(amountStr);
           if (!Number.isFinite(amount)) {
             errors.push(`Row ${rowNum}: Amount must be a valid number.`);
             return;

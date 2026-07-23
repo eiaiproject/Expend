@@ -303,13 +303,12 @@ function RestorePreviewModal({ isOpen, onClose, data, onConfirm }: {
 
 export default function SettingsView() {
   const { t, i18n } = useTranslation();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const restoreInputRef = useRef<HTMLInputElement>(null);
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [showChangePin, setShowChangePin] = useState(false);
   const [pendingAction, setPendingAction] = useState<'changePin' | 'disableSecurity' | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
+  const [, setIsImporting] = useState(false);
 
   // CSV Preview state
   const [csvPreview, setCsvPreview] = useState<{ rows: CsvPreviewRow[]; errors: string[] } | null>(null);
@@ -323,7 +322,6 @@ export default function SettingsView() {
     autoLockTimeout,
     setupPin,
     disableSecurity,
-    lock,
     updateAutoLockTimeout,
     checkSecurityAvailable
   } = useSecurity();
@@ -334,7 +332,7 @@ export default function SettingsView() {
   const { deferredPrompt, showInstallPrompt } = useInstallPrompt();
   const isStandalone = useIsStandalone();
   const storageEstimate = useStorageEstimate();
-  const { lastBackup, needsBackup, markBackupDone } = useBackupReminder();
+  const { needsBackup, markBackupDone } = useBackupReminder();
 
   // ── Language ──────────────────────────────────────────────
 

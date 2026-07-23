@@ -16,7 +16,7 @@ import {
   type PayeeStats, type PayeeSortConfig, type PayeeTransactionFilters, type PayeeAggregateFilters
 } from '../services/payeeService';
 import {
-  ensureMerchant, renameMerchant, addMerchantAlias, removeMerchantAlias,
+  renameMerchant, addMerchantAlias, removeMerchantAlias,
   archiveMerchant, restoreMerchant, syncMerchants
 } from '../services/merchantService';
 import { TransactionCard } from '../components/home/TransactionCard';

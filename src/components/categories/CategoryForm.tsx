@@ -35,7 +35,7 @@ export function CategoryForm({ mode, initialCategory, onSubmit, onCancel, existi
       setError(t('A category with this name already exists'));
       return;
     }
-    const budgetVal = budget ? parseInt(budget.replace(/[^0-9]/g, ''), 10) : undefined;
+    const budgetVal = budget ? Number.parseInt(budget.replace(/\D/g, ''), 10) : undefined;
     onSubmit({ name: trimmed, color, budget: budgetVal });
   };
 
@@ -92,8 +92,8 @@ export function CategoryForm({ mode, initialCategory, onSubmit, onCancel, existi
           inputMode="numeric"
           value={budget}
           onChange={(e) => {
-            const val = e.target.value.replace(/[^0-9]/g, '');
-            setBudget(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
+            const val = e.target.value.replace(/\D/g, '');
+            setBudget(val ? Number.parseInt(val, 10).toLocaleString('id-ID') : '');
           }}
           placeholder="0"
           className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm font-mono focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"

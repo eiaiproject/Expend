@@ -10,7 +10,7 @@ export function downloadBlob(blob: Blob, filename: string): void {
     link.download = filename;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
   } finally {
     // Revoke after a microtask to ensure the browser has started the download
     setTimeout(() => URL.revokeObjectURL(url), 100);

@@ -1,6 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { CURATED_PALETTE } from '../utils/constants';
-import { getTodayStr } from '../utils/dateUtils';
 
 export interface Wallet {
   id?: number;
@@ -185,7 +184,7 @@ db.version(4).stores(V4_STORES);
 db.version(5).stores(V4_STORES).upgrade(async (tx) => {
   const allTxs = await tx.table('transactions').toArray();
   for (const t of allTxs) {
-    if (t.date && t.date.includes('T')) {
+    if (t.date?.includes('T')) {
       const normalizedDate = t.date.split('T')[0];
       if (normalizedDate) await tx.table('transactions').update(t.id, { date: normalizedDate });
     }

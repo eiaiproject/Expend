@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { Transaction } from '../db/db';
 import { deleteTransactionsWithPairs, restoreTransactions } from '../services/deleteTransactionService';
 import { toast } from '../components/Toaster';
 

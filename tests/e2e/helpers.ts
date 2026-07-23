@@ -649,7 +649,6 @@ export async function createExpenseFromPayee(
 
   // Description should be pre-filled with the payee name.
   // Wait for React to commit the initialDescription via useEffect.
-  const descInput = page.locator('form input[type="text"]:not([inputmode])').first();
   await page.waitForFunction(
     (payeeName) => {
       const input = document.querySelector('form input[type="text"]:not([inputmode])') as HTMLInputElement | null;

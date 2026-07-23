@@ -72,7 +72,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
         </div>
 
         <div className="flex justify-center gap-4">
-          {[...Array(pinLength)].map((_, i) => (
+          {[...new Array(pinLength)].map((_, i) => (
             <div
               key={i}
               className={`w-4 h-4 rounded-full transition-colors ${i < pin.length ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'} ${error ? 'bg-red-500' : ''}`}
@@ -95,7 +95,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
 
         <div className="grid grid-cols-3 gap-3" role="group" aria-label={t('PIN entry')}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-            <button
+            <button type="button"
               key={num}
               onClick={() => { if (pin.length < pinLength) setPin(prev => prev + num); }}
               className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-lg font-mono font-medium hover:bg-[var(--card)] active:scale-95 transition-colors"
