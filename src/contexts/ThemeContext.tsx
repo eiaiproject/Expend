@@ -52,7 +52,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         if (setting?.value === 'light' || setting?.value === 'dark' || setting?.value === 'system') {
           setThemeState(setting.value);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* IndexedDB read failure — persist default theme */
+      }
       setLoaded(true);
     };
     loadTheme();

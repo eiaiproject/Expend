@@ -50,10 +50,13 @@ jobs:
             test-results
           retention-days: 14
 
+      - name: Audit Dependencies
+        run: npm run audit
+
       - name: Deploy to Cloudflare Pages
-        # Step ini hanya berjalan jika job quality-gate berhasil dan berada di branch main
+        # Only deploys on main branch pushes when all prior quality checks passed.
+        # Deploy failure is NOT silently ignored — if the deploy fails the job fails.
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        continue-on-error: true
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

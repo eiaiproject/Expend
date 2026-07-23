@@ -56,7 +56,10 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       if (setting && typeof setting.value === 'number') {
         setAutoLockTimeout(setting.value);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* IndexedDB read failure — use default auto-lock timeout */
+      console.warn('Failed to load autoLockTimeout setting, using default');
+    }
   };
 
   const updateAutoLockTimeout = useCallback(async (ms: number) => {

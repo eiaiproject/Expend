@@ -76,14 +76,20 @@ Most personal finance tools require an account, remote sync, or server-side stor
 
 Expend stores data in the browser's IndexedDB database on the current device. There is no login system, remote database, cloud sync, or advertising tracker.
 
-Important limitations:
+### Important Limitations
 
-- Clearing browser data or site storage permanently deletes local Expend data.
-- PIN lock protects the app UI from casual access only.
-- PIN lock does not encrypt IndexedDB data.
-- Anyone with direct access to the browser profile may still be able to inspect local data.
+- **Browser storage**: Clearing browser data, cookies, or site-specific storage permanently deletes local Expend data. There is no server-side copy.
+- **App Lock (PIN)**: The optional PIN lock protects the app UI from casual access only. It does **not** encrypt data in IndexedDB. Data remains readable by anyone with direct access to the browser profile on this device (e.g., via browser developer tools, or by accessing the browser's profile directory).
+- **Backup**: Always maintain an encrypted backup of your exported JSON file. The PIN does not protect exported backup files.
+- **Third-party requests**: The landing page loads the Plus Jakarta Sans and JetBrains Mono font families from Google Fonts. These are not loaded inside the authenticated app shell. All other assets are served from the same origin.
 
-For stronger protection, use encrypted devices, separate OS accounts, and encrypted backup storage.
+### Recommended Protection
+
+For stronger protection, use:
+- Device-level encryption (FileVault, BitLocker, etc.)
+- Separate OS user accounts per person
+- Encrypted backup storage for exported JSON files
+- A browser profile with a strong master password
 
 ## Backup and Restore
 
@@ -101,7 +107,6 @@ CSV import/export is available under **Settings → Transaction Import & Export*
 - Vite 6
 - Tailwind CSS 4
 - Dexie.js and IndexedDB
-- Recharts
 - i18next and react-i18next
 - Workbox and vite-plugin-pwa
 - Vitest and Playwright

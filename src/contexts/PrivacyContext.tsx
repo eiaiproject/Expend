@@ -25,7 +25,9 @@ export function PrivacyProvider({ children }: { children: React.ReactNode }) {
         if (setting) {
           setHideAmount(setting.value === 'true');
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* IndexedDB read failure — privacy setting defaults to false */
+      }
     };
     load();
   }, []);
@@ -33,7 +35,10 @@ export function PrivacyProvider({ children }: { children: React.ReactNode }) {
   const toggleHideAmount = useCallback(async () => {
     setHideAmount(prev => {
       const next = !prev;
-      db.settings.put({ key: 'hideAmount', value: String(next) }).catch(() => {});
+      db.settings.put({ key: 'hideAmount', value: String(next) }).catch(() => {
+        /* Non-critical; privacy preference is ephemeral */
+        console.warn('Failed to persist hideAmount setting');
+      });
       return next;
     });
   }, []);
