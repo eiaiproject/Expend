@@ -6,6 +6,8 @@ All notable changes to Expend are documented here.
 ### Fixed
 
 - Perbaiki E2E test import balance dan nonaktifkan sourcemap di production
+- Perbaiki color-contrast aksesibilitas (secondary text, mockup, eyebrow) di landing page
+- Turunkan forced-reflow-insight ke warning di konfigurasi Lighthouse CI
 
 
 ## 1.11.3 - 2026-07-23
