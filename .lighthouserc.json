@@ -17,7 +17,8 @@
         "categories:seo": ["warn", { "minScore": 0.90 }],
         "unused-javascript": ["warn", { "maxLength": 0 }],
         "valid-source-maps": ["warn", { "maxLength": 0 }],
-        "errors-in-console": ["error", { "maxLength": 0 }]
+        "errors-in-console": ["error", { "maxLength": 0 }],
+        "network-dependency-tree-insight": ["warn", { "maxLength": 0 }]
       }
     },
     "upload": {
