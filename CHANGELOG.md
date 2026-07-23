@@ -2,6 +2,29 @@
 
 All notable changes to Expend are documented here.
 
+## 1.11.1 - 2026-07-23
+### Added
+
+- Add OG image (1200×630) for rich Open Graph and Twitter card previews
+
+### Changed
+
+- Overhaul README with comprehensive privacy/security documentation, badges, and tech stack
+- Redesign offline.html with new sage-green theme color (#7A9B6A)
+- Update OG/Twitter meta tags to use og-image.png
+- Harden CI: stricter Lighthouse assertions (error level), audit step in QA pipeline
+- Upgrade jsx-a11y ESLint rules from warn to error for regression prevention
+
+### Fixed
+
+- Document empty catch blocks in SecurityContext, PrivacyContext, and ThemeContext
+- Suppress non-critical IndexedDB write failure warnings
+
+### Removed
+
+- Remove continue-on-error from Cloudflare Pages deploy step (fail on deploy failure)
+
+
 ## 1.11.0 - 2026-07-20
 ### Added
 
