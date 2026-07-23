@@ -120,7 +120,7 @@ export async function saveTransaction(
     if (existingId) {
       // Get old transaction to compute balance delta
       const oldTx = await db.transactions.get(existingId);
-      if (oldTx && oldTx.walletId === params.walletId) {
+      if (oldTx?.walletId === params.walletId) {
         // Same wallet: apply difference
         const oldDelta = getBalanceDelta(oldTx.type, oldTx.amount);
         const newDelta = getBalanceDelta(params.type, params.amount);

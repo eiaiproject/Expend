@@ -69,7 +69,7 @@ export function LockScreen() {
         <div className="space-y-6">
           {/* PIN Dots */}
           <div className="flex justify-center gap-4">
-            {[...Array(MAX_PIN_LENGTH)].map((_, i) => (
+            {Array.from({ length: MAX_PIN_LENGTH }, (_, i) => (
               <div
                 key={i}
                 className={`w-4 h-4 rounded-full transition-colors ${
@@ -93,7 +93,7 @@ export function LockScreen() {
           {/* Numpad */}
           <div className="grid grid-cols-3 gap-3" role="group" aria-label={t('PIN entry')}>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-              <button
+              <button type="button"
                 key={num}
                 onClick={() => setPin(prev => prev.length < MAX_PIN_LENGTH ? prev + num : prev)}
                 className="h-14 rounded-xl bg-[var(--card)] border border-[var(--border)] text-lg font-mono font-medium hover:bg-[var(--bg)] active:scale-95 transition-colors"

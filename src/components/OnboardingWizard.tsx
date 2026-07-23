@@ -131,8 +131,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                       inputMode="numeric"
                       value={walletBalance}
                       onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9]/g, '');
-                        setWalletBalance(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
+                        const val = e.target.value.replace(/\D/g, '');
+                        setWalletBalance(val ? Number.parseInt(val, 10).toLocaleString('id-ID') : '');
                       }}
                       placeholder="0"
                       className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl py-3 pl-10 pr-4 font-mono focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"

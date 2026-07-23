@@ -45,7 +45,7 @@ function ErrorFallback() {
       <p className="text-[var(--text-secondary)] mb-6 max-w-xs">
       {t('Error Message')}
     </p>
-      <button 
+      <button type="button" 
         onClick={() => window.location.reload()}
         className="px-6 py-2 bg-[var(--accent-fill)] text-[var(--accent-ink)] rounded-lg font-medium active:scale-95 transition-colors"
       >

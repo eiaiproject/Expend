@@ -3,11 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Transaction } from '../db/db';
-import { ArrowLeft, Wallet as WalletIcon, TrendUp, TrendDown, ArrowSwapHorizontal, AlertCircle, ArrowDownRight, ArrowUpRight, Scale } from 'reicon-react';
+import { ArrowLeft, Wallet as WalletIcon, AlertCircle, ArrowDownRight, ArrowUpRight, Scale } from 'reicon-react';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { formatCurrency, formatSignedCurrency } from '../utils/formatUtils';
-import { displayDateMedium } from '../utils/dateUtils';
-import { daysBetweenDateOnly, getTodayStr, getYesterdayStr, getWeekStartStr, normaliseDate } from '../utils/dateUtils';
+import { displayDateMedium, daysBetweenDateOnly, getTodayStr, getYesterdayStr, getWeekStartStr, normaliseDate } from '../utils/dateUtils';
 import { WALLET_STALE_DAYS } from '../utils/constants';
 import { EmptyState } from '../components/EmptyState';
 import { TransactionDetailSheet } from '../components/TransactionDetailSheet';
@@ -19,7 +18,7 @@ export default function WalletDetailView() {
   const { hideAmount } = usePrivacy();
   const navigate = useNavigate();
 
-  const walletId = parseInt(id || '0', 10);
+  const walletId = Number.parseInt(id || '0', 10);
 
   // Wallet data
   const wallet = useLiveQuery(() => db.wallets.get(walletId), [walletId], undefined);

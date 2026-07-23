@@ -27,7 +27,7 @@ export function SummaryCard({
   smartInsight,
   hideAmount,
 }: SummaryCardProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
   const renderAmount = (amount: number) => formatCurrency(amount, hideAmount);
   const renderBalance = (amount: number) => formatBalance(amount, hideAmount);

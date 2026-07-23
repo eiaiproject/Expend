@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import { ClipboardList } from 'reicon-react';
 import type { ReactNode } from 'react';
 

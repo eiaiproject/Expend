@@ -92,12 +92,12 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
     e.preventDefault();
 
     // Validate same wallet for transfer
-    if (state.type === 'transfer' && parseInt(state.walletId, 10) === parseInt(state.toWalletId, 10)) {
+    if (state.type === 'transfer' && Number.parseInt(state.walletId, 10) === Number.parseInt(state.toWalletId, 10)) {
       toast.add(t('Cannot transfer to the same wallet.'));
       return;
     }
     // Validate transfer edit
-    if (state.type === 'transfer' && txToEdit && txToEdit.id) {
+    if (state.type === 'transfer' && txToEdit?.id) {
       toast.add(t('Editing transfers is not supported in this version.'));
       return;
     }

@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { Transaction } from '../db/db';
 import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
 import { displayDateShort } from '../utils/dateUtils';
-import { formatCurrency } from '../utils/formatUtils';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { X } from 'reicon-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
@@ -48,7 +47,7 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
           >
             <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
               <h2 className="text-lg font-bold truncate">{title}</h2>
-              <button onClick={onClose} className="p-2 rounded-full bg-[var(--bg)] shrink-0" aria-label={t('Close')}>
+              <button type="button" onClick={onClose} className="p-2 rounded-full bg-[var(--bg)] shrink-0" aria-label={t('Close')}>
                 <X size={18} />
               </button>
             </div>

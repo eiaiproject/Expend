@@ -266,14 +266,14 @@ export default function HomeView() {
           </p>
         </div>
         <div className="flex items-center gap-1">
-          <button
+          <button type="button"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
             aria-label={theme === 'dark' ? t('home.useLightTheme') : t('home.useDarkTheme')}
           >
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <button
+          <button type="button"
             onClick={toggleHideAmount}
             className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
             aria-label={hideAmount ? t('home.showBalance') : t('home.hideBalance')}
@@ -389,7 +389,7 @@ export default function HomeView() {
           {(['today', 'week', 'transfers'] as const).map(qf => {
             const label = qf === 'today' ? t('home.filterToday') : qf === 'week' ? t('home.filterThisWeek') : t('home.filterTransfers');
             return (
-              <button
+              <button type="button"
                 key={qf}
                 onClick={() => filterActions.setQuickFilter(filters.quickFilter === qf ? null : qf)}
                 aria-pressed={filters.quickFilter === qf}
@@ -405,7 +405,7 @@ export default function HomeView() {
             );
           })}
           {filters.quickFilter && (
-            <button
+            <button type="button"
               onClick={() => filterActions.setQuickFilter(null)}
               className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--expense)] transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
             >
@@ -422,7 +422,7 @@ export default function HomeView() {
             <h2 className="text-lg font-bold">{t('Recent Transactions')}</h2>
           ) : (
             <>
-              <button
+              <button type="button"
                 onClick={exitSelectionMode}
                 className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
                 aria-label={t('home.cancelSelection')}
@@ -436,13 +436,13 @@ export default function HomeView() {
         <div className="flex gap-1">
           {!isSelectionMode ? (
             <>
-              <button
+              <button type="button"
                 onClick={enterSelectionMode}
                 className="h-11 px-3 flex items-center justify-center rounded-lg text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
               >
                 {t('home.selectTransactions')}
               </button>
-              <button
+              <button type="button"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className={cn(
                   "relative w-11 h-11 flex items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
@@ -464,7 +464,7 @@ export default function HomeView() {
                   F
                 </kbd>
               </button>
-              <button
+              <button type="button"
                 onClick={toggleSortOrder}
                 className="relative w-11 h-11 flex items-center justify-center rounded-lg border bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
                 aria-label={sortLabel}
@@ -477,14 +477,14 @@ export default function HomeView() {
             </>
           ) : (
             <>
-              <button
+              <button type="button"
                 onClick={selectedIds.length === filteredTransactions.length ? deselectAll : () => selectAll(filteredTransactions.map(tx => tx.id!).filter(id => id != null))}
                 className="h-11 px-3 flex items-center justify-center rounded-lg text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
               >
                 {selectedIds.length === filteredTransactions.length ? t('home.deselectAll') : t('home.selectAll')}
               </button>
               {selectedIds.length > 0 && (
-                <button
+                <button type="button"
                   onClick={handleBulkDelete}
                   className="h-11 px-3 flex items-center justify-center gap-2 bg-red-500 text-white rounded-lg border border-red-600 transition-colors hover:bg-red-600 active:scale-95 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/30"
                   aria-label={t('Bulk Delete')}

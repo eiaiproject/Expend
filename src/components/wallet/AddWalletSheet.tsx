@@ -73,7 +73,7 @@ export function AddWalletSheet({ isOpen, onClose }: AddWalletSheetProps) {
         return;
       }
 
-      const initialBalance = parseInt(balanceInput.replace(/[^0-9-]/g, ''), 10) || 0;
+      const initialBalance = Number.parseInt(balanceInput.replace(/[^0-9-]/g, ''), 10) || 0;
 
       await db.wallets.add({
         name: trimmedName,
@@ -168,7 +168,7 @@ export function AddWalletSheet({ isOpen, onClose }: AddWalletSheetProps) {
             value={balanceInput}
             onChange={(e) => {
               const val = e.target.value.replace(/[^0-9-]/g, '');
-              setBalanceInput(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
+              setBalanceInput(val ? Number.parseInt(val, 10).toLocaleString('id-ID') : '');
             }}
             onKeyDown={handleKeyDown}
             placeholder="0"

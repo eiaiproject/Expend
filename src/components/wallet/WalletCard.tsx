@@ -6,8 +6,7 @@ import type { Wallet } from '../../db/db';
 import type { SpendingTrend } from '../../types/wallet';
 import { usePrivacy } from '../../contexts/PrivacyContext';
 import { formatCurrency } from '../../utils/formatUtils';
-import { displayDateMedium } from '../../utils/dateUtils';
-import { daysBetweenDateOnly } from '../../utils/dateUtils';
+import { displayDateMedium, daysBetweenDateOnly } from '../../utils/dateUtils';
 import { WALLET_STALE_DAYS } from '../../utils/constants';
 import { WalletOverflowMenu } from './WalletOverflowMenu';
 

@@ -1,7 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
-import { readFileSync } from 'fs';
+import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import {defineConfig} from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -17,6 +17,7 @@ export default defineConfig(({mode}) => {
       __APP_VERSION__: JSON.stringify(pkg.version),
       __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
     },
+    build: { target: 'esnext' },
     plugins: [react(), tailwindcss(), VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,

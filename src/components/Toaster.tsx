@@ -56,7 +56,7 @@ function ToastItem({ toast: msg, onRemove, t: translate }: { toast: ToastMessage
     >
       <span>{msg.message}</span>
       {msg.onUndo && (
-        <button
+        <button type="button"
           onClick={() => {
             msg.onUndo?.();
             onRemove(msg.id);
