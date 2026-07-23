@@ -2,6 +2,12 @@
 
 All notable changes to Expend are documented here.
 
+## 1.11.4 - 2026-07-23
+### Fixed
+
+- Perbaiki E2E test import balance dan nonaktifkan sourcemap di production
+
+
 ## 1.11.3 - 2026-07-23
 ### Fixed
 
