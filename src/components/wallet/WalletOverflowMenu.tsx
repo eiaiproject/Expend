@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { More, Eye, Edit, ArrowSwapHorizontal, Scale, Archive, ArchiveTick, Trash2 } from 'reicon-react';
 import type { Wallet } from '../../db/db';
-import { usePrivacy } from '../../contexts/PrivacyContext';
 
 interface WalletOverflowMenuProps {
   wallet: Wallet;

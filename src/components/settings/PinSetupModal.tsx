@@ -68,7 +68,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
 
   const renderPinDots = (value: string) => (
     <div className="flex justify-center gap-4">
-      {[...new Array(MAX_PIN_LENGTH)].map((_, i) => (
+      {Array.from({ length: MAX_PIN_LENGTH }, (_, i) => (
         <div
           key={i}
           className={`w-4 h-4 rounded-full transition-colors ${i < value.length ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`}

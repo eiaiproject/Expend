@@ -308,7 +308,7 @@ export default function SettingsView() {
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [showChangePin, setShowChangePin] = useState(false);
   const [pendingAction, setPendingAction] = useState<'changePin' | 'disableSecurity' | null>(null);
-  const [, setIsImporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   // CSV Preview state
   const [csvPreview, setCsvPreview] = useState<{ rows: CsvPreviewRow[]; errors: string[] } | null>(null);

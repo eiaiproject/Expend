@@ -72,7 +72,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
         </div>
 
         <div className="flex justify-center gap-4">
-          {[...new Array(pinLength)].map((_, i) => (
+          {Array.from({ length: pinLength }, (_, i) => (
             <div
               key={i}
               className={`w-4 h-4 rounded-full transition-colors ${i < pin.length ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'} ${error ? 'bg-red-500' : ''}`}
