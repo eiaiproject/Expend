@@ -124,7 +124,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
             type="button"
             onClick={handleVerify}
             disabled={pin.length < pinLength || loading}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-colors"
+            className="flex-1 h-11 rounded-xl bg-[var(--accent-fill)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-colors"
           >
             {loading ? t('Verifying...') : t('Confirm')}
           </button>

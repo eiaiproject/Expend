@@ -57,7 +57,7 @@ export function InstallSection({
               <button
                 type="button"
                 onClick={showInstallPrompt}
-                className="px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer inline-flex items-center gap-2.5"
+                className="px-8 py-3.5 bg-[var(--accent-fill)] text-white rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer inline-flex items-center gap-2.5"
               >
                 <Download size={18} aria-hidden="true" />
                 {t('landing.installButton')}
@@ -66,7 +66,7 @@ export function InstallSection({
               <button
                 type="button"
                 onClick={onEnter}
-                className="px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer inline-flex items-center gap-2.5"
+                className="px-8 py-3.5 bg-[var(--accent-fill)] text-white rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer inline-flex items-center gap-2.5"
               >
                 <Download size={18} aria-hidden="true" />
                 {t('landing.installButton')}
@@ -96,7 +96,7 @@ export function InstallSection({
           <button
             type="button"
             onClick={onEnter}
-            className="px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
+            className="px-8 py-3.5 bg-[var(--accent-fill)] text-white rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
           >
             {t('landing.heroCtaPrimary')}
           </button>

@@ -25,7 +25,7 @@ export function StickyCta({ onEnter }: { onEnter: () => void }) {
         <button
           type="button"
           onClick={onEnter}
-          className="ml-auto inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--bg)] hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
+          className="ml-auto inline-flex items-center gap-2 rounded-full bg-[var(--accent-fill)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
         >
           {t('landing.stickyCta', 'Start Tracking')}
         </button>

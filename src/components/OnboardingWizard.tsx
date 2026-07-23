@@ -259,7 +259,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
             <button
               type="button"
               onClick={() => setStep(s => s + 1)}
-              className="flex-1 h-12 rounded-xl bg-[var(--accent)] text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-colors active:scale-95"
+              className="flex-1 h-12 rounded-xl bg-[var(--accent-fill)] text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-colors active:scale-95"
             >
               {t('Next')}
               <ArrowRight size={18} />
@@ -269,7 +269,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
             type="button"
             onClick={handleFinish}
             disabled={isSubmitting}
-            className="flex-1 h-12 rounded-xl bg-[var(--accent)] text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-colors active:scale-95 disabled:opacity-50"
+            className="flex-1 h-12 rounded-xl bg-[var(--accent-fill)] text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-colors active:scale-95 disabled:opacity-50"
           >
             <Sparkles size={18} />
             {isSubmitting ? t('Setting up...') : t('Start Tracking')}

@@ -122,7 +122,7 @@ function StickyNav() {
             <button
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="px-4 py-2 bg-[var(--accent)] text-[var(--bg)] rounded-full text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer"
+              className="px-4 py-2 bg-[var(--accent-fill)] text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer"
             >
               {t('landing.navCta', 'Start Tracking')}
             </button>

@@ -200,7 +200,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
               }
             }}
             disabled={isSubmitting || (step === 1 ? pin.length < MIN_PIN_LENGTH : confirmPin.length < MIN_PIN_LENGTH)}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-colors"
+            className="flex-1 h-11 rounded-xl bg-[var(--accent-fill)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-colors"
           >
             {step === 1 ? t('Next') : t('Confirm')}
           </button>

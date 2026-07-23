@@ -396,7 +396,7 @@ export default function HomeView() {
                 className={cn(
                   "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
                   filters.quickFilter === qf
-                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                    ? "bg-[var(--accent-fill)] text-white border-[var(--accent)]"
                     : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
                 )}
               >
@@ -447,7 +447,7 @@ export default function HomeView() {
                 className={cn(
                   "relative w-11 h-11 flex items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
                   isFilterOpen
-                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                    ? "bg-[var(--accent-fill)] text-white border-[var(--accent)]"
                     : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
                 )}
                 aria-label={activeFilterCount > 0 ? t('home.filterTransactions') + ', ' + t('home.filterActive', { count: activeFilterCount }) : t('home.filterTransactions')}
@@ -456,7 +456,7 @@ export default function HomeView() {
               >
                 <Filter size={18} />
                 {activeFilterCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[var(--accent)] text-white text-[9px] font-bold flex items-center justify-center pointer-events-none">
+                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[var(--accent-fill)] text-white text-[9px] font-bold flex items-center justify-center pointer-events-none">
                     {activeFilterCount}
                   </span>
                 )}

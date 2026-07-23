@@ -216,7 +216,7 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
             type="button"
             onClick={onConfirm}
             disabled={errors.length > 0}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 h-11 rounded-xl bg-[var(--accent-fill)] text-white font-medium hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('settings.csvPreviewImport', { count: rows.length })}
           </button>
@@ -787,7 +787,7 @@ export default function SettingsView() {
             <button
               type="button"
               onClick={() => setShowPinSetup(true)}
-              className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-[var(--accent)] text-white font-medium hover:opacity-90 transition-colors min-h-[44px]"
+              className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-[var(--accent-fill)] text-white font-medium hover:opacity-90 transition-colors min-h-[44px]"
             >
               <Lock size={18} aria-hidden="true" />
               {t('Set up PIN')}

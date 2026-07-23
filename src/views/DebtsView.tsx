@@ -219,7 +219,7 @@ export default function DebtsView() {
           <button
             type="button"
             onClick={handleOpenForm}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent-fill)] text-white shadow-lg shadow-[var(--accent)]/20"
             aria-label={t('debt.recordLabel')}
           >
             <Plus size={20} />
@@ -330,7 +330,7 @@ export default function DebtsView() {
               className={cn(
                 'rounded-full border px-3 py-1.5 min-h-[36px] text-xs font-bold transition-colors',
                 typeFilter === item.id
-                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                  ? 'border-[var(--accent)] bg-[var(--accent-fill)] text-white'
                   : 'border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] hover:bg-[var(--bg)]',
               )}
             >
@@ -354,7 +354,7 @@ export default function DebtsView() {
               className={cn(
                 'rounded-full border px-3 py-1.5 min-h-[36px] text-xs font-bold transition-colors',
                 statusFilter === item.id
-                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                  ? 'border-[var(--accent)] bg-[var(--accent-fill)] text-white'
                   : 'border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] hover:bg-[var(--bg)]',
               )}
             >

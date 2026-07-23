@@ -32,7 +32,7 @@ export function HeroSection({ onEnter }: { onEnter?: () => void }) {
             <button
               type="button"
               onClick={onEnter}
-              className="w-full sm:w-auto px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto px-8 py-3.5 bg-[var(--accent-fill)] text-white rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
             >
               {t('landing.heroCtaPrimary')}
             </button>

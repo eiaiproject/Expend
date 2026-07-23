@@ -15,7 +15,7 @@ export function FinalCTASection({ onEnter }: { onEnter: () => void }) {
         <button
           type="button"
           onClick={onEnter}
-          className="px-10 py-4 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-lg hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
+          className="px-10 py-4 bg-[var(--accent-fill)] text-white rounded-full font-semibold text-lg hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
         >
           {t('landing.finalCta')}
         </button>

@@ -484,7 +484,7 @@ export default function CategoriesView() {
           <button
             type="button"
             onClick={() => setShowAddForm(true)}
-            className="flex h-11 items-center justify-center gap-2 px-3 bg-[var(--accent)] text-white rounded-xl shadow font-medium hover:opacity-90 transition-colors"
+            className="flex h-11 items-center justify-center gap-2 px-3 bg-[var(--accent-fill)] text-white rounded-xl shadow font-medium hover:opacity-90 transition-colors"
             aria-label={t('categories.addLabel')}
           >
             <Plus size={18} aria-hidden="true" />
@@ -606,7 +606,7 @@ export default function CategoriesView() {
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
-              className="flex h-11 items-center justify-center gap-2 px-4 text-sm bg-[var(--accent)] text-white rounded-xl font-medium hover:opacity-90 transition-colors"
+              className="flex h-11 items-center justify-center gap-2 px-4 text-sm bg-[var(--accent-fill)] text-white rounded-xl font-medium hover:opacity-90 transition-colors"
             >
               <Plus size={16} aria-hidden="true" />
               {t('categories.addLabel')}

@@ -77,7 +77,7 @@ export function DatePicker({ id, value, onChange, label, required }: DatePickerP
           className={cn(
             "px-3 rounded-xl border transition-colors",
             showQuick 
-              ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+              ? "bg-[var(--accent-fill)] text-white border-[var(--accent)]"
               : "bg-[var(--bg)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]"
           )}
           aria-label={t('Quick Select')}

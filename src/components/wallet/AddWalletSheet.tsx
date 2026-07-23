@@ -192,7 +192,7 @@ export function AddWalletSheet({ isOpen, onClose }: AddWalletSheetProps) {
             type="button"
             onClick={handleSave}
             disabled={isSaving || !name.trim()}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium transition-colors hover:opacity-90 active:scale-95 disabled:opacity-50"
+            className="flex-1 h-11 rounded-xl bg-[var(--accent-fill)] text-white font-medium transition-colors hover:opacity-90 active:scale-95 disabled:opacity-50"
           >
             {isSaving ? t('Saving...') : t('Save')}
           </button>

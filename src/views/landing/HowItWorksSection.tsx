@@ -35,7 +35,7 @@ export function HowItWorksSection() {
               {/* Step number + icon */}
               <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--accent)]/10 mb-5 group-hover:bg-[var(--accent)]/15 transition-colors">
                 <Icon size={24} className="text-[var(--accent)]" />
-                <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[var(--accent)] text-[var(--bg)] text-xs font-bold flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[var(--accent-fill)] text-white text-xs font-bold flex items-center justify-center">
                   {key}
                 </span>
               </div>

@@ -523,7 +523,7 @@ export default function StatsView() {
               className={cn(
                 'flex-1 text-center py-2 text-sm font-bold rounded-md cursor-pointer min-h-[44px] flex items-center justify-center transition-colors',
                 period === value
-                  ? 'bg-[var(--accent)] text-white'
+                  ? 'bg-[var(--accent-fill)] text-white'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg)]',
               )}
             >
