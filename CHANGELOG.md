@@ -2,6 +2,12 @@
 
 All notable changes to Expend are documented here.
 
+## 1.11.3 - 2026-07-23
+### Fixed
+
+- Resolve SonarCloud code quality, type safety, accessibility, and CI security issues
+
+
 ## 1.11.2 - 2026-07-23
 ### Fixed
 
