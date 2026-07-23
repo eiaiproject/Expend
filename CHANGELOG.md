@@ -2,6 +2,12 @@
 
 All notable changes to Expend are documented here.
 
+## 1.11.2 - 2026-07-23
+### Fixed
+
+- Resolve Lighthouse color-contrast and label-content-name-mismatch failures
+
+
 ## 1.11.1 - 2026-07-23
 ### Added
 
