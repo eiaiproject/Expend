@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#7A9B6A" />
+  <meta name="description" content="Expend is currently offline. Your local financial data remains accessible on this device. Check your connection and try again." />
+  <meta name="theme-color" content="#1A1E16" />
   <title>Expend — Offline</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -23,7 +24,7 @@
       width: 80px;
       height: 80px;
       border-radius: 20px;
-      background-color: #7A9B6A;
+      background-color: #5E8A4A;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -41,7 +42,7 @@
     }
     .subtitle {
       font-size: 16px;
-      color: #94A3B8;
+      color: #CBD5E1;
       margin-bottom: 32px;
       max-width: 360px;
       line-height: 1.5;
@@ -52,9 +53,9 @@
       gap: 8px;
       padding: 8px 16px;
       border-radius: 999px;
-      background-color: rgba(234, 179, 8, 0.1);
-      border: 1px solid rgba(234, 179, 8, 0.3);
-      color: #FBBF24;
+      background-color: rgba(250, 204, 21, 0.12);
+      border: 1px solid rgba(250, 204, 21, 0.3);
+      color: #FDE047;
       font-size: 13px;
       font-weight: 500;
     }
@@ -62,7 +63,7 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background-color: #FBBF24;
+      background-color: #FDE047;
       animation: pulse 2s ease-in-out infinite;
     }
     @keyframes pulse {
@@ -73,20 +74,20 @@
       margin-top: 32px;
       padding: 16px;
       border-radius: 12px;
-      background-color: rgba(122, 155, 106, 0.1);
-      border: 1px solid rgba(122, 155, 106, 0.2);
+      background-color: rgba(94, 138, 74, 0.12);
+      border: 1px solid rgba(94, 138, 74, 0.25);
       max-width: 360px;
       text-align: left;
     }
     .tip-title {
       font-size: 13px;
       font-weight: 600;
-      color: #7A9B6A;
+      color: #A8C49A;
       margin-bottom: 4px;
     }
     .tip-text {
       font-size: 13px;
-      color: #94A3B8;
+      color: #CBD5E1;
       line-height: 1.5;
     }
     .retry-link {
@@ -95,7 +96,7 @@
       padding: 12px 24px;
       border-radius: 12px;
       border: none;
-      background-color: #7A9B6A;
+      background-color: #5E8A4A;
       color: #fff;
       font-size: 15px;
       font-weight: 600;
@@ -104,7 +105,11 @@
       transition: background-color 0.2s;
     }
     .retry-link:hover {
-      background-color: #6A8B5A;
+      background-color: #4D7A3E;
+    }
+    .retry-link:focus-visible {
+      outline: 2px solid #A8C49A;
+      outline-offset: 2px;
     }
     .retry-link:active {
       transform: scale(0.98);
