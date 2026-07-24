@@ -73,11 +73,11 @@ export function WalletCard({
       data-testid="wallet-card"
       data-wallet-card={wallet.name}
       className={`bg-[var(--card)] rounded-[16px] p-5 shadow-sm border transition-colors ${
-        isArchived
-          ? 'border-[var(--border)] opacity-70'
-          : isStale
-            ? 'border-amber-500/30'
-            : 'border-[var(--border)] hover:border-[var(--accent)]/30'
+        (() => {
+          if (isArchived) return 'border-[var(--border)] opacity-70';
+          if (isStale) return 'border-amber-500/30';
+          return 'border-[var(--border)] hover:border-[var(--accent)]/30';
+        })()
       }`}
     >
       <div className="flex justify-between items-start gap-3">

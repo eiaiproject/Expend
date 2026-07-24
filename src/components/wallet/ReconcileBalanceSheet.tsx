@@ -111,13 +111,13 @@ export function ReconcileBalanceSheet({ isOpen, onClose, wallet }: ReconcileBala
         <div className="flex justify-between items-center py-2">
           <span className="text-sm text-[var(--text-secondary)]">{t('wallet.reconcileDiff')}</span>
           <span
-            className={`font-mono font-bold ${difference > 0 ? 'text-green-500' : difference < 0 ? 'text-red-500' : ''}`}
+            className={`font-mono font-bold ${difference > 0 ? 'text-green-500' : difference < 0 ? 'text-red-500' : ''}`} /* ponytail: S3358 — color ternary, stable 3-state */
             style={{ fontVariantNumeric: 'tabular-nums' }}
           >
-            {hideAmount ? '•••••' : (
-              difference === 0 ? formatCurrency(0) :
-              `${difference > 0 ? '+' : ''}${formatCurrency(difference)}`
-            )}
+            {hideAmount ? '•••••' : (() => {
+              if (difference === 0) return formatCurrency(0);
+              return `${difference > 0 ? '+' : ''}${formatCurrency(difference)}`;
+            })()}
           </span>
         </div>
 

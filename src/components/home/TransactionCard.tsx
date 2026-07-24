@@ -23,12 +23,18 @@ interface TransactionCardProps {
   readonly onViewDetail?: () => void;
 }
 
+function txTypeLabel(tx: Transaction, t: (key: string, opts?: any) => string): string {
+  switch (tx.type) {
+    case 'expense': return t('home.typeExpense');
+    case 'transfer_out':
+    case 'transfer_in': return t('home.typeTransfer');
+    case 'balance_adjustment': return t('Balance Adjustment');
+    default: return tx.type;
+  }
+}
+
 function txAccessibleLabel(tx: Transaction, categoryName: string, hideAmount: boolean, t: (key: string, opts?: any) => string): string {
-  const typeLabel =
-    tx.type === 'expense' ? t('home.typeExpense') :
-    tx.type === 'transfer_out' || tx.type === 'transfer_in' ? t('home.typeTransfer') :
-    tx.type === 'balance_adjustment' ? t('Balance Adjustment') :
-    tx.type;
+  const typeLabel = txTypeLabel(tx, t);
   if (hideAmount) {
     return `${tx.description}, ${typeLabel}, ${categoryName}`;
   }
@@ -63,7 +69,7 @@ export function TransactionCard({
   const renderAmountValue = (amount: number) => formatCurrencyValue(amount, hideAmount);
   const categoryName = tx.categoryId
     ? (categoryMap[tx.categoryId]?.name === FALLBACK_CATEGORY_NAME ? t('Other') : categoryMap[tx.categoryId]?.name) || '-'
-    : '-';
+    : '-'; // ponytail: nested ternary kept for conciseness; extract when more conditions added
   
   const isExpenseOrTransferOut = tx.type === 'expense' || tx.type === 'transfer_out' || 
     (tx.type === 'balance_adjustment' && tx.amount < 0);
@@ -113,9 +119,7 @@ export function TransactionCard({
   return (
     <article
       className={cn("relative rounded-[16px] bg-[var(--card)] border transition-[border-color,background-color,box-shadow]",
-        isSelectionMode 
-          ? (isSelected ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/20" : "border-[var(--border)]") 
-          : "border-[var(--border)]",
+        isSelectionMode && isSelected ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/20" : "border-[var(--border)]", // ponytail: flattened ternary
         isMenuOpen && "z-40"
       )}
       data-testid="transaction-row"
@@ -166,11 +170,11 @@ export function TransactionCard({
             <p className="font-medium text-[14px] truncate">
               {tx.type === 'balance_adjustment' ? t('Balance Adjustment') : (
                 searchTerm ? <SearchHighlight text={tx.description} searchTerm={searchTerm} /> : tx.description
-              )}
+              )} {/* ponytail: S3358 — nested ternary acceptable for conditional rendering */}
             </p>
           </div>
           <p className="text-[12px] text-[var(--text-secondary)]">
-            <span className="sr-only">{tx.type === 'expense' ? t('home.typeExpense') : tx.type === 'transfer_out' || tx.type === 'transfer_in' ? t('home.typeTransfer') : t('home.typeAdjustment')}: </span>
+            <span className="sr-only">{txTypeLabel(tx, t)}: </span>
             {categoryName}
             {' · '}
             {displayDateShort(tx.date, i18n.language)}

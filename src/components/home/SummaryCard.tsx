@@ -99,13 +99,11 @@ export function SummaryCard({
           smartInsight.type === 'warning' && "border-amber-500/30",
           smartInsight.type === 'success' && "border-green-500/30",
         )}>
-          {smartInsight.type === 'warning' ? (
-            <TrendUp size={16} className="text-amber-500 shrink-0" aria-hidden="true" />
-          ) : smartInsight.type === 'success' ? (
-            <TrendDown size={16} className="text-green-500 shrink-0" aria-hidden="true" />
-          ) : (
-            <ChartBar size={16} className="text-[var(--accent)] shrink-0" aria-hidden="true" />
-          )}
+          {(() => {
+            if (smartInsight.type === 'warning') return <TrendUp size={16} className="text-amber-500 shrink-0" aria-hidden="true" />;
+            if (smartInsight.type === 'success') return <TrendDown size={16} className="text-green-500 shrink-0" aria-hidden="true" />;
+            return <ChartBar size={16} className="text-[var(--accent)] shrink-0" aria-hidden="true" />;
+          })()}
           <span className="text-[var(--text-secondary)]">{smartInsight.text}</span>
         </div>
       )}

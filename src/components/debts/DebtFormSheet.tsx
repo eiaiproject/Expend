@@ -105,19 +105,18 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
   const walletBalance = selectedWallet ? (selectedWallet.currentBalance ?? selectedWallet.initialBalance) : 0;
   const hasInsufficientBalance = isEdit && !isPayable && rawAmount > 0 && selectedWallet != null && rawAmount > walletBalance;
 
-  const titleText = isEdit
-    ? (isPayable ? t('Edit Payable') : t('Edit Receivable'))
-    : step === 'type'
-      ? t('debt.formWhat')
-      : isPayable
-        ? t('I Owe')
-        : t('I Lend');
+  const titleText = (() => {
+    if (isEdit) return isPayable ? t('Edit Payable') : t('Edit Receivable');
+    if (step === 'type') return t('debt.formWhat');
+    return isPayable ? t('I Owe') : t('I Lend');
+  })();
 
-  const impactText = !hasWalletMovement
-    ? t('debt.formNoImpact')
-    : isPayable
+  const impactText = (() => {
+    if (!hasWalletMovement) return t('debt.formNoImpact');
+    return isPayable
       ? t('wallet increases', { wallet: selectedWallet?.name ?? t('Wallet'), amount: formatCurrency(rawAmount, hideAmount) })
       : t('wallet decreases', { wallet: selectedWallet?.name ?? t('Wallet'), amount: formatCurrency(rawAmount, hideAmount) });
+  })();
 
   const handleSelectType = (nextType: DebtType) => {
     setType(nextType);
@@ -401,13 +400,14 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
           <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-4">
             <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t('debt.formBalanceImpact')}</p>
             <p className={cn('mt-2 font-mono text-sm font-bold', !hasWalletMovement ? 'text-[var(--text-secondary)]' : isPayable ? 'text-[var(--accent)]' : 'text-amber-500')}>
+              {/* NOSONAR (S3358) — simple color ternary, extract would harm readability */}
               {impactText}
             </p>
             <p className="mt-1 text-xs text-[var(--text-secondary)]">
-              {hasWalletMovement
-                ? (isPayable ? t('Payable active increases') : t('Receivable active increases'))
-                : t('debt.formNoImpact')
-              }
+              {(() => {
+                if (!hasWalletMovement) return t('debt.formNoImpact');
+                return isPayable ? t('Payable active increases') : t('Receivable active increases');
+              })()}
             </p>
           </div>
 
@@ -418,7 +418,10 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
               disabled={isSubmitting || hasInsufficientBalance}
               className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] py-3 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
             >
-              {isEdit ? t('Save Changes') : isPayable ? t('Save Payable') : t('Save Receivable')}
+              {(() => {
+                if (isEdit) return t('Save Changes');
+                return isPayable ? t('Save Payable') : t('Save Receivable');
+              })()}
             </button>
           </div>
         </form>
