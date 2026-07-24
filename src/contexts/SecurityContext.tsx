@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { db, type Setting } from '../db/db';
 import { hashPin, verifyPin, verifyLegacySha256 } from '../utils/cryptoUtils';
 import { AUTO_LOCK_TIMEOUT_MS, STORAGE_KEYS } from '../utils/constants';
