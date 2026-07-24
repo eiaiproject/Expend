@@ -19,7 +19,7 @@ export const toast = {
   }
 };
 
-function ToastItem({ toast: msg, onRemove, t: translate }: { toast: ToastMessage; onRemove: (id: number) => void; t: (key: string) => string }) {
+function ToastItem({ toast: msg, onRemove, t: translate }: { readonly toast: ToastMessage; readonly onRemove: (id: number) => void; readonly t: (key: string) => string }) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverRef = useRef(false);
   const focusRef = useRef(false);

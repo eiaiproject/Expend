@@ -44,7 +44,7 @@ const BACKUP_REMINDER_DAYS = 7;
 
 // ── Helper components ──────────────────────────────────────────
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionHeading({ children }: { readonly children: React.ReactNode }) {
   return <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider px-1 pt-2 pb-1">{children}</h2>;
 }
 

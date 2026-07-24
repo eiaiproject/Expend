@@ -35,7 +35,7 @@ export function useSecurity() {
   return context;
 }
 
-export function SecurityProvider({ children }: { children: ReactNode }) {
+export function SecurityProvider({ children }: { readonly children: ReactNode }) {
   const [isLocked, setIsLocked] = useState(false); // Start unlocked; gate via isSecurityLoaded
   const [securityEnabled, setSecurityEnabled] = useState(false);
   const [pinLength, setPinLength] = useState(4);

@@ -40,7 +40,7 @@ export function useTheme() {
   return context;
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({ children }: { readonly children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('system');
   const [loaded, setLoaded] = useState(false);
   const resolvedTheme: ResolvedTheme = theme === 'system' ? getSystemTheme() : theme;

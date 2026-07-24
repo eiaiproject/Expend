@@ -15,7 +15,7 @@ export function usePrivacy() {
   return context;
 }
 
-export function PrivacyProvider({ children }: { children: React.ReactNode }) {
+export function PrivacyProvider({ children }: { readonly children: React.ReactNode }) {
   const [hideAmount, setHideAmount] = useState(false);
 
   useEffect(() => {
