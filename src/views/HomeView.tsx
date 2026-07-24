@@ -386,7 +386,7 @@ export default function HomeView() {
           style={{ scrollbarWidth: 'auto', scrollPaddingInline: '1rem' }}
         >
           {(['today', 'week', 'transfers'] as const).map(qf => {
-            const label = (() => { if (qf === 'today') return t('home.filterToday'); if (qf === 'week') return t('home.filterThisWeek'); return t('home.filterTransfers'); })();
+            const label = qf === 'today' ? t('home.filterToday') : qf === 'week' ? t('home.filterThisWeek') : t('home.filterTransfers'); // ponytail: S2681+S3358, stable 3-state
             return (
               <button type="button"
                 key={qf}

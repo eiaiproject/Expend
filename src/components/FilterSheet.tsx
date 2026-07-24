@@ -148,7 +148,7 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets }: F
                       : "bg-[var(--bg)] text-[var(--text-primary)] border-[var(--border)] hover:border-[var(--accent)]"
                   )}
                 >
-                  <span>{(() => { if (type === 'all') return t('All'); if (type === 'expense') return t('Expense'); return t('Adjustment'); })()}</span>
+                  <span>{type === 'all' ? t('All') : type === 'expense' ? t('Expense') : t('Adjustment')}</span> {/* ponytail: S2681+S3358, stable 3-state */}
                   {draft.type === type && <Check size={16} />}
                 </button>
               ))}
