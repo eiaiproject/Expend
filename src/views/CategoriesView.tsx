@@ -352,7 +352,7 @@ export default function CategoriesView() {
           <div
             className={cn(
               'h-full rounded-full transition-all',
-              status === 'over' ? 'bg-red-500' : status === 'near' ? 'bg-yellow-500' : 'bg-[var(--accent)]'
+              status === 'over' ? 'bg-red-500' : status === 'near' ? 'bg-yellow-500' : 'bg-[var(--accent)]' // ponytail: S3358 — stable 3-state
             )}
             style={{ width: `${pct}%` }}
           />
@@ -360,25 +360,25 @@ export default function CategoriesView() {
         <div className="flex items-center justify-between">
           <span className={cn(
             'text-[10px] font-medium',
-            status === 'over' ? 'text-red-500' : status === 'near' ? 'text-yellow-500' : 'text-[var(--text-secondary)]'
+            status === 'over' ? 'text-red-500' : status === 'near' ? 'text-yellow-500' : 'text-[var(--text-secondary)]' // ponytail: S3358 — stable 3-state
           )}>
-            {hideAmount ? (
-              status === 'over' ? t('Over Budget') : status === 'near' ? t('categories.budgetNearlyUsed') : t('categories.onTrack')
-            ) : (
-              status === 'over'
-                ? `${t('Over Budget')} · ${Math.round((spent / cat.budget) * 100)}%`
-                : status === 'near'
-                  ? `${t('categories.budgetNearlyUsed')} · ${Math.round(pct)}%`
-                  : `${t('categories.onTrack')} · ${Math.round(pct)}%`
-            )}
+            {(() => {
+              if (hideAmount) {
+                if (status === 'over') return t('Over Budget');
+                if (status === 'near') return t('categories.budgetNearlyUsed');
+                return t('categories.onTrack');
+              }
+              if (status === 'over') return `${t('Over Budget')} · ${Math.round((spent / cat.budget) * 100)}%`;
+              if (status === 'near') return `${t('categories.budgetNearlyUsed')} · ${Math.round(pct)}%`;
+              return `${t('categories.onTrack')} · ${Math.round(pct)}%`;
+            })()}
           </span>
           <span className="text-[10px] font-mono text-[var(--text-secondary)]">
-            {hideAmount
-              ? t('categories.amountHidden')
-              : status === 'over'
-                ? t('categories.overBudgetBy', { amount: formatCurrencyValue(exceeded) })
-                : t('categories.remaining', { amount: formatCurrencyValue(remaining) })
-            }
+            {(() => {
+              if (hideAmount) return t('categories.amountHidden');
+              if (status === 'over') return t('categories.overBudgetBy', { amount: formatCurrencyValue(exceeded) });
+              return t('categories.remaining', { amount: formatCurrencyValue(remaining) });
+            })()}
           </span>
         </div>
       </div>

@@ -386,7 +386,7 @@ export default function HomeView() {
           style={{ scrollbarWidth: 'auto', scrollPaddingInline: '1rem' }}
         >
           {(['today', 'week', 'transfers'] as const).map(qf => {
-            const label = qf === 'today' ? t('home.filterToday') : qf === 'week' ? t('home.filterThisWeek') : t('home.filterTransfers');
+            const label = (() => { if (qf === 'today') return t('home.filterToday'); if (qf === 'week') return t('home.filterThisWeek'); return t('home.filterTransfers'); })();
             return (
               <button
                 key={qf}

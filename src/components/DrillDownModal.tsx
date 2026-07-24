@@ -69,7 +69,11 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
                         </p>
                       </div>
                       <span className={`font-mono text-sm font-semibold ml-3 ${tx.type === 'expense' || (tx.type === 'balance_adjustment' && tx.amount < 0) ? 'text-[var(--expense)]' : 'text-[var(--accent)]'}`}>
-                        {hideAmount ? '•••••' : `${tx.type === 'expense' || (tx.type === 'balance_adjustment' && tx.amount < 0) ? '-' : '+'}Rp ${Math.abs(tx.amount).toLocaleString('id-ID')}`}
+                        {(() => {
+                          if (hideAmount) return '•••••';
+                          const sign = tx.type === 'expense' || (tx.type === 'balance_adjustment' && tx.amount < 0) ? '-' : '+';
+                          return `${sign}Rp ${Math.abs(tx.amount).toLocaleString('id-ID')}`;
+                        })()}
                       </span>
                     </div>
                   );

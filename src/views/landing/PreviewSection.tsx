@@ -76,7 +76,9 @@ function DashboardMockup() {
         {[t('landing.demoLunchShort'), 'Grab', t('landing.demoCoffeeShort')].map((name, i) => (
           <div key={name} className="bg-[var(--card)] rounded-xl p-2.5 flex items-center gap-2">
             <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center ${i === 0 ? 'bg-red-400' : i === 1 ? 'bg-orange-400' : 'bg-amber-400'}`}
+              className={`w-7 h-7 rounded-full flex items-center justify-center ${
+                (() => { if (i === 0) return 'bg-red-400'; if (i === 1) return 'bg-orange-400'; return 'bg-amber-400'; })()
+              }`}
             >
               <div className="w-2 h-2 bg-white/80 rounded-full" />
             </div>

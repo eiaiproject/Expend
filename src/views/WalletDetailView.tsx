@@ -243,7 +243,12 @@ export default function WalletDetailView() {
                         className="w-full flex items-center gap-3 p-3 bg-[var(--card)] rounded-xl border border-[var(--border)] text-left hover:border-[var(--accent)]/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
                       >
                         <div className="w-10 h-10 rounded-lg bg-[var(--bg)] flex items-center justify-center shrink-0">
-                          {tx.type === 'transfer_in' ? <ArrowUpRight size={18} className="text-green-500" /> : tx.type === 'transfer_out' ? <ArrowDownRight size={18} className="text-amber-500" /> : tx.type === 'balance_adjustment' ? <Scale size={18} className="text-[var(--accent)]" /> : <span className="text-sm font-bold" style={{ color: categoryMap[tx.categoryId!]?.color || 'var(--text-secondary)' }}>{categoryMap[tx.categoryId!]?.name?.charAt(0) || 'T'}</span>}
+                          {(() => {
+                            if (tx.type === 'transfer_in') return <ArrowUpRight size={18} className="text-green-500" />;
+                            if (tx.type === 'transfer_out') return <ArrowDownRight size={18} className="text-amber-500" />;
+                            if (tx.type === 'balance_adjustment') return <Scale size={18} className="text-[var(--accent)]" />;
+                            return <span className="text-sm font-bold" style={{ color: categoryMap[tx.categoryId!]?.color || 'var(--text-secondary)' }}>{categoryMap[tx.categoryId!]?.name?.charAt(0) || 'T'}</span>;
+                          })()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{tx.description}</p>

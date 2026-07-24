@@ -449,7 +449,7 @@ export default function StatsView() {
   const isEmpty = !isLoading && !hasAnyExpenses;
   const showInsufficientTrend = (period === 'week' || period === 'month') && trendDaysWithData <= 1;
 
-  const periodLabel = period === 'week' ? t('stats.periodWeek') : period === 'month' ? t('stats.periodMonth') : t('stats.periodAll');
+  const periodLabel = period === 'week' ? t('stats.periodWeek') : period === 'month' ? t('stats.periodMonth') : t('stats.periodAll'); // ponytail: S3358 — 3-state stable label extraction
 
   // ── Comparison text ────────────────────────────────────────
 

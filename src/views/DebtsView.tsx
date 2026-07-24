@@ -385,48 +385,28 @@ export default function DebtsView() {
       )}
 
       {/* Results */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((item) => (
-            <Skeleton key={item} className="h-36 w-full rounded-[16px]" />
-          ))}
-        </div>
-      ) : filteredDebts.length > 0 ? (
-        <div className="space-y-3" role="list" aria-label={t('Debts')}>
-          {filteredDebts.map((debt) => (
-            <DebtCard
-              key={debt.id}
-              debt={debt}
-              payments={paymentsByDebt[debt.id] ?? []}
-              wallet={walletMap[debt.walletId]}
-              hideAmount={hideAmount}
-              onClick={() => setSelectedDebt(debt)}
-              onPayment={() => handlePayment(debt)}
-              onEdit={() => handleEdit(debt)}
-            />
-          ))}
-        </div>
-      ) : !hasAnyDebt ? (
-        <EmptyState
-          icon={<Handshake size={36} />}
-          title={t('debt.emptyFirstTitle')}
-          description={t('debt.emptyFirstDesc')}
-          action={{ label: t('debt.emptyFirstCta'), onClick: handleOpenForm }}
-        />
-      ) : hasFilters || searchTerm ? (
-        <EmptyState
-          icon={<Handshake size={36} />}
-          title={t('debt.emptySearchTitle')}
-          description=""
-          action={{ label: t('debt.emptySearchClear'), onClick: () => { setSearchTerm(''); clearFilters(); } }}
-        />
-      ) : (
-        <EmptyState
-          icon={<Handshake size={36} />}
-          title={t('debt.emptyAllSettledTitle')}
-          description={t('debt.emptyAllSettledDesc')}
-        />
-      )}
+      {(() => {
+        if (isLoading) return (
+          <div className="space-y-3">{[1, 2, 3].map((item) => <Skeleton key={item} className="h-36 w-full rounded-[16px]" />)}</div>
+        );
+        if (filteredDebts.length > 0) return (
+          <div className="space-y-3" role="list" aria-label={t('Debts')}>
+            {filteredDebts.map((debt) => (
+              <DebtCard key={debt.id} debt={debt} payments={paymentsByDebt[debt.id] ?? []} wallet={walletMap[debt.walletId]} hideAmount={hideAmount}
+                onClick={() => setSelectedDebt(debt)} onPayment={() => handlePayment(debt)} onEdit={() => handleEdit(debt)} />
+            ))}
+          </div>
+        );
+        if (!hasAnyDebt) return (
+          <EmptyState icon={<Handshake size={36} />} title={t('debt.emptyFirstTitle')} description={t('debt.emptyFirstDesc')} action={{ label: t('debt.emptyFirstCta'), onClick: handleOpenForm }} />
+        );
+        if (hasFilters || searchTerm) return (
+          <EmptyState icon={<Handshake size={36} />} title={t('debt.emptySearchTitle')} description="" action={{ label: t('debt.emptySearchClear'), onClick: () => { setSearchTerm(''); clearFilters(); } }} />
+        );
+        return (
+          <EmptyState icon={<Handshake size={36} />} title={t('debt.emptyAllSettledTitle')} description={t('debt.emptyAllSettledDesc')} />
+        );
+      })()}
 
       <DebtFormSheet
         isOpen={isFormOpen}

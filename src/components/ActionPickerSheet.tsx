@@ -42,7 +42,11 @@ export function ActionPickerSheet({
 
   const sorted = [
     actions[0]!, // Always pin Add Expense first
-    ...actions.slice(1).sort((a, b) => (a.key === lastAction ? -1 : b.key === lastAction ? 1 : 0)),
+    ...actions.slice(1).sort((a, b) => {
+      if (a.key === lastAction) return -1;
+      if (b.key === lastAction) return 1;
+      return 0;
+    }),
   ];
 
   return (
