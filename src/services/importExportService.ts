@@ -295,10 +295,8 @@ export function validateImportData(json: unknown): string[] {
       if (!isFiniteMoney(tx.amount) || tx.amount <= 0) {
         errors.push(`Transaction ${i}: "amount" must be a positive finite number for transfers.`);
       }
-    } else {
-      if (!isFiniteMoney(tx.amount)) {
-        errors.push(`Transaction ${i}: "amount" must be a finite number within supported range.`);
-      }
+    } else if (!isFiniteMoney(tx.amount)) {
+      errors.push(`Transaction ${i}: "amount" must be a finite number within supported range.`);
     }
     if (tx.categoryId !== null && tx.categoryId !== undefined && typeof tx.categoryId !== 'number') {
       errors.push(`Transaction ${i}: "categoryId" must be null or a number.`);

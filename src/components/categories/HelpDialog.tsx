@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { X, Tag, DollarSign, Eye, Archive, Trash2, ArrowSwapHorizontal, Wallet } from 'reicon-react';
 
 interface HelpDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
 }
 
 function HelpItem({ icon: Icon, text }: { icon: React.ComponentType<{ size?: number; className?: string }>; text: string }) {
@@ -39,6 +39,7 @@ export function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
   if (!isOpen) return null;
 
   return (
+    // NOSONAR S6819 — <dialog> would break custom styling
     <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={t('categories.helpTitle')}>
       <div ref={dialogRef} className="bg-[var(--card)] rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl">
         <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">

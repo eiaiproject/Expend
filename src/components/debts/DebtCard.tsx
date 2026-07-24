@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDownLeft, ArrowUpRight, CheckCircle, Clock, AlertTriangle, MoreH, Edit, Trash2, HandDollar } from 'reicon-react';
+import { ArrowDownLeft, ArrowUpRight, CheckCircle, AlertTriangle, MoreH, Edit, Trash2, HandDollar } from 'reicon-react';
 import { type Debt, type DebtPayment, type Wallet } from '../../db/db';
-import { calculateDebtStatus, isDebtClosed, archiveDebt, markDebtPaidWithoutCashflow, writeOffReceivable } from '../../services/debtService';
+import { calculateDebtStatus, isDebtClosed, markDebtPaidWithoutCashflow, writeOffReceivable } from '../../services/debtService';
 import { getKnownErrorMessage } from '../../services/errors';
 import { cn } from '../../utils/cn';
 import { formatCurrency } from '../../utils/formatUtils';
@@ -11,13 +11,13 @@ import { confirm } from '../ConfirmDialog';
 import { toast } from '../Toaster';
 
 interface DebtCardProps {
-  debt: Debt;
-  payments: readonly DebtPayment[];
-  wallet?: Wallet;
-  hideAmount?: boolean;
-  onClick: () => void;
-  onPayment: () => void;
-  onEdit: () => void;
+  readonly debt: Debt;
+  readonly payments: readonly DebtPayment[];
+  readonly wallet?: Wallet;
+  readonly hideAmount?: boolean;
+  readonly onClick: () => void;
+  readonly onPayment: () => void;
+  readonly onEdit: () => void;
 }
 
 function getDueLabel(debt: Debt, t: (key: string, options?: Record<string, string | number>) => string, locale?: string): string {
@@ -81,7 +81,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
       items[0]?.focus();
     } else if (e.key === 'End') {
       e.preventDefault();
-      items[items.length - 1]?.focus();
+      items.at(-1)?.focus();
     }
   };
 
@@ -113,23 +113,6 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
     try {
       await writeOffReceivable(debt.id);
       toast.add(t('debt.toastWrittenOff'));
-    } catch (error) {
-      toast.add(getKnownErrorMessage(error, t, 'Action failed'));
-    }
-  };
-
-  const handleArchive = async () => {
-    closeMenu();
-    const confirmed = await confirm({
-      title: t('Delete debt?'),
-      message: t('Delete debt desc'),
-      confirmLabel: t('Delete'),
-      variant: 'danger',
-    });
-    if (!confirmed) return;
-    try {
-      await archiveDebt(debt.id);
-      toast.add(isPayable ? t('Payable deleted') : t('Receivable deleted'));
     } catch (error) {
       toast.add(getKnownErrorMessage(error, t, 'Action failed'));
     }

@@ -33,7 +33,7 @@ export function FeaturesSection() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {benefits.map(({ icon: Icon, titleKey, descKey }, i) => (
-              <div key={i} className="text-center">
+              <div key={titleKey} className="text-center">
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--accent)]/10 mb-4">
                   <Icon size={22} className="text-[var(--accent)]" />
                 </div>
@@ -62,7 +62,7 @@ export function FeaturesSection() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {features.map(({ icon: Icon, titleKey, descKey }, i) => (
               <div
-                key={i}
+                key={titleKey}
                 className="p-5 rounded-xl bg-[var(--surface)]/50 border border-[var(--border-subtle)] hover:border-[var(--accent)]/20 transition-colors group"
               >
                 <div className="w-10 h-10 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center mb-3 group-hover:bg-[var(--accent)]/15 transition-colors">

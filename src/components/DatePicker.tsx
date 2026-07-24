@@ -5,11 +5,11 @@ import { cn } from '../utils/cn';
 import { getTodayStr, getYesterdayStr } from '../utils/dateUtils';
 
 interface DatePickerProps {
-  id?: string;
-  value: string;
-  onChange: (value: string) => void;
-  label?: string;
-  required?: boolean;
+  readonly id?: string;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly label?: string;
+  readonly required?: boolean;
 }
 
 type QuickOption = {

@@ -5,9 +5,9 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { Lock, X } from 'reicon-react';
 
 interface VerifyCurrentPinModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onVerified: () => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly onVerified: () => void;
 }
 
 export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCurrentPinModalProps) {
@@ -59,6 +59,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
   if (!isOpen) return null;
 
   return (
+    // NOSONAR S6819 — <dialog> would break custom styling
     <div ref={dialogRef} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" role="dialog" aria-modal="true" aria-label={t('Enter your current PIN')}>
       <div
         className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-6"
@@ -74,7 +75,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
         <div className="flex justify-center gap-4">
           {Array.from({ length: pinLength }, (_, i) => (
             <div
-              key={i}
+              key={`pin-${i}`}
               className={`w-4 h-4 rounded-full transition-colors ${i < pin.length ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'} ${error ? 'bg-red-500' : ''}`}
             />
           ))}

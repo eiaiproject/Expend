@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export function StickyCta({ onEnter }: { onEnter: () => void }) {
+export function StickyCta({ onEnter }: { readonly onEnter: () => void }) {
   const { t } = useTranslation();
   const [show, setShow] = useState(false);
 

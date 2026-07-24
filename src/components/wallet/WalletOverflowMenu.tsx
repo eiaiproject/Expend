@@ -4,14 +4,14 @@ import { More, Eye, Edit, ArrowSwapHorizontal, Scale, Archive, ArchiveTick, Tras
 import type { Wallet } from '../../db/db';
 
 interface WalletOverflowMenuProps {
-  wallet: Wallet;
-  onViewTransactions: () => void;
-  onEdit: () => void;
-  onTransfer: () => void;
-  onReconcile: () => void;
-  onDeactivate: () => void;
-  onReactivate: () => void;
-  onDelete: () => void;
+  readonly wallet: Wallet;
+  readonly onViewTransactions: () => void;
+  readonly onEdit: () => void;
+  readonly onTransfer: () => void;
+  readonly onReconcile: () => void;
+  readonly onDeactivate: () => void;
+  readonly onReactivate: () => void;
+  readonly onDelete: () => void;
 }
 
 /**

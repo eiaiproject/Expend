@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'reicon-react';
 
 interface FAQItem {
-  question: string;
-  answer: string;
+  readonly question: string;
+  readonly answer: string;
 }
 
 function FAQAccordion({ item, index, isOpen, onToggle }: { item: FAQItem; index: number; isOpen: boolean; onToggle: () => void }) {
@@ -36,7 +36,7 @@ function FAQAccordion({ item, index, isOpen, onToggle }: { item: FAQItem; index:
       <div
         ref={ref}
         id={panelId}
-        role="region"
+        role="region" // NOSONAR: S6819 — div with aria-label is valid landmark region
         aria-labelledby={buttonId}
         hidden={!isOpen}
       >
@@ -86,7 +86,7 @@ export function FAQSection() {
         <div className="bg-[var(--surface)]/30 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl px-5 sm:px-8">
           {faqs.map((faq, i) => (
             <FAQAccordion
-              key={i}
+              key={faq.question ?? i}
               item={faq}
               index={i}
               isOpen={openIndex === i}

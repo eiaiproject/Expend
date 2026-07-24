@@ -5,11 +5,11 @@ import { BottomSheetShell } from './BottomSheetShell';
 const LAST_ACTION_KEY = 'expend_last_action';
 
 interface ActionPickerSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onAddExpense: () => void;
-  onTransfer: () => void;
-  onDebt: () => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly onAddExpense: () => void;
+  readonly onTransfer: () => void;
+  readonly onDebt: () => void;
 }
 
 export function ActionPickerSheet({
@@ -42,7 +42,11 @@ export function ActionPickerSheet({
 
   const sorted = [
     actions[0]!, // Always pin Add Expense first
-    ...actions.slice(1).sort((a, b) => (a.key === lastAction ? -1 : b.key === lastAction ? 1 : 0)),
+    ...actions.slice(1).sort((a, b) => {
+      if (a.key === lastAction) return -1;
+      if (b.key === lastAction) return 1;
+      return 0;
+    }),
   ];
 
   return (

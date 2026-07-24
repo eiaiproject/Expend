@@ -141,12 +141,12 @@ function useBackupReminder() {
 // ── CSV Preview ────────────────────────────────────────────────
 
 interface CsvPreviewRow {
-  date: string;
-  wallet: string;
-  category: string;
-  recipient: string;
-  amount: string;
-  type: string;
+  readonly date: string;
+  readonly wallet: string;
+  readonly category: string;
+  readonly recipient: string;
+  readonly amount: string;
+  readonly type: string;
 }
 
 function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
@@ -175,7 +175,7 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
           <div className="p-4 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
             <p className="text-sm font-medium text-red-700 dark:text-red-300">{t('settings.csvPreviewErrors', { count: errors.length })}</p>
             <ul className="mt-1 text-xs text-red-600 dark:text-red-400 space-y-0.5">
-              {errors.slice(0, 5).map((err, i) => <li key={i}>{err}</li>)}
+              {errors.slice(0, 5).map((err, i) => <li key={err}>{err}</li>)}
               {errors.length > 5 && <li>...{errors.length - 5} more</li>}
             </ul>
           </div>
@@ -194,7 +194,7 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
             </thead>
             <tbody>
               {previewRows.map((row, i) => (
-                <tr key={i} className="border-b border-[var(--border)]">
+                <tr key={`${row.date}-${row.wallet}-${i}`} className="border-b border-[var(--border)]">
                   <td className="py-1.5 pr-2">{row.date}</td>
                   <td className="py-1.5 pr-2">{row.wallet}</td>
                   <td className="py-1.5 pr-2">{row.category || '—'}</td>
@@ -240,6 +240,7 @@ function RestorePreviewModal({ isOpen, onClose, data, onConfirm }: {
   const walletNames = data.wallets.map((w: any) => w.name).join(', ') || '—';
 
   return (
+    // NOSONAR S6819 — <dialog> would break custom styling
     <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={t('settings.restorePreviewTitle')}>
       <div className="bg-[var(--card)] rounded-2xl w-full max-w-sm shadow-2xl">
         <div className="p-5 border-b border-[var(--border)]">
@@ -308,7 +309,6 @@ export default function SettingsView() {
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [showChangePin, setShowChangePin] = useState(false);
   const [pendingAction, setPendingAction] = useState<'changePin' | 'disableSecurity' | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
 
   // CSV Preview state
   const [csvPreview, setCsvPreview] = useState<{ rows: CsvPreviewRow[]; errors: string[] } | null>(null);
@@ -364,7 +364,6 @@ export default function SettingsView() {
       return;
     }
 
-    setIsImporting(true);
     try {
       const { rows, errors } = await parseTransactionsCsv(file);
 
@@ -374,7 +373,6 @@ export default function SettingsView() {
       toast.add(t('Import Error'));
     } finally {
       e.target.value = '';
-      setIsImporting(false);
     }
   };
 
@@ -396,7 +394,7 @@ export default function SettingsView() {
   const handleExportJSON = async () => {
     const data = await generateExport();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    downloadBlob(blob, `expend-backup-${getTodayStr()}T${new Date().toTimeString().slice(0, 8).replace(/:/g, '-')}.json`);
+    downloadBlob(blob, `expend-backup-${getTodayStr()}T${new Date().toTimeString().slice(0, 8).replaceAll(':', '-')}.json`);
     await markBackupDone();
     toast.add(t('settings.backupCreated'));
   };
@@ -468,7 +466,7 @@ export default function SettingsView() {
     if (exportFirst) {
       const data = await generateExport();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      downloadBlob(blob, `expend-backup-${getTodayStr()}T${new Date().toTimeString().slice(0, 8).replace(/:/g, '-')}.json`);
+      downloadBlob(blob, `expend-backup-${getTodayStr()}T${new Date().toTimeString().slice(0, 8).replaceAll(':', '-')}.json`);
     }
 
     const deleteLabel = i18n.language?.startsWith('id') ? 'HAPUS' : 'DELETE';

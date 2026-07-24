@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
-import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, X, Trash2, Handshake } from 'reicon-react';
+import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, Trash2, Handshake } from 'reicon-react';
 import { cn } from '../utils/cn';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
@@ -74,7 +74,6 @@ export default function HomeView() {
     filters,
     actions: filterActions,
     filteredTransactions,
-    hasActiveFilters,
     searchRef,
     activeCategories,
     activeWallets,
@@ -133,7 +132,7 @@ export default function HomeView() {
       const tag = target.tagName;
       const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable || target.hasAttribute('contenteditable') || target.getAttribute('role') === 'textbox';
       if (isEditable) return;
-      if (document.querySelector('[role="dialog"]')) return;
+      if (document.querySelector('[role="dialog"]')) return; // NOSONAR S6819 — runtime detection
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       if (e.key === '/') {
@@ -163,7 +162,7 @@ export default function HomeView() {
 
   // Group transactions by period
   const groupedTransactions = useMemo(() => {
-    if (!visibleFilteredTransactions || !visibleFilteredTransactions.length) return [];
+    if (!visibleFilteredTransactions?.length) return [];
 
     const todayStr = getTodayStr();
     const yesterdayStr = getYesterdayStr();
@@ -387,7 +386,7 @@ export default function HomeView() {
           style={{ scrollbarWidth: 'auto', scrollPaddingInline: '1rem' }}
         >
           {(['today', 'week', 'transfers'] as const).map(qf => {
-            const label = qf === 'today' ? t('home.filterToday') : qf === 'week' ? t('home.filterThisWeek') : t('home.filterTransfers');
+            const label = (() => { if (qf === 'today') return t('home.filterToday'); if (qf === 'week') return t('home.filterThisWeek'); return t('home.filterTransfers'); })();
             return (
               <button type="button"
                 key={qf}
@@ -530,7 +529,7 @@ export default function HomeView() {
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map(i => (
-            <Skeleton key={i} className="w-full h-20 rounded-[16px]" />
+            <Skeleton key={`skel-${i}`} className="w-full h-20 rounded-[16px]" />
           ))}
         </div>
       ) : filteredTransactions.length === 0 ? (

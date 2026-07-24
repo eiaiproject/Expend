@@ -8,11 +8,11 @@ import { X } from 'reicon-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface DrillDownModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  transactions: Transaction[];
-  categoryMap: Record<number, { name: string; color: string } | undefined>;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly title: string;
+  readonly transactions: Transaction[];
+  readonly categoryMap: Record<number, { name: string; color: string } | undefined>;
 }
 
 export function DrillDownModal({ isOpen, onClose, title, transactions, categoryMap }: DrillDownModalProps) {
@@ -36,6 +36,8 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
         <div
           className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6"
           onClick={onClose}
+          onKeyDown={() => {}}
+          role="presentation"
         >
           <div
             ref={dialogRef}
@@ -68,7 +70,11 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
                         </p>
                       </div>
                       <span className={`font-mono text-sm font-semibold ml-3 ${tx.type === 'expense' || (tx.type === 'balance_adjustment' && tx.amount < 0) ? 'text-[var(--expense)]' : 'text-[var(--accent)]'}`}>
-                        {hideAmount ? '•••••' : `${tx.type === 'expense' || (tx.type === 'balance_adjustment' && tx.amount < 0) ? '-' : '+'}Rp ${Math.abs(tx.amount).toLocaleString('id-ID')}`}
+                        {(() => {
+                          if (hideAmount) return '•••••';
+                          const sign = tx.type === 'expense' || (tx.type === 'balance_adjustment' && tx.amount < 0) ? '-' : '+';
+                          return `${sign}Rp ${Math.abs(tx.amount).toLocaleString('id-ID')}`;
+                        })()}
                       </span>
                     </div>
                   );

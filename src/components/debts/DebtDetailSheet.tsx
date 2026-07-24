@@ -11,14 +11,14 @@ import { confirm } from '../ConfirmDialog';
 import { toast } from '../Toaster';
 
 interface DebtDetailSheetProps {
-  debt: Debt | null;
-  payments: readonly DebtPayment[];
-  walletMap: Record<number, Wallet | undefined>;
-  isOpen: boolean;
-  onClose: () => void;
-  onPayment: (debt: Debt) => void;
-  onEdit: (debt: Debt) => void;
-  hideAmount?: boolean;
+  readonly debt: Debt | null;
+  readonly payments: readonly DebtPayment[];
+  readonly walletMap: Record<number, Wallet | undefined>;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly onPayment: (debt: Debt) => void;
+  readonly onEdit: (debt: Debt) => void;
+  readonly hideAmount?: boolean;
 }
 
 function paymentCopy(debt: Debt, payment: DebtPayment, t: (key: string) => string): { label: string; sign: '+' | '-' | ''; className: string } {

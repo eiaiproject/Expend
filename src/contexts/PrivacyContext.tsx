@@ -1,10 +1,10 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '../db/db';
 
 interface PrivacyContextType {
   /** When true, all monetary amounts should display as '•••••' */
-  hideAmount: boolean;
-  toggleHideAmount: () => void;
+  readonly hideAmount: boolean;
+  readonly toggleHideAmount: () => void;
 }
 
 const PrivacyContext = createContext<PrivacyContextType | null>(null);
@@ -39,7 +39,7 @@ export function PrivacyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <PrivacyContext.Provider value={{ hideAmount, toggleHideAmount }}>
+    <PrivacyContext.Provider value={useMemo(() => ({ hideAmount, toggleHideAmount }), [hideAmount, toggleHideAmount])}>
       {children}
     </PrivacyContext.Provider>
   );

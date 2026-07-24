@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export interface ToastMessage {
-  id: number;
-  message: string;
-  onUndo?: () => void;
-  duration?: number;
+  readonly id: number;
+  readonly message: string;
+  readonly onUndo?: () => void;
+  readonly duration?: number;
 }
 
 let toastCounter = 0;

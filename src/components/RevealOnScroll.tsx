@@ -1,11 +1,11 @@
 import { useRef, useState, useEffect, type ReactNode } from 'react';
 
 interface Props {
-  children: ReactNode;
+  readonly children: ReactNode;
   /** Additional class names applied to the wrapper when visible. */
-  className?: string;
+  readonly className?: string;
   /** Delay in ms before the reveal animation starts (stagger support). */
-  delay?: number;
+  readonly delay?: number;
 }
 
 /**

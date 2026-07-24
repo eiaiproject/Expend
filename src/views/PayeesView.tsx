@@ -36,7 +36,7 @@ const EMPTY_FILTER_DRAFT: PayeeFilterDraft = {
 
 // ── Enriched merchant with stats ─────────────────────────────
 interface MerchantWithStats extends Merchant {
-  stats: PayeeStats;
+  readonly stats: PayeeStats;
 }
 
 export default function PayeesView() {
@@ -81,11 +81,11 @@ export default function PayeesView() {
   const wallets = useLiveQuery(() => db.wallets.toArray(), [], []);
 
   const categoryMap = useMemo(() =>
-    (categories ?? []).reduce((acc, c) => { if (c.id) acc[c.id] = c; return acc; }, {} as Record<number, import('../db/db').Category>),
+    (categories ?? []).reduce((acc, c) => { if (c.id) { acc[c.id] = c; } return acc; }, {} as Record<number, import('../db/db').Category>),
   [categories]);
 
   const walletMap = useMemo(() =>
-    (wallets ?? []).reduce((acc, w) => { if (w.id) acc[w.id] = w; return acc; }, {} as Record<number, import('../db/db').Wallet>),
+    (wallets ?? []).reduce((acc, w) => { if (w.id) { acc[w.id] = w; } return acc; }, {} as Record<number, import('../db/db').Wallet>),
   [wallets]);
 
   // ── Merge merchants with stats ─────────────────────────────
@@ -186,7 +186,7 @@ export default function PayeesView() {
     if (renamingMerchant.displayName === trimmed) { setRenamingMerchant(null); return; }
 
     // Check duplicate
-    const dup = mergedMerchants.find(m => m.id !== renamingMerchant.id && m.displayName.toLowerCase() === trimmed.toLowerCase());
+    const dup = mergedMerchants.some(m => m.id !== renamingMerchant.id && m.displayName.toLowerCase() === trimmed.toLowerCase());
     if (dup) { toast.add(t('A category with this name already exists')); return; }
 
     await renameMerchant(renamingMerchant.id!, trimmed);
@@ -214,6 +214,7 @@ export default function PayeesView() {
 
   // ── Rename dialog ──────────────────────────────────────────
   const renameDialog = renamingMerchant ? (
+    // NOSONAR S6819 — <dialog> would break custom styling
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-label={t('payees.renameMerchant')}>
       <div className="bg-[var(--card)] w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
         <h2 className="text-lg font-bold">{t('payees.renameMerchant')}</h2>

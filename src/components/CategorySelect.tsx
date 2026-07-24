@@ -12,11 +12,11 @@ const catName = (name: string | null | undefined, t: (k: string) => string): str
 };
 
 interface CategorySelectProps {
-  id?: string;
-  categories: Category[];
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
+  readonly id?: string;
+  readonly categories: Category[];
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly placeholder?: string;
 }
 
 export function CategorySelect({ id, categories, value, onChange, placeholder }: CategorySelectProps) {
@@ -56,14 +56,6 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
     return categories.filter(cat => 
       cat.name.toLowerCase().includes(lower) ||
       catName(cat.name, t).toLowerCase().includes(lower)
-    );
-  }, [categories, searchTerm, t]);
-
-  // Check if exact match exists
-  const hasExactMatch = useMemo(() => {
-    return categories.some(cat => 
-      cat.name.toLowerCase() === searchTerm.toLowerCase().trim() ||
-      catName(cat.name, t).toLowerCase() === searchTerm.toLowerCase().trim()
     );
   }, [categories, searchTerm, t]);
 

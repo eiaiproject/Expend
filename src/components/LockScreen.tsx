@@ -71,7 +71,7 @@ export function LockScreen() {
           <div className="flex justify-center gap-4">
             {Array.from({ length: MAX_PIN_LENGTH }, (_, i) => (
               <div
-                key={i}
+                key={`pin-${i}`}
                 className={`w-4 h-4 rounded-full transition-colors ${
                   i < pin.length ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
                 } ${error ? 'bg-red-500' : ''}`}

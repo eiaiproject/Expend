@@ -3,15 +3,15 @@ import { More } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 
 interface MenuItem {
-  label: string;
-  onClick: () => void;
-  danger?: boolean;
+  readonly label: string;
+  readonly onClick: () => void;
+  readonly danger?: boolean;
 }
 
 interface CategoryOverflowMenuProps {
-  categoryName: string;
-  items: MenuItem[];
-  disabled?: boolean;
+  readonly categoryName: string;
+  readonly items: MenuItem[];
+  readonly disabled?: boolean;
 }
 
 export function CategoryOverflowMenu({ categoryName, items, disabled }: CategoryOverflowMenuProps) {
@@ -74,7 +74,7 @@ export function CategoryOverflowMenu({ categoryName, items, disabled }: Category
         >
           {items.map((item, i) => (
             <button
-              key={i}
+              key={item.label}
               type="button"
               role="menuitem"
               onClick={() => {

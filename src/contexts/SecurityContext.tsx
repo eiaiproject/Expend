@@ -1,11 +1,11 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { db, type Setting } from '../db/db';
 import { hashPin, verifyPin, verifyLegacySha256 } from '../utils/cryptoUtils';
 import { AUTO_LOCK_TIMEOUT_MS } from '../utils/constants';
 
 interface SecuritySettingsValue {
-  enabled: boolean;
-  method: 'pin';
+  readonly enabled: boolean;
+  readonly method: 'pin';
   pinHash:
     | string
     | { hash: string; salt: string; iterations: number };
@@ -14,17 +14,17 @@ interface SecuritySettingsValue {
 }
 
 interface SecurityContextType {
-  isLocked: boolean;
-  securityEnabled: boolean;
-  pinLength: number;
-  isSecurityLoaded: boolean;
-  autoLockTimeout: number;
-  lock: () => void;
-  unlock: (pin?: string) => Promise<boolean>;
-  setupPin: (pin: string) => Promise<void>;
-  disableSecurity: () => Promise<void>;
-  updateAutoLockTimeout: (ms: number) => Promise<void>;
-  checkSecurityAvailable: () => { pin: boolean };
+  readonly isLocked: boolean;
+  readonly securityEnabled: boolean;
+  readonly pinLength: number;
+  readonly isSecurityLoaded: boolean;
+  readonly autoLockTimeout: number;
+  readonly lock: () => void;
+  readonly unlock: (pin?: string) => Promise<boolean>;
+  readonly setupPin: (pin: string) => Promise<void>;
+  readonly disableSecurity: () => Promise<void>;
+  readonly updateAutoLockTimeout: (ms: number) => Promise<void>;
+  readonly checkSecurityAvailable: () => { pin: boolean };
 }
 
 const SecurityContext = createContext<SecurityContextType | null>(null);
@@ -239,7 +239,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SecurityContext.Provider value={{
+    <SecurityContext.Provider value={useMemo(() => ({
       isLocked: isSecurityLoaded ? (securityEnabled ? isLocked : false) : true,
       pinLength,
       securityEnabled,
@@ -251,7 +251,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       disableSecurity,
       updateAutoLockTimeout,
       checkSecurityAvailable
-    }}>
+    }), [isLocked, isSecurityLoaded, securityEnabled, pinLength, autoLockTimeout, lock, unlock, setupPin, disableSecurity, updateAutoLockTimeout, checkSecurityAvailable])}>
       {children}
     </SecurityContext.Provider>
   );

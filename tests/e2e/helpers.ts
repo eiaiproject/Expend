@@ -22,7 +22,7 @@ const DB_NAME = 'ExpendDB';
 export function uniqueName(prefix: string): string {
   // Worker + random suffix keeps data unique per browser project, per test.
   const wpid = process.pid.toString(36);
-  const rand = Math.random().toString(36).slice(2, 8);
+  const rand = Math.random().toString(36).slice(2, 8); // NOSONAR
   return `${prefix}-${wpid}-${rand}`;
 }
 
@@ -102,11 +102,11 @@ export async function readTable<T = unknown>(
         const tx = db.transaction(table, 'readonly');
         const store = tx.objectStore(table);
         const getAll = store.getAll();
-        getAll.onsuccess = () => {
+        getAll.onsuccess = () => { // NOSONAR (S2004) — IndexedDB pattern
           db.close();
           resolve((getAll.result ?? []) as T[]);
         };
-        getAll.onerror = () => {
+        getAll.onerror = () => { // NOSONAR (S2004) — IndexedDB pattern
           db.close();
           resolve([]);
         };
@@ -132,12 +132,12 @@ export async function readWalletByName(
         }
         const tx = db.transaction('wallets', 'readonly');
         const req = tx.objectStore('wallets').getAll();
-        req.onsuccess = () => {
+        req.onsuccess = () => { // NOSONAR (S2004) — IndexedDB pattern
           db.close();
           const wallets = (req.result ?? []) as Array<Record<string, unknown> & { id?: number; name?: string; currentBalance?: number; initialBalance?: number }>;
           resolve(wallets.find((w) => w.name === walletName));
         };
-        req.onerror = () => { db.close(); resolve(undefined); };
+        req.onerror = () => { db.close(); resolve(undefined); }; // NOSONAR (S2004) — IndexedDB pattern
       };
     });
   }, { walletName });
@@ -502,7 +502,7 @@ export async function deleteTransactionByDescription(
   description: string,
 ): Promise<void> {
   const row = page.locator('[data-testid="transaction-row"]').filter({
-    has: page.locator(`p`, { hasText: new RegExp(`^\\s*${escapeRegex(description)}\\s*$`) }),
+    has: page.locator(`p`, { hasText: new RegExp(String.raw`^\s*${escapeRegex(description)}\s*$`) }),
   }).first();
   await row.scrollIntoViewIfNeeded();
 
@@ -529,7 +529,7 @@ export async function openTransactionForEdit(
 ): Promise<void> {
   await page.goto('/');
   const row = page.locator('[data-testid="transaction-row"]').filter({
-    has: page.locator(`p`, { hasText: new RegExp(`^\\s*${escapeRegex(description)}\\s*$`) }),
+    has: page.locator(`p`, { hasText: new RegExp(String.raw`^\s*${escapeRegex(description)}\s*$`) }),
   }).first();
   await row.scrollIntoViewIfNeeded();
 
@@ -693,8 +693,8 @@ export async function createTransferViaService(
   opts: { fromWallet: string; toWallet: string; amount: number; description: string; date?: string },
 ): Promise<void> {
   await page.evaluate(async (args) => {
-    const dbModule = await import('/src/db/db.ts');
-    const txModule = await import('/src/services/transactionSaveService.ts');
+    const dbModule = await import('/src/db/db.ts');  // ponytail: absolute path — required for Vite browser context
+    const txModule = await import('/src/services/transactionSaveService.ts');  // ponytail: absolute path — required for Vite browser context
 
     const wallets = await dbModule.db.wallets.toArray();
     const from = wallets.find((w) => w.name === args.fromWallet);
@@ -723,8 +723,8 @@ export async function createExpenseViaService(
   opts: { walletName: string; amount: number; description: string; categoryName?: string; date?: string },
 ): Promise<void> {
   await page.evaluate(async (args) => {
-    const dbModule = await import('/src/db/db.ts');
-    const txModule = await import('/src/services/transactionSaveService.ts');
+    const dbModule = await import('/src/db/db.ts');  // ponytail: absolute path — required for Vite browser context
+    const txModule = await import('/src/services/transactionSaveService.ts');  // ponytail: absolute path — required for Vite browser context
 
     const wallets = await dbModule.db.wallets.toArray();
     const wallet = wallets.find((w) => w.name === args.walletName);

@@ -59,12 +59,10 @@ export function useFocusTrap(isActive: boolean) {
           e.preventDefault();
           lastElement.focus();
         }
-      } else {
-        // Tab: if focus is on last element, wrap to first
-        if (document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement.focus();
-        }
+      } else if (document.activeElement === lastElement) {
+        // Tab: focus on last element, wrap to first
+        e.preventDefault();
+        firstElement.focus();
       }
     };
 

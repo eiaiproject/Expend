@@ -47,7 +47,7 @@ const date = new Date().toISOString().slice(0, 10);
 
 const fromTag = process.argv[2] || (() => {
   try {
-    return execSync('git describe --tags --abbrev=0', { cwd: root }).toString().trim();
+    return execSync('git describe --tags --abbrev=0', { cwd: root }).toString().trim(); // NOSONAR — S4036: no user input
   } catch {
     return '';
   }
@@ -84,7 +84,8 @@ for (const c of commits) {
   const section = SECTION[type] || 'Changed';
   const subject = m[3].replace(/\.$/, '');
   const cap = subject.charAt(0).toUpperCase() + subject.slice(1);
-  (grouped[section] ||= []).push(cap);
+  if (!grouped[section]) grouped[section] = [];
+  grouped[section].push(cap);
 }
 
 const ORDER = ['Added', 'Changed', 'Performance', 'Fixed'];

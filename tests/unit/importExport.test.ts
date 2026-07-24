@@ -129,7 +129,7 @@ describe('validateImportData', () => {
     // The description itself should be validated — formula strings are dangerous in CSV context
     // but validation still passes since description is valid text. CSV export sanitization handles this.
     const errors = validateImportData(data);
-    expect(errors.length).toBe(0); // Validation passes; CSV sanitizer prefixes with '
+    expect(errors).toHaveLength(0); // Validation passes; CSV sanitizer prefixes with '
   });
 
   it('validates debts and debt payments', () => {
@@ -209,11 +209,11 @@ describe('import/export roundtrip', () => {
 
     // Verify export structure
     expect(exported.version).toBe(EXPORT_SCHEMA_VERSION);
-    expect(exported.wallets.length).toBe(2);
-    expect(exported.categories.length).toBe(2);
-    expect(exported.transactions.length).toBe(5);
-    expect(exported.debts.length).toBe(1);
-    expect(exported.debtPayments.length).toBe(2);
+    expect(exported.wallets).toHaveLength(2);
+    expect(exported.categories).toHaveLength(2);
+    expect(exported.transactions).toHaveLength(5);
+    expect(exported.debts).toHaveLength(1);
+    expect(exported.debtPayments).toHaveLength(2);
 
     // Verify security settings excluded
     await db.settings.put({ key: 'security', value: { pin: '1234' } });
@@ -225,30 +225,30 @@ describe('import/export roundtrip', () => {
 
     // Verify roundtrip
     const wallets = await db.wallets.toArray();
-    expect(wallets.length).toBe(2);
+    expect(wallets).toHaveLength(2);
     const cashWallet = wallets.find(w => w.name === 'Cash');
     expect(cashWallet?.initialBalance).toBe(1000000);
     // Balance recomputed from: initialBalance(1M) + transaction deltas(-50K + 200K - 500K) + debt deltas(+1M - 500K)
     expect(cashWallet?.currentBalance).toBe(1150000);
 
     const categories = await db.categories.toArray();
-    expect(categories.length).toBe(2);
+    expect(categories).toHaveLength(2);
 
     const transactions = await db.transactions.toArray();
-    expect(transactions.length).toBe(5);
+    expect(transactions).toHaveLength(5);
 
     const expenses = transactions.filter(t => t.type === 'expense');
-    expect(expenses.length).toBe(2);
+    expect(expenses).toHaveLength(2);
 
     const transfers = transactions.filter(t => t.type === 'transfer_in' || t.type === 'transfer_out');
-    expect(transfers.length).toBe(2);
+    expect(transfers).toHaveLength(2);
 
     const debts = await db.debts.toArray();
-    expect(debts.length).toBe(1);
+    expect(debts).toHaveLength(1);
     expect(debts[0].remainingAmount).toBe(500000);
 
     const debtPayments = await db.debtPayments.toArray();
-    expect(debtPayments.length).toBe(2);
+    expect(debtPayments).toHaveLength(2);
 
     // Security settings are excluded from export but restored from local DB during import
     const settings = await db.settings.toArray();
@@ -281,7 +281,7 @@ describe('csvService.importCsvTransactions balance recomputation', () => {
     expect(wallet?.currentBalance).toBe(875_000);
 
     const txs = await db.transactions.where('walletId').equals(walletId).toArray();
-    expect(txs.length).toBe(2);
+    expect(txs).toHaveLength(2);
     expect(txs.every(t => t.type === 'expense')).toBe(true);
   });
 

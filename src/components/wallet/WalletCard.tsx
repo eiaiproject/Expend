@@ -11,16 +11,16 @@ import { WALLET_STALE_DAYS } from '../../utils/constants';
 import { WalletOverflowMenu } from './WalletOverflowMenu';
 
 interface WalletCardProps {
-  wallet: Wallet;
-  balance: number;
-  spendingTrend: SpendingTrend;
-  lastActivityDate?: string | null;
-  onEdit: () => void;
-  onTransfer: () => void;
-  onReconcile: () => void;
-  onDeactivate: () => void;
-  onReactivate: () => void;
-  onDelete: () => void;
+  readonly wallet: Wallet;
+  readonly balance: number;
+  readonly spendingTrend: SpendingTrend;
+  readonly lastActivityDate?: string | null;
+  readonly onEdit: () => void;
+  readonly onTransfer: () => void;
+  readonly onReconcile: () => void;
+  readonly onDeactivate: () => void;
+  readonly onReactivate: () => void;
+  readonly onDelete: () => void;
 }
 
 /**
@@ -72,11 +72,11 @@ export function WalletCard({
       data-testid="wallet-card"
       data-wallet-card={wallet.name}
       className={`bg-[var(--card)] rounded-[16px] p-5 shadow-sm border transition-colors ${
-        isArchived
-          ? 'border-[var(--border)] opacity-70'
-          : isStale
-            ? 'border-amber-500/30'
-            : 'border-[var(--border)] hover:border-[var(--accent)]/30'
+        (() => {
+          if (isArchived) return 'border-[var(--border)] opacity-70';
+          if (isStale) return 'border-amber-500/30';
+          return 'border-[var(--border)] hover:border-[var(--accent)]/30';
+        })()
       }`}
     >
       <div className="flex justify-between items-start gap-3">
