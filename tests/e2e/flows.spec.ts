@@ -52,7 +52,7 @@ test.describe('wallet deletion safety', () => {
     const confirmDialog = page.getByRole('dialog', { name: /delete|confirm/i });
     await confirmDialog.waitFor({ state: 'visible', timeout: 5_000 });
     await confirmDialog.getByRole('button', { name: /^delete$/i }).first().click();
-    await page.waitForTimeout(1_000);
+    await confirmDialog.waitFor({ state: 'hidden' });
 
     // Wallet still exists — deletion was blocked.
     const wallet = await readWalletByName(page, walletName);
@@ -72,7 +72,7 @@ test.describe('wallet deletion safety', () => {
     const confirmDialog = page.getByRole('dialog', { name: /delete|confirm/i });
     await confirmDialog.waitFor({ state: 'visible', timeout: 5_000 });
     await confirmDialog.getByRole('button', { name: /^delete$/i }).first().click();
-    await page.waitForTimeout(1_000);
+    await confirmDialog.waitFor({ state: 'hidden' });
 
     const wallet = await readWalletByName(page, extraWallet);
     expect(wallet).toBeFalsy();
@@ -188,7 +188,7 @@ test.describe('language and theme', () => {
       const enOption = page.getByRole('button', { name: /^english$/i }).first();
       if (await enOption.isVisible({ timeout: 2_000 }).catch(() => false)) {
         await enOption.click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('networkidle');
       }
     }
 
@@ -213,7 +213,7 @@ test.describe('language and theme', () => {
       const lightOption = page.getByRole('button', { name: /light|terang/i }).first();
       if (await lightOption.isVisible({ timeout: 2_000 }).catch(() => false)) {
         await lightOption.click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('networkidle');
       }
     }
 
@@ -247,7 +247,6 @@ test.describe('error states', () => {
     await pickWalletFromSelect(page, walletName);
 
     await page.getByRole('button', { name: /^save$/i }).first().click();
-    await page.waitForTimeout(1_000);
 
     // Toast or error message about insufficient balance
     const errorMsg = page.getByText(/insufficient|balance|saldo/i);
@@ -290,7 +289,7 @@ test.describe('debt write-off and mark-paid', () => {
     const confirmDialog = page.getByRole('dialog', { name: /write off|confirm/i });
     await confirmDialog.waitFor({ state: 'visible', timeout: 5_000 });
     await confirmDialog.getByRole('button', { name: /write off/i }).first().click();
-    await page.waitForTimeout(1_000);
+    await confirmDialog.waitFor({ state: 'hidden' });
 
     const debts = await readDebts(page);
     const debt = debts.find((d) => d.personName === personName);
@@ -330,7 +329,7 @@ test.describe('debt write-off and mark-paid', () => {
     const confirmDialog = page.getByRole('dialog', { name: /mark.*paid|confirm|mark as paid/i });
     await confirmDialog.waitFor({ state: 'visible', timeout: 5_000 });
     await confirmDialog.getByRole('button', { name: /^paid$/i }).first().click();
-    await page.waitForTimeout(1_000);
+    await confirmDialog.waitFor({ state: 'hidden' });
 
     const debts = await readDebts(page);
     const debt = debts.find((d) => d.personName === personName);
@@ -379,7 +378,7 @@ test.describe('archive debt', () => {
     const confirmDialog = page.getByRole('dialog', { name: /delete|confirm/i });
     await confirmDialog.waitFor({ state: 'visible', timeout: 5_000 });
     await confirmDialog.getByRole('button', { name: /delete/i }).first().click();
-    await page.waitForTimeout(1_000);
+    await confirmDialog.waitFor({ state: 'hidden' });
 
     const debts = await readDebts(page);
     const debt = debts.find((d) => d.personName === personName);
@@ -419,12 +418,12 @@ test.describe('PIN security extended', () => {
       Object.defineProperty(document, 'visibilityState', { value: 'hidden', writable: true });
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    await page.waitForTimeout(100);
+    await page.waitForFunction(() => document.visibilityState === 'hidden');
     await page.evaluate(() => {
       Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true });
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    await page.waitForTimeout(500);
+    await page.waitForFunction(() => document.visibilityState === 'visible');
 
     // Lock screen should appear (PIN input)
     const pinInput = page.locator('[data-testid="pin-input"], input[type="password"], input[inputmode="numeric"]').first();
@@ -475,7 +474,7 @@ test.describe('PIN security extended', () => {
     const confirmDialog = page.getByRole('dialog', { name: /disable|confirm/i });
     await confirmDialog.waitFor({ state: 'visible', timeout: 5_000 });
     await confirmDialog.getByRole('button', { name: /disable/i }).first().click();
-    await page.waitForTimeout(1_000);
+    await confirmDialog.waitFor({ state: 'hidden' });
 
     // Verify security is disabled — "Set up PIN" should be visible again
     await expect(page.getByRole('button', { name: /set up pin/i })).toBeVisible({ timeout: 5_000 });

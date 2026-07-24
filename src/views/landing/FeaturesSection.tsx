@@ -33,7 +33,7 @@ export function FeaturesSection() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {benefits.map(({ icon: Icon, titleKey, descKey }, i) => (
-              <div key={i} className="text-center">
+              <div key={titleKey} className="text-center">
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--accent)]/10 mb-4">
                   <Icon size={22} className="text-[var(--accent)]" />
                 </div>

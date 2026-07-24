@@ -194,7 +194,7 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
             </thead>
             <tbody>
               {previewRows.map((row, i) => (
-                <tr key={i} className="border-b border-[var(--border)]">
+                <tr key={`${row.date}-${row.wallet}-${i}`} className="border-b border-[var(--border)]">
                   <td className="py-1.5 pr-2">{row.date}</td>
                   <td className="py-1.5 pr-2">{row.wallet}</td>
                   <td className="py-1.5 pr-2">{row.category || '—'}</td>

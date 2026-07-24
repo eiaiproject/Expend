@@ -127,7 +127,7 @@ export default function WalletDetailView() {
         <Skeleton className="h-24 rounded-[16px]" />
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-16 rounded-[16px]" />
+            <Skeleton key={`skel-${i}`} className="h-16 rounded-[16px]" />
           ))}
         </div>
       </div>

@@ -529,7 +529,7 @@ export default function HomeView() {
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map(i => (
-            <Skeleton key={i} className="w-full h-20 rounded-[16px]" />
+            <Skeleton key={`skel-${i}`} className="w-full h-20 rounded-[16px]" />
           ))}
         </div>
       ) : filteredTransactions.length === 0 ? (

@@ -233,7 +233,7 @@ export default function DebtsView() {
           <h2 className="mb-2 font-bold text-[var(--accent)]">{t('debt.helpTitle')}</h2>
           <ul className="text-sm text-[var(--text-secondary)] space-y-1">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <li key={i}>• {t(`debt.helpBullet${i}`)}</li>
+              <li key={`help-${i}`}>• {t(`debt.helpBullet${i}`)}</li>
             ))}
           </ul>
         </div>

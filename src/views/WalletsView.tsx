@@ -244,7 +244,7 @@ export default function WalletsView() {
         <div className="h-4 w-48 bg-[var(--card)] rounded animate-pulse" />
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-28 bg-[var(--card)] rounded-[16px] animate-pulse" />
+            <div key={`skel-${i}`} className="h-28 bg-[var(--card)] rounded-[16px] animate-pulse" />
           ))}
         </div>
       </div>
