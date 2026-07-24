@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowDownLeft, ArrowUpRight, CheckCircle, AlertTriangle, MoreH, Edit, Trash2, HandDollar } from 'reicon-react';
 import { type Debt, type DebtPayment, type Wallet } from '../../db/db';
-import { calculateDebtStatus, isDebtClosed, archiveDebt, markDebtPaidWithoutCashflow, writeOffReceivable } from '../../services/debtService';
+import { calculateDebtStatus, isDebtClosed, markDebtPaidWithoutCashflow, writeOffReceivable } from '../../services/debtService';
 import { getKnownErrorMessage } from '../../services/errors';
 import { cn } from '../../utils/cn';
 import { formatCurrency } from '../../utils/formatUtils';
