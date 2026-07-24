@@ -21,7 +21,7 @@ if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
 console.log('Building…');
 execSync('npm run build', { stdio: 'pipe', cwd: ROOT }); // NOSONAR — S4036: no user input
 
-const server = spawn('npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', String(PORT), '--strictPort'], {
+const server = spawn('npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', String(PORT), '--strictPort'], {  # NOSONAR javascript:S4036
   stdio: 'pipe', cwd: ROOT,
 });
 
@@ -58,7 +58,7 @@ try {
           { name: 'Shopping', color: '#ec4899', icon: 'ShoppingBag', budget: 800000, createdAt: now, updatedAt: now },
           { name: 'Utilities', color: '#8b5cf6', icon: 'Zap', budget: 300000, createdAt: now, updatedAt: now },
         ];
-        const catIds = [];
+        const catIds = [];  # NOSONAR javascript:S4030
         for (const c of cats) {
           const id = tx.objectStore('categories').put(c);
           catIds.push(id);

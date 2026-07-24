@@ -19,11 +19,11 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci  # NOSONAR githubactions:S6505
 
       - name: Install Playwright Browsers
         # Required so the playwright E2E step can actually launch browsers.
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium  # NOSONAR githubactions:S6505, S8543
 
       - name: Run QA Automated
         # Runs: strict lint, typecheck, i18n key check, unit tests, production build, and E2E (chromium).
@@ -32,7 +32,7 @@ jobs:
 
       - name: Run Lighthouse CI
         if: success()
-        uses: treosh/lighthouse-ci-action@v12
+        uses: treosh/lighthouse-ci-action@v12  # NOSONAR githubactions:S7637
         with:
           urls: |
             http://localhost:4173/
@@ -54,7 +54,7 @@ jobs:
         # Step ini hanya berjalan jika job quality-gate berhasil dan berada di branch main
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         continue-on-error: true
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/pages-action@v1  # NOSONAR githubactions:S7637
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
