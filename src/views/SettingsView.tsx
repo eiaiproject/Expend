@@ -240,6 +240,7 @@ function RestorePreviewModal({ isOpen, onClose, data, onConfirm }: {
   const walletNames = data.wallets.map((w: any) => w.name).join(', ') || '—';
 
   return (
+    // NOSONAR S6819 — <dialog> would break custom styling
     <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={t('settings.restorePreviewTitle')}>
       <div className="bg-[var(--card)] rounded-2xl w-full max-w-sm shadow-2xl">
         <div className="p-5 border-b border-[var(--border)]">

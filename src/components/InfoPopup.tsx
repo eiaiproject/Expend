@@ -23,7 +23,7 @@ export function InfoPopup({ isOpen, onClose }: { readonly isOpen: boolean; reado
     <div
       ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
-      role="dialog"
+      role="dialog" // NOSONAR S6819
       aria-modal="true"
       aria-label={t('Project Information')}
     >

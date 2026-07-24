@@ -132,7 +132,7 @@ export default function HomeView() {
       const tag = target.tagName;
       const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable || target.hasAttribute('contenteditable') || target.getAttribute('role') === 'textbox';
       if (isEditable) return;
-      if (document.querySelector('[role="dialog"]')) return;
+      if (document.querySelector('[role="dialog"]')) return; // NOSONAR S6819 — runtime detection
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       if (e.key === '/') {

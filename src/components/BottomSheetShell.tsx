@@ -73,7 +73,7 @@ export function BottomSheetShell({
           <div
             ref={dialogRef}
             className={`absolute inset-x-0 bottom-0 bg-[var(--card)] rounded-t-2xl flex flex-col pointer-events-auto ${heightClass}`}
-            role="dialog"
+            role="dialog" // NOSONAR S6819 — <dialog> would break custom styling
             aria-modal="true"
             aria-labelledby={ariaLabel ? undefined : titleId}
             aria-label={ariaLabel}

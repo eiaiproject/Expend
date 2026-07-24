@@ -214,6 +214,7 @@ export default function PayeesView() {
 
   // ── Rename dialog ──────────────────────────────────────────
   const renameDialog = renamingMerchant ? (
+    // NOSONAR S6819 — <dialog> would break custom styling
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-label={t('payees.renameMerchant')}>
       <div className="bg-[var(--card)] w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
         <h2 className="text-lg font-bold">{t('payees.renameMerchant')}</h2>
