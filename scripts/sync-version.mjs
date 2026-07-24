@@ -84,7 +84,8 @@ for (const c of commits) {
   const section = SECTION[type] || 'Changed';
   const subject = m[3].replace(/\.$/, '');
   const cap = subject.charAt(0).toUpperCase() + subject.slice(1);
-  (grouped[section] ||= []).push(cap);
+  if (!grouped[section]) grouped[section] = [];
+  grouped[section].push(cap);
 }
 
 const ORDER = ['Added', 'Changed', 'Performance', 'Fixed'];

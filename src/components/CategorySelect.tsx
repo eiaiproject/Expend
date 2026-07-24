@@ -59,14 +59,6 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
     );
   }, [categories, searchTerm, t]);
 
-  // Check if exact match exists
-  const hasExactMatch = useMemo(() => {
-    return categories.some(cat => 
-      cat.name.toLowerCase() === searchTerm.toLowerCase().trim() ||
-      catName(cat.name, t).toLowerCase() === searchTerm.toLowerCase().trim()
-    );
-  }, [categories, searchTerm, t]);
-
   const handleSelect = (category: Category) => {
     onChange(category.name);
     setSearchTerm(catName(category.name, t));

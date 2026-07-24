@@ -95,7 +95,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
           <p className="font-bold">{debt.personName}</p>
           {debt.title && <p className="text-xs text-[var(--text-secondary)]">{debt.title}</p>}
           <p className="mt-2 text-sm text-[var(--text-secondary)]">
-            {isPayable ? t('debt.payCurrentOutstanding') : t('debt.payCurrentOutstanding')}: <span className="font-mono font-bold">{formatCurrency(debt.remainingAmount, hideAmount)}</span>
+            {t('debt.payCurrentOutstanding')}: <span className="font-mono font-bold">{formatCurrency(debt.remainingAmount, hideAmount)}</span>
           </p>
         </div>
 

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
-import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, X, Trash2, Handshake } from 'reicon-react';
+import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, Trash2, Handshake } from 'reicon-react';
 import { cn } from '../utils/cn';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
@@ -74,7 +74,6 @@ export default function HomeView() {
     filters,
     actions: filterActions,
     filteredTransactions,
-    hasActiveFilters,
     searchRef,
     activeCategories,
     activeWallets,
@@ -163,7 +162,7 @@ export default function HomeView() {
 
   // Group transactions by period
   const groupedTransactions = useMemo(() => {
-    if (!visibleFilteredTransactions || !visibleFilteredTransactions.length) return [];
+    if (!visibleFilteredTransactions?.length) return [];
 
     const todayStr = getTodayStr();
     const yesterdayStr = getYesterdayStr();

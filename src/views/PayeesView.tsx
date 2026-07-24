@@ -81,11 +81,11 @@ export default function PayeesView() {
   const wallets = useLiveQuery(() => db.wallets.toArray(), [], []);
 
   const categoryMap = useMemo(() =>
-    (categories ?? []).reduce((acc, c) => { if (c.id) acc[c.id] = c; return acc; }, {} as Record<number, import('../db/db').Category>),
+    (categories ?? []).reduce((acc, c) => { if (c.id) { acc[c.id] = c; } return acc; }, {} as Record<number, import('../db/db').Category>),
   [categories]);
 
   const walletMap = useMemo(() =>
-    (wallets ?? []).reduce((acc, w) => { if (w.id) acc[w.id] = w; return acc; }, {} as Record<number, import('../db/db').Wallet>),
+    (wallets ?? []).reduce((acc, w) => { if (w.id) { acc[w.id] = w; } return acc; }, {} as Record<number, import('../db/db').Wallet>),
   [wallets]);
 
   // ── Merge merchants with stats ─────────────────────────────
@@ -186,7 +186,7 @@ export default function PayeesView() {
     if (renamingMerchant.displayName === trimmed) { setRenamingMerchant(null); return; }
 
     // Check duplicate
-    const dup = mergedMerchants.find(m => m.id !== renamingMerchant.id && m.displayName.toLowerCase() === trimmed.toLowerCase());
+    const dup = mergedMerchants.some(m => m.id !== renamingMerchant.id && m.displayName.toLowerCase() === trimmed.toLowerCase());
     if (dup) { toast.add(t('A category with this name already exists')); return; }
 
     await renameMerchant(renamingMerchant.id!, trimmed);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDownLeft, ArrowUpRight, CheckCircle, Clock, AlertTriangle, MoreH, Edit, Trash2, HandDollar } from 'reicon-react';
+import { ArrowDownLeft, ArrowUpRight, CheckCircle, AlertTriangle, MoreH, Edit, Trash2, HandDollar } from 'reicon-react';
 import { type Debt, type DebtPayment, type Wallet } from '../../db/db';
 import { calculateDebtStatus, isDebtClosed, archiveDebt, markDebtPaidWithoutCashflow, writeOffReceivable } from '../../services/debtService';
 import { getKnownErrorMessage } from '../../services/errors';
@@ -113,23 +113,6 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
     try {
       await writeOffReceivable(debt.id);
       toast.add(t('debt.toastWrittenOff'));
-    } catch (error) {
-      toast.add(getKnownErrorMessage(error, t, 'Action failed'));
-    }
-  };
-
-  const handleArchive = async () => {
-    closeMenu();
-    const confirmed = await confirm({
-      title: t('Delete debt?'),
-      message: t('Delete debt desc'),
-      confirmLabel: t('Delete'),
-      variant: 'danger',
-    });
-    if (!confirmed) return;
-    try {
-      await archiveDebt(debt.id);
-      toast.add(isPayable ? t('Payable deleted') : t('Receivable deleted'));
     } catch (error) {
       toast.add(getKnownErrorMessage(error, t, 'Action failed'));
     }

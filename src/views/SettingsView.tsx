@@ -309,7 +309,6 @@ export default function SettingsView() {
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [showChangePin, setShowChangePin] = useState(false);
   const [pendingAction, setPendingAction] = useState<'changePin' | 'disableSecurity' | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
 
   // CSV Preview state
   const [csvPreview, setCsvPreview] = useState<{ rows: CsvPreviewRow[]; errors: string[] } | null>(null);
@@ -366,7 +365,6 @@ export default function SettingsView() {
       return;
     }
 
-    setIsImporting(true);
     try {
       const { rows, errors } = await parseTransactionsCsv(file);
 
@@ -376,7 +374,6 @@ export default function SettingsView() {
       toast.add(t('Import Error'));
     } finally {
       e.target.value = '';
-      setIsImporting(false);
     }
   };
 

@@ -694,8 +694,8 @@ export async function createTransferViaService(
   opts: { fromWallet: string; toWallet: string; amount: number; description: string; date?: string },
 ): Promise<void> {
   await page.evaluate(async (args) => {
-    const dbModule = await import('/src/db/db.ts');
-    const txModule = await import('/src/services/transactionSaveService.ts');
+    const dbModule = await import('/src/db/db.ts');  // ponytail: absolute path — required for Vite browser context
+    const txModule = await import('/src/services/transactionSaveService.ts');  // ponytail: absolute path — required for Vite browser context
 
     const wallets = await dbModule.db.wallets.toArray();
     const from = wallets.find((w) => w.name === args.fromWallet);
@@ -724,8 +724,8 @@ export async function createExpenseViaService(
   opts: { walletName: string; amount: number; description: string; categoryName?: string; date?: string },
 ): Promise<void> {
   await page.evaluate(async (args) => {
-    const dbModule = await import('/src/db/db.ts');
-    const txModule = await import('/src/services/transactionSaveService.ts');
+    const dbModule = await import('/src/db/db.ts');  // ponytail: absolute path — required for Vite browser context
+    const txModule = await import('/src/services/transactionSaveService.ts');  // ponytail: absolute path — required for Vite browser context
 
     const wallets = await dbModule.db.wallets.toArray();
     const wallet = wallets.find((w) => w.name === args.walletName);

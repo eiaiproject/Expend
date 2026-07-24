@@ -310,7 +310,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
                 aria-pressed={hasWalletMovement}
               >
                 <Wallet size={16} />
-                {isPayable ? t('debt.formYesWallet') : t('debt.formYesWallet')}
+                {t('debt.formYesWallet')}
               </button>
               <button
                 type="button"

@@ -100,9 +100,9 @@ try {
         });
 
         tx.oncomplete = () => { db.close(); resolve(); };
-        tx.onerror = () => { db.close(); reject(tx.error); };
+        tx.onerror = () => { db.close(); reject(new Error(tx.error)); };
       };
-      request.onerror = () => reject(request.error);
+      request.onerror = () => reject(new Error(request.error));
     });
   });
 
