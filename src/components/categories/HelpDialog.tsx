@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { X, Tag, DollarSign, Eye, Archive, Trash2, ArrowSwapHorizontal, Wallet } from 'reicon-react';
 
 interface HelpDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
 }
 
 function HelpItem({ icon: Icon, text }: { icon: React.ComponentType<{ size?: number; className?: string }>; text: string }) {

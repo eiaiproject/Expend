@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-export function FinalCTASection({ onEnter }: { onEnter: () => void }) {
+export function FinalCTASection({ onEnter }: { readonly onEnter: () => void }) {
   const { t } = useTranslation();
 
   return (

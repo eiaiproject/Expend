@@ -9,11 +9,11 @@ import { X } from 'reicon-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface DrillDownModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  transactions: Transaction[];
-  categoryMap: Record<number, { name: string; color: string } | undefined>;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly title: string;
+  readonly transactions: Transaction[];
+  readonly categoryMap: Record<number, { name: string; color: string } | undefined>;
 }
 
 export function DrillDownModal({ isOpen, onClose, title, transactions, categoryMap }: DrillDownModalProps) {

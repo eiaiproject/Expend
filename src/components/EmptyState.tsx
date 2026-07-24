@@ -3,12 +3,12 @@ import { ClipboardList } from 'reicon-react';
 import type { ReactNode } from 'react';
 
 interface EmptyStateProps {
-  icon?: ReactNode;
-  title: string;
-  description: string;
-  action?: {
-    label: string;
-    onClick: () => void;
+  readonly icon?: ReactNode;
+  readonly title: string;
+  readonly description: string;
+  readonly action?: {
+    readonly label: string;
+    readonly onClick: () => void;
   };
 }
 

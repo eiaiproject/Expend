@@ -9,12 +9,12 @@ export function InstallSection({
   deferredPrompt,
   showInstallPrompt,
 }: {
-  onEnter: () => void;
-  deferredPrompt: {
-    prompt: () => Promise<void>;
-    userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  readonly onEnter: () => void;
+  readonly deferredPrompt: {
+    readonly prompt: () => Promise<void>;
+    readonly userChoice: Promise<{ readonly outcome: 'accepted' | 'dismissed' }>;
   } | null;
-  showInstallPrompt: () => Promise<void>;
+  readonly showInstallPrompt: () => Promise<void>;
 }) {
   const { t } = useTranslation();
   const isIOS = isIOSDevice();

@@ -5,9 +5,9 @@ import { MAX_PIN_LENGTH, MIN_PIN_LENGTH } from '../../utils/constants';
 import { Lock, X, Eye, EyeOff, Information } from 'reicon-react';
 
 interface PinSetupModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: (pin: string) => void | Promise<void>;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly onSuccess: (pin: string) => void | Promise<void>;
 }
 
 export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps) {

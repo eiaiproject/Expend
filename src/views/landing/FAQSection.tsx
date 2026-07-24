@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'reicon-react';
 
 interface FAQItem {
-  question: string;
-  answer: string;
+  readonly question: string;
+  readonly answer: string;
 }
 
 function FAQAccordion({ item, index, isOpen, onToggle }: { item: FAQItem; index: number; isOpen: boolean; onToggle: () => void }) {

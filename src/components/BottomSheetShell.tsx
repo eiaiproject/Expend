@@ -4,16 +4,16 @@ import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface BottomSheetShellProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: ReactNode;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly title: string;
+  readonly children: ReactNode;
   /** Optional aria-label override (defaults to title) */
-  ariaLabel?: string;
+  readonly ariaLabel?: string;
   /** Optional z-index override (default 50) */
-  zIndex?: number;
+  readonly zIndex?: number;
   /** Optional height class override (default h-[85vh]) */
-  heightClass?: string;
+  readonly heightClass?: string;
 }
 
 /**

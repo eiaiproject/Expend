@@ -3,7 +3,7 @@ import { Coffee, Keyboard, X } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
-export function InfoPopup({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+export function InfoPopup({ isOpen, onClose }: { readonly isOpen: boolean; readonly onClose: () => void }) {
   const { t } = useTranslation();
   const dialogRef = useFocusTrap(isOpen);
 

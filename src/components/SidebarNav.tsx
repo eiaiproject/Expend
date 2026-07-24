@@ -4,7 +4,7 @@ import { Home, Wallet, ChartPie, Settings, Plus, Tag, Handshake, ShoppingBag } f
 import { useTranslation } from 'react-i18next';
 import { cn } from '../utils/cn';
 
-export function SidebarNav({ onAddClick }: { onAddClick: () => void }) {
+export function SidebarNav({ onAddClick }: { readonly onAddClick: () => void }) {
   const { t } = useTranslation();
 
   return (
@@ -51,7 +51,7 @@ export function SidebarNav({ onAddClick }: { onAddClick: () => void }) {
   );
 }
 
-function SidebarItem({ to, end: isEnd, icon, label }: { to: string; end?: boolean; icon: ReactNode; label: string }) {
+function SidebarItem({ to, end: isEnd, icon, label }: { readonly to: string; readonly end?: boolean; readonly icon: ReactNode; readonly label: string }) {
   return (
     <li>
       <NavLink

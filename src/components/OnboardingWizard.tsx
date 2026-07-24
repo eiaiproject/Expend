@@ -7,7 +7,7 @@ import { cn } from '../utils/cn';
 import { CURATED_PALETTE, DEFAULT_CATEGORIES, STORAGE_KEYS } from '../utils/constants';
 
 interface OnboardingWizardProps {
-  onComplete: () => void;
+  readonly onComplete: () => void;
 }
 
 export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) {

@@ -8,9 +8,9 @@ import { toast } from '../Toaster';
 import type { Wallet } from '../../db/db';
 
 interface ReconcileBalanceSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  wallet: Wallet;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly wallet: Wallet;
 }
 
 /**

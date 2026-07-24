@@ -6,10 +6,10 @@ import { BottomSheetShell } from './BottomSheetShell';
 import type { PayeeSortConfig, PayeeSortField } from '../services/payeeService';
 
 interface PayeeSortSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  sortConfig: PayeeSortConfig;
-  onApply: (config: PayeeSortConfig) => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly sortConfig: PayeeSortConfig;
+  readonly onApply: (config: PayeeSortConfig) => void;
 }
 
 const SORT_OPTIONS: { field: PayeeSortField; labelKey: string; order: 'asc' | 'desc'; descLabelKey: string }[] = [

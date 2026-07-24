@@ -12,11 +12,11 @@ const catName = (name: string | null | undefined, t: (k: string) => string): str
 };
 
 interface CategorySelectProps {
-  id?: string;
-  categories: Category[];
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
+  readonly id?: string;
+  readonly categories: Category[];
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly placeholder?: string;
 }
 
 export function CategorySelect({ id, categories, value, onChange, placeholder }: CategorySelectProps) {

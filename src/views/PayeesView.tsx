@@ -36,7 +36,7 @@ const EMPTY_FILTER_DRAFT: PayeeFilterDraft = {
 
 // ── Enriched merchant with stats ─────────────────────────────
 interface MerchantWithStats extends Merchant {
-  stats: PayeeStats;
+  readonly stats: PayeeStats;
 }
 
 export default function PayeesView() {

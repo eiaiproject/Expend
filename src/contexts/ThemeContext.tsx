@@ -6,9 +6,9 @@ type ResolvedTheme = 'dark' | 'light';
 const THEME_META_COLORS = { light: '#F2F4EE', dark: '#1A1E16' } as const;
 
 interface ThemeContextType {
-  theme: Theme;
-  resolvedTheme: ResolvedTheme;
-  setTheme: (theme: Theme) => void;
+  readonly theme: Theme;
+  readonly resolvedTheme: ResolvedTheme;
+  readonly setTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | null>(null);

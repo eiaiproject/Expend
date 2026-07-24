@@ -2,11 +2,11 @@ import { useTranslation } from 'react-i18next';
 import { ChartBar, ChartPie, Wallet, TrendUp, Search, Tags } from 'reicon-react';
 
 interface PreviewCardProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  mockup: React.ReactNode;
-  index: number;
+  readonly icon: React.ReactNode;
+  readonly title: string;
+  readonly description: string;
+  readonly mockup: React.ReactNode;
+  readonly index: number;
 }
 
 function PreviewCard({ icon, title, description, mockup, index }: PreviewCardProps) {

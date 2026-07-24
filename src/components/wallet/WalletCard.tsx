@@ -12,16 +12,16 @@ import { WALLET_STALE_DAYS } from '../../utils/constants';
 import { WalletOverflowMenu } from './WalletOverflowMenu';
 
 interface WalletCardProps {
-  wallet: Wallet;
-  balance: number;
-  spendingTrend: SpendingTrend;
-  lastActivityDate?: string | null;
-  onEdit: () => void;
-  onTransfer: () => void;
-  onReconcile: () => void;
-  onDeactivate: () => void;
-  onReactivate: () => void;
-  onDelete: () => void;
+  readonly wallet: Wallet;
+  readonly balance: number;
+  readonly spendingTrend: SpendingTrend;
+  readonly lastActivityDate?: string | null;
+  readonly onEdit: () => void;
+  readonly onTransfer: () => void;
+  readonly onReconcile: () => void;
+  readonly onDeactivate: () => void;
+  readonly onReactivate: () => void;
+  readonly onDelete: () => void;
 }
 
 /**

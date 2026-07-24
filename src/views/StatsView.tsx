@@ -81,7 +81,7 @@ function daysInRange(start: string, end: string): number {
 
 // ── Chart components ───────────────────────────────────────────
 
-function MiniBarChart({ data, onSelect, hideAmount }: { data: MonthPoint[]; onSelect?: (item: MonthPoint) => void; hideAmount?: boolean }) {
+function MiniBarChart({ data, onSelect, hideAmount }: { readonly data: MonthPoint[]; onSelect?: (item: MonthPoint) => void; hideAmount?: boolean }) {
   const max = Math.max(1, ...data.map(item => item.amount));
   return (
     <div className="grid h-full grid-cols-6 gap-2 px-1 pb-1 pt-2" role="list" aria-label="Monthly comparison">
@@ -129,7 +129,7 @@ function MiniBarChart({ data, onSelect, hideAmount }: { data: MonthPoint[]; onSe
   );
 }
 
-function MiniLineChart({ data, hideAmount }: { data: TrendPoint[]; hideAmount?: boolean }) {
+function MiniLineChart({ data, hideAmount }: { readonly data: TrendPoint[]; hideAmount?: boolean }) {
   const width = 320;
   const height = 150;
   const pad = 10;
@@ -171,7 +171,7 @@ function MiniLineChart({ data, hideAmount }: { data: TrendPoint[]; hideAmount?: 
   );
 }
 
-function CategoryDonut({ data }: { data: CategoryPoint[] }) {
+function CategoryDonut({ data }: { readonly data: CategoryPoint[] }) {
   const total = data.reduce((sum, item) => sum + item.value, 0);
   let cursor = 0;
   const stops = total > 0
@@ -193,7 +193,7 @@ function CategoryDonut({ data }: { data: CategoryPoint[] }) {
 
 // ── Expandable data table section ──────────────────────────────
 
-function DataTableToggle({ label, children }: { label: string; children: React.ReactNode }) {
+function DataTableToggle({ label, children }: { readonly label: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const tableId = useMemo(() => `stats-table-${Math.random().toString(36).slice(2, 8)}`, []);
   return (

@@ -3,30 +3,30 @@ import { X } from 'reicon-react';
 import { FALLBACK_CATEGORY_NAME } from '../../utils/constants';
 
 interface FilterState {
-  type: 'all' | 'expense' | 'balance_adjustment';
-  categories: number[];
-  wallets: number[];
-  startDate: string;
-  endDate: string;
-  minAmount: string;
-  maxAmount: string;
+  readonly type: 'all' | 'expense' | 'balance_adjustment';
+  readonly categories: number[];
+  readonly wallets: number[];
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly minAmount: string;
+  readonly maxAmount: string;
 }
 
 interface FilterActions {
-  setType: (val: FilterState['type']) => void;
-  setCategories: (val: number[]) => void;
-  setWallets: (val: number[]) => void;
-  setStartDate: (val: string) => void;
-  setEndDate: (val: string) => void;
-  setMinAmount: (val: string) => void;
-  setMaxAmount: (val: string) => void;
-  clearAllFilters: () => void;
+  readonly setType: (val: FilterState['type']) => void;
+  readonly setCategories: (val: number[]) => void;
+  readonly setWallets: (val: number[]) => void;
+  readonly setStartDate: (val: string) => void;
+  readonly setEndDate: (val: string) => void;
+  readonly setMinAmount: (val: string) => void;
+  readonly setMaxAmount: (val: string) => void;
+  readonly clearAllFilters: () => void;
 }
 
 interface ActiveFilterChipsProps {
-  filters: FilterState;
-  filterActions: FilterActions;
-  categoryMap: Record<number, { name: string; color: string } | undefined>;
+  readonly filters: FilterState;
+  readonly filterActions: FilterActions;
+  readonly categoryMap: Record<number, { name: string; color: string } | undefined>;
   walletMap: Record<number, { name: string } | undefined>;
 }
 

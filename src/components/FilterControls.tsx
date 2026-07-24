@@ -16,10 +16,10 @@ export function FilterSection({
   onReset,
   children,
 }: {
-  title: string;
-  showReset?: boolean;
-  onReset?: () => void;
-  children: ReactNode;
+  readonly title: string;
+  readonly showReset?: boolean;
+  readonly onReset?: () => void;
+  readonly children: ReactNode;
 }) {
   const { t } = useTranslation();
 
@@ -46,10 +46,10 @@ export function CategoryFilterList({
   onToggle,
   onClear,
 }: {
-  categories: Category[];
-  selectedIds: number[];
-  onToggle: (id: number) => void;
-  onClear: () => void;
+  readonly categories: Category[];
+  readonly selectedIds: number[];
+  readonly onToggle: (id: number) => void;
+  readonly onClear: () => void;
 }) {
   const { t } = useTranslation();
 
@@ -91,10 +91,10 @@ export function WalletFilterList({
   onToggle,
   onClear,
 }: {
-  wallets: Wallet[];
-  selectedIds: number[];
-  onToggle: (id: number) => void;
-  onClear: () => void;
+  readonly wallets: Wallet[];
+  readonly selectedIds: number[];
+  readonly onToggle: (id: number) => void;
+  readonly onClear: () => void;
 }) {
   const { t } = useTranslation();
 
@@ -138,12 +138,12 @@ export function CurrencyRangeFields({
   onMinChange,
   onMaxChange,
 }: {
-  idPrefix: string;
-  title: string;
-  min: string;
-  max: string;
-  onMinChange: (value: string) => void;
-  onMaxChange: (value: string) => void;
+  readonly idPrefix: string;
+  readonly title: string;
+  readonly min: string;
+  readonly max: string;
+  readonly onMinChange: (value: string) => void;
+  readonly onMaxChange: (value: string) => void;
 }) {
   const { t } = useTranslation();
 
@@ -197,12 +197,12 @@ export function DateRangeFields({
   onEndChange,
   onReset,
 }: {
-  idPrefix: string;
-  startDate: string;
-  endDate: string;
-  onStartChange: (value: string) => void;
-  onEndChange: (value: string) => void;
-  onReset: () => void;
+  readonly idPrefix: string;
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly onStartChange: (value: string) => void;
+  readonly onEndChange: (value: string) => void;
+  readonly onReset: () => void;
 }) {
   const { t } = useTranslation();
 
@@ -246,9 +246,9 @@ export function FilterFooter({
   onApply,
   onReset,
 }: {
-  activeCount: number;
-  onApply: () => void;
-  onReset: () => void;
+  readonly activeCount: number;
+  readonly onApply: () => void;
+  readonly onReset: () => void;
 }) {
   const { t } = useTranslation();
 

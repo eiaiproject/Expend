@@ -6,9 +6,9 @@ import { CURATED_PALETTE } from '../../utils/constants';
 import type { Category } from '../../db/db';
 
 interface CategoryFormProps {
-  mode: 'add' | 'edit';
-  initialCategory?: Category;
-  onSubmit: (data: { name: string; color: string; budget?: number }) => void;
+  readonly mode: 'add' | 'edit';
+  readonly initialCategory?: Category;
+  readonly onSubmit: (data: { name: string; color: string; budget?: number }) => void;
   onCancel: () => void;
   existingNames?: string[];
 }

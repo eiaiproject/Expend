@@ -11,13 +11,13 @@ import { confirm } from '../ConfirmDialog';
 import { toast } from '../Toaster';
 
 interface DebtCardProps {
-  debt: Debt;
-  payments: readonly DebtPayment[];
-  wallet?: Wallet;
-  hideAmount?: boolean;
-  onClick: () => void;
-  onPayment: () => void;
-  onEdit: () => void;
+  readonly debt: Debt;
+  readonly payments: readonly DebtPayment[];
+  readonly wallet?: Wallet;
+  readonly hideAmount?: boolean;
+  readonly onClick: () => void;
+  readonly onPayment: () => void;
+  readonly onEdit: () => void;
 }
 
 function getDueLabel(debt: Debt, t: (key: string, options?: Record<string, string | number>) => string, locale?: string): string {

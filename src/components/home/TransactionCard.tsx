@@ -9,18 +9,18 @@ import { SearchHighlight } from '../SearchHighlight';
 import type { Transaction, Category, Wallet } from '../../db/db';
 
 interface TransactionCardProps {
-  tx: Transaction;
-  categoryMap: Record<number, Category | undefined>;
-  walletMap: Record<number, Wallet | undefined>;
-  searchTerm: string;
-  hideAmount: boolean;
-  isSelectionMode: boolean;
-  isSelected: boolean;
-  onSelect: (id: number) => void;
-  onClick: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  onViewDetail?: () => void;
+  readonly tx: Transaction;
+  readonly categoryMap: Record<number, Category | undefined>;
+  readonly walletMap: Record<number, Wallet | undefined>;
+  readonly searchTerm: string;
+  readonly hideAmount: boolean;
+  readonly isSelectionMode: boolean;
+  readonly isSelected: boolean;
+  readonly onSelect: (id: number) => void;
+  readonly onClick: () => void;
+  readonly onEdit: () => void;
+  readonly onDelete: () => void;
+  readonly onViewDetail?: () => void;
 }
 
 function txAccessibleLabel(tx: Transaction, categoryName: string, hideAmount: boolean, t: (key: string, opts?: any) => string): string {

@@ -5,9 +5,9 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { Lock, X } from 'reicon-react';
 
 interface VerifyCurrentPinModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onVerified: () => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly onVerified: () => void;
 }
 
 export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCurrentPinModalProps) {

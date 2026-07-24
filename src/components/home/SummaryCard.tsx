@@ -7,12 +7,12 @@ import { Skeleton } from '../Skeleton';
 import type { SpendingInsight } from '../../services/budgetService';
 
 interface SummaryCardProps {
-  isLoading: boolean;
-  walletsTotal: number;
-  totalExpense: number;
-  expensePeriod: 'month' | 'all';
-  onToggleExpensePeriod: () => void;
-  dailySummary: { today: number; yesterday: number };
+  readonly isLoading: boolean;
+  readonly walletsTotal: number;
+  readonly totalExpense: number;
+  readonly expensePeriod: 'month' | 'all';
+  readonly onToggleExpensePeriod: () => void;
+  readonly dailySummary: { today: number; yesterday: number };
   smartInsight: SpendingInsight | null;
   hideAmount: boolean;
 }

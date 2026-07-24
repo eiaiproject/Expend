@@ -5,11 +5,11 @@ import { BottomSheetShell } from './BottomSheetShell';
 const LAST_ACTION_KEY = 'expend_last_action';
 
 interface ActionPickerSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onAddExpense: () => void;
-  onTransfer: () => void;
-  onDebt: () => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly onAddExpense: () => void;
+  readonly onTransfer: () => void;
+  readonly onDebt: () => void;
 }
 
 export function ActionPickerSheet({

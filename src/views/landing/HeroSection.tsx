@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { ArrowDown } from 'reicon-react';
 
-export function HeroSection({ onEnter }: { onEnter?: () => void }) {
+export function HeroSection({ onEnter }: { readonly onEnter?: () => void }) {
   const { t } = useTranslation();
 
   return (

@@ -14,12 +14,12 @@ import { WalletSelect } from './WalletSelect';
 import type { TransactionType } from '../hooks/useTransactionForm';
 
 interface TransactionFormSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  txToEdit?: Transaction | null;
-  initialType?: TransactionType;
-  initialDescription?: string;
-  initialFromWalletId?: number;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly txToEdit?: Transaction | null;
+  readonly initialType?: TransactionType;
+  readonly initialDescription?: string;
+  readonly initialFromWalletId?: number;
 }
 
 export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 'expense', initialDescription, initialFromWalletId }: TransactionFormSheetProps) {

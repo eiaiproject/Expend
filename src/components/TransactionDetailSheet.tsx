@@ -6,11 +6,11 @@ import { formatCurrency } from '../utils/formatUtils';
 import { BottomSheetShell } from './BottomSheetShell';
 
 interface TransactionDetailSheetProps {
-  tx: Transaction | null;
-  onClose: () => void;
-  onEdit: (tx: Transaction) => void;
-  onDelete: (tx: Transaction) => void;
-  onRepeat: (tx: Transaction) => void;
+  readonly tx: Transaction | null;
+  readonly onClose: () => void;
+  readonly onEdit: (tx: Transaction) => void;
+  readonly onDelete: (tx: Transaction) => void;
+  readonly onRepeat: (tx: Transaction) => void;
 }
 
 export function TransactionDetailSheet({ tx, onClose, onEdit, onDelete, onRepeat }: TransactionDetailSheetProps) {

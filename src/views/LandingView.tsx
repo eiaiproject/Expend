@@ -19,7 +19,7 @@ import { useNearViewport } from '../hooks/useNearViewport';
 /* ------------------------------------------------------------------ */
 /*  Lazy section wrapper: defers rendering until ~400px of the viewport */
 /* ------------------------------------------------------------------ */
-function LazySection({ children }: { children: React.ReactNode }) {
+function LazySection({ children }: { readonly children: React.ReactNode }) {
   const [ref, isNear] = useNearViewport('400px');
   return (
     <div ref={ref}>
@@ -152,8 +152,8 @@ export default function LandingView({
   onTryWeb,
   onEnter,
 }: {
-  onTryWeb: () => void;
-  onEnter?: () => void;
+  readonly onTryWeb: () => void;
+  readonly onEnter?: () => void;
 }) {
   const { t } = useTranslation();
   const { deferredPrompt, showInstallPrompt } = useInstallPrompt();

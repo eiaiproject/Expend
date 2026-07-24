@@ -2,9 +2,9 @@ import { useId, useState, useCallback } from 'react';
 import { ChevronDown } from 'reicon-react';
 
 interface SettingsAccordionProps {
-  title: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
+  readonly title: string;
+  readonly defaultOpen?: boolean;
+  readonly children: React.ReactNode;
 }
 
 export function SettingsAccordion({ title, defaultOpen = false, children }: SettingsAccordionProps) {

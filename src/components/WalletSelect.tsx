@@ -2,11 +2,11 @@ import { ChevronDown, Wallet as WalletIcon } from 'reicon-react';
 import type { Wallet } from '../db/db';
 
 interface WalletSelectProps {
-  id: string;
-  value: string;
-  wallets: Wallet[];
-  placeholder: string;
-  onChange: (value: string) => void;
+  readonly id: string;
+  readonly value: string;
+  readonly wallets: Wallet[];
+  readonly placeholder: string;
+  readonly onChange: (value: string) => void;
 }
 
 export function WalletSelect({ id, value, wallets, placeholder, onChange }: WalletSelectProps) {

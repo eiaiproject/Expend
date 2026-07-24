@@ -141,12 +141,12 @@ function useBackupReminder() {
 // ── CSV Preview ────────────────────────────────────────────────
 
 interface CsvPreviewRow {
-  date: string;
-  wallet: string;
-  category: string;
-  recipient: string;
-  amount: string;
-  type: string;
+  readonly date: string;
+  readonly wallet: string;
+  readonly category: string;
+  readonly recipient: string;
+  readonly amount: string;
+  readonly type: string;
 }
 
 function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {

@@ -1,9 +1,9 @@
 import { Fragment, useMemo } from 'react';
 
 interface SearchHighlightProps {
-  text: string;
-  searchTerm: string;
-  className?: string;
+  readonly text: string;
+  readonly searchTerm: string;
+  readonly className?: string;
 }
 
 /**

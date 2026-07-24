@@ -11,23 +11,23 @@ import {
 } from './FilterControls';
 
 export interface PayeeFilterDraft {
-  categoryIds: number[];
-  walletIds: number[];
-  startDate: string;
-  endDate: string;
-  minTotalExpense: string;
-  maxTotalExpense: string;
-  minTransactionCount: string;
-  maxTransactionCount: string;
+  readonly categoryIds: number[];
+  readonly walletIds: number[];
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly minTotalExpense: string;
+  readonly maxTotalExpense: string;
+  readonly minTransactionCount: string;
+  readonly maxTransactionCount: string;
 }
 
 interface PayeeFilterSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  draft: PayeeFilterDraft;
-  onApply: (draft: PayeeFilterDraft) => void;
-  categories: import('../db/db').Category[];
-  wallets: import('../db/db').Wallet[];
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly draft: PayeeFilterDraft;
+  readonly onApply: (draft: PayeeFilterDraft) => void;
+  readonly categories: import('../db/db').Category[];
+  readonly wallets: import('../db/db').Wallet[];
 }
 
 export function PayeeFilterSheet({ isOpen, onClose, draft: initialDraft, onApply, categories, wallets }: PayeeFilterSheetProps) {

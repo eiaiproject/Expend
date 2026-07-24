@@ -6,36 +6,36 @@ import { BottomSheetShell } from './BottomSheetShell';
 import { CategoryFilterList, CurrencyRangeFields, DateRangeFields, FilterFooter, WalletFilterList } from './FilterControls';
 
 interface FilterSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  filters: {
-    type: string;
-    setType: (val: 'all' | 'expense' | 'balance_adjustment') => void;
-    categories: number[];
-    setCategories: (val: number[]) => void;
-    wallets: number[];
-    setWallets: (val: number[]) => void;
-    startDate: string;
-    setStartDate: (val: string) => void;
-    endDate: string;
-    setEndDate: (val: string) => void;
-    minAmount: string;
-    setMinAmount: (val: string) => void;
-    maxAmount: string;
-    setMaxAmount: (val: string) => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly filters: {
+    readonly type: string;
+    readonly setType: (val: 'all' | 'expense' | 'balance_adjustment') => void;
+    readonly categories: number[];
+    readonly setCategories: (val: number[]) => void;
+    readonly wallets: number[];
+    readonly setWallets: (val: number[]) => void;
+    readonly startDate: string;
+    readonly setStartDate: (val: string) => void;
+    readonly endDate: string;
+    readonly setEndDate: (val: string) => void;
+    readonly minAmount: string;
+    readonly setMinAmount: (val: string) => void;
+    readonly maxAmount: string;
+    readonly setMaxAmount: (val: string) => void;
   };
   categories: import('../db/db').Category[];
   wallets: import('../db/db').Wallet[];
 }
 
 interface DraftState {
-  type: string;
-  categories: number[];
-  wallets: number[];
-  startDate: string;
-  endDate: string;
-  minAmount: string;
-  maxAmount: string;
+  readonly type: string;
+  readonly categories: number[];
+  readonly wallets: number[];
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly minAmount: string;
+  readonly maxAmount: string;
 }
 
 export function FilterSheet({ isOpen, onClose, filters, categories, wallets }: FilterSheetProps) {

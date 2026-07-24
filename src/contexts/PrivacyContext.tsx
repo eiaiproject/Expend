@@ -3,8 +3,8 @@ import { db } from '../db/db';
 
 interface PrivacyContextType {
   /** When true, all monetary amounts should display as '•••••' */
-  hideAmount: boolean;
-  toggleHideAmount: () => void;
+  readonly hideAmount: boolean;
+  readonly toggleHideAmount: () => void;
 }
 
 const PrivacyContext = createContext<PrivacyContextType | null>(null);

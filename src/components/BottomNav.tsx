@@ -4,7 +4,7 @@ import { Home, Wallet, Handshake, ChartPie, Settings, Plus } from 'reicon-react'
 import { useTranslation } from 'react-i18next';
 import { cn } from '../utils/cn';
 
-export function BottomNav({ onAddClick }: { onAddClick: () => void }) {
+export function BottomNav({ onAddClick }: { readonly onAddClick: () => void }) {
   const { t } = useTranslation();
 
   return (
@@ -23,7 +23,7 @@ export function BottomNav({ onAddClick }: { onAddClick: () => void }) {
 }
 
 /* FAB exported separately so App.tsx can place it as sibling of BottomNav */
-export function FabButton({ onAddClick }: { onAddClick: () => void }) {
+export function FabButton({ onAddClick }: { readonly onAddClick: () => void }) {
   const { t } = useTranslation();
 
   return (
@@ -40,7 +40,7 @@ export function FabButton({ onAddClick }: { onAddClick: () => void }) {
   );
 }
 
-function NavItem({ to, end: isEnd, icon, label }: { to: string; end?: boolean; icon: ReactNode; label: string }) {
+function NavItem({ to, end: isEnd, icon, label }: { readonly to: string; readonly end?: boolean; readonly icon: ReactNode; readonly label: string }) {
   return (
     <NavLink
       to={to}

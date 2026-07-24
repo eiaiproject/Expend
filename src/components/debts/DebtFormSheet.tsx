@@ -14,10 +14,10 @@ import { toast } from '../Toaster';
 import { WalletSelect } from '../WalletSelect';
 
 interface DebtFormSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  hideAmount?: boolean;
-  debtToEdit?: Debt | null;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly hideAmount?: boolean;
+  readonly debtToEdit?: Debt | null;
 }
 
 const EMPTY_WALLETS: WalletType[] = [];
