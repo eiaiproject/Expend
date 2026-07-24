@@ -74,7 +74,7 @@ function DashboardMockup() {
       {/* Quick Transactions */}
       <div className="space-y-2">
         {[t('landing.demoLunchShort'), 'Grab', t('landing.demoCoffeeShort')].map((name, i) => (
-          <div key={i} className="bg-[var(--card)] rounded-xl p-2.5 flex items-center gap-2">
+          <div key={name} className="bg-[var(--card)] rounded-xl p-2.5 flex items-center gap-2">
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center ${i === 0 ? 'bg-red-400' : i === 1 ? 'bg-orange-400' : 'bg-amber-400'}`}
             >
@@ -155,7 +155,7 @@ function StatsMockup() {
               { name: t('Default Category Shopping'), pct: '20%', color: 'bg-amber-400' },
               { name: t('Other'), pct: '15%', color: 'bg-[var(--accent)]' },
             ].map((item, i) => (
-              <div key={i} className="flex items-center gap-2">
+              <div key={item.name} className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${item.color}`} />
                 <span className="text-[9px] text-white/60 flex-1">{item.name}</span>
                 <span className="text-[9px] font-bold text-white">{item.pct}</span>
@@ -172,7 +172,7 @@ function StatsMockup() {
         </div>
         <div className="flex items-end gap-1.5 h-16">
           {[40, 55, 35, 70, 45, 80, 60, 50, 75, 65, 85, 45].map((h, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+            <div key={`bar-${i}`} className="flex-1 flex flex-col items-center gap-1">
               <div
                 className={`w-full rounded-t ${i === 10 ? 'bg-[var(--accent)]' : 'bg-[var(--accent)]/30'}`}
                 style={{ height: `${h}%` }}
@@ -206,7 +206,7 @@ function WalletMockup() {
         { name: t('landing.demoCash'), balance: 'Rp 500.000', change: '-Rp 50.000', icon: 'C', trend: 'down' },
       ].map((wallet, i) => (
         <div
-          key={i}
+          key={wallet.name}
           className="bg-[var(--card)] rounded-2xl p-4 flex items-center gap-3 hover:border-[var(--accent)]/20 border border-transparent transition-colors"
         >
           <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-sm font-bold text-[var(--accent)] shrink-0">
@@ -275,7 +275,7 @@ export function PreviewSection() {
       {/* Preview Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-stretch">
         {previews.map((preview, i) => (
-          <PreviewCard key={i} {...preview} />
+          <PreviewCard key={preview.title ?? i} {...preview} />
         ))}
       </div>
     </section>

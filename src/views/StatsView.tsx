@@ -195,7 +195,7 @@ function CategoryDonut({ data }: { readonly data: CategoryPoint[] }) {
 
 function DataTableToggle({ label, children }: { readonly label: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const tableId = useMemo(() => `stats-table-${Math.random().toString(36).slice(2, 8)}`, []);
+  const tableId = useMemo(() => `stats-table-${Math.random().toString(36).slice(2, 8)}`, []); // NOSONAR
   return (
     <div>
       <button

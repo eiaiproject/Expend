@@ -74,7 +74,7 @@ export function CategoryOverflowMenu({ categoryName, items, disabled }: Category
         >
           {items.map((item, i) => (
             <button
-              key={i}
+              key={item.label}
               type="button"
               role="menuitem"
               onClick={() => {

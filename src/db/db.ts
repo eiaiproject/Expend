@@ -222,7 +222,7 @@ db.version(6).stores(V4_STORES).upgrade(async (tx) => {
   // Assign colors
   const categoriesNeedingColor = (await catTable.toArray()).filter((c) => !c.color);
   for (const cat of categoriesNeedingColor) {
-    const color = CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!;
+    const color = CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!; // NOSONAR
     await catTable.update(cat.id!, { color });
   }
 

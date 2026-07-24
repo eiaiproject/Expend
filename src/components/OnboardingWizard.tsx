@@ -51,8 +51,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
       for (const categoryKey of selectedCategories) {
         const cat = DEFAULT_CATEGORIES.find(c => c.nameKey === categoryKey);
         const availableColors = [...CURATED_PALETTE].filter(c => !existingColors.has(c));
-        const fallbackColor = (availableColors[Math.floor(Math.random() * availableColors.length)]
-          ?? CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)])!;
+        const fallbackColor = (availableColors[Math.floor(Math.random() * availableColors.length)] // NOSONAR
+          ?? CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)])!; // NOSONAR
         const color: string = cat?.color ?? fallbackColor;
 
         existingColors.add(color);

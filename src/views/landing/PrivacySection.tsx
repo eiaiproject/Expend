@@ -33,7 +33,7 @@ export function PrivacySection() {
             </div>
             <ul className="space-y-3">
               {protectedItems.map((item, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)] leading-relaxed">
+                <li key={item} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)] leading-relaxed">
                   <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" aria-hidden="true" />
                   {item}
                 </li>
@@ -51,7 +51,7 @@ export function PrivacySection() {
             </div>
             <ul className="space-y-3">
               {notProtectedItems.map((item, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)] leading-relaxed">
+                <li key={item} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)] leading-relaxed">
                   <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" aria-hidden="true" />
                   {item}
                 </li>
@@ -69,7 +69,7 @@ export function PrivacySection() {
             </div>
             <ul className="space-y-3">
               {actionItems.map((item, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)] leading-relaxed">
+                <li key={item} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)] leading-relaxed">
                   <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[var(--accent)] shrink-0" aria-hidden="true" />
                   {item}
                 </li>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '../db/db';
 
 type Theme = 'dark' | 'light' | 'system';
@@ -68,13 +68,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (theme !== 'system') return;
     const mq = window.matchMedia('(prefers-color-scheme: light)');
     const handler = () => applyTheme(getSystemTheme());
-    try {
-      mq.addEventListener('change', handler);
-      return () => mq.removeEventListener('change', handler);
-    } catch {
-      (mq as MediaQueryList & { addListener: (fn: EventListener) => void }).addListener(handler as EventListener);
-      return () => (mq as MediaQueryList & { removeListener: (fn: EventListener) => void }).removeListener(handler as EventListener);
-    }
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
   }, [theme]);
 
   const setTheme = useCallback(async (newTheme: Theme) => {
@@ -83,7 +78,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
+    <ThemeContext.Provider value={useMemo(() => ({ theme, resolvedTheme, setTheme }), [theme, resolvedTheme, setTheme])}>
       {children}
     </ThemeContext.Provider>
   );

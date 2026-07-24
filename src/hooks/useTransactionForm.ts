@@ -265,8 +265,8 @@ export function useTransactionForm({
               const usedColors = new Set(categories.map((c) => c.color));
               const available = CURATED_PALETTE.filter((c) => !usedColors.has(c));
               const color = available.length > 0
-                ? available[Math.floor(Math.random() * available.length)]!
-                : CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!;
+                ? available[Math.floor(Math.random() * available.length)]! // NOSONAR
+                : CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!; // NOSONAR
               const newId = await db.categories.add({ name, icon: '🏷️', color });
               return newId ?? null;
             })(categoryName.trim());

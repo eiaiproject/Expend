@@ -51,7 +51,7 @@ export function TechStackSection() {
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-6 pt-2">
             {techItems.map(({ icon: Icon, nameKey, descKey }, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[var(--surface)]/30">
+              <div key={nameKey} className="flex items-start gap-3 p-3 rounded-lg bg-[var(--surface)]/30">
                 <div className="w-9 h-9 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
                   <Icon size={16} className="text-[var(--accent)]" />
                 </div>

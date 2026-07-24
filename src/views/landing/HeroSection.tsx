@@ -114,7 +114,7 @@ export function HeroSection({ onEnter }: { readonly onEnter?: () => void }) {
                       { name: t('landing.demoTransport'), amount: '25.000', time: '08:15', color: 'bg-orange-400' },
                       { name: t('landing.demoCoffee'), amount: '35.000', time: t('Yesterday'), color: 'bg-amber-400' },
                     ].map((tx, i) => (
-                      <div key={i} className="bg-[var(--card)] rounded-xl p-3 flex items-center gap-3">
+                      <div key={tx.name} className="bg-[var(--card)] rounded-xl p-3 flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full ${tx.color} flex items-center justify-center shrink-0`}>
                           <div className="w-2 h-2 bg-white/80 rounded-full" />
                         </div>

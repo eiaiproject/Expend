@@ -239,7 +239,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SecurityContext.Provider value={{
+    <SecurityContext.Provider value={useMemo(() => ({
       isLocked: isSecurityLoaded ? (securityEnabled ? isLocked : false) : true,
       pinLength,
       securityEnabled,
@@ -251,7 +251,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       disableSecurity,
       updateAutoLockTimeout,
       checkSecurityAvailable
-    }}>
+    }), [isLocked, isSecurityLoaded, securityEnabled, pinLength, autoLockTimeout, lock, unlock, setupPin, disableSecurity, updateAutoLockTimeout, checkSecurityAvailable])}>
       {children}
     </SecurityContext.Provider>
   );

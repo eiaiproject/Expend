@@ -222,7 +222,7 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
             >
               {state.filteredDescriptionSuggestions.map((desc, idx) => (
                 <button
-                  key={idx}
+                  key={desc}
                   type="button"
                   onClick={() => selectSuggestion(desc)}
                   className={cn(

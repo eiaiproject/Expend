@@ -175,7 +175,7 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
           <div className="p-4 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
             <p className="text-sm font-medium text-red-700 dark:text-red-300">{t('settings.csvPreviewErrors', { count: errors.length })}</p>
             <ul className="mt-1 text-xs text-red-600 dark:text-red-400 space-y-0.5">
-              {errors.slice(0, 5).map((err, i) => <li key={i}>{err}</li>)}
+              {errors.slice(0, 5).map((err, i) => <li key={err}>{err}</li>)}
               {errors.length > 5 && <li>...{errors.length - 5} more</li>}
             </ul>
           </div>

@@ -34,13 +34,13 @@ export function SearchHighlight({ text, searchTerm, className }: SearchHighlight
       {parts.map((part, i) =>
         regex.test(part) ? (
           <mark
-            key={i}
+            key={`${part}-${i}`}
             className="bg-[var(--accent)]/20 text-[var(--accent)] rounded-sm px-0.5 font-medium"
           >
             {part}
           </mark>
         ) : (
-          <Fragment key={i}>{part}</Fragment>
+          <Fragment key={`${part}-${i}`}>{part}</Fragment>
         )
       )}
     </span>

@@ -22,7 +22,7 @@ const DB_NAME = 'ExpendDB';
 export function uniqueName(prefix: string): string {
   // Worker + random suffix keeps data unique per browser project, per test.
   const wpid = process.pid.toString(36);
-  const rand = Math.random().toString(36).slice(2, 8);
+  const rand = Math.random().toString(36).slice(2, 8); // NOSONAR
   return `${prefix}-${wpid}-${rand}`;
 }
 

@@ -26,7 +26,7 @@ export function HowItWorksSection() {
         {/* Steps */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
           {steps.map(({ icon: Icon, key }, i) => (
-            <div key={i} className="relative text-center group">
+            <div key={key} className="relative text-center group">
               {/* Connector line (desktop) */}
               {i < steps.length - 1 && (
                 <div className="hidden sm:block absolute top-8 left-[calc(50%+40px)] right-[calc(-50%+40px)] h-px bg-[var(--border-subtle)]" aria-hidden="true" />
