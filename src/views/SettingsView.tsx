@@ -395,7 +395,7 @@ export default function SettingsView() {
   const handleExportJSON = async () => {
     const data = await generateExport();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    downloadBlob(blob, `expend-backup-${getTodayStr()}T${new Date().toTimeString().slice(0, 8).replace(/:/g, '-')}.json`);
+    downloadBlob(blob, `expend-backup-${getTodayStr()}T${new Date().toTimeString().slice(0, 8).replaceAll(':', '-')}.json`);
     await markBackupDone();
     toast.add(t('settings.backupCreated'));
   };
@@ -467,7 +467,7 @@ export default function SettingsView() {
     if (exportFirst) {
       const data = await generateExport();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      downloadBlob(blob, `expend-backup-${getTodayStr()}T${new Date().toTimeString().slice(0, 8).replace(/:/g, '-')}.json`);
+      downloadBlob(blob, `expend-backup-${getTodayStr()}T${new Date().toTimeString().slice(0, 8).replaceAll(':', '-')}.json`);
     }
 
     const deleteLabel = i18n.language?.startsWith('id') ? 'HAPUS' : 'DELETE';

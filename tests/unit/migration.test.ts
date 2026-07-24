@@ -95,7 +95,7 @@ describe('Dexie database compatibility', () => {
     expect(debt?.remainingAmount).toBe(250000);
 
     const payments = await db.debtPayments.where('debtId').equals(debtId).toArray();
-    expect(payments.length).toBe(1);
+    expect(payments).toHaveLength(1);
     expect(payments[0].type).toBe('repayment');
   });
 
@@ -120,7 +120,7 @@ describe('Dexie database compatibility', () => {
       .between([walletId, '2025-01-01'], [walletId, '2025-01-31'], true, true)
       .toArray();
 
-    expect(results.length).toBe(2);
+    expect(results).toHaveLength(2);
 
     // Query by [type+date] compound index
     const expenseResults = await db.transactions
@@ -128,7 +128,7 @@ describe('Dexie database compatibility', () => {
       .between(['expense', '2025-01-01'], ['expense', '2025-01-31'], true, true)
       .toArray();
 
-    expect(expenseResults.length).toBe(2);
+    expect(expenseResults).toHaveLength(2);
   });
 
   it('transfer group queries work correctly', async () => {
@@ -153,7 +153,7 @@ describe('Dexie database compatibility', () => {
       .equals(groupId)
       .toArray();
 
-    expect(paired.length).toBe(2);
+    expect(paired).toHaveLength(2);
     expect(paired.some(t => t.type === 'transfer_out')).toBe(true);
     expect(paired.some(t => t.type === 'transfer_in')).toBe(true);
   });

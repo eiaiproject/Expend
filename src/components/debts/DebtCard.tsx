@@ -81,7 +81,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
       items[0]?.focus();
     } else if (e.key === 'End') {
       e.preventDefault();
-      items[items.length - 1]?.focus();
+      items.at(-1)?.focus();
     }
   };
 

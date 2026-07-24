@@ -502,7 +502,7 @@ export async function deleteTransactionByDescription(
   description: string,
 ): Promise<void> {
   const row = page.locator('[data-testid="transaction-row"]').filter({
-    has: page.locator(`p`, { hasText: new RegExp(`^\\s*${escapeRegex(description)}\\s*$`) }),
+    has: page.locator(`p`, { hasText: new RegExp(String.raw`^\s*${escapeRegex(description)}\s*$`) }),
   }).first();
   await row.scrollIntoViewIfNeeded();
 
@@ -529,7 +529,7 @@ export async function openTransactionForEdit(
 ): Promise<void> {
   await page.goto('/');
   const row = page.locator('[data-testid="transaction-row"]').filter({
-    has: page.locator(`p`, { hasText: new RegExp(`^\\s*${escapeRegex(description)}\\s*$`) }),
+    has: page.locator(`p`, { hasText: new RegExp(String.raw`^\s*${escapeRegex(description)}\s*$`) }),
   }).first();
   await row.scrollIntoViewIfNeeded();
 

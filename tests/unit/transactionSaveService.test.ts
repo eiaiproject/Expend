@@ -80,7 +80,7 @@ describe('saveTransaction validation', () => {
     expect(wallet?.currentBalance).toBe(950_000);
 
     const txs = await db.transactions.where('walletId').equals(walletId).toArray();
-    expect(txs.length).toBe(1);
+    expect(txs).toHaveLength(1);
     expect(txs[0].type).toBe('expense');
     expect(txs[0].amount).toBe(50_000);
   });
@@ -207,7 +207,7 @@ describe('saveTransfer validation', () => {
     expect(walletB?.currentBalance).toBe(600_000);
 
     const txs = await db.transactions.toArray();
-    expect(txs.length).toBe(2);
+    expect(txs).toHaveLength(2);
     expect(txs.some(t => t.type === 'transfer_out' && t.walletId === w1)).toBe(true);
     expect(txs.some(t => t.type === 'transfer_in' && t.walletId === w2)).toBe(true);
   });

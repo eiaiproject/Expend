@@ -86,7 +86,7 @@ describe('deleteWalletSafely', () => {
 
     // Paired transfer in B must be removed
     const remainingB = await db.transactions.where('walletId').equals(walletBId).toArray();
-    expect(remainingB.length).toBe(0);
+    expect(remainingB).toHaveLength(0);
 
     // Wallet A must be gone
     const walletAGone = await db.wallets.get(walletAId);
@@ -131,7 +131,7 @@ describe('deleteWalletSafely', () => {
 
     // Paired transfer in A must be removed
     const remainingA = await db.transactions.where('walletId').equals(walletAId).toArray();
-    expect(remainingA.length).toBe(0);
+    expect(remainingA).toHaveLength(0);
   });
 
   it('Scenario C: Reject deleting wallet with expenses; other wallets unaffected', async () => {
@@ -176,7 +176,7 @@ describe('deleteWalletSafely', () => {
 
     // Wallet B transactions must remain
     const bTxs = await db.transactions.where('walletId').equals(walletBId).toArray();
-    expect(bTxs.length).toBe(1);
+    expect(bTxs).toHaveLength(1);
   });
 
   it('Scenario D: Delete wallet with multiple transfer pairs; all other wallets corrected', async () => {
@@ -228,9 +228,9 @@ describe('deleteWalletSafely', () => {
 
     // No orphaned transfers remain
     const bTxs = await db.transactions.where('walletId').equals(walletBId).toArray();
-    expect(bTxs.length).toBe(0);
+    expect(bTxs).toHaveLength(0);
     const cTxs = await db.transactions.where('walletId').equals(walletCId).toArray();
-    expect(cTxs.length).toBe(0);
+    expect(cTxs).toHaveLength(0);
   });
 });
 
@@ -251,7 +251,7 @@ describe('adjustWalletBalance', () => {
       .where('type').equals('balance_adjustment')
       .and(t => t.walletId === walletId)
       .toArray();
-    expect(adjustments.length).toBe(1);
+    expect(adjustments).toHaveLength(1);
     expect(adjustments[0].amount).toBe(250000); // signed delta
     expect(adjustments[0].description).toBe('Top up');
   });
@@ -272,7 +272,7 @@ describe('adjustWalletBalance', () => {
       .where('type').equals('balance_adjustment')
       .and(t => t.walletId === walletId)
       .toArray();
-    expect(adjustments.length).toBe(1);
+    expect(adjustments).toHaveLength(1);
     expect(adjustments[0].amount).toBe(-200000); // signed delta
   });
 
@@ -302,6 +302,6 @@ describe('adjustWalletBalance', () => {
       .where('type').equals('balance_adjustment')
       .and(t => t.walletId === walletId)
       .toArray();
-    expect(adjustments.length).toBe(0);
+    expect(adjustments).toHaveLength(0);
   });
 });
