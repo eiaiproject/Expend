@@ -5,10 +5,10 @@
  * Usage: node scripts/screenshots.mjs
  */
 import { chromium } from '@playwright/test';
-import { execSync, spawn } from 'child_process';
-import { existsSync, mkdirSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { execSync, spawn } from 'node:child_process';
+import { existsSync, mkdirSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -65,7 +65,7 @@ try {
         }
 
         // Wallet
-        const walletId = tx.objectStore('wallets').put({
+        tx.objectStore('wallets').put({
           name: 'Main Wallet', currency: 'IDR', initialBalance: 5000000, currentBalance: 4598000,
           lastUpdated: now, color: '#10b981',
         });
@@ -100,7 +100,7 @@ try {
         });
 
         tx.oncomplete = () => { db.close(); resolve(); };
-        tx.onerror = () => { db.close(); reject(new Error(tx.error)); };
+        tx.onerror = () => { db.close(); reject(new Error(tx.error?.message ?? String(tx.error))); };
       };
       request.onerror = () => reject(new Error(request.error));
     });

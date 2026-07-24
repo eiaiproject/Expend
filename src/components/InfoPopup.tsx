@@ -28,7 +28,7 @@ export function InfoPopup({ isOpen, onClose }: { readonly isOpen: boolean; reado
       aria-label={t('Project Information')}
     >
       <div className="bg-[var(--card)] text-[var(--text-primary)] w-full max-w-[300px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
-        <button
+        <button type="button"
           onClick={onClose}
           className="absolute top-3 right-3 p-1 rounded-full hover:bg-[var(--border)] transition-colors"
         >

@@ -3,9 +3,8 @@
  * Extracts all t('key') calls from src/ and verifies they exist in en.json and id.json.
  * Exit code 1 if any key is missing in either locale file.
  */
-import { readFileSync } from 'fs';
-import { readdirSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 function getAllTsFiles(dir) {
   const results = [];

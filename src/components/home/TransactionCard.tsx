@@ -66,7 +66,6 @@ export function TransactionCard({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const renderAmountValue = (amount: number) => formatCurrencyValue(amount, hideAmount);
   const categoryName = tx.categoryId
     ? (categoryMap[tx.categoryId]?.name === FALLBACK_CATEGORY_NAME ? t('Other') : categoryMap[tx.categoryId]?.name) || '-'
     : '-'; // ponytail: nested ternary kept for conciseness; extract when more conditions added

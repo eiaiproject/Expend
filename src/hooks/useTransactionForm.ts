@@ -190,9 +190,9 @@ export function useTransactionForm({
   // Auto-select destination wallet
   useEffect(() => {
     if (type !== 'transfer' || !walletId) return;
-    const sourceId = parseInt(walletId, 10);
+    const sourceId = Number.parseInt(walletId, 10);
     if (toWalletId) {
-      const targetId = parseInt(toWalletId, 10);
+      const targetId = Number.parseInt(toWalletId, 10);
       if (targetId !== sourceId && wallets.some((w) => w.id === targetId)) {
         return;
       }
@@ -213,29 +213,29 @@ export function useTransactionForm({
   }, [isOpen, txToEdit, categories, categoryName, type]);
 
   const handleAmountChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    const rawValue = e.target.value.replace(/\D/g, '');
     if (!rawValue) {
       setAmount('');
       return;
     }
-    setAmount(parseInt(rawValue, 10).toLocaleString('id-ID'));
+    setAmount(Number.parseInt(rawValue, 10).toLocaleString('id-ID'));
   }, []);
 
   const handleSubmit = useCallback(async (): Promise<boolean> => {
     if (!amount || !description || !date || !walletId) return false;
     if (type === 'transfer' && !toWalletId) return false;
 
-    const rawAmount = parseInt(amount.replace(/[^0-9]/g, ''), 10);
+    const rawAmount = Number.parseInt(amount.replace(/\D/g, ''), 10);
     const trimmedDescription = description.trim();
 
     setIsSubmitting(true);
     try {
       if (type === 'transfer') {
-        if (parseInt(walletId, 10) === parseInt(toWalletId, 10)) {
+        if (Number.parseInt(walletId, 10) === Number.parseInt(toWalletId, 10)) {
           toast.add(t('Cannot transfer to the same wallet.'));
           return false;
         }
-        if (txToEdit && txToEdit.id) {
+        if (txToEdit?.id) {
           toast.add(t('Editing transfers is not supported in this version.'));
           return false;
         }
@@ -244,8 +244,8 @@ export function useTransactionForm({
           amount: rawAmount,
           description: trimmedDescription,
           date,
-          fromWalletId: parseInt(walletId, 10),
-          toWalletId: parseInt(toWalletId, 10),
+          fromWalletId: Number.parseInt(walletId, 10),
+          toWalletId: Number.parseInt(toWalletId, 10),
           notes,
         });
       } else {
@@ -278,7 +278,7 @@ export function useTransactionForm({
             amount: rawAmount,
             description: trimmedDescription,
             date,
-            walletId: parseInt(walletId, 10),
+            walletId: Number.parseInt(walletId, 10),
             categoryId: catId,
             notes,
             type: txToEdit ? txToEdit.type : 'expense',

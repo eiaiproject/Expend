@@ -21,9 +21,9 @@ function getSystemTheme(): ResolvedTheme {
 function applyTheme(resolved: ResolvedTheme) {
   const root = document.documentElement;
   if (resolved === 'light') {
-    root.setAttribute('data-theme', 'light');
+    root.dataset.theme = 'light';
   } else {
-    root.removeAttribute('data-theme');
+    delete root.dataset.theme;
   }
   let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
   if (!meta) {

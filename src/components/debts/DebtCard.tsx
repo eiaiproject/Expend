@@ -205,6 +205,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                       className="absolute right-0 z-20 mt-1 w-48 rounded-xl border border-[var(--border)] bg-[var(--card)] py-1 shadow-lg"
                     >
                       <button
+                        type="button"
                         ref={(el) => { menuItemsRef.current[0] = el; }}
                         role="menuitem"
                         onClick={() => { closeMenu(); onClick(); }}
@@ -213,6 +214,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                         <CheckCircle size={15} /> {t('debt.viewDetail')}
                       </button>
                       <button
+                        type="button"
                         ref={(el) => { menuItemsRef.current[1] = el; }}
                         role="menuitem"
                         onClick={() => { closeMenu(); onPayment(); }}
@@ -221,6 +223,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                         <HandDollar size={15} /> {t('debt.recordPayment')}
                       </button>
                       <button
+                        type="button"
                         ref={(el) => { menuItemsRef.current[2] = el; }}
                         role="menuitem"
                         onClick={() => { closeMenu(); onEdit(); }}
@@ -230,6 +233,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                       </button>
                       <div className="my-1 border-t border-[var(--border)]" role="separator" />
                       <button
+                        type="button"
                         ref={(el) => { menuItemsRef.current[3] = el; }}
                         role="menuitem"
                         onClick={handleMarkPaid}
@@ -239,6 +243,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                       </button>
                       {debt.type === 'receivable' && (
                         <button
+                          type="button"
                           ref={(el) => { menuItemsRef.current[4] = el; }}
                           role="menuitem"
                           onClick={handleWriteOff}

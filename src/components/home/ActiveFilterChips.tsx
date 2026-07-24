@@ -102,7 +102,7 @@ export function ActiveFilterChips({
           onClick={() => { filterActions.setMinAmount(''); filterActions.setMaxAmount(''); }}
           className="flex items-center gap-1 px-2.5 py-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full text-[11px] font-mono font-medium border border-[var(--accent)]/20 active:scale-95 transition-transform"
         >
-          Rp{filters.minAmount ? parseInt(filters.minAmount).toLocaleString('id-ID') : '0'}–{filters.maxAmount ? parseInt(filters.maxAmount).toLocaleString('id-ID') : '∞'}
+          Rp{filters.minAmount ? Number.parseInt(filters.minAmount).toLocaleString('id-ID') : '0'}–{filters.maxAmount ? Number.parseInt(filters.maxAmount).toLocaleString('id-ID') : '∞'}
           <X size={11} aria-hidden="true" />
         </button>
       )}

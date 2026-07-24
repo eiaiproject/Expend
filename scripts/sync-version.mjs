@@ -32,7 +32,7 @@ if (!version) {
 // --- 1. README badge -------------------------------------------------------
 const readmePath = resolve(root, 'README.md');
 let readme = readFileSync(readmePath, 'utf8');
-const badgeRe = /(img\.shields\.io\/badge\/version-)[0-9]+\.[0-9]+\.[0-9]+(-teal)?/;
+const badgeRe = /(img\.shields\.io\/badge\/version-)\d+\.\d+\.\d+(-teal)?/;
 if (!badgeRe.test(readme)) {
   console.warn('sync-version: README version badge not found, skipping');
 } else {

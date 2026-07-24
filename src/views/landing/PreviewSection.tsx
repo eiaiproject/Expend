@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ChartBar, ChartPie, Wallet, TrendUp, Search, Tags } from 'reicon-react';
+import { ChartBar, ChartPie, Wallet, TrendUp, Tags } from 'reicon-react';
 
 interface PreviewCardProps {
   readonly icon: React.ReactNode;

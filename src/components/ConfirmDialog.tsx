@@ -117,14 +117,14 @@ export function ConfirmDialogProvider() {
             )}
 
             <div className="flex gap-3 pt-2">
-              <button
+              <button type="button"
                 ref={cancelButtonRef}
                 onClick={() => handleClose(false)}
                 className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors active:scale-95"
               >
                 {currentDialog.cancelLabel || t('Cancel')}
               </button>
-              <button
+              <button type="button"
                 onClick={() => handleClose(true)}
                 disabled={!isTypedConfirmValid}
                 className={(

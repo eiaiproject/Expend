@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { db, type Setting } from '../db/db';
 import { hashPin, verifyPin, verifyLegacySha256 } from '../utils/cryptoUtils';
-import { AUTO_LOCK_TIMEOUT_MS, STORAGE_KEYS } from '../utils/constants';
+import { AUTO_LOCK_TIMEOUT_MS } from '../utils/constants';
 
 interface SecuritySettingsValue {
   readonly enabled: boolean;

@@ -17,7 +17,7 @@ export function TransactionDetailSheet({ tx, onClose, onEdit, onDelete, onRepeat
   const { t, i18n } = useTranslation();
 
   const handleDelete = async () => {
-    if (!tx || !tx.id) return;
+    if (!tx?.id) return;
     if (navigator.vibrate) navigator.vibrate(50);
 
     // Delegate deletion + paired transfer cleanup + undo toast + category cleanup to parent
@@ -47,7 +47,7 @@ export function TransactionDetailSheet({ tx, onClose, onEdit, onDelete, onRepeat
                {tx.notes && <p className="mt-4 text-sm bg-[var(--bg)] p-3 rounded-lg inline-block text-left">{tx.notes}</p>}
             </div>
 
-            <button 
+            <button type="button" 
               onClick={() => { onClose(); onRepeat(tx); }}
               disabled={!canRepeat}
               className="w-full flex items-center justify-center gap-2 py-4 bg-[var(--accent-fill)] text-[var(--accent-ink)] rounded-xl font-bold active:scale-95 transition-transform shadow-lg shadow-[var(--accent-fill)]/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
@@ -56,7 +56,7 @@ export function TransactionDetailSheet({ tx, onClose, onEdit, onDelete, onRepeat
             </button>
 
             <div className="grid grid-cols-2 gap-4">
-              <button 
+              <button type="button" 
                 onClick={() => { onClose(); onEdit(tx); }}
                 disabled={tx.type === 'transfer_in' || tx.type === 'transfer_out' || tx.type === 'balance_adjustment'}
                 title={(tx.type === 'transfer_in' || tx.type === 'transfer_out') ? t('Editing transfers is not supported in this version.') : undefined}
@@ -64,7 +64,7 @@ export function TransactionDetailSheet({ tx, onClose, onEdit, onDelete, onRepeat
               >
                 <Edit2 size={18} /> {t('Edit')}
               </button>
-              <button 
+              <button type="button" 
                 onClick={handleDelete}
                 className="flex items-center justify-center gap-2 py-4 bg-red-500/10 text-red-600 rounded-xl font-bold"
               >

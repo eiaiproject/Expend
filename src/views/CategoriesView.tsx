@@ -9,13 +9,12 @@ import {
 } from 'reicon-react';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { cn } from '../utils/cn';
-import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
+import { FALLBACK_CATEGORY_NAME, BUDGET_NEAR_LIMIT_THRESHOLD } from '../utils/constants';
 import { getMonthStartStr, getNextMonthStartStr, normaliseDate } from '../utils/dateUtils';
 import { formatCurrencyValue } from '../utils/formatUtils';
 import { confirm } from '../components/ConfirmDialog';
 import { toast } from '../components/Toaster';
 import { EmptyState } from '../components/EmptyState';
-import { BUDGET_NEAR_LIMIT_THRESHOLD } from '../utils/constants';
 import { CategoryOverflowMenu } from '../components/categories/CategoryOverflowMenu';
 import { HelpDialog } from '../components/categories/HelpDialog';
 import { CategoryForm } from '../components/categories/CategoryForm';
@@ -389,7 +388,6 @@ export default function CategoriesView() {
   const renderCategoryCard = (cat: CategoryWithStats) => {
     const isArchived = !!cat.archivedAt;
     const hasBudget = !!cat.budget && cat.budget > 0;
-    const isFallback = cat.name === FALLBACK_CATEGORY_NAME;
     const menuItems = getCategoryMenuItems(cat);
 
     return (
@@ -450,13 +448,6 @@ export default function CategoriesView() {
   };
 
   // ── Period display ─────────────────────────────────────────
-  const monthNames = i18n.language?.startsWith('id')
-    ? ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-    : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-  const now = new Date();
-  const currentMonth = monthNames[now.getMonth()];
-  const currentYear = now.getFullYear();
 
   return (
     <div className="space-y-4">

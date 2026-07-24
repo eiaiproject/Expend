@@ -36,8 +36,8 @@ export function ReconcileBalanceSheet({ isOpen, onClose, wallet }: ReconcileBala
   const [isSaving, setIsSaving] = useState(false);
 
   // Parse actual balance from input
-  const parsedActual = parseInt(actualBalanceInput.replace(/[^0-9-]/g, ''), 10);
-  const actualBalance = isNaN(parsedActual) ? recordedBalance : parsedActual;
+  const parsedActual = Number.parseInt(actualBalanceInput.replace(/[^0-9-]/g, ''), 10);
+  const actualBalance = Number.isNaN(parsedActual) ? recordedBalance : parsedActual;
   const difference = actualBalance - recordedBalance;
 
   // Reset form when wallet changes or sheet opens
@@ -100,7 +100,7 @@ export function ReconcileBalanceSheet({ isOpen, onClose, wallet }: ReconcileBala
             value={actualBalanceInput}
             onChange={(e) => {
               const val = e.target.value.replace(/[^0-9-]/g, '');
-              setActualBalanceInput(val ? parseInt(val, 10).toLocaleString('id-ID') : '');
+              setActualBalanceInput(val ? Number.parseInt(val, 10).toLocaleString('id-ID') : '');
             }}
             placeholder={formatCurrency(recordedBalance)}
             className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2.5 font-mono focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
@@ -160,7 +160,7 @@ export function ReconcileBalanceSheet({ isOpen, onClose, wallet }: ReconcileBala
           <button
             type="button"
             onClick={handleSave}
-            disabled={isSaving || isNaN(parsedActual)}
+            disabled={isSaving || Number.isNaN(parsedActual)}
             className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium transition-colors hover:opacity-90 active:scale-95 disabled:opacity-50"
           >
             {isSaving ? t('Saving...') : t('Save')}

@@ -25,14 +25,8 @@ export function useIsStandalone() {
     const mediaQuery = window.matchMedia('(display-mode: standalone)');
     const handler = (e: MediaQueryListEvent) => setIsStandalone(e.matches);
     
-    try {
-      mediaQuery.addEventListener('change', handler);
-      return () => mediaQuery.removeEventListener('change', handler);
-    } catch {
-      // Fallback for older Safari that doesn't support addEventListener on MediaQueryList
-      (mediaQuery as MediaQueryList & { addListener: (fn: EventListener) => void }).addListener(handler as EventListener);
-      return () => (mediaQuery as MediaQueryList & { removeListener: (fn: EventListener) => void }).removeListener(handler as EventListener);
-    }
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
   return isStandalone;

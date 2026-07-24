@@ -30,7 +30,7 @@ import { SidebarNav } from './components/SidebarNav';
 import { Download, WifiOff, X } from 'reicon-react';
 import OnboardingWizard from './components/OnboardingWizard';
 import { UpdatePrompt } from './components/UpdatePrompt';
-import { isIOSDevice, useInstallPrompt, useOnlineStatus } from './utils/pwaUtils';
+import { useInstallPrompt, useOnlineStatus } from './utils/pwaUtils';
 import type { TransactionType } from './hooks/useTransactionForm';
 
 function AppContent() {

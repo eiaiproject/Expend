@@ -9,7 +9,7 @@ import { DebtFormSheet } from '../components/debts/DebtFormSheet';
 import { DebtPaymentSheet } from '../components/debts/DebtPaymentSheet';
 import { Skeleton } from '../components/Skeleton';
 import { usePrivacy } from '../contexts/PrivacyContext';
-import { buildDebtPaymentsMap, calculateDebtStatus, isDebtClosed, summarizeDebts } from '../services/debtService';
+import { buildDebtPaymentsMap, calculateDebtStatus, summarizeDebts } from '../services/debtService';
 import { getTodayStr } from '../utils/dateUtils';
 import { formatCurrency, formatBalance } from '../utils/formatUtils';
 import { cn } from '../utils/cn';

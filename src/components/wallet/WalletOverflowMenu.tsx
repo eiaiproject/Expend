@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { More, Eye, Edit, ArrowSwapHorizontal, Scale, Archive, ArchiveTick, Trash2 } from 'reicon-react';
 import type { Wallet } from '../../db/db';
-import { usePrivacy } from '../../contexts/PrivacyContext';
 
 interface WalletOverflowMenuProps {
   readonly wallet: Wallet;
@@ -36,7 +35,6 @@ export function WalletOverflowMenu({
   onDelete,
 }: WalletOverflowMenuProps) {
   const { t } = useTranslation();
-  const { hideAmount } = usePrivacy();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);

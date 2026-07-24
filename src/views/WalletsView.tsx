@@ -252,7 +252,7 @@ export default function WalletsView() {
   }
 
   // ── Empty state (no wallets at all) ──────────────────────────
-  if (wallets && wallets.length === 0) {
+  if (wallets?.length === 0) {
     return (
       <div className="space-y-6">
         <PageHeader
