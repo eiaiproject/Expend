@@ -7,7 +7,7 @@ interface HelpDialogProps {
   readonly onClose: () => void;
 }
 
-function HelpItem({ icon: Icon, text }: { icon: React.ComponentType<{ size?: number; className?: string }>; text: string }) {
+function HelpItem({ icon: Icon, text }: { readonly icon: React.ComponentType<{ size?: number; className?: string }>; readonly text: string }) {
   return (
     <li className="flex items-start gap-3 py-2">
       <Icon size={16} className="text-[var(--accent)] mt-0.5 shrink-0" aria-hidden="true" />

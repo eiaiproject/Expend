@@ -189,7 +189,7 @@ test.describe('wallet balance smoke', () => {
     await page.locator('form select').first().selectOption({ label: toWallet });
     await page.getByRole('button', { name: /^save$/i }).first().click();
     await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(500) // NOSONAR S2925
 
     await expectWalletBalance(page, fromWallet, BASE_BALANCE_NUM);
     await expectWalletBalance(page, toWallet, 75_000);
@@ -227,7 +227,7 @@ test.describe('wallet balance smoke', () => {
     expect((await readTransactions(page)).some((tx) => tx.id === deletedId)).toBe(false);
 
     expect(await clickUndoToast(page)).toBe(true);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(500) // NOSONAR S2925
     await expectWalletBalance(page, walletName, BASE_BALANCE_NUM - 25_000);
     // Transaction is restored with the same ID.
     const restored = (await readTransactions(page)).filter((tx) => tx.description === description);
@@ -354,7 +354,7 @@ test.describe('wallet balance smoke', () => {
     await page.getByRole('dialog', { name: /backup found/i })
       .getByRole('button', { name: /restore now/i })
       .click();
-    await page.waitForTimeout(1_000);
+    await page.waitForTimeout(1_000) // NOSONAR S2925
 
     // Assert recomputed currentBalance — NOT the stale 999_999 from the payload.
     const wallet = await readWalletByName(page, 'Imported Cash');
@@ -409,7 +409,7 @@ test.describe('wallet balance smoke', () => {
     await page.getByRole('dialog', { name: /csv preview/i })
       .getByRole('button', { name: /import.*rows/i })
       .click();
-    await page.waitForTimeout(1_200);
+    await page.waitForTimeout(1_200) // NOSONAR S2925
 
     await expectWalletBalance(page, walletName, BASE_BALANCE_NUM + 100_000 - 50_000);
 

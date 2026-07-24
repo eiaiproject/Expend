@@ -44,18 +44,18 @@ const BACKUP_REMINDER_DAYS = 7;
 
 // ── Helper components ──────────────────────────────────────────
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionHeading({ children }: { readonly children: React.ReactNode }) {
   return <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider px-1 pt-2 pb-1">{children}</h2>;
 }
 
 function NavRow({ icon: Icon, label, description, to, onClick, danger, badge }: {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string;
-  description?: string;
-  to?: string;
-  onClick?: () => void;
-  danger?: boolean;
-  badge?: React.ReactNode;
+  readonly icon: React.ComponentType<{ size?: number; className?: string }>;
+  readonly label: string;
+  readonly description?: string;
+  readonly to?: string;
+  readonly onClick?: () => void;
+  readonly danger?: boolean;
+  readonly badge?: React.ReactNode;
 }) {
   const content = (
     <div className={`flex items-center gap-3 p-4 min-h-[56px] transition-colors ${danger ? 'text-red-500' : 'hover:bg-[var(--bg)]'}`}>
@@ -150,11 +150,11 @@ interface CsvPreviewRow {
 }
 
 function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
-  isOpen: boolean;
-  onClose: () => void;
-  rows: CsvPreviewRow[];
-  errors: string[];
-  onConfirm: () => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly rows: CsvPreviewRow[];
+  readonly errors: string[];
+  readonly onConfirm: () => void;
 }) {
   const { t } = useTranslation();
   if (!isOpen) return null;
@@ -229,10 +229,10 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
 // ── Restore Preview Modal ──────────────────────────────────────
 
 function RestorePreviewModal({ isOpen, onClose, data, onConfirm }: {
-  isOpen: boolean;
-  onClose: () => void;
-  data: { wallets: any[]; transactions: any[]; categories: any[]; debts: any[]; payments: any[]; exportedAt: string; version: string } | null;
-  onConfirm: () => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly data: { readonly wallets: readonly any[]; readonly transactions: readonly any[]; readonly categories: readonly any[]; readonly debts: readonly any[]; readonly payments: readonly any[]; readonly exportedAt: string; readonly version: string } | null;
+  readonly onConfirm: () => void;
 }) {
   const { t, i18n } = useTranslation();
   if (!isOpen || !data) return null;

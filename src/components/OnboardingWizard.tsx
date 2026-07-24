@@ -93,9 +93,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
       </div>
 
       <div className="flex-1 flex flex-col px-6 overflow-y-auto">
-        <>
-          {/* Step 1: Create Wallet */}
-          {step === 1 && (
+        {/* Step 1: Create Wallet */}
+        {step === 1 && (
             <div
               key="step1"
               className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full space-y-6"
@@ -241,7 +240,6 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               </div>
             </div>
           )}
-        </>
       </div>
 
       {/* Bottom Navigation */}

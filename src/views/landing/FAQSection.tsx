@@ -7,7 +7,7 @@ interface FAQItem {
   readonly answer: string;
 }
 
-function FAQAccordion({ item, index, isOpen, onToggle }: { item: FAQItem; index: number; isOpen: boolean; onToggle: () => void }) {
+function FAQAccordion({ item, index, isOpen, onToggle }: { readonly item: FAQItem; readonly index: number; readonly isOpen: boolean; readonly onToggle: () => void }) {
   const buttonId = `faq-button-${index}`;
   const panelId = `faq-panel-${index}`;
   const ref = useRef<HTMLDivElement>(null);

@@ -148,7 +148,7 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets }: F
                       : "bg-[var(--bg)] text-[var(--text-primary)] border-[var(--border)] hover:border-[var(--accent)]"
                   )}
                 >
-                  <span>{(() => { if (type === 'all') return t('All'); if (type === 'expense') return t('Expense'); return t('Adjustment'); })()}</span>
+                  <span>{(() => { switch (type) { case 'all': return t('All'); case 'expense': return t('Expense'); default: return t('Adjustment'); } })()}</span>
                   {draft.type === type && <Check size={16} />}
                 </button>
               ))}

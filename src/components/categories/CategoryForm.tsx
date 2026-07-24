@@ -9,8 +9,8 @@ interface CategoryFormProps {
   readonly mode: 'add' | 'edit';
   readonly initialCategory?: Category;
   readonly onSubmit: (data: { name: string; color: string; budget?: number }) => void;
-  onCancel: () => void;
-  existingNames?: string[];
+  readonly onCancel: () => void;
+  readonly existingNames?: string[];
 }
 
 export function CategoryForm({ mode, initialCategory, onSubmit, onCancel, existingNames = [] }: CategoryFormProps) {

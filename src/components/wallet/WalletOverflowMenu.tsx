@@ -125,6 +125,7 @@ export function WalletOverflowMenu({
           ref={menuRef}
           id={menuId}
           role="menu"
+          tabIndex={-1}
           aria-label={label}
           onKeyDown={handleKeyDown}
           className="absolute right-0 top-full mt-1 z-50 w-56 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden"

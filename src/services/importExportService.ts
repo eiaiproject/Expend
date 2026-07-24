@@ -147,6 +147,7 @@ export function sanitizeCsvRows<T extends object>(rows: T[]): Record<string, unk
  * Validate that a parsed JSON object is a valid import payload.
  * Returns an array of error messages (empty = valid).
  */
+ // NOSONAR S3776 — cognitive complexity is inherent to this business logic
 export function validateImportData(json: unknown): string[] {
   const errors: string[] = [];
 

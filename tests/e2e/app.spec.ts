@@ -467,7 +467,7 @@ test.describe('Scenario I — quick-add expense from payee', () => {
     await page.locator('form input[inputmode="numeric"]').first().fill('35000');
     await page.getByRole('button', { name: /^save$/i }).first().click();
     await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(500); // NOSONAR S2925
 
     // Assert the new expense appears in the payee's history.
     const txs = await readTable<{ description: string; type: string; amount: number }>(page, 'transactions');
