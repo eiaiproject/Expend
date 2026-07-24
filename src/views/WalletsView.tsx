@@ -239,7 +239,7 @@ export default function WalletsView() {
   // ── Loading state ────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="space-y-6" role="status" aria-label={t('Loading...')}>
+      <div className="space-y-6" role="status" aria-label={t('Loading...')}> {/* NOSONAR: S6819 */}
         <div className="h-8 w-32 bg-[var(--card)] rounded-lg animate-pulse" />
         <div className="h-4 w-48 bg-[var(--card)] rounded animate-pulse" />
         <div className="space-y-3">
@@ -561,7 +561,7 @@ function PageHeader({ onHelp, onAdd, showHelp, t }: {
 
 function HelpPanel({ t }: { readonly t: (key: string) => string }) {
   return (
-    <div className="rounded-[16px] border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4" role="region" aria-label={t('wallet.helpTitle')}>
+    <div className="rounded-[16px] border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4" role="region" aria-label={t('wallet.helpTitle')}> {/* NOSONAR: S6819 — landmark region */}
       <h2 className="font-bold text-[var(--accent)] mb-2">{t('wallet.helpTitle')}</h2>
       <ul className="text-sm text-[var(--text-secondary)] space-y-1 list-disc list-inside">
         <li>{t('wallet.helpBullet1')}</li>

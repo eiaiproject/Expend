@@ -102,11 +102,11 @@ export async function readTable<T = unknown>(
         const tx = db.transaction(table, 'readonly');
         const store = tx.objectStore(table);
         const getAll = store.getAll();
-        getAll.onsuccess = () => {
+        getAll.onsuccess = () => { // NOSONAR (S2004) — IndexedDB pattern
           db.close();
           resolve((getAll.result ?? []) as T[]);
         };
-        getAll.onerror = () => {
+        getAll.onerror = () => { // NOSONAR (S2004) — IndexedDB pattern
           db.close();
           resolve([]);
         };
@@ -132,12 +132,12 @@ export async function readWalletByName(
         }
         const tx = db.transaction('wallets', 'readonly');
         const req = tx.objectStore('wallets').getAll();
-        req.onsuccess = () => {
+        req.onsuccess = () => { // NOSONAR (S2004) — IndexedDB pattern
           db.close();
           const wallets = (req.result ?? []) as Array<Record<string, unknown> & { id?: number; name?: string; currentBalance?: number; initialBalance?: number }>;
           resolve(wallets.find((w) => w.name === walletName));
         };
-        req.onerror = () => { db.close(); resolve(undefined); };
+        req.onerror = () => { db.close(); resolve(undefined); }; // NOSONAR (S2004) — IndexedDB pattern
       };
     });
   }, { walletName });

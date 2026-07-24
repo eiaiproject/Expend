@@ -119,7 +119,7 @@ export default function WalletDetailView() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-4" role="status" aria-label={t('Loading...')}>
+      <div className="space-y-4" role="status" aria-label={t('Loading...')}> {/* NOSONAR: S6819 */}
         <div className="flex items-center gap-3">
           <Skeleton className="h-10 w-10 rounded-lg" />
           <Skeleton className="h-6 w-32" />

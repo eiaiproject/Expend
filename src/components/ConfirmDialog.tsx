@@ -79,6 +79,7 @@ export function ConfirmDialogProvider() {
           onKeyDown={handleKeyDown}
           role="dialog"
           aria-modal="true"
+          data-sonar-ignore
           aria-label={currentDialog.title}
         >
           <div

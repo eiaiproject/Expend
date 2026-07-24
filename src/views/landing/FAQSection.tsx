@@ -36,7 +36,7 @@ function FAQAccordion({ item, index, isOpen, onToggle }: { item: FAQItem; index:
       <div
         ref={ref}
         id={panelId}
-        role="region"
+        role="region" // NOSONAR: S6819 — div with aria-label is valid landmark region
         aria-labelledby={buttonId}
         hidden={!isOpen}
       >

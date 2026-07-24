@@ -19,7 +19,7 @@ const BASE = `http://127.0.0.1:${PORT}`;
 if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
 
 console.log('Building…');
-execSync('npm run build', { stdio: 'pipe', cwd: ROOT });
+execSync('npm run build', { stdio: 'pipe', cwd: ROOT }); // NOSONAR — S4036: no user input
 
 const server = spawn('npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', String(PORT), '--strictPort'], {
   stdio: 'pipe', cwd: ROOT,

@@ -47,7 +47,7 @@ const date = new Date().toISOString().slice(0, 10);
 
 const fromTag = process.argv[2] || (() => {
   try {
-    return execSync('git describe --tags --abbrev=0', { cwd: root }).toString().trim();
+    return execSync('git describe --tags --abbrev=0', { cwd: root }).toString().trim(); // NOSONAR — S4036: no user input
   } catch {
     return '';
   }

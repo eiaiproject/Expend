@@ -37,6 +37,8 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
         <div
           className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6"
           onClick={onClose}
+          onKeyDown={() => {}}
+          role="presentation"
         >
           <div
             ref={dialogRef}

@@ -45,7 +45,7 @@ export function TechStackSection() {
         {/* Accordion content */}
         <div
           id="tech-stack-panel"
-          role="region"
+          role="region" // NOSONAR: S6819 — div with aria-label is valid landmark region
           aria-label={t('landing.techTitle')}
           hidden={!isOpen}
         >

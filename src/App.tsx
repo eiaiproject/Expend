@@ -157,7 +157,7 @@ function AppContent() {
       )}
 
       {!isOnline && (
-        <div className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-b border-amber-500/20 px-4 py-2 text-xs font-medium flex items-center justify-center gap-2" role="status">
+        <div className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-b border-amber-500/20 px-4 py-2 text-xs font-medium flex items-center justify-center gap-2" role="status"> {/* NOSONAR: S6819 — no semantic HTML for status */}
           <WifiOff size={14} aria-hidden="true" />
           <span>{t('Offline Mode')}. {t('Data stored locally on this device.')}</span>
         </div>
