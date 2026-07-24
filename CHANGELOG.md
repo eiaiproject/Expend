@@ -2,6 +2,13 @@
 
 All notable changes to Expend are documented here.
 
+## 1.11.1 - 2026-07-24
+### Fixed
+
+- Batch 2 — mechanical SonarCloud fixes (27 issues) (#6)
+- Resolve SonarCloud issues batch 1 — imports, button types, usele… (#5)
+
+
 ## 1.11.0 - 2026-07-20
 ### Added
 
