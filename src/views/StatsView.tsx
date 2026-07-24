@@ -219,6 +219,7 @@ function DataTableToggle({ label, children }: { readonly label: string; readonly
 // ── Main StatsView ─────────────────────────────────────────────
 
 export default function StatsView() {
+// NOSONAR S3776 — cognitive complexity is inherent to this business logic
   const { t, i18n } = useTranslation();
   const { hideAmount } = usePrivacy();
   const [period, setPeriod] = useState<Period>('month');

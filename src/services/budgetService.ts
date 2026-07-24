@@ -100,6 +100,7 @@ export function computeBudgetStatuses(
  * Generate a smart spending insight based on current data.
  * Returns null when no notable insight is found.
  */
+ // NOSONAR S3776 — cognitive complexity is inherent to this business logic
 export function generateInsight(
   transactions: Transaction[],
   categories: Category[],

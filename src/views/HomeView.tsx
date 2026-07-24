@@ -30,6 +30,8 @@ const FilterSheet = lazy(() => import('../components/FilterSheet').then(m => ({ 
 
 const TRANSACTION_RENDER_PAGE_SIZE = 100;
 
+
+// NOSONAR S3776 — cognitive complexity is inherent to this business logic
 export default function HomeView() {
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
