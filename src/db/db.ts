@@ -147,24 +147,17 @@ db.version(3).stores(V3).upgrade(async (tx) => {
     for (let i = 0; i < unpaired.length; i++) {
       const a = unpaired[i];
       if (paired.has(a.id!)) continue;
-      const baseDescA = a.description.replace(/\s\((Out|In)\)$/, '');
       const dateA = a.date.split('T')[0];
 
       for (let j = i + 1; j < unpaired.length; j++) {
-        const b = unpaired[j];
-        if (paired.has(b.id!)) continue;
-        if (a.type === b.type) continue;
-        if (a.amount !== b.amount) continue;
-        if (a.date.split('T')[0] !== dateA) continue;
-        if (a.walletId === b.walletId) continue;
-        const baseDescB = b.description.replace(/\s\((Out|In)\)$/, '');
-        if (baseDescA !== baseDescB) continue;
+        const match = findMatchingTransfer(a, unpaired[j], paired, dateA);
+        if (!match) continue;
 
         const groupId = `backfill-${crypto.randomUUID()}`;
         await tx.table('transactions').update(a.id!, { transferGroupId: groupId });
-        await tx.table('transactions').update(b.id!, { transferGroupId: groupId });
+        await tx.table('transactions').update(match.id!, { transferGroupId: groupId });
         paired.add(a.id!);
-        paired.add(b.id!);
+        paired.add(match.id!);
         break;
       }
     }
@@ -176,6 +169,23 @@ db.version(3).stores(V3).upgrade(async (tx) => {
     throw err;
   }
 });
+
+function findMatchingTransfer(
+  a: { id?: number; type: string; amount: number; description: string; walletId?: number; date: string },
+  b: { id?: number; type: string; amount: number; description: string; walletId?: number; date: string },
+  paired: Set<number>,
+  dateA: string
+): typeof b | null {
+  if (paired.has(b.id!)) return null;
+  if (a.type === b.type) return null;
+  if (a.amount !== b.amount) return null;
+  if (a.date.split('T')[0] !== dateA) return null;
+  if (a.walletId === b.walletId) return null;
+  const baseDescA = a.description.replace(/\s\((Out|In)\)$/, '');
+  const baseDescB = b.description.replace(/\s\((Out|In)\)$/, '');
+  if (baseDescA !== baseDescB) return null;
+  return b;
+}
 
 // v4: compound index additions (no data migration)
 db.version(4).stores(V4_STORES);
