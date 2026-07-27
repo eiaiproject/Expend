@@ -313,7 +313,7 @@ export default function StatsView() {
     if (period === 'all') {
       // Find earliest expense date
       if (!transactions || transactions.length === 0) return '';
-      const earliest = transactions.map(tx => tx.date).reduce((min, date) => (date < min ? date : min));
+      const earliest = transactions.map(tx => tx.date).reduce((min, date) => date < min ? date : min);
       return t('stats.dateRangeAll', { date: displayDateFull(earliest, i18n.language) });
     }
     return formatDateRange(periodRange.start, periodRange.end, i18n.language);

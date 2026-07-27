@@ -425,9 +425,8 @@ export default function HomeView() {
 
       {/* Quick Filter Chips */}
       {!isSelectionMode && (
-        <div
-          className="flex gap-2 overflow-x-auto pb-1"
-          role="group"
+        <fieldset
+          className="flex gap-2 overflow-x-auto pb-1 border-0 p-0 m-0"
           aria-label={t('home.filterTransactions')}
           style={{ scrollbarWidth: 'auto', scrollPaddingInline: '1rem' }}
         >
@@ -457,7 +456,7 @@ export default function HomeView() {
               {t('home.clearFilters')}
             </button>
           )}
-        </div>
+        </fieldset>
       )}
 
       {/* Transaction List Header + Controls */}
@@ -572,16 +571,21 @@ export default function HomeView() {
       )}
 
       {/* Transaction List */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map(i => (
-            <Skeleton key={`skel-${i}`} className="w-full h-20 rounded-[16px]" />
-          ))}
-        </div>
-      ) : filteredTransactions.length === 0 ? (
-        renderEmptyState()
-      ) : (
-        <div className="space-y-6">
+      {(() => {
+        if (isLoading) {
+          return (
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map(i => (
+                <Skeleton key={`skel-${i}`} className="w-full h-20 rounded-[16px]" />
+              ))}
+            </div>
+          );
+        }
+        if (filteredTransactions.length === 0) {
+          return renderEmptyState();
+        }
+        return (
+          <div className="space-y-6">
           {groupedTransactions.map(group => {
             const groupId = group.labelKey.replace('home.group', '').toLowerCase();
             return (
@@ -625,7 +629,7 @@ export default function HomeView() {
             </button>
           )}
         </div>
-      )}
+      ); })()}
 
       <TransactionDetailSheet
         tx={selectedTx}

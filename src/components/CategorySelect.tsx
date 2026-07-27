@@ -195,12 +195,10 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
         <div 
           id={listboxId}
           ref={listboxRef}
-          role="listbox"
-          aria-label={t('Select Category')}
           className="absolute z-30 left-0 right-0 top-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg max-h-60 overflow-auto"
         >
           {filteredCategories.length === 0 ? (
-            <div role="option" aria-selected={false} className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+            <div aria-selected={false} className="px-4 py-3 text-sm text-[var(--text-secondary)]">
               {searchTerm.trim() ? (
                 <span>
                   {t('Create')} "<strong>{searchTerm}</strong>" {t('as new category')}
@@ -214,7 +212,6 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
               <button
                 key={category.id}
                 type="button"
-                role="option"
                 id={`${listboxId}-option-${index}`}
                 aria-selected={value.toLowerCase() === category.name.toLowerCase()}
                 onClick={() => handleSelect(category)}
