@@ -165,19 +165,13 @@ export function DebtDetailSheet({
                 <span>{t('Part paid percent', { percent: paidRatio.toFixed(0) })}</span>
                 <span>{walletMap[debt.walletId]?.name ?? t('Wallet not found')}</span>
               </div>
-              <div
-                className="h-2 rounded-full bg-[var(--border)]"
-                role="progressbar"
-                aria-valuenow={paidRatio}
-                aria-valuemin={0}
-                aria-valuemax={100}
+              <progress
+                className="h-2 rounded-full [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-[var(--border)] [&::-webkit-progress-value]:rounded-full"
+                value={paidRatio}
+                max={100}
                 aria-label={t('Part paid percent', { percent: paidRatio.toFixed(0) })}
-              >
-                <div
-                  className={cn('h-full rounded-full', isPayable ? 'bg-amber-500' : 'bg-[var(--accent)]')}
-                  style={{ width: `${paidRatio}%` }}
-                />
-              </div>
+                style={{ color: isPayable ? '#f59e0b' : 'var(--accent)' } as React.CSSProperties}
+              />
             </div>
           )}
 
