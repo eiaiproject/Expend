@@ -39,7 +39,10 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
           aria-label={title}
           className="w-full sm:max-w-lg bg-[var(--card)] rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col border-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm fixed m-0 max-w-full"
           style={{ zIndex: 50 }}
+          role="dialog"
+          tabIndex={-1}
           onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
         >
             <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
               <h2 className="text-lg font-bold truncate">{title}</h2>

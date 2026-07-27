@@ -62,12 +62,6 @@ export function ConfirmDialogProvider() {
     setTypedText('');
   }, []);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      handleClose(false);
-    }
-  }, [handleClose]);
-
   const isTypedConfirmValid = !currentDialog?.requireTypedConfirm || typedText === currentDialog.requireTypedConfirm;
 
   return (
@@ -79,7 +73,10 @@ export function ConfirmDialogProvider() {
           aria-label={currentDialog.title}
           className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl border-0 backdrop:bg-black/50 fixed m-0"
           style={{ zIndex: 110, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+          role="dialog"
+          tabIndex={-1}
           onClick={(e) => { if (e.target === e.currentTarget) handleClose(false); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') handleClose(false); }}
         >
             <div className="text-center space-y-2">
               <h2 className="text-lg font-bold">{currentDialog.title}</h2>

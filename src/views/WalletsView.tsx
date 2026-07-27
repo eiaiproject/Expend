@@ -99,7 +99,9 @@ export default function WalletsView() {
   }
 
   // Last activity dates per wallet — single query
-  const lastActivityDates = useLiveQuery(async (): Promise<Record<number, string | null>> => {
+  const lastActivityDates = useLiveQuery(computeLastActivityDates, [wallets], {} as Record<number, string | null>);
+
+  async function computeLastActivityDates(): Promise<Record<number, string | null>> {
     if (!wallets || wallets.length === 0) return {};
 
     const walletIds = wallets.map(w => w.id!).filter(Boolean);
@@ -117,7 +119,7 @@ export default function WalletsView() {
       result[walletId] = lastTx?.date ?? null;
     }
     return result;
-  }, [wallets], {} as Record<number, string | null>);
+  }
 
   // Split wallets into active / inactive
   const { activeWallets, inactiveWallets } = useMemo(() => {
