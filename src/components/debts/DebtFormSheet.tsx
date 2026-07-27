@@ -160,6 +160,15 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
       : t('wallet decreases', { wallet: selectedWallet?.name ?? t('Wallet'), amount: formatCurrency(rawAmount, hideAmount) });
   })();
 
+  let impactColor: string;
+  if (!hasWalletMovement) {
+    impactColor = 'text-[var(--text-secondary)]';
+  } else if (isPayable) {
+    impactColor = 'text-[var(--accent)]';
+  } else {
+    impactColor = 'text-amber-500';
+  }
+
   const handleSelectType = (nextType: DebtType) => {
     setType(nextType);
     setStep('details');
@@ -404,8 +413,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
           {/* Balance impact */}
           <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-4">
             <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">{t('debt.formBalanceImpact')}</p>
-            {/* NOSONAR S3358 — simple color ternary, extract would harm readability */}
-            <p className={cn('mt-2 font-mono text-sm font-bold', !hasWalletMovement ? 'text-[var(--text-secondary)]' : isPayable ? 'text-[var(--accent)]' : 'text-amber-500')}>
+            <p className={cn('mt-2 font-mono text-sm font-bold', impactColor)}>
               {impactText}
             </p>
             <p className="mt-1 text-xs text-[var(--text-secondary)]">

@@ -92,8 +92,6 @@ export function DatePicker({ id, value, onChange, label, required }: DatePickerP
       {showQuick && (
         <div 
           id={menuId}
-          role="listbox"
-          aria-label={t('Quick Select')}
           className="absolute z-30 left-0 right-0 mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden"
         >
           <div className="p-2">
@@ -106,8 +104,6 @@ export function DatePicker({ id, value, onChange, label, required }: DatePickerP
                 <button
                   key={option.label}
                   type="button"
-                  role="option"
-                  aria-selected={value === optionValue}
                   onClick={() => handleQuickSelect(option)}
                   className={cn(
                     "w-full text-left px-3 py-2.5 text-sm rounded-lg transition-colors",

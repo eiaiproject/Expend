@@ -360,10 +360,13 @@ export default function WalletsView() {
 
       {/* Sort dropdown */}
       {isSortOpen && (
-        <div
-          className="bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden"
-          role="listbox"
+        <select
+          size={4}
+          className="bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden w-full text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
           aria-label={t('wallet.sortLabel')}
+          value={sortBy}
+          onChange={(e) => { setSortBy(e.target.value as SortOption); setIsSortOpen(false); }}
+          onBlur={() => setIsSortOpen(false)}
         >
           {([
             { value: 'default', label: t('wallet.sortDefault') },
@@ -371,23 +374,19 @@ export default function WalletsView() {
             { value: 'balance', label: t('wallet.sortBalance') },
             { value: 'activity', label: t('wallet.sortActivity') },
           ] as const).map((option) => (
-            <button
+            <option
               key={option.value}
-              type="button"
-              role="option"
-              aria-selected={sortBy === option.value}
-              onClick={() => { setSortBy(option.value); setIsSortOpen(false); }}
-              className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
+              value={option.value}
+              className={`${
                 sortBy === option.value
                   ? 'bg-[var(--accent)]/10 text-[var(--accent)] font-medium'
-                  : 'hover:bg-[var(--bg)]'
+                  : ''
               }`}
             >
               {option.label}
-              {sortBy === option.value && <span aria-hidden="true">✓</span>}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       )}
 
       {/* Active wallets */}

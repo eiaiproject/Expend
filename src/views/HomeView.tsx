@@ -22,7 +22,7 @@ import { useTransactionSelection } from '../hooks/useTransactionSelection';
 // Home sub-components
 import { SummaryCard } from '../components/home/SummaryCard';
 import { ActiveFilterChips } from '../components/home/ActiveFilterChips';
-import { TransactionCard } from '../components/home/TransactionCard';
+import { TransactionGroup } from '../components/home/TransactionGroup';
 import { EmptyState } from '../components/EmptyState';
 
 const TransactionFormSheet = lazy(() => import('../components/TransactionFormSheet').then(m => ({ default: m.TransactionFormSheet })));
@@ -134,6 +134,51 @@ export default function HomeView() {
           onClick: () => setIsFormOpen(true),
         }}
       />
+    );
+  };
+
+  const renderTransactionList = () => {
+    if (isLoading) {
+      return (
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map(i => (
+            <Skeleton key={`skel-${i}`} className="w-full h-20 rounded-[16px]" />
+          ))}
+        </div>
+      );
+    }
+    if (filteredTransactions.length === 0) {
+      return renderEmptyState();
+    }
+    return (
+      <div className="space-y-6">
+        {groupedTransactions.map(group => (
+          <TransactionGroup
+            key={group.labelKey}
+            group={group}
+            categoryMap={categoryMap}
+            walletMap={walletMap}
+            searchTerm={filters.searchTerm}
+            hideAmount={hideAmount}
+            isSelectionMode={isSelectionMode}
+            isSelected={isSelected}
+            toggleSelection={toggleSelection}
+            setSelectedTx={setSelectedTx}
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+          />
+        ))}
+
+        {hasMoreTransactions && (
+          <button
+            type="button"
+            onClick={() => setVisibleTransactionCount((count) => count + TRANSACTION_RENDER_PAGE_SIZE)}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+          >
+            {t('Load More')}
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -425,9 +470,8 @@ export default function HomeView() {
 
       {/* Quick Filter Chips */}
       {!isSelectionMode && (
-        <div
-          className="flex gap-2 overflow-x-auto pb-1"
-          role="group"
+        <fieldset
+          className="flex gap-2 overflow-x-auto pb-1 border-0 p-0 m-0"
           aria-label={t('home.filterTransactions')}
           style={{ scrollbarWidth: 'auto', scrollPaddingInline: '1rem' }}
         >
@@ -457,7 +501,7 @@ export default function HomeView() {
               {t('home.clearFilters')}
             </button>
           )}
-        </div>
+        </fieldset>
       )}
 
       {/* Transaction List Header + Controls */}
@@ -572,60 +616,7 @@ export default function HomeView() {
       )}
 
       {/* Transaction List */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map(i => (
-            <Skeleton key={`skel-${i}`} className="w-full h-20 rounded-[16px]" />
-          ))}
-        </div>
-      ) : filteredTransactions.length === 0 ? (
-        renderEmptyState()
-      ) : (
-        <div className="space-y-6">
-          {groupedTransactions.map(group => {
-            const groupId = group.labelKey.replace('home.group', '').toLowerCase();
-            return (
-              <section key={group.labelKey} aria-labelledby={`tx-group-${groupId}`}>
-                <h3
-                  id={`tx-group-${groupId}`}
-                  className="sticky top-0 z-10 bg-[var(--bg)] pt-1 pb-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider"
-                >
-                  {t(group.labelKey, { count: group.count })}
-                </h3>
-                <div className="space-y-2">
-                  {group.transactions.map(tx => (
-                    <TransactionCard
-                      key={tx.id}
-                      tx={tx}
-                      categoryMap={categoryMap}
-                      walletMap={walletMap}
-                      searchTerm={filters.searchTerm}
-                      hideAmount={hideAmount}
-                      isSelectionMode={isSelectionMode}
-                      isSelected={isSelected(tx.id!)}
-                      onSelect={toggleSelection}
-                      onClick={() => setSelectedTx(tx)}
-                      onEdit={() => handleEdit(tx)}
-                      onDelete={() => handleDelete(tx)}
-                      onViewDetail={() => setSelectedTx(tx)}
-                    />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-
-          {hasMoreTransactions && (
-            <button
-              type="button"
-              onClick={() => setVisibleTransactionCount((count) => count + TRANSACTION_RENDER_PAGE_SIZE)}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-            >
-              {t('Load More')}
-            </button>
-          )}
-        </div>
-      )}
+      {renderTransactionList()}
 
       <TransactionDetailSheet
         tx={selectedTx}

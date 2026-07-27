@@ -70,10 +70,6 @@ export function BottomSheetShell({
           aria-labelledby={ariaLabel ? undefined : titleId}
           aria-label={ariaLabel}
           style={{ zIndex }}
-          role="dialog"
-          tabIndex={-1}
-          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-          onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
         >
             <div className="flex items-center justify-between p-4 border-b border-[var(--border)] shrink-0">
               <h2 id={titleId} className="text-lg font-bold">{title}</h2>
