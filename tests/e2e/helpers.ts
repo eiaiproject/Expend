@@ -15,7 +15,7 @@
  * Everything exposes plain functions that take a Playwright `Page` or
  * `BrowserContext`. If selectors stabilize further, extract to a PageObject.
  */
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 const DB_NAME = 'ExpendDB';
 
@@ -573,9 +573,7 @@ export async function assertAllButtonsAccessible(page: Page): Promise<void> {
     });
     return result;
   });
-  if (offenders.length > 0) {
-    throw new Error(`Found ${offenders.length} button(s) without an accessible name:\n${JSON.stringify(offenders, null, 2)}`);
-  }
+  expect(offenders).toHaveLength(0);
 }
 
 // --- Internal helpers ---
@@ -620,7 +618,7 @@ async function pickTransferWalletFromSelect(page: Page, index: number, walletNam
 }
 
 function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return s.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 /**

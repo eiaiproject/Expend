@@ -33,22 +33,17 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
   return (
     <>
       {isOpen && (
-        <>
-          {/* NOSONAR S6847 S1082 S6819 — overlay needs click/keyboard for dismiss */}
-          <div
-            className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6"
-            onClick={onClose}
-            onKeyDown={() => {}}
-          >
-          {/* NOSONAR S6847 S6848 S1082 S6819 — dialog content, stopPropagation */}
-          <div
-            ref={dialogRef}
-            className="w-full sm:max-w-lg bg-[var(--card)] rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-          >
+        <dialog
+          ref={dialogRef as unknown as React.RefObject<HTMLDialogElement>}
+          open
+          aria-label={title}
+          className="w-full sm:max-w-lg bg-[var(--card)] rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col border-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm fixed m-0 max-w-full"
+          style={{ zIndex: 50 }}
+          role="dialog"
+          tabIndex={-1}
+          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+        >
             <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
               <h2 className="text-lg font-bold truncate">{title}</h2>
               <button type="button" onClick={onClose} className="p-2 rounded-full bg-[var(--bg)] shrink-0" aria-label={t('Close')}>
@@ -88,9 +83,7 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
                 {transactions.length} {t('transactions')}
               </p>
             </div>
-          </div>
-        </div>
-        </>
+          </dialog>
       )}
     </>
   );

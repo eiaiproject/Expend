@@ -200,7 +200,7 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
           className="absolute z-30 left-0 right-0 top-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg max-h-60 overflow-auto"
         >
           {filteredCategories.length === 0 ? (
-            <div role="option" className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+            <div role="option" aria-selected={false} className="px-4 py-3 text-sm text-[var(--text-secondary)]">
               {searchTerm.trim() ? (
                 <span>
                   {t('Create')} "<strong>{searchTerm}</strong>" {t('as new category')}

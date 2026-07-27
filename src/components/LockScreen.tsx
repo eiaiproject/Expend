@@ -91,7 +91,7 @@ export function LockScreen() {
           />
 
           {/* Numpad */}
-          <div className="grid grid-cols-3 gap-3" role="group" aria-label={t('PIN entry')}>
+          <fieldset className="grid grid-cols-3 gap-3" aria-label={t('PIN entry')}>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
               <button type="button"
                 key={num}
@@ -119,7 +119,7 @@ export function LockScreen() {
             >
               0
             </button>
-          </div>
+          </fieldset>
         </div>
 
         {error && (

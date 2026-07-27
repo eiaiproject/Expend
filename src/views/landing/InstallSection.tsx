@@ -27,11 +27,75 @@ export function InstallSection({
     }
   }, []);
 
-  const platformHint = isIOS
-    ? t('landing.installIOS')
-    : deferredPrompt
-      ? t('landing.installAndroid')
-      : t('landing.installDesktop');
+  const getPlatformHint = () => {
+    if (isIOS) return t('landing.installIOS');
+    if (deferredPrompt) return t('landing.installAndroid');
+    return t('landing.installDesktop');
+  };
+  const platformHint = getPlatformHint();
+
+  const renderInstallBody = () => {
+    if (installed) {
+      return (
+        <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-sm font-medium">
+          <Check size={16} />
+          {t('landing.installAlreadyInstalled')}
+        </div>
+      );
+    }
+    if (dismissed) {
+      return (
+        <button
+          type="button"
+          onClick={onEnter}
+          className="px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
+        >
+          {t('landing.heroCtaPrimary')}
+        </button>
+      );
+    }
+    return (
+      <div className="space-y-4">
+        {deferredPrompt ? (
+          <button
+            type="button"
+            onClick={showInstallPrompt}
+            className="px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer inline-flex items-center gap-2.5"
+          >
+            <Download size={18} aria-hidden="true" />
+            {t('landing.installButton')}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onEnter}
+            className="px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer inline-flex items-center gap-2.5"
+          >
+            <Download size={18} aria-hidden="true" />
+            {t('landing.installButton')}
+          </button>
+        )}
+
+        <p className="text-xs text-[var(--text-muted)]">
+          {t('landing.installQuickNote')}
+        </p>
+
+        {/* Platform hint */}
+        <p className="text-sm text-[var(--text-secondary)] max-w-md mx-auto">
+          {platformHint}
+        </p>
+
+        {/* Not now */}
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+        >
+          {t('landing.installNotNow')}
+        </button>
+      </div>
+    );
+  };
 
   return (
     <section id="install-section" className="scroll-mt-20 py-16 sm:py-24 px-4 sm:px-6">
@@ -44,63 +108,7 @@ export function InstallSection({
           {t('landing.installSubtitle')}
         </p>
 
-        {installed ? (
-          /* Already installed */
-          <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-sm font-medium">
-            <Check size={16} />
-            {t('landing.installAlreadyInstalled')}
-          </div>
-        ) : !dismissed ? (
-          /* Install prompt */
-          <div className="space-y-4">
-            {deferredPrompt ? (
-              <button
-                type="button"
-                onClick={showInstallPrompt}
-                className="px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer inline-flex items-center gap-2.5"
-              >
-                <Download size={18} aria-hidden="true" />
-                {t('landing.installButton')}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onEnter}
-                className="px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer inline-flex items-center gap-2.5"
-              >
-                <Download size={18} aria-hidden="true" />
-                {t('landing.installButton')}
-              </button>
-            )}
-
-            <p className="text-xs text-[var(--text-muted)]">
-              {t('landing.installQuickNote')}
-            </p>
-
-            {/* Platform hint */}
-            <p className="text-sm text-[var(--text-secondary)] max-w-md mx-auto">
-              {platformHint}
-            </p>
-
-            {/* Not now */}
-            <button
-              type="button"
-              onClick={() => setDismissed(true)}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
-            >
-              {t('landing.installNotNow')}
-            </button>
-          </div>
-        ) : (
-          /* Dismissed — just enter the app */
-          <button
-            type="button"
-            onClick={onEnter}
-            className="px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
-          >
-            {t('landing.heroCtaPrimary')}
-          </button>
-        )}
+        {renderInstallBody()}
       </div>
     </section>
   );

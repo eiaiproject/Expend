@@ -274,15 +274,18 @@ export default function CategoriesView() {
     });
 
     if (!isArchived) {
+      const findCategory = () => categories?.find(c => c.id === cat.id) ?? null;
       if (cat.budget && cat.budget > 0) {
-        items.push({
-          label: t('categories.changeBudget'),
-          onClick: () => setEditingCategory(categories?.find(c => c.id === cat.id) ?? null),
-        });
-        items.push({
-          label: t('categories.removeBudget'),
-          onClick: () => handleRemoveBudget(cat),
-        });
+        items.push(
+          {
+            label: t('categories.changeBudget'),
+            onClick: () => setEditingCategory(findCategory()),
+          },
+          {
+            label: t('categories.removeBudget'),
+            onClick: () => handleRemoveBudget(cat),
+          },
+        );
       } else {
         items.push({
           label: t('categories.setBudget'),
@@ -319,17 +322,28 @@ export default function CategoriesView() {
   const renderBudgetProgress = (cat: CategoryWithStats) => {
     if (!cat.budget || cat.budget <= 0) return null;
 
+    const barColorByStatus: Record<string, string> = {
+      over: 'bg-red-500',
+      near: 'bg-yellow-500',
+      ok: 'bg-[var(--accent)]',
+    };
+    const textColorByStatus: Record<string, string> = {
+      over: 'text-red-500',
+      near: 'text-yellow-500',
+      ok: 'text-[var(--text-secondary)]',
+    };
+
     const spent = cat.spendingThisMonth;
     const pct = Math.min((spent / cat.budget) * 100, 100);
     const status = budgetStatus(spent, cat.budget);
     const remaining = Math.max(cat.budget - spent, 0);
     const exceeded = Math.max(spent - cat.budget, 0);
 
-    const ariaValueText = hideAmount
-      ? t('categories.amountHidden')
-      : status === 'over'
-        ? t('categories.overBudgetBy', { amount: formatCurrencyValue(exceeded) })
-        : t('categories.remaining', { amount: formatCurrencyValue(remaining) });
+    const budgetAriaText = (() => {
+      if (hideAmount) return t('categories.amountHidden');
+      if (status === 'over') return t('categories.overBudgetBy', { amount: formatCurrencyValue(exceeded) });
+      return t('categories.remaining', { amount: formatCurrencyValue(remaining) });
+    })();
 
     return (
       <div className="space-y-1.5">
@@ -339,27 +353,25 @@ export default function CategoriesView() {
             {hideAmount ? '•••••' : `Rp ${formatCurrencyValue(cat.budget)}`}
           </span>
         </div>
-        <div
-          className="w-full h-2 bg-[var(--bg)] rounded-full overflow-hidden"
-          role="progressbar"
+        <progress
+          className={cn(
+            'w-full h-2 bg-[var(--bg)] rounded-full overflow-hidden appearance-none',
+            '[&::-webkit-progress-bar]:bg-[var(--bg)] [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:transition-all',
+            '[&::-moz-progress-bar]:rounded-full',
+          )}
+          style={{ color: barColorByStatus[status] ?? 'var(--accent)' }}
           aria-valuemin={0}
           aria-valuemax={cat.budget}
           aria-valuenow={hideAmount ? undefined : spent}
           aria-label={t('categories.budgetProgress', { name: catDisplayName(cat.name, t) })}
-          aria-valuetext={ariaValueText}
-        >
-          <div
-            className={cn(
-              'h-full rounded-full transition-all',
-              status === 'over' ? 'bg-red-500' : status === 'near' ? 'bg-yellow-500' : 'bg-[var(--accent)]' // ponytail: S3358 — stable 3-state
-            )}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
+          aria-valuetext={budgetAriaText}
+          value={pct}
+          max={100}
+        />
         <div className="flex items-center justify-between">
           <span className={cn(
             'text-[10px] font-medium',
-            status === 'over' ? 'text-red-500' : status === 'near' ? 'text-yellow-500' : 'text-[var(--text-secondary)]' // ponytail: S3358 — stable 3-state
+            textColorByStatus[status] ?? textColorByStatus.ok
           )}>
             {(() => {
               if (hideAmount) {
@@ -445,6 +457,68 @@ export default function CategoriesView() {
         </div>
       </article>
     );
+  };
+
+  // ── Empty-state picker — split nested ternary into named branches ──
+  const renderActiveEmptyState = () => {
+    if (activeCategories.length > 0) return null;
+    if (!hasAnyCategory && !showAddForm) {
+      return (
+        <EmptyState
+          icon={<Tag size={48} className="opacity-20" />}
+          title={t('categories.emptyTitle')}
+          description={t('categories.emptyDesc')}
+          action={{
+            label: t('categories.addLabel'),
+            onClick: () => setShowAddForm(true),
+          }}
+        />
+      );
+    }
+    if (!searchTerm && archivedCategories.length > 0) {
+      return (
+        <div className="text-center py-12 space-y-4">
+          <div className="bg-[var(--card)] w-20 h-20 rounded-full flex items-center justify-center mx-auto border border-[var(--border)]">
+            <Tag size={32} className="text-[var(--text-secondary)] opacity-30" aria-hidden="true" />
+          </div>
+          <h3 className="font-bold text-[var(--text-primary)]">{t('categories.allArchivedTitle')}</h3>
+          <p className="text-sm text-[var(--text-secondary)] max-w-[280px] mx-auto">{t('categories.allArchivedDesc')}</p>
+          <div className="flex justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowArchived(true)}
+              className="flex h-11 items-center justify-center gap-2 px-4 text-sm border border-[var(--border)] rounded-xl hover:bg-[var(--bg)] transition-colors"
+            >
+              {t('categories.showArchived')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAddForm(true)}
+              className="flex h-11 items-center justify-center gap-2 px-4 text-sm bg-[var(--accent)] text-white rounded-xl font-medium hover:opacity-90 transition-colors"
+            >
+              <Plus size={16} aria-hidden="true" />
+              {t('categories.addLabel')}
+            </button>
+          </div>
+        </div>
+      );
+    }
+    if (searchTerm) {
+      return (
+        <div className="text-center py-12 space-y-3">
+          <Tag size={32} className="mx-auto text-[var(--text-secondary)] opacity-30" aria-hidden="true" />
+          <p className="text-sm text-[var(--text-secondary)]">{t('categories.searchEmptyTitle')}</p>
+          <button
+            type="button"
+            onClick={() => { setSearchTerm(''); searchRef.current?.focus(); }}
+            className="text-sm text-[var(--accent)] font-medium hover:underline"
+          >
+            {t('categories.searchEmptyAction')}
+          </button>
+        </div>
+      );
+    }
+    return null;
   };
 
   // ── Period display ─────────────────────────────────────────
@@ -569,61 +643,18 @@ export default function CategoriesView() {
       )}
 
       {/* Active Categories */}
-      {!hasAnyCategory && !showAddForm ? (
-        <EmptyState
-          icon={<Tag size={48} className="opacity-20" />}
-          title={t('categories.emptyTitle')}
-          description={t('categories.emptyDesc')}
-          action={{
-            label: t('categories.addLabel'),
-            onClick: () => setShowAddForm(true),
-          }}
-        />
-      ) : activeCategories.length === 0 && !searchTerm && archivedCategories.length > 0 ? (
-        <div className="text-center py-12 space-y-4">
-          <div className="bg-[var(--card)] w-20 h-20 rounded-full flex items-center justify-center mx-auto border border-[var(--border)]">
-            <Tag size={32} className="text-[var(--text-secondary)] opacity-30" aria-hidden="true" />
+      {(() => {
+        const emptyState = renderActiveEmptyState();
+        if (emptyState) return emptyState;
+        return (
+          <div className="space-y-3">
+            <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider px-1">
+              {t('Active Categories')}
+            </h2>
+            {activeCategories.map(renderCategoryCard)}
           </div>
-          <h3 className="font-bold text-[var(--text-primary)]">{t('categories.allArchivedTitle')}</h3>
-          <p className="text-sm text-[var(--text-secondary)] max-w-[280px] mx-auto">{t('categories.allArchivedDesc')}</p>
-          <div className="flex justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowArchived(true)}
-              className="flex h-11 items-center justify-center gap-2 px-4 text-sm border border-[var(--border)] rounded-xl hover:bg-[var(--bg)] transition-colors"
-            >
-              {t('categories.showArchived')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowAddForm(true)}
-              className="flex h-11 items-center justify-center gap-2 px-4 text-sm bg-[var(--accent)] text-white rounded-xl font-medium hover:opacity-90 transition-colors"
-            >
-              <Plus size={16} aria-hidden="true" />
-              {t('categories.addLabel')}
-            </button>
-          </div>
-        </div>
-      ) : activeCategories.length === 0 && searchTerm ? (
-        <div className="text-center py-12 space-y-3">
-          <Tag size={32} className="mx-auto text-[var(--text-secondary)] opacity-30" aria-hidden="true" />
-          <p className="text-sm text-[var(--text-secondary)]">{t('categories.searchEmptyTitle')}</p>
-          <button
-            type="button"
-            onClick={() => { setSearchTerm(''); searchRef.current?.focus(); }}
-            className="text-sm text-[var(--accent)] font-medium hover:underline"
-          >
-            {t('categories.searchEmptyAction')}
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider px-1">
-            {t('Active Categories')}
-          </h2>
-          {activeCategories.map(renderCategoryCard)}
-        </div>
-      )}
+        );
+      })()}
 
       {/* Archived Categories */}
       {archivedCategories.length > 0 && hasAnyCategory && (

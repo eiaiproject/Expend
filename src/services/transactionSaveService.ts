@@ -116,44 +116,47 @@ export async function saveTransaction(
     throw new Error(txErrors.map(e => e.message).join('; '));
   }
 
+  const updateSameWallet = async (oldTx: Transaction) => {
+    const oldDelta = getBalanceDelta(oldTx.type, oldTx.amount);
+    const newDelta = getBalanceDelta(params.type, params.amount);
+    const diff = newDelta - oldDelta;
+    if (diff !== 0) {
+      const wallet = await db.wallets.get(params.walletId);
+      if (!wallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
+      assertWalletBalanceCanApplyDelta(wallet, diff, INSUFFICIENT_WALLET_BALANCE_MESSAGE);
+      await db.wallets.update(params.walletId, {
+        currentBalance: getWalletBalance(wallet) + diff,
+        lastUpdated: new Date().toISOString(),
+      });
+    }
+  };
 
-// NOSONAR S3776 — cognitive complexity is inherent to this business logic
+  const updateDifferentWallet = async (oldTx: Transaction) => {
+    const oldDelta = getBalanceDelta(oldTx.type, oldTx.amount);
+    const oldWallet = await db.wallets.get(oldTx.walletId);
+    if (oldWallet) {
+      await db.wallets.update(oldTx.walletId, {
+        currentBalance: (oldWallet.currentBalance ?? oldWallet.initialBalance) - oldDelta,
+        lastUpdated: new Date().toISOString(),
+      });
+    }
+    const newDelta = getBalanceDelta(params.type, params.amount);
+    const newWallet = await db.wallets.get(params.walletId);
+    if (!newWallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
+    assertWalletBalanceCanApplyDelta(newWallet, newDelta, INSUFFICIENT_WALLET_BALANCE_MESSAGE);
+    await db.wallets.update(params.walletId, {
+      currentBalance: getWalletBalance(newWallet) + newDelta,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
   await db.transaction('rw', [db.transactions, db.wallets], async () => {
     if (existingId) {
-      // Get old transaction to compute balance delta
       const oldTx = await db.transactions.get(existingId);
       if (oldTx?.walletId === params.walletId) {
-        // Same wallet: apply difference
-        const oldDelta = getBalanceDelta(oldTx.type, oldTx.amount);
-        const newDelta = getBalanceDelta(params.type, params.amount);
-        const diff = newDelta - oldDelta;
-        if (diff !== 0) {
-          const wallet = await db.wallets.get(params.walletId);
-          if (!wallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
-          assertWalletBalanceCanApplyDelta(wallet, diff, INSUFFICIENT_WALLET_BALANCE_MESSAGE);
-          await db.wallets.update(params.walletId, {
-            currentBalance: getWalletBalance(wallet) + diff,
-            lastUpdated: new Date().toISOString(),
-          });
-        }
+        await updateSameWallet(oldTx);
       } else if (oldTx) {
-        // Different wallet: revert old, apply new
-        const oldDelta = getBalanceDelta(oldTx.type, oldTx.amount);
-        const oldWallet = await db.wallets.get(oldTx.walletId);
-        if (oldWallet) {
-          await db.wallets.update(oldTx.walletId, {
-            currentBalance: (oldWallet.currentBalance ?? oldWallet.initialBalance) - oldDelta,
-            lastUpdated: new Date().toISOString(),
-          });
-        }
-        const newDelta = getBalanceDelta(params.type, params.amount);
-        const newWallet = await db.wallets.get(params.walletId);
-        if (!newWallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
-        assertWalletBalanceCanApplyDelta(newWallet, newDelta, INSUFFICIENT_WALLET_BALANCE_MESSAGE);
-        await db.wallets.update(params.walletId, {
-          currentBalance: getWalletBalance(newWallet) + newDelta,
-          lastUpdated: new Date().toISOString(),
-        });
+        await updateDifferentWallet(oldTx);
       }
       await db.transactions.update(existingId, {
         amount: params.amount,

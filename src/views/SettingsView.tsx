@@ -162,8 +162,12 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
   const previewRows = rows.slice(0, 8);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={t('settings.csvPreviewTitle')}>
-      <div className="bg-[var(--card)] rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4">
+      <dialog
+        open
+        aria-label={t('settings.csvPreviewTitle')}
+        className="bg-[var(--card)] rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl p-0 border-0 backdrop:bg-transparent m-0"
+      >
         <div className="p-4 border-b border-[var(--border)]">
           <h2 className="text-lg font-bold">{t('settings.csvPreviewTitle')}</h2>
           <p className="text-sm text-[var(--text-secondary)] mt-1">
@@ -221,7 +225,7 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
             {t('settings.csvPreviewImport', { count: rows.length })}
           </button>
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }
@@ -240,9 +244,12 @@ function RestorePreviewModal({ isOpen, onClose, data, onConfirm }: {
   const walletNames = data.wallets.map((w: any) => w.name).join(', ') || '—';
 
   return (
-    // NOSONAR S6819 — <dialog> would break custom styling
-    <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={t('settings.restorePreviewTitle')}>
-      <div className="bg-[var(--card)] rounded-2xl w-full max-w-sm shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4">
+      <dialog
+        open
+        aria-label={t('settings.restorePreviewTitle')}
+        className="bg-[var(--card)] rounded-2xl w-full max-w-sm shadow-2xl p-0 border-0 backdrop:bg-transparent m-0"
+      >
         <div className="p-5 border-b border-[var(--border)]">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle size={20} className="text-amber-500" aria-hidden="true" />
@@ -295,7 +302,7 @@ function RestorePreviewModal({ isOpen, onClose, data, onConfirm }: {
             {t('Cancel')}
           </button>
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

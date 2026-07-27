@@ -2,6 +2,18 @@
 
 All notable changes to Expend are documented here.
 
+## 1.11.2 - 2026-07-27
+### Fixed
+
+- Remove unused eslint-disable directive causing CI lint failure
+- Resolve 88 SonarCloud issues — S6819 a11y roles, S3358 nested ternaries, S3776 cognitive complexity, S2681 conditionals, S6852 focus, S6754 useState
+- Resolve remaining S3776 cognitive complexity violations (DebtFormSheet, TransactionCard, WalletsView, transactionSaveService)
+- Replace ARIA role="dialog" with native `<dialog>` across all modal components
+- Convert role="list"/"listitem"→`<ul>`/`<li>`, role="region"→`<section>`, role="search"→`<search>`, role="group"→`<fieldset>`
+- Fix S6848/S6847 non-native interactive elements (ConfirmDialog, DrillDownModal backdrop)
+- Add comprehensive interactive Playwright e2e tests covering all 11 pages
+
+
 ## 1.11.1 - 2026-07-24
 ### Fixed
 

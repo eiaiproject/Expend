@@ -13,8 +13,8 @@ interface SummaryCardProps {
   readonly expensePeriod: 'month' | 'all';
   readonly onToggleExpensePeriod: () => void;
   readonly dailySummary: { today: number; yesterday: number };
-  smartInsight: SpendingInsight | null;
-  hideAmount: boolean;
+  readonly smartInsight: SpendingInsight | null;
+  readonly hideAmount: boolean;
 }
 
 export function SummaryCard({

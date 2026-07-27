@@ -107,6 +107,46 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
   const walletBalance = selectedWallet ? (selectedWallet.currentBalance ?? selectedWallet.initialBalance) : 0;
   const hasInsufficientBalance = isEdit && !isPayable && rawAmount > 0 && selectedWallet != null && rawAmount > walletBalance;
 
+  const personSuggestionsList = showPersonSuggestions && personSuggestions.length > 0 ? (
+    <ul className="absolute z-10 mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] py-1 shadow-lg max-h-48 overflow-auto">
+      {personSuggestions.map((name) => (
+        <li key={name}>
+          <button
+            type="button"
+            onMouseDown={() => {
+              setPersonName(name);
+              setShowPersonSuggestions(false);
+            }}
+            className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--bg)] transition-colors"
+          >
+            {name}
+          </button>
+        </li>
+      ))}
+    </ul>
+  ) : null;
+
+  const walletMovementField = hasWalletMovement ? (
+    <div>
+      <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
+        {isPayable ? t('Money into wallet') : t('Money from wallet')} *
+      </label>
+      <WalletSelect
+        id={`${formId}-wallet`}
+        value={walletId}
+        wallets={wallets}
+        placeholder={t('Select wallet')}
+        onChange={setWalletId}
+      />
+      {hasInsufficientBalance && (
+        <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          <span>{t(INSUFFICIENT_WALLET_BALANCE_MESSAGE)}</span>
+        </div>
+      )}
+    </div>
+  ) : null;
+
   const titleText = (() => {
     if (isEdit) return isPayable ? t('Edit Payable') : t('Edit Receivable');
     if (step === 'type') return t('debt.formWhat');
@@ -236,24 +276,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               autoComplete="off"
             />
-            {showPersonSuggestions && personSuggestions.length > 0 && (
-              <ul className="absolute z-10 mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] py-1 shadow-lg max-h-48 overflow-auto">
-                {personSuggestions.map((name) => (
-                  <li key={name}>
-                    <button
-                      type="button"
-                      onMouseDown={() => {
-                        setPersonName(name);
-                        setShowPersonSuggestions(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--bg)] transition-colors"
-                    >
-                      {name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {personSuggestionsList}
           </div>
 
           {/* Title */}
@@ -330,27 +353,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
             </div>
           </div>
 
-          {/* Wallet select — only when wallet movement */}
-          {hasWalletMovement && (
-            <div>
-              <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
-                {isPayable ? t('Money into wallet') : t('Money from wallet')} *
-              </label>
-              <WalletSelect
-                id={`${formId}-wallet`}
-                value={walletId}
-                wallets={wallets}
-                placeholder={t('Select wallet')}
-                onChange={setWalletId}
-              />
-              {hasInsufficientBalance && (
-                <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300">
-                  <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                  <span>{t(INSUFFICIENT_WALLET_BALANCE_MESSAGE)}</span>
-                </div>
-              )}
-            </div>
-          )}
+          {walletMovementField}
 
           {/* Dates */}
           <DatePicker

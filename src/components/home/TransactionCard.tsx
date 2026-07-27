@@ -68,9 +68,14 @@ export function TransactionCard({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const categoryName = tx.categoryId
-    ? (categoryMap[tx.categoryId]?.name === FALLBACK_CATEGORY_NAME ? t('Other') : categoryMap[tx.categoryId]?.name) || '-'
-    : '-'; // ponytail: nested ternary kept for conciseness; extract when more conditions added
+  const resolveCategoryName = () => {
+    if (!tx.categoryId) return '-';
+    const mapped = categoryMap[tx.categoryId]?.name;
+    if (mapped && mapped !== FALLBACK_CATEGORY_NAME) return mapped;
+    if (mapped === FALLBACK_CATEGORY_NAME) return t('Other');
+    return '-';
+  };
+  const categoryName = resolveCategoryName();
   
   const isExpenseOrTransferOut = tx.type === 'expense' || tx.type === 'transfer_out' || 
     (tx.type === 'balance_adjustment' && tx.amount < 0);
@@ -117,6 +122,26 @@ export function TransactionCard({
   const accessibleLabel = txAccessibleLabel(tx, categoryName, hideAmount, t);
   const actionsLabel = txActionsLabel(tx, hideAmount, t);
 
+  const descriptionNode = (() => {
+    if (tx.type === 'balance_adjustment') return t('Balance Adjustment');
+    if (searchTerm) return <SearchHighlight text={tx.description} searchTerm={searchTerm} />;
+    return tx.description;
+  })();
+
+  const typeIcon = !isSelectionMode ? (
+    <div className={cn("w-8 h-8 rounded-full shrink-0 flex items-center justify-center", 
+      tx.type === 'expense' && 'bg-red-500/10 text-red-500',
+      tx.type === 'transfer_out' && 'bg-orange-500/10 text-orange-500',
+      tx.type === 'transfer_in' && 'bg-green-500/10 text-green-500',
+      tx.type === 'balance_adjustment' && 'bg-gray-500/10 text-gray-500'
+    )} aria-hidden="true">
+      {tx.type === 'expense' && <ArrowDownCircle size={16} />}
+      {tx.type === 'transfer_out' && <ArrowUpRight size={16} />}
+      {tx.type === 'transfer_in' && <ArrowDownLeft size={16} />}
+      {tx.type === 'balance_adjustment' && <Refresh size={16} />}
+    </div>
+  ) : null;
+
   return (
     <article
       className={cn("relative rounded-[16px] bg-[var(--card)] border transition-[border-color,background-color,box-shadow]",
@@ -141,23 +166,7 @@ export function TransactionCard({
         )}
 
         {/* Type icon */}
-        {!isSelectionMode && (
-          <div 
-            className={cn(
-              "w-8 h-8 rounded-full shrink-0 flex items-center justify-center",
-              tx.type === 'expense' && "bg-red-500/10 text-red-500",
-              tx.type === 'transfer_out' && "bg-orange-500/10 text-orange-500",
-              tx.type === 'transfer_in' && "bg-green-500/10 text-green-500",
-              tx.type === 'balance_adjustment' && "bg-gray-500/10 text-gray-500"
-            )}
-            aria-hidden="true"
-          >
-            {tx.type === 'expense' && <ArrowDownCircle size={16} />}
-            {tx.type === 'transfer_out' && <ArrowUpRight size={16} />}
-            {tx.type === 'transfer_in' && <ArrowDownLeft size={16} />}
-            {tx.type === 'balance_adjustment' && <Refresh size={16} />}
-          </div>
-        )}
+        {typeIcon}
 
         {/* Main content area — button for detail */}
         <button
@@ -169,9 +178,7 @@ export function TransactionCard({
         >
           <div className="flex items-center gap-2">
             <p className="font-medium text-[14px] truncate">
-              {tx.type === 'balance_adjustment' ? t('Balance Adjustment') : (
-                searchTerm ? <SearchHighlight text={tx.description} searchTerm={searchTerm} /> : tx.description
-              )} {/* ponytail: S3358 — nested ternary acceptable for conditional rendering */}
+              {descriptionNode}
             </p>
           </div>
           <p className="text-[12px] text-[var(--text-secondary)]">

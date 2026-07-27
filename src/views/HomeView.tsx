@@ -93,6 +93,50 @@ export default function HomeView() {
   );
   const hasMoreTransactions = visibleTransactionCount < filteredTransactions.length;
 
+  const hasActiveFilter =
+    !!filters.searchTerm ||
+    filters.categories.length > 0 ||
+    filters.wallets.length > 0 ||
+    !!filters.startDate ||
+    !!filters.endDate ||
+    filters.type !== 'all' ||
+    !!filters.quickFilter;
+
+  const renderEmptyState = () => {
+    if (hasActiveFilter) {
+      return (
+        <EmptyState
+          title={t('home.emptySearchTitle')}
+          description={t('home.emptySearchDescription')}
+          action={{
+            label: t('Reset All'),
+            onClick: () => {
+              filterActions.setType('all');
+              filterActions.setCategories([]);
+              filterActions.setWallets([]);
+              filterActions.setStartDate('');
+              filterActions.setEndDate('');
+              filterActions.setMinAmount('');
+              filterActions.setMaxAmount('');
+              filterActions.setSearchTerm('');
+              filterActions.setQuickFilter(null);
+            },
+          }}
+        />
+      );
+    }
+    return (
+      <EmptyState
+        title={t('home.emptyTitle')}
+        description={t('home.emptyDescription')}
+        action={{
+          label: t('Add Transaction'),
+          onClick: () => setIsFormOpen(true),
+        }}
+      />
+    );
+  };
+
   // Category and wallet maps for O(1) lookups
   const categoryMap = useMemo(() => {
     if (!categories) return {};
@@ -338,7 +382,7 @@ export default function HomeView() {
       )}
 
       {/* Search */}
-      <search role="search" aria-label={t('home.searchLabel')}>
+      <search aria-label={t('home.searchLabel')}>
         <label htmlFor="home-search" className="sr-only">{t('home.searchLabel')}</label>
         <div className="relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] transition-colors" size={18} aria-hidden="true" />
@@ -535,35 +579,7 @@ export default function HomeView() {
           ))}
         </div>
       ) : filteredTransactions.length === 0 ? (
-        filters.searchTerm || filters.categories.length > 0 || filters.wallets.length > 0 || filters.startDate || filters.endDate || filters.type !== 'all' || filters.quickFilter ? (
-          <EmptyState
-            title={t('home.emptySearchTitle')}
-            description={t('home.emptySearchDescription')}
-            action={{
-              label: t('Reset All'),
-              onClick: () => {
-                filterActions.setType('all');
-                filterActions.setCategories([]);
-                filterActions.setWallets([]);
-                filterActions.setStartDate('');
-                filterActions.setEndDate('');
-                filterActions.setMinAmount('');
-                filterActions.setMaxAmount('');
-                filterActions.setSearchTerm('');
-                filterActions.setQuickFilter(null);
-              },
-            }}
-          />
-        ) : (
-          <EmptyState
-            title={t('home.emptyTitle')}
-            description={t('home.emptyDescription')}
-            action={{
-              label: t('Add Transaction'),
-              onClick: () => setIsFormOpen(true),
-            }}
-          />
-        )
+        renderEmptyState()
       ) : (
         <div className="space-y-6">
           {groupedTransactions.map(group => {

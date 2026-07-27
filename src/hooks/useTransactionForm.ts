@@ -167,11 +167,8 @@ export function useTransactionForm({
         setAmount('');
         setDescription(initialDescription ?? '');
         setDate(getTodayStr());
-        setWalletId(
-          initialFromWalletId
-            ? initialFromWalletId.toString()
-            : wallets.length > 0 ? wallets[0]!.id!.toString() : ''
-        );
+        const firstWalletId = wallets.length > 0 ? wallets[0]!.id!.toString() : '';
+        setWalletId(initialFromWalletId ? initialFromWalletId.toString() : firstWalletId);
         setToWalletId('');
         setCategoryName('');
         setNotes('');

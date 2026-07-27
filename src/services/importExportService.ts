@@ -510,11 +510,11 @@ export function sanitizeImportData(json: unknown): ExportData {
     });
 
   const debtIds = new Set(debts.map((debt) => debt.id));
-  const debtPaymentsSource = Array.isArray(data.debtPayments)
-    ? data.debtPayments
-    : Array.isArray(data.debt_payments)
-      ? data.debt_payments
-      : [];
+  const debtPaymentsSource = (() => {
+    if (Array.isArray(data.debtPayments)) return data.debtPayments;
+    if (Array.isArray(data.debt_payments)) return data.debt_payments;
+    return [];
+  })();
   const debtPayments = debtPaymentsSource
     .filter(isRecord)
     .map((payment, index): DebtPayment | null => {

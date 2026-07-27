@@ -81,36 +81,36 @@ function daysInRange(start: string, end: string): number {
 
 // ── Chart components ───────────────────────────────────────────
 
-function MiniBarChart({ data, onSelect, hideAmount }: { readonly data: MonthPoint[]; onSelect?: (item: MonthPoint) => void; hideAmount?: boolean }) {
+function MiniBarChart({ data, onSelect, hideAmount }: { readonly data: MonthPoint[]; readonly onSelect?: (item: MonthPoint) => void; readonly hideAmount?: boolean }) {
   const max = Math.max(1, ...data.map(item => item.amount));
   return (
-    <div className="grid h-full grid-cols-6 gap-2 px-1 pb-1 pt-2" role="list" aria-label="Monthly comparison">
+    <ul className="grid h-full grid-cols-6 gap-2 px-1 pb-1 pt-2 list-none" aria-label="Monthly comparison">
       {data.map(item => {
         const height = item.amount > 0 ? Math.max(8, (item.amount / max) * 100) : 0;
         const label = hideAmount ? '•••••' : formatCurrency(item.amount);
         if (onSelect) {
           return (
-            <button
-              key={`${item.year}-${item.monthIndex}`}
-              type="button"
-              onClick={() => onSelect(item)}
-              className="grid min-w-0 grid-rows-[1fr_auto] gap-2 rounded-md px-1 py-1 text-center hover:bg-[var(--bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] min-h-[44px]"
-              aria-label={`${item.month}: ${label}`}
-            >
-              <span className="flex items-end justify-center rounded bg-[var(--bg)]">
-                <span
-                  className="w-full max-w-8 rounded-t bg-[var(--accent)] transition-[height] duration-200"
-                  style={{ height: `${height}%` }}
-                />
-              </span>
-              <span className="truncate font-mono text-[10px] text-[var(--text-secondary)]">{item.month}</span>
-            </button>
+            <li key={`${item.year}-${item.monthIndex}`} className="contents">
+              <button
+                type="button"
+                onClick={() => onSelect(item)}
+                className="grid min-w-0 grid-rows-[1fr_auto] gap-2 rounded-md px-1 py-1 text-center hover:bg-[var(--bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] min-h-[44px]"
+                aria-label={`${item.month}: ${label}`}
+              >
+                <span className="flex items-end justify-center rounded bg-[var(--bg)]">
+                  <span
+                    className="w-full max-w-8 rounded-t bg-[var(--accent)] transition-[height] duration-200"
+                    style={{ height: `${height}%` }}
+                  />
+                </span>
+                <span className="truncate font-mono text-[10px] text-[var(--text-secondary)]">{item.month}</span>
+              </button>
+            </li>
           );
         }
         return (
-          <div
+          <li
             key={`${item.year}-${item.monthIndex}`}
-            role="listitem"
             className="grid min-w-0 grid-rows-[1fr_auto] gap-2 rounded-md px-1 py-1 text-center"
             aria-label={`${item.month}: ${label}`}
           >
@@ -121,10 +121,10 @@ function MiniBarChart({ data, onSelect, hideAmount }: { readonly data: MonthPoin
               />
             </span>
             <span className="truncate font-mono text-[10px] text-[var(--text-secondary)]">{item.month}</span>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }
 
@@ -313,7 +313,7 @@ export default function StatsView() {
     if (period === 'all') {
       // Find earliest expense date
       if (!transactions || transactions.length === 0) return '';
-      const earliest = transactions.reduce((min, tx) => tx.date < min ? tx.date : min, transactions[0]!.date);
+      const earliest = transactions.map(tx => tx.date).reduce((min, date) => (date < min ? date : min));
       return t('stats.dateRangeAll', { date: displayDateFull(earliest, i18n.language) });
     }
     return formatDateRange(periodRange.start, periodRange.end, i18n.language);
@@ -449,7 +449,11 @@ export default function StatsView() {
   const isEmpty = !isLoading && !hasAnyExpenses;
   const showInsufficientTrend = (period === 'week' || period === 'month') && trendDaysWithData <= 1;
 
-  const periodLabel = period === 'week' ? t('stats.periodWeek') : period === 'month' ? t('stats.periodMonth') : t('stats.periodAll'); // ponytail: S3358 — 3-state stable label extraction
+  const periodLabel = (() => {
+    if (period === 'week') return t('stats.periodWeek');
+    if (period === 'month') return t('stats.periodMonth');
+    return t('stats.periodAll');
+  })();
 
   // ── Comparison text ────────────────────────────────────────
 
@@ -729,9 +733,9 @@ export default function StatsView() {
                 )}
               </div>
 
-              <div className="mt-4 space-y-2" role="list" aria-label={t('stats.spendingByCategory')}>
+              <ul className="mt-4 space-y-2 list-none" aria-label={t('stats.spendingByCategory')}>
                 {categoryData.map((item) => (
-                  <div key={item.id ?? 'other'} className="flex items-center justify-between" role="listitem">
+                  <li key={item.id ?? 'other'} className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} aria-hidden="true" />
                       <span className="text-sm font-medium truncate">{item.name}</span>
@@ -744,9 +748,9 @@ export default function StatsView() {
                         </span>
                       )}
                     </div>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </>
           )}
 
