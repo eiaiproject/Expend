@@ -10,17 +10,17 @@ interface TransactionGroupItem {
 }
 
 interface TransactionGroupProps {
-  group: TransactionGroupItem;
-  categoryMap: Record<number, import('../../db/db').Category>;
-  walletMap: Record<number, import('../../db/db').Wallet>;
-  searchTerm: string;
-  hideAmount: boolean;
-  isSelectionMode: boolean;
-  isSelected: (id: number) => boolean;
-  toggleSelection: (id: number) => void;
-  setSelectedTx: (tx: Transaction | null) => void;
-  handleEdit: (tx: Transaction) => void;
-  handleDelete: (tx: Transaction) => void;
+  readonly group: TransactionGroupItem;
+  readonly categoryMap: Record<number, import('../../db/db').Category>;
+  readonly walletMap: Record<number, import('../../db/db').Wallet>;
+  readonly searchTerm: string;
+  readonly hideAmount: boolean;
+  readonly isSelectionMode: boolean;
+  readonly isSelected: (id: number) => boolean;
+  readonly toggleSelection: (id: number) => void;
+  readonly setSelectedTx: (tx: Transaction | null) => void;
+  readonly handleEdit: (tx: Transaction) => void;
+  readonly handleDelete: (tx: Transaction) => void;
 }
 
 export function TransactionGroup({

@@ -22,7 +22,6 @@ import { useTransactionSelection } from '../hooks/useTransactionSelection';
 // Home sub-components
 import { SummaryCard } from '../components/home/SummaryCard';
 import { ActiveFilterChips } from '../components/home/ActiveFilterChips';
-import { TransactionCard } from '../components/home/TransactionCard';
 import { TransactionGroup } from '../components/home/TransactionGroup';
 import { EmptyState } from '../components/EmptyState';
 
