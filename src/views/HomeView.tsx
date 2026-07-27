@@ -23,6 +23,7 @@ import { useTransactionSelection } from '../hooks/useTransactionSelection';
 import { SummaryCard } from '../components/home/SummaryCard';
 import { ActiveFilterChips } from '../components/home/ActiveFilterChips';
 import { TransactionCard } from '../components/home/TransactionCard';
+import { TransactionGroup } from '../components/home/TransactionGroup';
 import { EmptyState } from '../components/EmptyState';
 
 const TransactionFormSheet = lazy(() => import('../components/TransactionFormSheet').then(m => ({ default: m.TransactionFormSheet })));
@@ -152,38 +153,22 @@ export default function HomeView() {
     }
     return (
       <div className="space-y-6">
-        {groupedTransactions.map(group => {
-          const groupId = group.labelKey.replace('home.group', '').toLowerCase();
-          return (
-            <section key={group.labelKey} aria-labelledby={`tx-group-${groupId}`}>
-              <h3
-                id={`tx-group-${groupId}`}
-                className="sticky top-0 z-10 bg-[var(--bg)] pt-1 pb-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider"
-              >
-                {t(group.labelKey, { count: group.count })}
-              </h3>
-              <div className="space-y-2">
-                {group.transactions.map(tx => (
-                  <TransactionCard
-                    key={tx.id}
-                    tx={tx}
-                    categoryMap={categoryMap}
-                    walletMap={walletMap}
-                    searchTerm={filters.searchTerm}
-                    hideAmount={hideAmount}
-                    isSelectionMode={isSelectionMode}
-                    isSelected={isSelected(tx.id!)}
-                    onSelect={toggleSelection}
-                    onClick={() => setSelectedTx(tx)}
-                    onEdit={() => handleEdit(tx)}
-                    onDelete={() => handleDelete(tx)}
-                    onViewDetail={() => setSelectedTx(tx)}
-                  />
-                ))}
-              </div>
-            </section>
-          );
-        })}
+        {groupedTransactions.map(group => (
+          <TransactionGroup
+            key={group.labelKey}
+            group={group}
+            categoryMap={categoryMap}
+            walletMap={walletMap}
+            searchTerm={filters.searchTerm}
+            hideAmount={hideAmount}
+            isSelectionMode={isSelectionMode}
+            isSelected={isSelected}
+            toggleSelection={toggleSelection}
+            setSelectedTx={setSelectedTx}
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+          />
+        ))}
 
         {hasMoreTransactions && (
           <button
