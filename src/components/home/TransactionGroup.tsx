@@ -62,7 +62,6 @@ export function TransactionGroup({
             onClick={() => setSelectedTx(tx)}
             onEdit={() => handleEdit(tx)}
             onDelete={() => handleDelete(tx)}
-            onViewDetail={() => setSelectedTx(tx)}
           />
         ))}
       </div>
