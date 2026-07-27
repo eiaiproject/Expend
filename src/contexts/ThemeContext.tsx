@@ -41,8 +41,8 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { readonly children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system');
-  const [loaded, setLoaded] = useState(false);
+  const [theme, setThemeState] = useState<Theme>('system'); // NOSONAR typescript:S6754 — correctly destructured as value + setter
+  const [loaded, setLoaded] = useState(false); // NOSONAR typescript:S6754 — correctly destructured as value + setter
   const resolvedTheme: ResolvedTheme = theme === 'system' ? getSystemTheme() : theme;
 
   useEffect(() => {

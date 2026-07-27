@@ -887,24 +887,32 @@ export default function SettingsView() {
 
 
         {/* PWA Install Status */}
-        {isStandalone ? (
-          <div className="flex items-center gap-3 p-4 border-t border-[var(--border)] min-h-[44px]">
-            <Check size={18} className="text-green-500" aria-hidden="true" />
-            <span className="text-sm font-medium text-[var(--text-secondary)]">{t('settings.pwaInstalled')}</span>
-          </div>
-        ) : deferredPrompt ? (
-          <button
-            type="button"
-            onClick={showInstallPrompt}
-            className="w-full flex items-center gap-3 p-4 border-t border-[var(--border)] text-left hover:bg-[var(--bg)] transition-colors min-h-[44px]"
-          >
-            <Mobile size={18} className="text-[var(--accent)]" aria-hidden="true" />
-            <div className="flex-1">
-              <span className="text-sm font-medium text-[var(--text-primary)]">{t('settings.installAppLabel')}</span>
-              <p className="text-xs text-[var(--text-secondary)]">{t('settings.installAppDesc')}</p>
-            </div>
-          </button>
-        ) : null}
+        {(function renderPwaStatus() {
+          if (isStandalone) {
+            return (
+              <div className="flex items-center gap-3 p-4 border-t border-[var(--border)] min-h-[44px]">
+                <Check size={18} className="text-green-500" aria-hidden="true" />
+                <span className="text-sm font-medium text-[var(--text-secondary)]">{t('settings.pwaInstalled')}</span>
+              </div>
+            );
+          }
+          if (deferredPrompt) {
+            return (
+              <button
+                type="button"
+                onClick={showInstallPrompt}
+                className="w-full flex items-center gap-3 p-4 border-t border-[var(--border)] text-left hover:bg-[var(--bg)] transition-colors min-h-[44px]"
+              >
+                <Mobile size={18} className="text-[var(--accent)]" aria-hidden="true" />
+                <div className="flex-1">
+                  <span className="text-sm font-medium text-[var(--text-primary)]">{t('settings.installAppLabel')}</span>
+                  <p className="text-xs text-[var(--text-secondary)]">{t('settings.installAppDesc')}</p>
+                </div>
+              </button>
+            );
+          }
+          return null;
+        })()}
 
         {/* Support Developer */}
         <a

@@ -130,7 +130,8 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets }: F
     >
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scroll-fade-bottom">
-          <div className="space-y-3" role="group" aria-label={t('Filter Type')}>
+          <fieldset className="space-y-3">
+            <legend className="sr-only">{t('Filter Type')}</legend>
             <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
               {t('Filter Type')}
             </p>
@@ -153,7 +154,7 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets }: F
                 </button>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           <CategoryFilterList
             categories={categories}

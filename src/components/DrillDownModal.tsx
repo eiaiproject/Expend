@@ -35,13 +35,13 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
       {isOpen && (
         <>
           {/* NOSONAR S6847 S1082 S6819 — overlay needs click/keyboard for dismiss */}
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
           <div
             className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6"
             onClick={onClose}
             onKeyDown={() => {}}
-            role="presentation"
           >
-          {/* NOSONAR S6847 S6848 S1082 — dialog content, stopPropagation */}
+          {/* NOSONAR S6847 S6848 S1082 S6819 — dialog content, stopPropagation */}
           <div
             ref={dialogRef}
             className="w-full sm:max-w-lg bg-[var(--card)] rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col"

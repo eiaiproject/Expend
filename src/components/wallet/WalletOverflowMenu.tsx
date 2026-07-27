@@ -170,7 +170,7 @@ export function WalletOverflowMenu({
             {t('wallet.reconcileBalance')}
           </button>
 
-          <div className="border-t border-[var(--border)] my-1" role="separator" />
+          <hr className="border-t border-[var(--border)] my-1" />
 
           {isArchived ? (
             <button
@@ -194,7 +194,7 @@ export function WalletOverflowMenu({
             </button>
           )}
 
-          <div className="border-t border-[var(--border)] my-1" role="separator" />
+          <hr className="border-t border-[var(--border)] my-1" />
           <button
             type="button"
             role="menuitem"

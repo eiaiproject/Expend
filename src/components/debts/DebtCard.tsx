@@ -152,15 +152,12 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
           aria-label={t('debt.viewDetail')}
         >
           <span className="sr-only">{t('debt.viewDetail')}</span>
-          {status === 'overdue' ? (
-            <AlertTriangle size={18} aria-hidden="true" />
-          ) : closed ? (
-            <CheckCircle size={18} aria-hidden="true" />
-          ) : isPayable ? (
-            <ArrowDownLeft size={18} aria-hidden="true" />
-          ) : (
-            <ArrowUpRight size={18} aria-hidden="true" />
-          )}
+          {(function renderDebtIcon() {
+            if (status === 'overdue') return <AlertTriangle size={18} aria-hidden="true" />;
+            if (closed) return <CheckCircle size={18} aria-hidden="true" />;
+            if (isPayable) return <ArrowDownLeft size={18} aria-hidden="true" />;
+            return <ArrowUpRight size={18} aria-hidden="true" />;
+          })()}
         </button>
 
         <div className="min-w-0 flex-1">
@@ -201,6 +198,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                   </button>
                   {menuOpen && (
                     <div
+                      tabIndex={-1}
                       role="menu"
                       aria-label={t('debt.actionsFor', { name: debt.personName })}
                       onKeyDown={handleMenuKeyDown}
@@ -233,7 +231,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                       >
                         <Edit size={15} /> {t('debt.editRecord')}
                       </button>
-                      <div className="my-1 border-t border-[var(--border)]" role="separator" />
+                      <hr className="my-1 border-[var(--border)]" />
                       <button
                         type="button"
                         ref={(el) => { menuItemsRef.current[3] = el; }}
@@ -277,19 +275,13 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                 <span>{t('Part paid percent', { percent: paidRatio.toFixed(0) })}</span>
                 <span className="sr-only">{t('debt.remaining', { amount: formatCurrency(debt.remainingAmount) })}</span>
               </div>
-              <div
-                className="h-2 rounded-full bg-[var(--border)]"
-                role="progressbar"
-                aria-valuenow={paidRatio}
-                aria-valuemin={0}
-                aria-valuemax={100}
+              <progress
+                className="h-2 rounded-full [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-[var(--border)] [&::-webkit-progress-value]:rounded-full"
+                value={paidRatio}
+                max={100}
                 aria-label={t('Part paid percent', { percent: paidRatio.toFixed(0) })}
-              >
-                <div
-                  className={cn('h-full rounded-full', isPayable ? 'bg-amber-500' : 'bg-[var(--accent)]')}
-                  style={{ width: `${paidRatio}%` }}
-                />
-              </div>
+                style={{ color: isPayable ? '#f59e0b' : 'var(--accent)' } as React.CSSProperties}
+              />
             </div>
           )}
 
