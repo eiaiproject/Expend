@@ -160,7 +160,10 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
       : t('wallet decreases', { wallet: selectedWallet?.name ?? t('Wallet'), amount: formatCurrency(rawAmount, hideAmount) });
   })();
 
-  const impactColor = !hasWalletMovement ? 'text-[var(--text-secondary)]' : isPayable ? 'text-[var(--accent)]' : 'text-amber-500';
+  const impactColor = (() => {
+    if (!hasWalletMovement) return 'text-[var(--text-secondary)]';
+    return isPayable ? 'text-[var(--accent)]' : 'text-amber-500';
+  })();
 
   const handleSelectType = (nextType: DebtType) => {
     setType(nextType);

@@ -213,7 +213,6 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
                 key={category.id}
                 type="button"
                 id={`${listboxId}-option-${index}`}
-                aria-selected={value.toLowerCase() === category.name.toLowerCase()}
                 onClick={() => handleSelect(category)}
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-[var(--bg)] transition-colors text-left",

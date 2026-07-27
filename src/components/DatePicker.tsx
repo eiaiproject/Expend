@@ -104,7 +104,6 @@ export function DatePicker({ id, value, onChange, label, required }: DatePickerP
                 <button
                   key={option.label}
                   type="button"
-                  aria-selected={value === optionValue}
                   onClick={() => handleQuickSelect(option)}
                   className={cn(
                     "w-full text-left px-3 py-2.5 text-sm rounded-lg transition-colors",
