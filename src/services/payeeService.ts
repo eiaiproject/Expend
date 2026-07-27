@@ -135,7 +135,7 @@ export async function getPayeeStatsFromTransactions(options?: GetPayeeStatsOptio
   const results: PayeeStats[] = [];
 
   for (const [key, data] of payeeMap.entries()) {
-    const lastTransactionDate = [...data.dates].sort().reverse()[0] || '1970-01-01';
+    const lastTransactionDate = [...data.dates].sort((a, b) => a.localeCompare(b)).reverse()[0] || '1970-01-01';
     
     const categoryEntries = Object.entries(data.categories);
     let mostCommonCategory: number | null = null;

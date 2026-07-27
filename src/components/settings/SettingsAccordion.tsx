@@ -32,14 +32,13 @@ export function SettingsAccordion({ title, defaultOpen = false, children }: Sett
         />
       </button>
       {isOpen && (
-        <div
+        <section
           id={contentId}
-          role="region" // NOSONAR: S6819 — div with aria-label is valid landmark region
           aria-labelledby={triggerId}
           className="overflow-hidden bg-[var(--bg)] border-t border-[var(--border)]"
         >
           {children}
-        </div>
+        </section>
       )}
     </section>
   );

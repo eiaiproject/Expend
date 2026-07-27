@@ -27,7 +27,7 @@ interface ActiveFilterChipsProps {
   readonly filters: FilterState;
   readonly filterActions: FilterActions;
   readonly categoryMap: Record<number, { name: string; color: string } | undefined>;
-  walletMap: Record<number, { name: string } | undefined>;
+  readonly walletMap: Record<number, { name: string } | undefined>;
 }
 
 export function ActiveFilterChips({

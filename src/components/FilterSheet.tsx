@@ -24,8 +24,8 @@ interface FilterSheetProps {
     readonly maxAmount: string;
     readonly setMaxAmount: (val: string) => void;
   };
-  categories: import('../db/db').Category[];
-  wallets: import('../db/db').Wallet[];
+  readonly categories: import('../db/db').Category[];
+  readonly wallets: import('../db/db').Wallet[];
 }
 
 interface DraftState {

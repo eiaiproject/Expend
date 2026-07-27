@@ -18,7 +18,7 @@ function HelpItem({ icon: Icon, text }: { readonly icon: React.ComponentType<{ s
 
 export function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
   const { t } = useTranslation();
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -39,9 +39,13 @@ export function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
   if (!isOpen) return null;
 
   return (
-    // NOSONAR S6819 — <dialog> would break custom styling
-    <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={t('categories.helpTitle')}>
-      <div ref={dialogRef} className="bg-[var(--card)] rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4">
+      <dialog
+        ref={dialogRef}
+        open
+        aria-label={t('categories.helpTitle')}
+        className="bg-[var(--card)] rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl p-0 border-0 backdrop:bg-transparent"
+      >
         <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
           <h2 className="text-lg font-bold">{t('categories.helpTitle')}</h2>
           <button
@@ -101,7 +105,7 @@ export function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
             {t('Close')}
           </button>
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

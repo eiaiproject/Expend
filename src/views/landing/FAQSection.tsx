@@ -33,17 +33,16 @@ function FAQAccordion({ item, index, isOpen, onToggle }: { readonly item: FAQIte
           />
         </button>
       </h3>
-      <div
+      <section
         ref={ref}
         id={panelId}
-        role="region" // NOSONAR: S6819 — div with aria-label is valid landmark region
         aria-labelledby={buttonId}
         hidden={!isOpen}
       >
         <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed pb-4 sm:pb-5 pr-8">
           {item.answer}
         </p>
-      </div>
+      </section>
     </div>
   );
 }

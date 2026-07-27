@@ -50,6 +50,9 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 
+# Graphify output (knowledge graph artifacts)
+graphify-out/
+
 # ESLint
 .eslintcache
 

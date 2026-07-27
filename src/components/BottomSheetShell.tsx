@@ -34,7 +34,7 @@ export function BottomSheetShell({
   heightClass = 'h-[85vh]',
 }: BottomSheetShellProps) {
   const { t } = useTranslation();
-  const dialogRef = useFocusTrap(isOpen);
+  const dialogRef = useFocusTrap(isOpen) as unknown as React.RefObject<HTMLDialogElement>;
   const titleId = useId();
 
   // Lock body scroll when sheet is open
@@ -60,24 +60,18 @@ export function BottomSheetShell({
   return (
     <>
       {isOpen && (
-        <div
-          key="sheet-root"
-          className="fixed inset-0 pointer-events-none"
+        <dialog
+          ref={dialogRef}
+          key="sheet"
+          open
+          onClose={(e) => { e.preventDefault(); onClose(); }}
+          className={`fixed inset-x-0 bottom-0 m-0 max-w-full w-full bg-[var(--card)] rounded-t-2xl flex flex-col border-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm ${heightClass}`}
+          aria-modal="true"
+          aria-labelledby={ariaLabel ? undefined : titleId}
+          aria-label={ariaLabel}
           style={{ zIndex }}
+          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
-          <div
-            onClick={onClose}
-            className="absolute inset-0 bg-black/50 pointer-events-auto"
-            role="presentation"
-          />
-          <div
-            ref={dialogRef}
-            className={`absolute inset-x-0 bottom-0 bg-[var(--card)] rounded-t-2xl flex flex-col pointer-events-auto ${heightClass}`}
-            role="dialog" // NOSONAR S6819 — <dialog> would break custom styling
-            aria-modal="true"
-            aria-labelledby={ariaLabel ? undefined : titleId}
-            aria-label={ariaLabel}
-          >
             <div className="flex items-center justify-between p-4 border-b border-[var(--border)] shrink-0">
               <h2 id={titleId} className="text-lg font-bold">{title}</h2>
               <button type="button" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--bg)] transition-colors hover:bg-[var(--border)]" aria-label={t('Close')}>
@@ -87,8 +81,7 @@ export function BottomSheetShell({
             <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain pb-[env(safe-area-inset-bottom,0px)]">
               {children}
             </div>
-          </div>
-        </div>
+          </dialog>
       )}
     </>
   );

@@ -80,10 +80,12 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
   if (!isOpen) return null;
 
   return (
-    // NOSONAR S6819 — <dialog> would break custom styling
-    <div ref={dialogRef} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" role="dialog" aria-modal="true" aria-label={step === 1 ? t('Create PIN') : t('Confirm PIN')}>
-      <div
-        className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-6"
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+      <dialog
+        ref={dialogRef as unknown as React.RefObject<HTMLDialogElement>}
+        open
+        aria-label={step === 1 ? t('Create PIN') : t('Confirm PIN')}
+        className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-6 border-0 backdrop:bg-transparent m-0"
       >
         <div className="text-center space-y-2">
           <div className="w-16 h-16 mx-auto rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
@@ -206,7 +208,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
             {step === 1 ? t('Next') : t('Confirm')}
           </button>
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

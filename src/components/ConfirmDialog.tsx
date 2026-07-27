@@ -73,23 +73,14 @@ export function ConfirmDialogProvider() {
   return (
     <>
       {currentDialog && (
-        <>
-          {/* NOSONAR S6847 S6848 S1082 — overlay dialog needs click/keyboard for dismiss */}
-          <div
-            className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-6"
-            onClick={() => handleClose(false)}
-            onKeyDown={handleKeyDown}
-            role="dialog"
-            aria-modal="true"
-            data-sonar-ignore
-            aria-label={currentDialog.title}
-          >
-          {/* NOSONAR S6848 S1082 — stopPropagation to prevent closing when clicking inside dialog */}
-          <div
-            ref={dialogRef}
-            className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <dialog
+          ref={dialogRef as unknown as React.RefObject<HTMLDialogElement>}
+          open
+          aria-label={currentDialog.title}
+          className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl border-0 backdrop:bg-black/50 fixed m-0"
+          style={{ zIndex: 110, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) handleClose(false); }}
+        >
             <div className="text-center space-y-2">
               <h2 className="text-lg font-bold">{currentDialog.title}</h2>
               <p className="text-sm text-[var(--text-secondary)] whitespace-pre-line">
@@ -140,9 +131,7 @@ export function ConfirmDialogProvider() {
                 {currentDialog.confirmLabel || t('Confirm')}
               </button>
             </div>
-          </div>
-          </div>
-        </>
+          </dialog>
       )}
     </>
   );

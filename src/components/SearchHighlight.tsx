@@ -15,7 +15,7 @@ export function SearchHighlight({ text, searchTerm, className }: SearchHighlight
   
   const regex = useMemo(() => {
     if (!normalizedSearchTerm) return null;
-    const escaped = normalizedSearchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escaped = normalizedSearchTerm.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
     return new RegExp(`(${escaped})`, 'gi');
   }, [normalizedSearchTerm]);
 

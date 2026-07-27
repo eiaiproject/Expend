@@ -216,9 +216,12 @@ export default function PayeesView() {
 
   // ── Rename dialog ──────────────────────────────────────────
   const renameDialog = renamingMerchant ? (
-    // NOSONAR S6819 — <dialog> would break custom styling
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-label={t('payees.renameMerchant')}>
-      <div className="bg-[var(--card)] w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50">
+      <dialog
+        open
+        aria-label={t('payees.renameMerchant')}
+        className="bg-[var(--card)] w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 border-0 backdrop:bg-transparent m-0"
+      >
         <h2 className="text-lg font-bold">{t('payees.renameMerchant')}</h2>
         <p className="text-sm text-[var(--text-secondary)]">
           {t('payees.renameDesc', { name: renamingMerchant.displayName })}
@@ -236,7 +239,7 @@ export default function PayeesView() {
           <button type="button" onClick={() => setRenamingMerchant(null)} className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)]">{t('Cancel')}</button>
           <button type="button" onClick={handleRename} disabled={!newMerchantName.trim()} className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-bold hover:opacity-90 disabled:opacity-50">{t('payees.renameConfirm')}</button>
         </div>
-      </div>
+      </dialog>
     </div>
   ) : null;
 
@@ -357,6 +360,35 @@ export default function PayeesView() {
   }
 
   // ── List view ──────────────────────────────────────────────
+  const renderActiveMerchantsEmpty = () => {
+    if (activeMerchants.length > 0) return null;
+    if (!searchQuery && activeFilterCount === 0 && archivedMerchants.length === 0) {
+      return (
+        <EmptyState
+          icon={<ShoppingBag size={48} className="opacity-20" />}
+          title={t('payees.emptyTitle')}
+          description={t('payees.emptyDesc')}
+        />
+      );
+    }
+    if (searchQuery || activeFilterCount > 0) {
+      return (
+        <div className="text-center py-12 space-y-3">
+          <ShoppingBag size={32} className="mx-auto text-[var(--text-secondary)] opacity-30" aria-hidden="true" />
+          <p className="text-sm text-[var(--text-secondary)]">{searchQuery ? t('payees.searchEmpty') : t('payees.filterEmpty')}</p>
+          <button
+            type="button"
+            onClick={() => { setSearchQuery(''); setFilterDraft(EMPTY_FILTER_DRAFT); }}
+            className="text-sm text-[var(--accent)] font-medium hover:underline"
+          >
+            {searchQuery ? t('payees.clearSearch') : t('payees.clearFilter')}
+          </button>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <>
       <div className="space-y-4">
@@ -397,16 +429,8 @@ export default function PayeesView() {
         </div>
 
         {/* Active Merchants */}
-        {activeMerchants.length === 0 && !searchQuery && activeFilterCount === 0 && archivedMerchants.length === 0 ? (
-          <EmptyState icon={<ShoppingBag size={48} className="opacity-20" />} title={t('payees.emptyTitle')} description={t('payees.emptyDesc')} />
-        ) : activeMerchants.length === 0 && (searchQuery || activeFilterCount > 0) ? (
-          <div className="text-center py-12 space-y-3">
-            <ShoppingBag size={32} className="mx-auto text-[var(--text-secondary)] opacity-30" aria-hidden="true" />
-            <p className="text-sm text-[var(--text-secondary)]">{searchQuery ? t('payees.searchEmpty') : t('payees.filterEmpty')}</p>
-            <button type="button" onClick={() => { setSearchQuery(''); setFilterDraft(EMPTY_FILTER_DRAFT); }} className="text-sm text-[var(--accent)] font-medium hover:underline">
-              {searchQuery ? t('payees.clearSearch') : t('payees.clearFilter')}
-            </button>
-          </div>
+        {renderActiveMerchantsEmpty() ? (
+          renderActiveMerchantsEmpty()
         ) : (
           <div className="space-y-3">
             <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider px-1">{t('Active Merchants')}</h2>

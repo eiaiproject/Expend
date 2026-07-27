@@ -59,10 +59,12 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
   if (!isOpen) return null;
 
   return (
-    // NOSONAR S6819 — <dialog> would break custom styling
-    <div ref={dialogRef} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" role="dialog" aria-modal="true" aria-label={t('Enter your current PIN')}>
-      <div
-        className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-6"
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+      <dialog
+        ref={dialogRef as unknown as React.RefObject<HTMLDialogElement>}
+        open
+        aria-label={t('Enter your current PIN')}
+        className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-6 border-0 backdrop:bg-transparent m-0"
       >
         <div className="text-center space-y-2">
           <div className="w-16 h-16 mx-auto rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
@@ -94,7 +96,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
           className="w-full h-0 opacity-0 absolute"
         />
 
-        <div className="grid grid-cols-3 gap-3" role="group" aria-label={t('PIN entry')}>
+        <fieldset className="grid grid-cols-3 gap-3" aria-label={t('PIN entry')}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
             <button type="button"
               key={num}
@@ -115,7 +117,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
             onClick={() => { if (pin.length < pinLength) setPin(prev => prev + '0'); }}
             className="h-12 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-lg font-mono font-medium hover:bg-[var(--card)] active:scale-95 transition-colors"
           >0</button>
-        </div>
+        </fieldset>
 
         <div className="flex gap-3">
           <button type="button" onClick={onClose} className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors">
@@ -130,7 +132,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
             {loading ? t('Verifying...') : t('Confirm')}
           </button>
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

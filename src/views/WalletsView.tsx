@@ -51,7 +51,9 @@ export default function WalletsView() {
   const isLoading = wallets === undefined;
 
   // Spending trends — single query for all wallets
-  const spendingTrends = useLiveQuery(async (): Promise<Record<number, SpendingTrend>> => {
+  const spendingTrends = useLiveQuery(computeSpendingTrends, [wallets], {} as Record<number, SpendingTrend>);
+
+  async function computeSpendingTrends(): Promise<Record<number, SpendingTrend>> {
     if (!wallets || wallets.length === 0) return {};
 
     const now = new Date();
@@ -94,7 +96,7 @@ export default function WalletsView() {
     }
 
     return result;
-  }, [wallets], {} as Record<number, SpendingTrend>);
+  }
 
   // Last activity dates per wallet — single query
   const lastActivityDates = useLiveQuery(async (): Promise<Record<number, string | null>> => {

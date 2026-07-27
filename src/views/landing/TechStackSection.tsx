@@ -43,9 +43,8 @@ export function TechStackSection() {
         </button>
 
         {/* Accordion content */}
-        <div
+        <section
           id="tech-stack-panel"
-          role="region" // NOSONAR: S6819 — div with aria-label is valid landmark region
           aria-label={t('landing.techTitle')}
           hidden={!isOpen}
         >
@@ -75,7 +74,7 @@ export function TechStackSection() {
               {t('landing.source', 'View Source Code')} →
             </a>
           </div>
-        </div>
+        </section>
       </div>
     </section>
   );

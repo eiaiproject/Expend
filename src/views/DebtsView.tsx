@@ -390,12 +390,14 @@ export default function DebtsView() {
           <div className="space-y-3">{[1, 2, 3].map((item) => <Skeleton key={item} className="h-36 w-full rounded-[16px]" />)}</div>
         );
         if (filteredDebts.length > 0) return (
-          <div className="space-y-3" role="list" aria-label={t('Debts')}>
+          <ul className="space-y-3" aria-label={t('Debts')}>
             {filteredDebts.map((debt) => (
-              <DebtCard key={debt.id} debt={debt} payments={paymentsByDebt[debt.id] ?? []} wallet={walletMap[debt.walletId]} hideAmount={hideAmount}
-                onClick={() => setSelectedDebt(debt)} onPayment={() => handlePayment(debt)} onEdit={() => handleEdit(debt)} />
+              <li key={debt.id}>
+                <DebtCard debt={debt} payments={paymentsByDebt[debt.id] ?? []} wallet={walletMap[debt.walletId]} hideAmount={hideAmount}
+                  onClick={() => setSelectedDebt(debt)} onPayment={() => handlePayment(debt)} onEdit={() => handleEdit(debt)} />
+              </li>
             ))}
-          </div>
+          </ul>
         );
         if (!hasAnyDebt) return (
           <EmptyState icon={<Handshake size={36} />} title={t('debt.emptyFirstTitle')} description={t('debt.emptyFirstDesc')} action={{ label: t('debt.emptyFirstCta'), onClick: handleOpenForm }} />

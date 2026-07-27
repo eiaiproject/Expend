@@ -23,11 +23,12 @@ export function InfoPopup({ isOpen, onClose }: { readonly isOpen: boolean; reado
     <div
       ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
-      role="dialog" // NOSONAR S6819
-      aria-modal="true"
-      aria-label={t('Project Information')}
     >
-      <div className="bg-[var(--card)] text-[var(--text-primary)] w-full max-w-[300px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
+      <dialog
+        open
+        aria-label={t('Project Information')}
+        className="bg-[var(--card)] text-[var(--text-primary)] w-full max-w-[300px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative p-0 border-0 backdrop:bg-transparent m-0"
+      >
         <button type="button"
           onClick={onClose}
           className="absolute top-3 right-3 p-1 rounded-full hover:bg-[var(--border)] transition-colors"
@@ -99,7 +100,7 @@ export function InfoPopup({ isOpen, onClose }: { readonly isOpen: boolean; reado
             {t('settings.supportOnTrakteer')}
           </a>
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }
