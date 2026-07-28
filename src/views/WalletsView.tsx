@@ -85,30 +85,11 @@ export default function WalletsView() {
     return result;
   }
 
-function computeWalletSpending(
-  walletTxs: { amount: number; type: string; date: string }[],
-  todayStr: string,
-  recentDaysAgoStr: string,
-  previousDaysAgoStr: string
-): { recentSpent: number; previousSpent: number } {
-  let recentSpent = 0;
-  let previousSpent = 0;
-
-  for (const tx of walletTxs) {
-    if (tx.type !== 'expense' && tx.type !== 'transfer_out') continue;
-    const txDate = tx.date.split('T')[0]!;
-    if (txDate >= recentDaysAgoStr && txDate <= todayStr) {
-      recentSpent += tx.amount;
-    } else if (txDate >= previousDaysAgoStr && txDate < recentDaysAgoStr) {
-      previousSpent += tx.amount;
-    }
-  }
-
-  return { recentSpent, previousSpent };
-}
-
-  // Last activity dates per wallet — single query
-  const lastActivityDates = useLiveQuery(computeLastActivityDates, [wallets], {} as Record<number, string | null>);
+  const lastActivityDates = useLiveQuery(
+    computeLastActivityDates,
+    [wallets],
+    {} as Record<number, string | null>
+  );
 
   async function computeLastActivityDates(): Promise<Record<number, string | null>> {
     if (!wallets || wallets.length === 0) return {};
@@ -535,6 +516,28 @@ function computeWalletSpending(
 }
 
 // ── Sub-components ──────────────────────────────────────────
+
+function computeWalletSpending(
+  walletTxs: { amount: number; type: string; date: string }[],
+  todayStr: string,
+  recentDaysAgoStr: string,
+  previousDaysAgoStr: string
+): { recentSpent: number; previousSpent: number } {
+  let recentSpent = 0;
+  let previousSpent = 0;
+
+  for (const tx of walletTxs) {
+    if (tx.type !== 'expense' && tx.type !== 'transfer_out') continue;
+    const txDate = tx.date.split('T')[0]!;
+    if (txDate >= recentDaysAgoStr && txDate <= todayStr) {
+      recentSpent += tx.amount;
+    } else if (txDate >= previousDaysAgoStr && txDate < recentDaysAgoStr) {
+      previousSpent += tx.amount;
+    }
+  }
+
+  return { recentSpent, previousSpent };
+}
 
 function PageHeader({ onHelp, onAdd, showHelp, t }: {
   readonly onHelp: () => void;
