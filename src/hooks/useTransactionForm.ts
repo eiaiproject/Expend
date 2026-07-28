@@ -133,6 +133,35 @@ export function useTransactionForm({
 
   // Initialize form when opened or txToEdit changes
   useEffect(() => {
+    function initEditFields(editTx: NonNullable<typeof txToEdit>): void {
+      setAmount(editTx.amount.toString());
+      setDescription(editTx.description);
+      setWalletId(editTx.walletId.toString());
+      setDate(editTx.date.split('T')[0] ?? '');
+      setNotes(editTx.notes || '');
+
+      if (editTx.type === 'expense' || editTx.type === 'balance_adjustment') {
+        setType('expense');
+      } else {
+        setType('transfer');
+      }
+
+      const cat = categories.find((c) => c.id === editTx.categoryId);
+      setCategoryName(cat ? cat.name : '');
+    }
+
+    function initNewFields(): void {
+      setAmount('');
+      setDescription(initialDescription ?? '');
+      setDate(getTodayStr());
+      const firstWalletId = wallets.length > 0 ? wallets[0]!.id!.toString() : '';
+      setWalletId(initialFromWalletId ? initialFromWalletId.toString() : firstWalletId);
+      setToWalletId('');
+      setCategoryName('');
+      setNotes('');
+      setType(initialType);
+    }
+
     if (!isOpen) {
       initializedKeyRef.current = null;
       return;
@@ -143,36 +172,9 @@ export function useTransactionForm({
       initializedKeyRef.current = initKey;
 
       if (txToEdit) {
-        setAmount(txToEdit.amount.toString());
-        setDescription(txToEdit.description);
-        setWalletId(txToEdit.walletId.toString());
-        setDate(txToEdit.date.split('T')[0] ?? '');
-        setNotes(txToEdit.notes || '');
-
-        if (
-          txToEdit.type === 'expense' ||
-          txToEdit.type === 'balance_adjustment'
-        )
-          setType('expense');
-        else if (
-          txToEdit.type === 'transfer_out' ||
-          txToEdit.type === 'transfer_in'
-        )
-          setType('transfer');
-        else setType('expense');
-
-        const cat = categories.find((c) => c.id === txToEdit.categoryId);
-        setCategoryName(cat ? cat.name : '');
+        initEditFields(txToEdit);
       } else {
-        setAmount('');
-        setDescription(initialDescription ?? '');
-        setDate(getTodayStr());
-        const firstWalletId = wallets.length > 0 ? wallets[0]!.id!.toString() : '';
-        setWalletId(initialFromWalletId ? initialFromWalletId.toString() : firstWalletId);
-        setToWalletId('');
-        setCategoryName('');
-        setNotes('');
-        setType(initialType);
+        initNewFields();
       }
     }
   }, [isOpen, txToEdit, categories, wallets, initialType, initialDescription, initialFromWalletId]);
@@ -219,8 +221,69 @@ export function useTransactionForm({
   }, []);
 
 
-// NOSONAR S3776 — cognitive complexity is inherent to this business logic
   const handleSubmit = useCallback(async (): Promise<boolean> => {
+    async function resolveCategoryId(name: string): Promise<number | null> {
+      const trimmed = name.trim();
+      if (!trimmed) return null;
+      const existingCat = categories.find(
+        (c) => c.name.toLowerCase() === trimmed.toLowerCase()
+      );
+      if (existingCat) return existingCat.id!;
+      const confirmed = await onConfirmCreateCategory(name);
+      if (!confirmed) return null;
+      const foundCat = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
+      if (foundCat) return foundCat.id!;
+      const usedColors = new Set(categories.map((c) => c.color));
+      const available = CURATED_PALETTE.filter((c) => !usedColors.has(c));
+      const color = available.length > 0
+        ? available[Math.floor(Math.random() * available.length)]!  // NOSONAR typescript:S2245 — design color selection, not security
+        : CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!;  // NOSONAR typescript:S2245 — design color selection, not security
+      const newId = await db.categories.add({ name, icon: '🏷️', color });
+      return newId ?? null;
+    }
+
+    async function handleTransferSubmit(
+      rawAmount: number,
+      trimmedDescription: string
+    ): Promise<boolean> {
+      if (Number.parseInt(walletId, 10) === Number.parseInt(toWalletId, 10)) {
+        toast.add(t('Cannot transfer to the same wallet.'));
+        return false;
+      }
+      if (txToEdit?.id) {
+        toast.add(t('Editing transfers is not supported in this version.'));
+        return false;
+      }
+      await saveTransfer({
+        amount: rawAmount,
+        description: trimmedDescription,
+        date,
+        fromWalletId: Number.parseInt(walletId, 10),
+        toWalletId: Number.parseInt(toWalletId, 10),
+        notes,
+      });
+      return true;
+    }
+
+    async function handleExpenseSubmit(
+      rawAmount: number,
+      trimmedDescription: string
+    ): Promise<void> {
+      const catId = await resolveCategoryId(categoryName);
+      await saveTransaction(
+        {
+          amount: rawAmount,
+          description: trimmedDescription,
+          date,
+          walletId: Number.parseInt(walletId, 10),
+          categoryId: catId,
+          notes,
+          type: txToEdit ? txToEdit.type : 'expense',
+        },
+        txToEdit?.id
+      );
+    }
+
     if (!amount || !description || !date || !walletId) return false;
     if (type === 'transfer' && !toWalletId) return false;
 
@@ -229,62 +292,11 @@ export function useTransactionForm({
 
     setIsSubmitting(true);
     try {
-      if (type === 'transfer') {
-        if (Number.parseInt(walletId, 10) === Number.parseInt(toWalletId, 10)) {
-          toast.add(t('Cannot transfer to the same wallet.'));
-          return false;
-        }
-        if (txToEdit?.id) {
-          toast.add(t('Editing transfers is not supported in this version.'));
-          return false;
-        }
+      const success = type === 'transfer'
+        ? await handleTransferSubmit(rawAmount, trimmedDescription)
+        : (await handleExpenseSubmit(rawAmount, trimmedDescription), true);
 
-        await saveTransfer({
-          amount: rawAmount,
-          description: trimmedDescription,
-          date,
-          fromWalletId: Number.parseInt(walletId, 10),
-          toWalletId: Number.parseInt(toWalletId, 10),
-          notes,
-        });
-      } else {
-        let catId: number | null = null;
-        if (categoryName.trim()) {
-          const existingCat = categories.find(
-            (c) => c.name.toLowerCase() === categoryName.trim().toLowerCase()
-          );
-          if (existingCat) {
-            catId = existingCat.id!;
-          } else {
-            const confirmed = await onConfirmCreateCategory(categoryName.trim());
-            if (!confirmed) return false;
-            catId = await (async (name: string): Promise<number | null> => {
-              const existingCat = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
-              if (existingCat) return existingCat.id!;
-              const usedColors = new Set(categories.map((c) => c.color));
-              const available = CURATED_PALETTE.filter((c) => !usedColors.has(c));
-              const color = available.length > 0
-                ? available[Math.floor(Math.random() * available.length)]! // NOSONAR
-                : CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!; // NOSONAR
-              const newId = await db.categories.add({ name, icon: '🏷️', color });
-              return newId ?? null;
-            })(categoryName.trim());
-          }
-        }
-
-        await saveTransaction(
-          {
-            amount: rawAmount,
-            description: trimmedDescription,
-            date,
-            walletId: Number.parseInt(walletId, 10),
-            categoryId: catId,
-            notes,
-            type: txToEdit ? txToEdit.type : 'expense',
-          },
-          txToEdit?.id
-        );
-      }
+      if (!success) return false;
 
       if (navigator.vibrate) navigator.vibrate(50);
       onClose();

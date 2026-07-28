@@ -2,6 +2,20 @@
 
 All notable changes to Expend are documented here.
 
+## 1.11.3 - 2026-07-27
+### Fixed
+
+- Reduce cognitive complexity in db.ts, useTransactionForm, and WalletsView
+- Remove unused TransactionCard import, add readonly to TransactionGroup props
+- Remove redundant onViewDetail prop from TransactionGroup
+- Extract TransactionGroup component to reduce function nesting depth (S2004)
+- Remove aria-selected from empty-state div in CategorySelect
+- Flatten impactColor ternary to if/else chain in DebtFormSheet
+- Resolve 7 SonarCloud PR#10 issues — S3358 nested ternary, S2004 function nesting, S6811 aria-selected
+- Resolve SonarCloud main branch issues — S6822 redundant role, S6819 listbox/group, S3358 nested ternary, S7924 contrast, S6847 dialog events
+- Resolve 88 SonarCloud issues — S6819 a11y roles, S3358 nested te… (#8)
+
+
 ## 1.11.2 - 2026-07-27
 ### Fixed
 

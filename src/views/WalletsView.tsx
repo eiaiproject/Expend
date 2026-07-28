@@ -54,15 +54,13 @@ export default function WalletsView() {
   const spendingTrends = useLiveQuery(computeSpendingTrends, [wallets], {} as Record<number, SpendingTrend>);
 
   async function computeSpendingTrends(): Promise<Record<number, SpendingTrend>> {
-    if (!wallets || wallets.length === 0) return {};
+    const walletIds = wallets?.map(w => w.id!).filter(Boolean) ?? [];
+    if (!wallets || wallets.length === 0 || walletIds.length === 0) return {};
 
     const now = new Date();
     const todayStr = getTodayStr(now);
     const recentDaysAgoStr = getTodayStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - SPENDING_TREND_RECENT_DAYS));
     const previousDaysAgoStr = getTodayStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - SPENDING_TREND_PREVIOUS_DAYS));
-
-    const walletIds = wallets.map(w => w.id!).filter(Boolean);
-    if (walletIds.length === 0) return {};
 
     const txs = await db.transactions
       .where('walletId')
@@ -74,18 +72,7 @@ export default function WalletsView() {
 
     for (const walletId of walletIds) {
       const walletTxs = txs.filter(t => t.walletId === walletId);
-      let recentSpent = 0;
-      let previousSpent = 0;
-
-      for (const tx of walletTxs) {
-        if (tx.type !== 'expense' && tx.type !== 'transfer_out') continue;
-        const txDate = tx.date.split('T')[0]!;
-        if (txDate >= recentDaysAgoStr && txDate <= todayStr) {
-          recentSpent += tx.amount;
-        } else if (txDate >= previousDaysAgoStr && txDate < recentDaysAgoStr) {
-          previousSpent += tx.amount;
-        }
-      }
+      const { recentSpent, previousSpent } = computeWalletSpending(walletTxs, todayStr, recentDaysAgoStr, previousDaysAgoStr);
 
       if (previousSpent === 0) {
         result[walletId] = null;
@@ -98,8 +85,11 @@ export default function WalletsView() {
     return result;
   }
 
-  // Last activity dates per wallet — single query
-  const lastActivityDates = useLiveQuery(computeLastActivityDates, [wallets], {} as Record<number, string | null>);
+  const lastActivityDates = useLiveQuery(
+    computeLastActivityDates,
+    [wallets],
+    {} as Record<number, string | null>
+  );
 
   async function computeLastActivityDates(): Promise<Record<number, string | null>> {
     if (!wallets || wallets.length === 0) return {};
@@ -526,6 +516,28 @@ export default function WalletsView() {
 }
 
 // ── Sub-components ──────────────────────────────────────────
+
+function computeWalletSpending(
+  walletTxs: { amount: number; type: string; date: string }[],
+  todayStr: string,
+  recentDaysAgoStr: string,
+  previousDaysAgoStr: string
+): { recentSpent: number; previousSpent: number } {
+  let recentSpent = 0;
+  let previousSpent = 0;
+
+  for (const tx of walletTxs) {
+    if (tx.type !== 'expense' && tx.type !== 'transfer_out') continue;
+    const txDate = tx.date.split('T')[0]!;
+    if (txDate >= recentDaysAgoStr && txDate <= todayStr) {
+      recentSpent += tx.amount;
+    } else if (txDate >= previousDaysAgoStr && txDate < recentDaysAgoStr) {
+      previousSpent += tx.amount;
+    }
+  }
+
+  return { recentSpent, previousSpent };
+}
 
 function PageHeader({ onHelp, onAdd, showHelp, t }: {
   readonly onHelp: () => void;
