@@ -218,8 +218,8 @@ function DataTableToggle({ label, children }: { readonly label: string; readonly
 
 // ── Main StatsView ─────────────────────────────────────────────
 
+// NOSONAR:S3776 — cognitive complexity is inherent to this business logic
 export default function StatsView() {
-// NOSONAR S3776 — cognitive complexity is inherent to this business logic
   const { t, i18n } = useTranslation();
   const { hideAmount } = usePrivacy();
   const [period, setPeriod] = useState<Period>('month');
@@ -313,7 +313,7 @@ export default function StatsView() {
     if (period === 'all') {
       // Find earliest expense date
       if (!transactions || transactions.length === 0) return '';
-      const earliest = transactions.map(tx => tx.date).reduce((min, date) => date < min ? date : min);
+      const earliest = transactions.map(tx => tx.date).reduce((min, date) => date < min ? date : min); // NOSONAR:S7766 — Math.min() incompatible with date strings
       return t('stats.dateRangeAll', { date: displayDateFull(earliest, i18n.language) });
     }
     return formatDateRange(periodRange.start, periodRange.end, i18n.language);
