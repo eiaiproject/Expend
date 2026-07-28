@@ -2,6 +2,13 @@
 
 All notable changes to Expend are documented here.
 
+## 1.11.4 - 2026-07-28
+### Fixed
+
+- Correct NOSONAR comment format and placement for S3776/S7766
+- Resolve 88 SonarCloud issues — S6819 a11y roles, S3358 nested te… (#8)
+
+
 ## 1.11.3 - 2026-07-27
 ### Fixed
 
