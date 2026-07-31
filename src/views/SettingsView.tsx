@@ -956,6 +956,19 @@ export default function SettingsView() {
           <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
         </a>
 
+        {/* Trakteer support action (master.md 9.2) */}
+        <a
+          href={TRAKTEER_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center gap-3 p-4 border-t border-[var(--border)] text-left hover:bg-[var(--bg)] transition-colors min-h-[44px]"
+        >
+          <Coffee size={18} className="text-[var(--accent)]" aria-hidden="true" />
+          <span className="text-sm font-medium text-[var(--text-primary)] flex-1">{t('settings.aboutSupport')}</span>
+          <span className="sr-only">{t('settings.opensExternalSite')}</span>
+          <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
+        </a>
+
 
 
 
