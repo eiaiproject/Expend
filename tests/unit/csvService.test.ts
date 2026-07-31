@@ -89,6 +89,38 @@ describe('duplicate detection + skip (master.md 11)', () => {
   });
 });
 
+describe('pre-import snapshot (master.md 11)', () => {
+  beforeEach(async () => {
+    await db.transactions.clear();
+  });
+
+  it('restores the previous data when a high-impact import fails', async () => {
+    await db.transactions.add({
+      id: 1, walletId: 1, categoryId: null, date: '2026-07-01', description: 'Original', type: 'expense' as const, amount: 5000,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    });
+    // Duplicate primary key makes the atomic transaction throw.
+    const rows = [{
+      id: 1, walletId: 1, categoryId: null, date: '2026-07-02', description: 'Clash', type: 'expense' as const, amount: 9000,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    }];
+    await expect(importCsvTransactions(rows, { preImportSnapshot: true })).rejects.toThrow();
+    const remaining = await db.transactions.toArray();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].description).toBe('Original');
+  });
+
+  it('imports normally with a snapshot in place', async () => {
+    const rows = [{
+      walletId: 1, categoryId: null, date: '2026-07-03', description: 'New', type: 'expense' as const, amount: 7000,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    }];
+    const report = await importCsvTransactions(rows, { preImportSnapshot: true });
+    expect(report.imported).toBe(1);
+    expect(await db.transactions.count()).toBe(1);
+  });
+});
+
 describe('formula injection guard (master.md 11)', () => {
   it('prefixes spreadsheet-formula-looking strings on import', () => {
     expect(sanitizeCsvField('=HYPERLINK("http://evil.example")')).toBe("'=HYPERLINK(\"http://evil.example\")");

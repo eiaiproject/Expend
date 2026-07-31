@@ -173,6 +173,41 @@ test.describe('export and import', () => {
 
     expect(download.suggestedFilename()).toMatch(/\.csv/);
   });
+
+  test('restore previews a backup and replaces data (master.md 14.3 #7)', async ({ page }) => {
+    const walletName = uniqueName('Restore');
+    await onboard(page, walletName);
+    await createExpense(page, {
+      amount: '25000',
+      description: uniqueName('lunch'),
+      walletName,
+      categoryName: 'Food & Drinks',
+    });
+
+    // Create the backup file.
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /backup & restore/i }).first().click();
+    const downloadPromise = page.waitForEvent('download', { timeout: 10_000 });
+    await page.getByRole('button', { name: /export full backup|export json/i }).first().click();
+    const download = await downloadPromise;
+    const backupPath = await download.path();
+    expect(backupPath).toBeTruthy();
+
+    // Restore from that file: preview → confirm → data comes back.
+    await page.getByRole('button', { name: /restore from backup/i }).first().click();
+    await page.locator('input[type="file"][accept*="json"]').setInputFiles(backupPath!);
+    const preview = page.getByRole('dialog', { name: /backup found/i });
+    await expect(preview).toBeVisible();
+    await expect(preview.getByText(new RegExp(walletName))).toBeVisible();
+    await preview.getByRole('button', { name: /restore now/i }).click();
+    await expect(page.getByRole('status').getByText(/restored|success/i)).toBeVisible();
+    await page.waitForTimeout(800); // reload after restore
+    await page.goto('/');
+
+    await expect(page.getByRole('heading', { name: /overview/i })).toBeVisible();
+    await expect(page.getByText(new RegExp(walletName)).first()).toBeVisible();
+  });
 });
 
 // ─── Language / Theme ────────────────────────────────────────────
