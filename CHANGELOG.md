@@ -2,6 +2,8 @@
 
 All notable changes to Expend are documented here.
 
+## 1.13.2 - 2026-07-31
+
 ## 1.13.1 - 2026-07-31
 ### Fixed
 
