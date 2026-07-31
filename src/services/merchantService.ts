@@ -1,5 +1,6 @@
 import { db, type Merchant } from '../db/db';
 import { normalizePayeeKey, normalizePayeeName } from './payeeService';
+import { renameFavoritePayee } from './payeeFavoritesService';
 
 /**
  * Ensure a merchant entry exists for the given transaction description.
@@ -120,6 +121,9 @@ export async function renameMerchant(
     displayName: trimmedName,
     updatedAt: new Date().toISOString(),
   });
+
+  // Preserve favorite status across renames (master.md 6.8)
+  await renameFavoritePayee(merchant.displayName, trimmedName);
 }
 
 /**
@@ -219,6 +223,9 @@ export async function mergeMerchants(
       updatedAt: new Date().toISOString(),
     });
   });
+
+  // Carry the source's favorite over to the target (master.md 6.8)
+  await renameFavoritePayee(source.displayName, targetName);
 
   return { transactionsMoved: affected };
 }

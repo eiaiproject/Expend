@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { Transaction } from '../db/db';
 import { Edit2, Trash2, Repeat } from 'reicon-react';
 import { displayDateFull } from '../utils/dateUtils';
@@ -27,7 +28,7 @@ export function TransactionDetailSheet({ tx, onClose, onEdit, onDelete, onRepeat
   };
 
   if (!tx) return null;
-  const canRepeat = tx.type === 'expense';
+  const canRepeat = tx.type === 'expense' || tx.type === 'transfer_in' || tx.type === 'transfer_out';
 
   return (
     <BottomSheetShell
@@ -45,6 +46,14 @@ export function TransactionDetailSheet({ tx, onClose, onEdit, onDelete, onRepeat
                  {(tx.type === 'expense' || tx.type === 'transfer_out' || (tx.type === 'balance_adjustment' && tx.amount < 0)) ? '-' : '+'}{formatCurrency(tx.amount)}
                </p>
                {tx.notes && <p className="mt-4 text-sm bg-[var(--bg)] p-3 rounded-lg inline-block text-left">{tx.notes}</p>}
+               {tx.description && (
+                 <Link
+                   to={`/payees?q=${encodeURIComponent(tx.description)}`}
+                   className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold text-[var(--accent)] hover:underline rounded-md px-1"
+                 >
+                   {t('payees.viewPayee')}
+                 </Link>
+               )}
             </div>
 
             <button type="button" 
@@ -58,8 +67,7 @@ export function TransactionDetailSheet({ tx, onClose, onEdit, onDelete, onRepeat
             <div className="grid grid-cols-2 gap-4">
               <button type="button" 
                 onClick={() => { onClose(); onEdit(tx); }}
-                disabled={tx.type === 'transfer_in' || tx.type === 'transfer_out' || tx.type === 'balance_adjustment'}
-                title={(tx.type === 'transfer_in' || tx.type === 'transfer_out') ? t('Editing transfers is not supported in this version.') : undefined}
+                disabled={tx.type === 'balance_adjustment'}
                 className="flex items-center justify-center gap-2 py-4 bg-[var(--bg)] rounded-xl font-bold disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Edit2 size={18} /> {t('Edit')}
