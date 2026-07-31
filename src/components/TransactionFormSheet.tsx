@@ -51,6 +51,22 @@ export function TransactionFormSheet({
   const [showDetails, setShowDetails] = useState(!isQuickAdd);
   const navigate = useNavigate();
 
+  // master.md 8.4: closing the sheet (backdrop, Escape, X) with unsaved
+  // changes requires explicit confirmation. Successful saves call onClose
+  // directly via handleSubmit, so they bypass this guard.
+  const handleCloseRequest = async () => {
+    if (actions.isDirty()) {
+      const confirmed = await confirm({
+        title: t('form.discardTitle'),
+        message: t('form.discardMessage'),
+        confirmLabel: t('form.discardConfirm'),
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+    }
+    onClose();
+  };
+
   // Reset the disclosure state whenever the sheet opens
   useEffect(() => {
     if (isOpen) setShowDetails(!isQuickAdd);
@@ -150,7 +166,7 @@ export function TransactionFormSheet({
   return (
     <BottomSheetShell
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleCloseRequest}
       title={isEditingExistingTransaction ? t('Edit') : t('Add Transaction')}
       ariaLabel={isEditingExistingTransaction ? t('Edit') : t('Add Transaction')}
     >

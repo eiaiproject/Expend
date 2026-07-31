@@ -8,6 +8,7 @@ import {
   createDebt,
   recordDebtPayment,
   readTable,
+  readTransactions,
   readWalletByName,
   readDebts,
   readDebtPayments,
@@ -238,6 +239,34 @@ test.describe('language and theme', () => {
 // ─── Error states ────────────────────────────────────────────────
 
 test.describe('error states', () => {
+  test('closing the form with unsaved changes asks for confirmation (master.md 8.4)', async ({ page }) => {
+    await onboard(page, uniqueName('DirtyForm'), ['Food & Drinks']);
+
+    await openActionPicker(page);
+    await clickPickerAction(page, /add expense/i);
+    await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+
+    // Type an amount, then try to dismiss via Escape.
+    await page.locator('form input[inputmode="numeric"]').first().fill('5000');
+    await page.keyboard.press('Escape');
+
+    const discardDialog = page.getByRole('dialog', { name: /discard changes/i });
+    await discardDialog.waitFor({ state: 'visible', timeout: 5_000 });
+
+    // Cancelling keeps the form open with the typed amount intact.
+    await discardDialog.getByRole('button', { name: /cancel/i }).click();
+    await expect(page.locator('form input[inputmode="numeric"]').first()).toHaveValue(/5[.,]?000/);
+
+    // Confirming discard closes the form without saving.
+    await page.keyboard.press('Escape');
+    await discardDialog.waitFor({ state: 'visible', timeout: 5_000 });
+    await discardDialog.getByRole('button', { name: /discard/i }).click();
+    await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+
+    const txs = await readTransactions(page);
+    expect(txs).toHaveLength(0);
+  });
+
   test('expense exceeding wallet balance shows error', async ({ page }) => {
     const walletName = await onboard(page, uniqueName('ErrBal'));
 

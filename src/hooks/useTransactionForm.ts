@@ -53,6 +53,8 @@ export interface TransactionFormActions {
   applyTemplate: (template: TransactionTemplate) => Promise<boolean>;
   saveCurrentAsTemplate: () => Promise<boolean>;
   applyPayee: (payeeName: string) => void;
+  /** True when any field changed since the form opened (master.md 8.4). */
+  isDirty: () => boolean;
   isSubmitting: boolean;
 }
 
@@ -155,6 +157,20 @@ export function useTransactionForm({
   const initializedKeyRef = useRef<string | null>(null);
   const categoryTouchedRef = useRef(false);
   const lastSelectedCategoryIdRef = useRef<number | null>(null);
+
+  // master.md 8.4: true once any field mutates after open; reset on init.
+  const dirtyRef = useRef(false);
+  const markDirty = <A extends unknown[], R>(fn: (...args: A) => R): ((...args: A) => R) =>
+    (...args: A) => { dirtyRef.current = true; return fn(...args); };
+
+  // master.md 8.4: only a fresh open resets the dirty flag. The init effect
+  // also re-runs on async data loads (categories/transactions), which must
+  // not wipe a user's unsaved edits.
+  const prevOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (isOpen && !prevOpenRef.current) dirtyRef.current = false;
+    prevOpenRef.current = isOpen;
+  }, [isOpen]);
 
   // Filter description suggestions
   const [filteredDescriptionSuggestions, setFilteredDescriptionSuggestions] = useState<string[]>([]);
@@ -535,10 +551,18 @@ export function useTransactionForm({
       filteredDescriptionSuggestions,
     },
     actions: {
-      setType, setAmount, setDescription, setDate, setWalletId,
-      setToWalletId, setCategoryName: handleSetCategoryName, setNotes, setIsAmountFocused,
-      setShowDescriptionSuggestions, handleAmountChange, handleSubmit,
-      applyTemplate, saveCurrentAsTemplate, applyPayee,
+      // master.md 8.4: every field mutation marks the form dirty so the
+      // close handler can guard against discarding unsaved changes.
+      setType: markDirty(setType), setAmount: markDirty(setAmount),
+      setDescription: markDirty(setDescription), setDate: markDirty(setDate),
+      setWalletId: markDirty(setWalletId), setToWalletId: markDirty(setToWalletId),
+      setCategoryName: markDirty(handleSetCategoryName), setNotes: markDirty(setNotes),
+      handleAmountChange: markDirty(handleAmountChange),
+      applyTemplate: markDirty(applyTemplate), applyPayee: markDirty(applyPayee),
+      setIsAmountFocused,
+      setShowDescriptionSuggestions, handleSubmit,
+      saveCurrentAsTemplate,
+      isDirty: () => dirtyRef.current,
       isSubmitting,
     },
     wallets,
