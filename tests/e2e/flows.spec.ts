@@ -74,8 +74,11 @@ test.describe('wallet deletion safety', () => {
     await confirmDialog.getByRole('button', { name: /^delete$/i }).first().click();
     await confirmDialog.waitFor({ state: 'hidden' });
 
-    const wallet = await readWalletByName(page, extraWallet);
-    expect(wallet).toBeFalsy();
+    // Dialog hides before deleteWalletSafely commits — poll the DB so the
+    // assertion never races the deletion.
+    await expect.poll(async () => (await readWalletByName(page, extraWallet)) === undefined, {
+      timeout: 5_000,
+    }).toBe(true);
   });
 });
 
@@ -397,7 +400,7 @@ test.describe('PIN security extended', () => {
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
     // Security section is directly visible — find the Set up PIN button directly.
-    await page.getByRole('button', { name: /set up pin/i }).first().click();
+    await page.getByRole('button', { name: /set up app lock/i }).first().click();
 
     let dialog = page.getByRole('dialog', { name: /create pin/i });
     for (const digit of ['5', '6', '7', '8']) {
@@ -441,7 +444,7 @@ test.describe('PIN security extended', () => {
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
     // Security section is directly visible.
-    await page.getByRole('button', { name: /set up pin/i }).first().click();
+    await page.getByRole('button', { name: /set up app lock/i }).first().click();
 
     // Set up PIN first
     let dialog = page.getByRole('dialog', { name: /create pin/i });
@@ -458,7 +461,7 @@ test.describe('PIN security extended', () => {
     await expect(dialog).toBeHidden();
 
     // Now disable security
-    const disableBtn = page.getByRole('button', { name: /disable security/i }).first();
+    const disableBtn = page.getByRole('button', { name: /disable app lock/i }).first();
     await disableBtn.waitFor({ state: 'visible', timeout: 5_000 });
     await disableBtn.click();
 
@@ -477,7 +480,7 @@ test.describe('PIN security extended', () => {
     await confirmDialog.waitFor({ state: 'hidden' });
 
     // Verify security is disabled — "Set up PIN" should be visible again
-    await expect(page.getByRole('button', { name: /set up pin/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /set up app lock/i })).toBeVisible({ timeout: 5_000 });
   });
 });
 

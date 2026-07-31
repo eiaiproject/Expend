@@ -338,9 +338,9 @@ test.describe('Scenario G — payee grouping and rename', () => {
     await page.getByRole('button', { name: new RegExp(merchantA, 'i') }).first().click();
     // Rename lives inside the overflow menu — open it first.
     await page.getByRole('button', { name: new RegExp(`Actions for.*${merchantA}`, 'i') }).first().click();
-    await page.getByRole('menuitem', { name: /rename merchant/i }).first().click();
+    await page.getByRole('menuitem', { name: /rename (payee|merchant)/i }).first().click();
 
-    const dialog = page.getByRole('dialog', { name: /rename merchant/i });
+    const dialog = page.getByRole('dialog', { name: /rename (payee|merchant)/i });
     await dialog.locator('input').fill(nextName);
     await dialog.getByRole('button', { name: /rename/i }).click();
     await expect(dialog).toBeHidden();
@@ -365,7 +365,7 @@ test.describe('Scenario H — PIN security', () => {
   test('current PIN can be verified immediately after setup without reload', async ({ page }) => {
     await page.goto('/settings');
     // Security section is now directly visible (no accordion)
-    await page.getByRole('button', { name: /set up pin/i }).click();
+    await page.getByRole('button', { name: /set up app lock/i }).click();
 
     let dialog = page.getByRole('dialog', { name: /create pin/i });
     for (const digit of ['1', '2', '3', '4']) {
@@ -459,7 +459,7 @@ test.describe('Scenario I — quick-add expense from payee', () => {
 
     // Wait for the form and verify description is pre-filled.
     await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
-    const descInput = page.locator('form input[type="text"]:not([inputmode])').first();
+    const descInput = page.locator('form input[type="text"]:not([inputmode]):not([role="combobox"])').first();
     await expect(descInput).toHaveValue(new RegExp(payeeName, 'i'));
 
     // Complete the form — select the same wallet for deterministic balance.
