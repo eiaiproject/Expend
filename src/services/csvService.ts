@@ -6,6 +6,7 @@ import { downloadBlob } from '../utils/downloadUtils';
 import { VALID_TX_TYPES } from '../utils/constants';
 import { recomputeWalletCurrentBalances } from '../utils/balanceUtils';
 import { ensureMerchant } from './merchantService';
+import { incrementChangeCount } from './backupService';
 
 export interface TransactionCsvRow {
   date: string;
@@ -236,4 +237,7 @@ export async function importCsvTransactions(rows: any[]): Promise<void> {
       });
     }
   });
+
+  // Track the CSV import for backup metadata
+  await incrementChangeCount(rows.length);
 }

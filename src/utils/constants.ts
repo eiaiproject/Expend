@@ -66,6 +66,24 @@ export const BUDGET_NEAR_LIMIT_THRESHOLD = 0.80;
 /** Valid transaction types for import validation. */
 export const VALID_TX_TYPES = ['expense', 'balance_adjustment', 'transfer_in', 'transfer_out'] as const;
 
+/** Backup format version constant. */
+export const BACKUP_FORMAT_VERSION = '1.0';
+
+/** Number of days before a backup is considered old. */
+export const BACKUP_OLD_DAYS = 30;
+
+/** Minimum changes since backup before recommending another backup. */
+export const BACKUP_CHANGES_THRESHOLD = 50;
+
+/** Critical changes since backup threshold. */
+export const BACKUP_CHANGES_CRITICAL = 100;
+
+/** Minimum transactions before prompting first backup. */
+export const BACKUP_MIN_TX_FOR_PROMPT = 10;
+
+/** Default reminder postponement in days. */
+export const BACKUP_POSTPONE_DAYS = 7;
+
 /** LocalStorage keys for app state persistence. */
 export const STORAGE_KEYS = {
   BYPASS_PWA: 'expend_bypass_pwa',
