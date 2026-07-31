@@ -1,8 +1,9 @@
-import { useId, useRef, type KeyboardEvent } from 'react';
+import { useId, useRef, useEffect, useState, type KeyboardEvent } from 'react';
 import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
-import { X, ArrowDownCircle, Repeat, Plus } from 'reicon-react';
+import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Star, Link2 } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { type Transaction } from '../db/db';
 import { cn } from '../utils/cn';
 import { PRESET_AMOUNTS } from '../utils/constants';
@@ -20,11 +21,48 @@ interface TransactionFormSheetProps {
   readonly initialType?: TransactionType;
   readonly initialDescription?: string;
   readonly initialFromWalletId?: number;
+  readonly initialToWalletId?: number;
+  readonly initialAmount?: string;
+  readonly initialNotes?: string;
 }
 
-export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 'expense', initialDescription, initialFromWalletId }: TransactionFormSheetProps) {
+export function TransactionFormSheet({
+  isOpen,
+  onClose,
+  txToEdit,
+  initialType = 'expense',
+  initialDescription,
+  initialFromWalletId,
+  initialToWalletId,
+  initialAmount,
+  initialNotes,
+}: TransactionFormSheetProps) {
   const { t } = useTranslation();
   const isEditingExistingTransaction = !!txToEdit?.id;
+  // Quick Add: brand-new expense with no prefilled values — progressive
+  // disclosure keeps only Amount + Category + Save visible (master.md 5.1).
+  const isQuickAdd =
+    !txToEdit &&
+    initialType === 'expense' &&
+    !initialDescription &&
+    !initialAmount &&
+    !initialFromWalletId &&
+    !initialToWalletId;
+  const [showDetails, setShowDetails] = useState(!isQuickAdd);
+  const navigate = useNavigate();
+
+  // Reset the disclosure state whenever the sheet opens
+  useEffect(() => {
+    if (isOpen) setShowDetails(!isQuickAdd);
+  }, [isOpen, isQuickAdd]);
+
+  // "View all" from the Frequently used section (master.md 6.5): close the
+  // sheet and open the complete payee list.
+  const handleViewAllPayees = () => {
+    onClose();
+    navigate('/payees');
+  };
+
   const formId = useId();
   const amountInputId = `${formId}-amount`;
   const descriptionInputId = `${formId}-description`;
@@ -36,12 +74,15 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
   const descriptionRef = useRef<HTMLInputElement>(null);
   const suggestionIndexRef = useRef(-1);
 
-  const { state, actions, wallets, categories } = useTransactionForm({
+  const { state, actions, wallets, categories, templates, frequentPayees } = useTransactionForm({
     isOpen,
     txToEdit,
     initialType,
     initialDescription,
     initialFromWalletId,
+    initialToWalletId,
+    initialAmount,
+    initialNotes,
     onClose,
     onConfirmCreateCategory: async (name: string) => {
       const confirmed = await confirm({
@@ -96,13 +137,14 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
       toast.add(t('Cannot transfer to the same wallet.'));
       return;
     }
-    // Validate transfer edit
-    if (state.type === 'transfer' && txToEdit?.id) {
-      toast.add(t('Editing transfers is not supported in this version.'));
-      return;
-    }
 
     await actions.handleSubmit();
+  };
+
+  const handleSaveAsTemplate = async () => {
+    // saveCurrentAsTemplate shows its own toast; keep the form open so the
+    // user can still save the transaction.
+    await actions.saveCurrentAsTemplate();
   };
 
   return (
@@ -139,6 +181,58 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
             </button>
           ))}
         </div>
+
+        {/* Templates (Quick Add only — small number of the most useful) */}
+        {isQuickAdd && templates.length > 0 && (
+          <div>
+            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{t('Templates')}</p>
+            <div className="flex gap-2 overflow-x-auto pb-1" role="list" aria-label={t('Templates')}>
+              {templates.slice(0, 4).map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => void actions.applyTemplate(template)}
+                  className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5"
+                >
+                  <Bookmark size={14} aria-hidden="true" />
+                  {template.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Frequently used payees (master.md 6.2) — tap to prefill payee,
+            category, and last-used wallet; amount stays empty (6.3). */}
+        {isQuickAdd && frequentPayees.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t('Frequently used')}</p>
+              <button
+                type="button"
+                onClick={handleViewAllPayees}
+                className="flex items-center gap-1 text-xs font-semibold text-[var(--accent)] hover:underline min-h-[44px] -mr-2 px-2"
+              >
+                <Link2 size={12} aria-hidden="true" />
+                {t('View all')}
+              </button>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1" role="list" aria-label={t('Frequently used')}>
+              {frequentPayees.slice(0, 6).map((payee) => (
+                <button
+                  key={payee.key}
+                  type="button"
+                  onClick={() => actions.applyPayee(payee.name)}
+                  className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5"
+                  aria-label={t('payees.addExpenseFor', { name: payee.name })}
+                >
+                  {payee.favorite && <Star size={12} className="text-[var(--accent)]" aria-hidden="true" />}
+                  {payee.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Amount */}
         <div>
@@ -191,118 +285,161 @@ export function TransactionFormSheet({ isOpen, onClose, txToEdit, initialType = 
           )}
         </div>
 
-        {/* Description */}
-        <div className="relative">
-          <label htmlFor={descriptionInputId} className="block text-sm font-medium mb-1">{t('Description')} *</label>
-          <input
-            id={descriptionInputId}
-            ref={descriptionRef}
-            type="text"
-            required
-            autoComplete="off"
-            value={state.description}
-            onChange={(e) => handleDescriptionChange(e.target.value)}
-            onFocus={() => actions.setShowDescriptionSuggestions(true)}
-            onBlur={() => setTimeout(() => actions.setShowDescriptionSuggestions(false), 200)}
-            onKeyDown={handleDescriptionKeyDown}              className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 pr-10 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-          />
-          {state.description && (
-            <button
-              type="button"
-              onClick={() => { actions.setDescription(''); actions.setShowDescriptionSuggestions(false); }}
-              className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-              aria-label={t('Clear')}
-            >
-              <X size={16} aria-hidden="true" />
-            </button>
-          )}
-          {state.showDescriptionSuggestions && state.filteredDescriptionSuggestions.length > 0 && (
-            <div
-              className="absolute z-20 left-0 right-0 top-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden"
-            >
-              {state.filteredDescriptionSuggestions.map((desc, idx) => (
-                <button
-                  key={desc}
-                  type="button"
-                  onClick={() => selectSuggestion(desc)}
-                  className={cn(
-                    'w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--bg)] transition-colors',
-                    idx === suggestionIndexRef.current ? 'bg-[var(--bg)]' : ''
-                  )}
-                >
-                  {desc}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Date & Category */}
-        <div className={cn(
-          "grid gap-4 items-start",
-          state.type === 'transfer' ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"
-        )}>
-          <DatePicker
-            id={dateInputId}
-            value={state.date}
-            onChange={actions.setDate}
-            label={t('Date')}
-            required
-          />
-          {state.type !== 'transfer' && (
-            <div>
-              <label htmlFor={categoryInputId} className="block text-sm font-medium mb-1">{t('Category')}</label>
-              <CategorySelect
-                id={categoryInputId}
-                categories={categories}
-                value={state.categoryName}
-                onChange={actions.setCategoryName}
-                placeholder={t('Type or select category')}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Wallet(s) */}
-        <div className="space-y-4">
+        {/* Category — always visible */}
+        {state.type !== 'transfer' && (
           <div>
-            <label htmlFor={walletInputId} className="block text-sm font-medium mb-1">
-              {state.type === 'transfer' ? t('From Wallet') : t('Wallet')} *
-            </label>
-            <WalletSelect
-              id={walletInputId}
-              value={state.walletId}
-              wallets={wallets}
-              placeholder={t('Select Wallet')}
-              onChange={actions.setWalletId}
+            <label htmlFor={categoryInputId} className="block text-sm font-medium mb-1">{t('Category')}</label>
+            <CategorySelect
+              id={categoryInputId}
+              categories={categories}
+              value={state.categoryName}
+              onChange={actions.setCategoryName}
+              placeholder={t('Type or select category')}
             />
           </div>
-          {state.type === 'transfer' && (
+        )}
+
+        {/* Progressive disclosure toggle (Quick Add) */}
+        {isQuickAdd && !showDetails && (
+          <button
+            type="button"
+            onClick={() => setShowDetails(true)}
+            aria-expanded={false}
+            aria-controls={`${formId}-details`}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px]"
+          >
+            <ChevronDown size={16} aria-hidden="true" />
+            {t('Add details')}
+          </button>
+        )}
+
+        {/* Details section (hidden in Quick Add until expanded) */}
+        {(!isQuickAdd || showDetails) && (
+          <div id={`${formId}-details`}>
+            {/* Description */}
+            <div className="relative">
+              <label htmlFor={descriptionInputId} className="block text-sm font-medium mb-1">{t('Description')} {!isQuickAdd && '*'}</label>
+              <input
+                id={descriptionInputId}
+                ref={descriptionRef}
+                type="text"
+                autoComplete="off"
+                required={!isQuickAdd}
+                aria-required={!isQuickAdd}
+                value={state.description}
+                onChange={(e) => handleDescriptionChange(e.target.value)}
+                onFocus={() => actions.setShowDescriptionSuggestions(true)}
+                onBlur={() => setTimeout(() => actions.setShowDescriptionSuggestions(false), 200)}
+                onKeyDown={handleDescriptionKeyDown}
+                className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 pr-10 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
+              />
+              {state.description && (
+                <button
+                  type="button"
+                  onClick={() => { actions.setDescription(''); actions.setShowDescriptionSuggestions(false); }}
+                  className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  aria-label={t('Clear')}
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
+              )}
+              {state.showDescriptionSuggestions && state.filteredDescriptionSuggestions.length > 0 && (
+                <div
+                  className="absolute z-20 left-0 right-0 top-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden"
+                >
+                  {state.filteredDescriptionSuggestions.map((desc, idx) => (
+                    <button
+                      key={desc}
+                      type="button"
+                      onClick={() => selectSuggestion(desc)}
+                      className={cn(
+                        'w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--bg)] transition-colors',
+                        idx === suggestionIndexRef.current ? 'bg-[var(--bg)]' : ''
+                      )}
+                    >
+                      {desc}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Date */}
+            <DatePicker
+              id={dateInputId}
+              value={state.date}
+              onChange={actions.setDate}
+              label={t('Date')}
+              required
+            />
+
+            {/* Wallet(s) */}
+            <div className="space-y-4">
+              <div>
+                <label htmlFor={walletInputId} className="block text-sm font-medium mb-1">
+                  {state.type === 'transfer' ? t('From Wallet') : t('Wallet')} *
+                </label>
+                <WalletSelect
+                  id={walletInputId}
+                  value={state.walletId}
+                  wallets={wallets}
+                  placeholder={t('Select Wallet')}
+                  onChange={actions.setWalletId}
+                />
+              </div>
+              {state.type === 'transfer' && (
+                <div>
+                  <label htmlFor={toWalletInputId} className="block text-sm font-medium mb-1">{t('To Wallet')} *</label>
+                  <WalletSelect
+                    id={toWalletInputId}
+                    value={state.toWalletId}
+                    wallets={wallets}
+                    placeholder={t('Select Destination Wallet')}
+                    onChange={actions.setToWalletId}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Notes */}
             <div>
-              <label htmlFor={toWalletInputId} className="block text-sm font-medium mb-1">{t('To Wallet')} *</label>
-              <WalletSelect
-                id={toWalletInputId}
-                value={state.toWalletId}
-                wallets={wallets}
-                placeholder={t('Select Destination Wallet')}
-                onChange={actions.setToWalletId}
+              <label htmlFor={notesInputId} className="block text-sm font-medium mb-1">{t('Notes')}</label>
+              <input
+                id={notesInputId}
+                name="notes"
+                type="text"
+                autoComplete="off"
+                value={state.notes}
+                onChange={(e) => actions.setNotes(e.target.value)}
+                className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               />
             </div>
-          )}
-        </div>
 
-        {/* Notes */}
-        <div>
-          <label htmlFor={notesInputId} className="block text-sm font-medium mb-1">{t('Notes')}</label>
-          <input
-            id={notesInputId}              name="notes"
-            type="text"
-            autoComplete="off"
-            value={state.notes}
-            onChange={(e) => actions.setNotes(e.target.value)}
-            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-          />
-        </div>
+            {/* Save current form as a template */}
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={handleSaveAsTemplate}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] border border-[var(--border)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px]"
+              >
+                <Bookmark size={14} aria-hidden="true" />
+                {t('Save as template')}
+              </button>
+              {isQuickAdd && (
+                <button
+                  type="button"
+                  onClick={() => setShowDetails(false)}
+                  aria-expanded={true}
+                  aria-controls={`${formId}-details`}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] border border-[var(--border)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px]"
+                >
+                  <ChevronUp size={14} aria-hidden="true" />
+                  {t('Hide details')}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Submit */}
         <div className="pt-4 pb-6">
