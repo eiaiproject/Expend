@@ -1038,7 +1038,6 @@
     "settings.csvDuplicatesFound": "Kemungkinan duplikat ditemukan: {{count}}",
     "settings.csvSkipDuplicates": "Lewati kemungkinan duplikat",
     "settings.csvImportAnyway": "Tetap impor",
-    "settings.csvSnapshotCreated": "Snapshot cadangan diunduh sebelum impor",
     "settings.csvReportTitle": "Laporan impor",
     "settings.csvReportImported": "Berhasil diimpor: {{count}}",
     "settings.csvReportSkipped": "Dilewati: {{count}}",

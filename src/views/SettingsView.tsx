@@ -496,13 +496,11 @@ export default function SettingsView() {
   const handleCsvConfirmImport = async () => {
     if (!csvPreview) return;
     try {
-      // master.md 11: pre-import snapshot for high-impact imports.
-      if (csvPreview.rows.length >= CSV_SNAPSHOT_THRESHOLD) {
-        await createBackup();
-        toast.add(t('settings.csvSnapshotCreated'));
-      }
+      // master.md 11: pre-import snapshot for high-impact imports — the
+      // service snapshots the DB and rolls back automatically on failure.
       const report = await importCsvTransactions(csvPreview.rows as unknown as Array<Record<string, unknown>>, {
         skipDuplicates: csvSkipDuplicates,
+        preImportSnapshot: csvPreview.rows.length >= CSV_SNAPSHOT_THRESHOLD,
       });
       setCsvResult(report);
       setCsvPreview(null);

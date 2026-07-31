@@ -1,6 +1,7 @@
 import { db } from '../db/db';
 import Papa from 'papaparse';
 import { sanitizeCsvRows, sanitizeCsvField } from './importExportService';
+import { createDataSnapshot, restoreFromSnapshot } from './backupService';
 import { getTodayStr } from '../utils/dateUtils';
 import { downloadBlob } from '../utils/downloadUtils';
 import { VALID_TX_TYPES } from '../utils/constants';
@@ -276,45 +277,56 @@ export function downloadCsvErrorReport(errors: string[]): void {
  */
 export async function importCsvTransactions(
   rows: Array<Record<string, unknown>>,
-  options: { skipDuplicates?: boolean } = {},
+  options: { skipDuplicates?: boolean; preImportSnapshot?: boolean } = {},
 ): Promise<CsvImportReport> {
   const report: CsvImportReport = { imported: 0, skipped: 0, failed: 0, errors: [] };
   const existing = options.skipDuplicates ? await loadExistingFingerprints() : null;
 
-  await db.transaction('rw', [db.transactions, db.wallets, db.debts, db.debtPayments, db.merchants], async () => {
-    for (const row of rows) {
-      if (existing && existing.has(computeTransactionFingerprint(
-        row as unknown as { date: string; amount: number; type: string; walletId?: number; description?: string },
-      ))) {
-        report.skipped += 1;
-        continue;
-      }
-      try {
+  // master.md 11: pre-import snapshot before high-impact imports. If the
+  // import fails mid-way, the snapshot is restored so the user's data is
+  // exactly as it was before the attempt.
+  const snapshot = options.preImportSnapshot ? await createDataSnapshot() : null;
+  try {
+    await db.transaction('rw', [db.transactions, db.wallets, db.debts, db.debtPayments, db.merchants], async () => {
+      for (const row of rows) {
+        if (existing && existing.has(computeTransactionFingerprint(
+          row as unknown as { date: string; amount: number; type: string; walletId?: number; description?: string },
+        ))) {
+          report.skipped += 1;
+          continue;
+        }
+        // No per-row catch: a save failure aborts the atomic transaction and
+        // the snapshot is restored below — the user's data is never left in
+        // a half-imported state (master.md 11).
         await db.transactions.add(row as never);
         // Auto-create merchant entry for expenses
         if (row.type === 'expense' && row.description) {
           await ensureMerchant(row.description as string);
         }
         report.imported += 1;
-      } catch {
-        report.failed += 1;
-        report.errors.push(`Row ${report.imported + report.skipped + report.failed}: failed to save.`);
       }
-    }
 
-    const wallets = await db.wallets.toArray();
-    const transactions = await db.transactions.toArray();
-    const debts = await db.debts.toArray();
-    const debtPayments = await db.debtPayments.toArray();
-    
-    const recomputed = recomputeWalletCurrentBalances(wallets, transactions, debts, debtPayments);
-    for (const w of recomputed) {
-      await db.wallets.update(w.id!, {
-        currentBalance: w.currentBalance,
-        lastUpdated: new Date().toISOString(),
-      });
+      const wallets = await db.wallets.toArray();
+      const transactions = await db.transactions.toArray();
+      const debts = await db.debts.toArray();
+      const debtPayments = await db.debtPayments.toArray();
+      
+      const recomputed = recomputeWalletCurrentBalances(wallets, transactions, debts, debtPayments);
+      for (const w of recomputed) {
+        await db.wallets.update(w.id!, {
+          currentBalance: w.currentBalance,
+          lastUpdated: new Date().toISOString(),
+        });
+      }
+    });
+  } catch (err) {
+    if (snapshot) {
+      await restoreFromSnapshot(snapshot);
+      report.failed = rows.length - report.imported - report.skipped;
+      report.errors.push(`Import failed mid-way; previous data restored.`);
     }
-  });
+    throw err;
+  }
 
   // Track the CSV import for backup metadata
   await incrementChangeCount(report.imported);
