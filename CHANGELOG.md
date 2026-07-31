@@ -2,6 +2,12 @@
 
 All notable changes to Expend are documented here.
 
+## 1.13.1 - 2026-07-31
+### Fixed
+
+- Resolve 45 SonarCloud issues — S3776 cognitive complexity, S3358 nested ternaries, S6819 a11y roles, imports and test robustness
+
+
 ## 1.13.0 - 2026-07-31
 ### Added
 
