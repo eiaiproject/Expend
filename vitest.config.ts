@@ -14,7 +14,7 @@ export default defineConfig({
     include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
+      reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
         'tests/',

@@ -30,20 +30,6 @@ jobs:
         # `vite preview` is invoked by Playwright's webServer.command.
         run: npm run qa:automated
 
-      - name: Generate Coverage Report
-        # Produces coverage/lcov.info consumed by the Sonar scan below.
-        run: npm run test:unit -- --coverage
-
-      - name: SonarQube Scan
-        # SonarCloud analyzes every push to a PR and decorates it with the
-        # Quality Gate check + summary comment. Skipped until the
-        # SONAR_TOKEN secret is configured in the repository.
-        if: env.SONAR_TOKEN != ''
-        uses: sonarsource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
-
       - name: Run Lighthouse CI
         if: success()
         uses: treosh/lighthouse-ci-action@v12  # NOSONAR githubactions:S7637
