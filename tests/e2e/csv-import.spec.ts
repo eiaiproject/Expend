@@ -41,9 +41,13 @@ test.describe('csv import wizard (master.md 11)', () => {
       categories: ['Food & Drinks'],
     });
 
+    // Use recent dates so the CSV import never trips the support prompt's
+    // 30-day meaningful-use milestone (which would overlay the settings UI).
+    const isoToday = new Date().toISOString().slice(0, 10);
+    const isoYesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     const rows = [
-      '2026-07-01,Cash,Food & Drinks,Kopi Senja,15000,expense,',
-      '2026-07-02,Cash,Food & Drinks,Teh Botol,8000,expense,',
+      `${isoYesterday},Cash,Food & Drinks,Kopi Senja,15000,expense,`,
+      `${isoToday},Cash,Food & Drinks,Teh Botol,8000,expense,`,
     ];
     const file = csvFile(rows, 'transactions.csv');
 
