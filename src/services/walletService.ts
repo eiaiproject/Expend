@@ -70,6 +70,54 @@ export async function canDeleteWallet(walletId: number): Promise<{ canDelete: bo
 }
 
 /**
+ * Find all transfer-pair ids tied to the deleted wallet's transactions and the
+ * other wallets affected by unwinding those pairs.
+ */
+async function findTransferPairs(
+  walletTxs: import('../db/db').Transaction[],
+  walletId: number,
+): Promise<{ pairsToDelete: Set<number>; pairedAffectedWalletIds: Set<number> }> {
+  const pairsToDelete = new Set<number>();
+  const pairedAffectedWalletIds = new Set<number>();
+
+  for (const tx of walletTxs) {
+    if (tx.id != null) pairsToDelete.add(tx.id);
+    const groupId = tx.transferGroupId;
+    if (!groupId) continue;
+    const counterpart = await db.transactions
+      .where('transferGroupId')
+      .equals(groupId)
+      .and(t => t.id !== tx.id)
+      .first();
+    if (counterpart?.id != null) {
+      pairsToDelete.add(counterpart.id);
+      if (counterpart.walletId !== walletId) {
+        pairedAffectedWalletIds.add(counterpart.walletId);
+      }
+    }
+  }
+
+  return { pairsToDelete, pairedAffectedWalletIds };
+}
+
+/** Recompute currentBalance from history for every wallet in `ids`. */
+async function recomputeWalletBalances(ids: Iterable<number>): Promise<void> {
+  for (const id of ids) {
+    const wallet = await db.wallets.get(id);
+    if (!wallet) continue;
+    const txs = await db.transactions.where('walletId').equals(id).toArray();
+    let balance = wallet.initialBalance;
+    for (const t of txs) {
+      balance += getBalanceDelta(t.type, t.amount);
+    }
+    await db.wallets.update(id, {
+      currentBalance: balance,
+      lastUpdated: new Date().toISOString(),
+    });
+  }
+}
+
+/**
  * Delete a wallet safely inside a single Dexie transaction.
  *
  * Blocking references (always block deletion):
@@ -96,47 +144,14 @@ export async function deleteWalletSafely(walletId: number): Promise<DeleteWallet
       .where('walletId')
       .equals(walletId)
       .toArray();
-
-    const pairedAffectedWalletIds = new Set<number>();
-    const pairsToDelete = new Set<number>();
-
-    for (const tx of walletTxs) {
-      if (tx.id != null) pairsToDelete.add(tx.id);
-      const groupId = tx.transferGroupId;
-      if (!groupId) continue;
-      const counterpart = await db.transactions
-        .where('transferGroupId')
-        .equals(groupId)
-        .and(t => t.id !== tx.id)
-        .first();
-      if (counterpart?.id != null) {
-        pairsToDelete.add(counterpart.id);
-        if (counterpart.walletId !== walletId) {
-          pairedAffectedWalletIds.add(counterpart.walletId);
-        }
-      }
-    }
+    const { pairsToDelete, pairedAffectedWalletIds } = await findTransferPairs(walletTxs, walletId);
 
     // Atomic delete + balance recompute
     await db.transaction('rw', [db.transactions, db.wallets], async () => {
       if (pairsToDelete.size > 0) {
         await db.transactions.bulkDelete(Array.from(pairsToDelete));
       }
-      // Recompute balances for every wallet that lost transactions.
-      const walletsToRecompute = new Set<number>([walletId, ...pairedAffectedWalletIds]);
-      for (const id of walletsToRecompute) {
-        const wallet = await db.wallets.get(id);
-        if (!wallet) continue;
-        const txs = await db.transactions.where('walletId').equals(id).toArray();
-        let balance = wallet.initialBalance;
-        for (const t of txs) {
-          balance += getBalanceDelta(t.type, t.amount);
-        }
-        await db.wallets.update(id, {
-          currentBalance: balance,
-          lastUpdated: new Date().toISOString(),
-        });
-      }
+      await recomputeWalletBalances(new Set<number>([walletId, ...pairedAffectedWalletIds]));
       await db.wallets.delete(walletId);
     });
 

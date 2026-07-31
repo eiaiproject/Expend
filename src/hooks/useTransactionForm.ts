@@ -93,6 +93,118 @@ function getTransactionInitKey(tx: Transaction): string {
   ].join('|');
 }
 
+// ── Submit helpers (module scope keeps handleSubmit's complexity low) ──────
+
+async function resolveCategoryIdForSubmit(
+  name: string,
+  categories: readonly Category[],
+  onConfirmCreateCategory: (name: string) => Promise<boolean>,
+): Promise<number | null> {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  const existingCat = categories.find(
+    (c) => c.name.toLowerCase() === trimmed.toLowerCase(),
+  );
+  if (existingCat) return existingCat.id!;
+  const confirmed = await onConfirmCreateCategory(name);
+  if (!confirmed) return null;
+  const foundCat = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
+  if (foundCat) return foundCat.id!;
+  const usedColors = new Set(categories.map((c) => c.color));
+  const available = CURATED_PALETTE.filter((c) => !usedColors.has(c));
+  const color = available.length > 0
+    ? available[Math.floor(Math.random() * available.length)]!  // NOSONAR:S2245 — design color selection, not security
+    : CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!;  // NOSONAR:S2245 — design color selection, not security
+  const newId = await db.categories.add({ name, icon: '🏷️', color });
+  return newId ?? null;
+}
+
+interface TransferSubmitContext {
+  walletId: string;
+  toWalletId: string;
+  txToEdit?: Transaction | null;
+  date: string;
+  notes: string;
+  t: (key: string) => string;
+}
+
+async function submitTransfer(
+  ctx: TransferSubmitContext,
+  rawAmount: number,
+  trimmedDescription: string,
+): Promise<boolean> {
+  const fromId = Number.parseInt(ctx.walletId, 10);
+  const toId = Number.parseInt(ctx.toWalletId, 10);
+  if (fromId === toId) {
+    toast.add(ctx.t('Cannot transfer to the same wallet.'));
+    return false;
+  }
+  if (ctx.txToEdit?.id) {
+    const groupId = ctx.txToEdit.transferGroupId;
+    if (!groupId) {
+      toast.add(ctx.t('Cannot edit this transfer.'));
+      return false;
+    }
+    await updateTransfer({
+      transferGroupId: groupId,
+      amount: rawAmount,
+      description: trimmedDescription,
+      date: ctx.date,
+      fromWalletId: fromId,
+      toWalletId: toId,
+      notes: ctx.notes,
+    });
+    return true;
+  }
+  await saveTransfer({
+    amount: rawAmount,
+    description: trimmedDescription,
+    date: ctx.date,
+    fromWalletId: fromId,
+    toWalletId: toId,
+    notes: ctx.notes,
+  });
+  return true;
+}
+
+interface ExpenseSubmitContext {
+  categoryName: string;
+  date: string;
+  walletId: string;
+  notes: string;
+  txToEdit?: Transaction | null;
+  categories: readonly Category[];
+  onConfirmCreateCategory: (name: string) => Promise<boolean>;
+}
+
+async function submitExpense(
+  ctx: ExpenseSubmitContext,
+  rawAmount: number,
+  trimmedDescription: string,
+): Promise<void> {
+  const catId = await resolveCategoryIdForSubmit(ctx.categoryName, ctx.categories, ctx.onConfirmCreateCategory);
+  await saveTransaction(
+    {
+      amount: rawAmount,
+      description: trimmedDescription,
+      date: ctx.date,
+      walletId: Number.parseInt(ctx.walletId, 10),
+      categoryId: catId,
+      notes: ctx.notes,
+      type: ctx.txToEdit ? ctx.txToEdit.type : 'expense',
+    },
+    ctx.txToEdit?.id,
+  );
+  // Remember the wallet + category used for future suggestions
+  const walletNum = Number.parseInt(ctx.walletId, 10);
+  if (Number.isSafeInteger(walletNum)) {
+    await rememberLastUsedWallet(walletNum);
+  }
+  if (catId != null) {
+    await db.settings.put({ key: LAST_SELECTED_CATEGORY_KEY, value: catId });
+  }
+}
+
 export function useTransactionForm({
   isOpen,
   txToEdit,
@@ -421,91 +533,6 @@ export function useTransactionForm({
   }, [description, categoryName, categories, amount, walletId, notes, t]);
 
   const handleSubmit = useCallback(async (): Promise<boolean> => {
-    async function resolveCategoryId(name: string): Promise<number | null> {
-      const trimmed = name.trim();
-      if (!trimmed) return null;
-      const existingCat = categories.find(
-        (c) => c.name.toLowerCase() === trimmed.toLowerCase()
-      );
-      if (existingCat) return existingCat.id!;
-      const confirmed = await onConfirmCreateCategory(name);
-      if (!confirmed) return null;
-      const foundCat = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
-      if (foundCat) return foundCat.id!;
-      const usedColors = new Set(categories.map((c) => c.color));
-      const available = CURATED_PALETTE.filter((c) => !usedColors.has(c));
-      const color = available.length > 0
-        ? available[Math.floor(Math.random() * available.length)]!  // NOSONAR typescript:S2245 — design color selection, not security
-        : CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!;  // NOSONAR typescript:S2245 — design color selection, not security
-      const newId = await db.categories.add({ name, icon: '🏷️', color });
-      return newId ?? null;
-    }
-
-    async function handleTransferSubmit(
-      rawAmount: number,
-      trimmedDescription: string
-    ): Promise<boolean> {
-      const fromId = Number.parseInt(walletId, 10);
-      const toId = Number.parseInt(toWalletId, 10);
-      if (fromId === toId) {
-        toast.add(t('Cannot transfer to the same wallet.'));
-        return false;
-      }
-      if (txToEdit?.id) {
-        const groupId = txToEdit.transferGroupId;
-        if (!groupId) {
-          toast.add(t('Cannot edit this transfer.'));
-          return false;
-        }
-        await updateTransfer({
-          transferGroupId: groupId,
-          amount: rawAmount,
-          description: trimmedDescription,
-          date,
-          fromWalletId: fromId,
-          toWalletId: toId,
-          notes,
-        });
-        return true;
-      }
-      await saveTransfer({
-        amount: rawAmount,
-        description: trimmedDescription,
-        date,
-        fromWalletId: fromId,
-        toWalletId: toId,
-        notes,
-      });
-      return true;
-    }
-
-    async function handleExpenseSubmit(
-      rawAmount: number,
-      trimmedDescription: string
-    ): Promise<void> {
-      const catId = await resolveCategoryId(categoryName);
-      await saveTransaction(
-        {
-          amount: rawAmount,
-          description: trimmedDescription,
-          date,
-          walletId: Number.parseInt(walletId, 10),
-          categoryId: catId,
-          notes,
-          type: txToEdit ? txToEdit.type : 'expense',
-        },
-        txToEdit?.id
-      );
-      // Remember the wallet + category used for future suggestions
-      const walletNum = Number.parseInt(walletId, 10);
-      if (Number.isSafeInteger(walletNum)) {
-        await rememberLastUsedWallet(walletNum);
-      }
-      if (catId != null) {
-        await db.settings.put({ key: LAST_SELECTED_CATEGORY_KEY, value: catId });
-      }
-    }
-
     if (!amount || !date || !walletId) return false;
     if (type === 'transfer' && !toWalletId) return false;
 
@@ -519,9 +546,21 @@ export function useTransactionForm({
 
     setIsSubmitting(true);
     try {
-      const success = type === 'transfer'
-        ? await handleTransferSubmit(rawAmount, trimmedDescription)
-        : (await handleExpenseSubmit(rawAmount, trimmedDescription), true);
+      let success: boolean;
+      if (type === 'transfer') {
+        success = await submitTransfer(
+          { walletId, toWalletId, txToEdit, date, notes, t },
+          rawAmount,
+          trimmedDescription,
+        );
+      } else {
+        await submitExpense(
+          { categoryName, date, walletId, notes, txToEdit, categories, onConfirmCreateCategory },
+          rawAmount,
+          trimmedDescription,
+        );
+        success = true;
+      }
 
       if (!success) return false;
 

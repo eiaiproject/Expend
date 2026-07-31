@@ -27,6 +27,23 @@ function urgencyLabel(
   return t('upcoming.inDays', { date: displayDateMedium(date, locale) });
 }
 
+/** Icon container tone for an upcoming item (avoids a nested ternary). */
+function itemIconTone(item: UpcomingItem): string {
+  if (item.urgency === 'overdue') return 'bg-red-500/10 text-red-500';
+  if (item.kind === 'debt') return 'bg-[var(--accent)]/10 text-[var(--accent)]';
+  return 'bg-amber-500/10 text-amber-500';
+}
+
+/** Secondary label under an item title (avoids a nested ternary). */
+function itemKindLabel(
+  item: UpcomingItem,
+  frequencyLabel: UpcomingSectionProps['frequencyLabel'],
+  t: (key: string, options?: Record<string, string | number>) => string,
+): string {
+  if (item.kind === 'schedule') return frequencyLabel(item.frequency);
+  return item.type === 'payable' ? t('upcoming.payable') : t('upcoming.receivable');
+}
+
 /**
  * Compact Upcoming section on Home (master.md 7.4).
  * Shows at most three items: schedule occurrences and debt due dates.
@@ -67,14 +84,7 @@ export function UpcomingSection({ items, hideAmount = false, frequencyLabel, vie
               className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 transition-colors hover:border-[var(--accent)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
             >
               <div
-                className={cn(
-                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-                  item.urgency === 'overdue'
-                    ? 'bg-red-500/10 text-red-500'
-                    : item.kind === 'debt'
-                      ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
-                      : 'bg-amber-500/10 text-amber-500',
-                )}
+                className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full', itemIconTone(item))}
                 aria-hidden="true"
               >
                 {item.kind === 'debt' ? <Handshake size={16} /> : <ReceiptText size={16} />}
@@ -86,11 +96,7 @@ export function UpcomingSection({ items, hideAmount = false, frequencyLabel, vie
                   {item.urgency === 'overdue' && (
                     <AlertTriangle size={12} className="shrink-0 text-red-500" aria-hidden="true" />
                   )}
-                  {item.kind === 'schedule'
-                    ? frequencyLabel(item.frequency)
-                    : item.type === 'payable'
-                      ? t('upcoming.payable')
-                      : t('upcoming.receivable')}
+                  {itemKindLabel(item, frequencyLabel, t)}
                   <span aria-hidden="true">•</span>
                   {urgencyLabel(item.urgency, item.date, i18n.language, t)}
                 </p>

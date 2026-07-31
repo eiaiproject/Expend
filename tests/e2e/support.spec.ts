@@ -51,7 +51,8 @@ test.describe('support (master.md 14.3 #10/#11)', () => {
 
     // Cooldown: after a reload the prompt must not reappear.
     await page.reload();
-    await page.waitForTimeout(1_500);
+    // App bootstrap completes (and the support-prompt evaluation has run).
+    await expect(page.getByRole('heading', { name: /overview/i })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('dialog', { name: /enjoying expend/i })).not.toBeVisible();
   });
 });

@@ -196,6 +196,42 @@ export default function SchedulesView() {
     );
   };
 
+  // Body content split by loading / empty / populated states (avoids a nested ternary).
+  let pageContent: React.ReactNode;
+  if (isLoading) {
+    pageContent = (
+      <div className="space-y-3">
+        {[1, 2, 3].map((item) => <Skeleton key={item} className="h-32 w-full rounded-[16px]" />)}
+      </div>
+    );
+  } else if ((schedules ?? []).length === 0) {
+    pageContent = (
+      <EmptyState
+        icon={<Repeat size={36} />}
+        title={t('recurring.emptyTitle')}
+        description={t('recurring.emptyDesc')}
+        action={{ label: t('recurring.addCta'), onClick: () => { setScheduleToEdit(null); setIsFormOpen(true); } }}
+      />
+    );
+  } else {
+    pageContent = (
+      <div className="space-y-6">
+        {activeSchedules.length > 0 && (
+          <section aria-label={t('recurring.sectionActive')}>
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] px-1">{t('recurring.sectionActive')}</h2>
+            <ul className="space-y-3">{activeSchedules.map(renderScheduleRow)}</ul>
+          </section>
+        )}
+        {pausedSchedules.length > 0 && (
+          <section aria-label={t('recurring.sectionPaused')}>
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] px-1">{t('recurring.sectionPaused')}</h2>
+            <ul className="space-y-3">{pausedSchedules.map(renderScheduleRow)}</ul>
+          </section>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -211,38 +247,14 @@ export default function SchedulesView() {
       </div>
 
       {/* Browser limitation note (master.md 7.2) */}
-      <div className="flex items-start gap-2 rounded-[16px] border border-amber-500/20 bg-amber-500/10 p-4 text-xs text-amber-600 dark:text-amber-300" role="status">
+      <output
+        className="flex items-start gap-2 rounded-[16px] border border-amber-500/20 bg-amber-500/10 p-4 text-xs text-amber-600 dark:text-amber-300"
+      >
         <Pause size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
         <span>{t('recurring.browserLimit')}</span>
-      </div>
+      </output>
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((item) => <Skeleton key={item} className="h-32 w-full rounded-[16px]" />)}
-        </div>
-      ) : (schedules ?? []).length === 0 ? (
-        <EmptyState
-          icon={<Repeat size={36} />}
-          title={t('recurring.emptyTitle')}
-          description={t('recurring.emptyDesc')}
-          action={{ label: t('recurring.addCta'), onClick: () => { setScheduleToEdit(null); setIsFormOpen(true); } }}
-        />
-      ) : (
-        <div className="space-y-6">
-          {activeSchedules.length > 0 && (
-            <section aria-label={t('recurring.sectionActive')}>
-              <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] px-1">{t('recurring.sectionActive')}</h2>
-              <ul className="space-y-3">{activeSchedules.map(renderScheduleRow)}</ul>
-            </section>
-          )}
-          {pausedSchedules.length > 0 && (
-            <section aria-label={t('recurring.sectionPaused')}>
-              <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] px-1">{t('recurring.sectionPaused')}</h2>
-              <ul className="space-y-3">{pausedSchedules.map(renderScheduleRow)}</ul>
-            </section>
-          )}
-        </div>
-      )}
+      {pageContent}
 
       <ScheduleFormSheet
         isOpen={isFormOpen}

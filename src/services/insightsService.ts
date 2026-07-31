@@ -73,13 +73,20 @@ function addDays(dateStr: string, days: number): string {
 
 // ── Individual insight builders ───────────────────────────────────────────
 
-function buildCategoryIncrease(ctx: InsightContext): Insight | null {
-  const today = getTodayStr(ctx.now);
-  const curKey = monthKey(today);
-  const prevKey = prevMonthKey(curKey);
+interface CategoryPeriodTotals {
+  cur: number;
+  curCount: number;
+  prev: number;
+  prevCount: number;
+}
 
-  const expenses = ctx.transactions.filter((t) => t.type === 'expense' && t.categoryId != null);
-  const byCategory = new Map<number, { cur: number; curCount: number; prev: number; prevCount: number }>();
+/** Aggregate expense totals by category for the current and previous month keys. */
+function aggregateCategoryPeriods(
+  expenses: Transaction[],
+  curKey: string,
+  prevKey: string,
+): Map<number, CategoryPeriodTotals> {
+  const byCategory = new Map<number, CategoryPeriodTotals>();
   for (const t of expenses) {
     if (!t.categoryId) continue;
     const entry = byCategory.get(t.categoryId) ?? { cur: 0, curCount: 0, prev: 0, prevCount: 0 };
@@ -87,18 +94,38 @@ function buildCategoryIncrease(ctx: InsightContext): Insight | null {
     else if (isInMonth(t.date, prevKey)) { entry.prev += t.amount; entry.prevCount += 1; }
     byCategory.set(t.categoryId, entry);
   }
+  return byCategory;
+}
 
+/**
+ * Find the category with the strongest meaningful increase between the two
+ * periods. Guardrails: enough current samples, a comparable previous period,
+ * and a meaningful increase (>= 50%). Sparse data never claims a trend.
+ */
+function findTopCategoryIncrease(
+  byCategory: Map<number, CategoryPeriodTotals>,
+  categories: readonly Category[],
+): { cat: Category; pct: number } | null {
   let best: { cat: Category; pct: number } | null = null;
   for (const [catId, v] of byCategory) {
-    // Guardrails: enough current samples, a comparable previous period, and
-    // a meaningful increase (>= 50%). Sparse data never claims a trend.
     if (v.curCount < 3 || v.prevCount < 1 || v.prev <= 0) continue;
     const pct = Math.round(((v.cur - v.prev) / v.prev) * 100);
     if (pct < 50) continue;
-    const cat = ctx.categories.find((c) => c.id === catId);
+    const cat = categories.find((c) => c.id === catId);
     if (!cat || cat.archivedAt) continue;
     if (!best || pct > best.pct) best = { cat, pct };
   }
+  return best;
+}
+
+function buildCategoryIncrease(ctx: InsightContext): Insight | null {
+  const today = getTodayStr(ctx.now);
+  const curKey = monthKey(today);
+  const prevKey = prevMonthKey(curKey);
+
+  const expenses = ctx.transactions.filter((t) => t.type === 'expense' && t.categoryId != null);
+  const byCategory = aggregateCategoryPeriods(expenses, curKey, prevKey);
+  const best = findTopCategoryIncrease(byCategory, ctx.categories);
   if (!best) return null;
 
   return {

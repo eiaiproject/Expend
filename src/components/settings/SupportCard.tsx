@@ -13,8 +13,7 @@ export function SupportCard() {
   const { t } = useTranslation();
 
   return (
-    <div
-      role="region"
+    <section
       aria-label={t('settings.supportCardTitle')}
       className="rounded-2xl border border-[var(--accent)]/25 bg-gradient-to-br from-[var(--accent)]/10 via-[var(--card)] to-[var(--card)] p-5 space-y-3"
     >
@@ -44,6 +43,6 @@ export function SupportCard() {
       <p className="text-xs text-center text-[var(--text-secondary)]">
         {t('settings.supportCardNote')}
       </p>
-    </div>
+    </section>
   );
 }

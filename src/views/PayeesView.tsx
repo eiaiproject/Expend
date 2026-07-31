@@ -43,8 +43,148 @@ interface MerchantWithStats extends Merchant {
   readonly stats: PayeeStats;
 }
 
+interface MerchantDetailViewProps {
+  readonly merchant: MerchantWithStats;
+  readonly favoriteKeySet: ReadonlySet<string>;
+  readonly categoryMap: Record<number, import('../db/db').Category>;
+  readonly walletMap: Record<number, import('../db/db').Wallet>;
+  readonly transactions: readonly import('../db/db').Transaction[] | undefined;
+  readonly hideAmount: boolean;
+  readonly onBack: () => void;
+  readonly onAddExpense: (name: string) => void;
+  readonly onToggleFavorite: (merchant: MerchantWithStats) => void;
+  readonly onRename: (merchant: MerchantWithStats) => void;
+  readonly onAddAlias: (merchant: MerchantWithStats) => Promise<void>;
+  readonly onRemoveAlias: (merchant: MerchantWithStats, alias: string) => void;
+  readonly onArchive: (merchant: MerchantWithStats) => void;
+}
 
-// NOSONAR:S3776 — cognitive complexity is inherent to this business logic
+/** Payee detail view: summary, aliases, history. Kept separate to keep the list view lean. */
+function MerchantDetailView({
+  merchant,
+  favoriteKeySet,
+  categoryMap,
+  walletMap,
+  transactions,
+  hideAmount,
+  onBack,
+  onAddExpense,
+  onToggleFavorite,
+  onRename,
+  onAddAlias,
+  onRemoveAlias,
+  onArchive,
+}: MerchantDetailViewProps) {
+  const { t, i18n } = useTranslation();
+  const isArchived = !!merchant.archivedAt;
+  const isFavorite = favoriteKeySet.has(normalizePayeeKey(merchant.displayName));
+  const detailMenuItems = [
+    {
+      label: isFavorite ? t('payees.removeFavorite') : t('payees.addFavorite'),
+      onClick: () => onToggleFavorite(merchant),
+    },
+    { label: t('payees.renameMerchant'), onClick: () => onRename(merchant) },
+    { label: t('payees.manageAliases'), onClick: () => void onAddAlias(merchant) },
+    ...(isArchived
+      ? [{ label: t('payees.restoreMerchant'), onClick: () => onArchive(merchant) }]
+      : [{ label: t('payees.archiveMerchant'), onClick: () => onArchive(merchant) }]
+    ),
+  ];
+
+  return (
+    <div className="p-4 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={onBack}
+          className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--border)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          aria-label={t('payees.backToList')}
+        >
+          <ArrowLeft size={20} aria-hidden="true" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold truncate">{merchant.displayName}</h1>
+          <p className="text-sm text-[var(--text-secondary)]">
+            {t('Merchant')}{isArchived && <span className="ml-2 text-xs italic">· {t('Archived')}</span>}
+          </p>
+        </div>
+        <CategoryOverflowMenu categoryName={merchant.displayName} items={detailMenuItems} />
+      </div>
+
+      {/* Summary */}
+      <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4">
+        <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-3">{t('All Time')}</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-[var(--text-secondary)]">{t('payees.totalSpending')}</p>
+            <p className="text-xl font-mono font-bold">{hideAmount ? '•••••' : formatCurrency(merchant.stats.totalExpense)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-[var(--text-secondary)]">{t('payees.transactionCount')}</p>
+            <p className="text-xl font-mono font-bold">{merchant.stats.transactionCount} {t('Txs')}</p>
+          </div>
+          <div>
+            <p className="text-xs text-[var(--text-secondary)]">{t('payees.avgPerTransaction')}</p>
+            <p className="text-xl font-mono font-bold">{hideAmount ? '•••••' : formatCurrency(merchant.stats.averageAmount)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-[var(--text-secondary)]">{t('payees.lastActivity')}</p>
+            <p className="text-sm font-medium">{merchant.stats.lastTransactionDate ? displayDateMedium(merchant.stats.lastTransactionDate, i18n.language) : '—'}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Aliases */}
+      {merchant.aliases.length > 0 && (
+        <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4">
+          <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{t('payees.aliases')}</p>
+          <div className="flex flex-wrap gap-2">
+            {merchant.aliases.map(alias => (
+              <span key={alias} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--bg)] border border-[var(--border)] text-xs">
+                {alias}
+                <button type="button" onClick={() => onRemoveAlias(merchant, alias)}
+                  className="text-[var(--text-secondary)] hover:text-red-500 ml-1" aria-label={t('payees.removeAlias', { alias })}>
+                  <X size={12} aria-hidden="true" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Original name */}
+      {merchant.originalName !== merchant.displayName && (
+        <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4">
+          <p className="text-xs text-[var(--text-secondary)]">{t('payees.originalName')}: <span className="font-medium text-[var(--text-primary)]">{merchant.originalName}</span></p>
+        </div>
+      )}
+
+      {/* Add Expense CTA */}
+      <button type="button" onClick={() => onAddExpense(merchant.displayName)}
+        className="w-full flex items-center justify-center gap-2 h-12 bg-[var(--accent)] text-white rounded-xl font-medium hover:opacity-90 transition-colors">
+        <Plus size={18} aria-hidden="true" />
+        {t('payees.addExpenseFor', { name: merchant.displayName })}
+      </button>
+
+      {/* Transaction History */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-bold">{t('payees.transactionHistory')}</h2>
+        {transactions && transactions.length > 0 ? (
+          <div className="space-y-2">
+            {transactions.map(tx => (
+              <TransactionCard key={tx.id} tx={tx} categoryMap={categoryMap} walletMap={walletMap}
+                searchTerm="" hideAmount={hideAmount} isSelectionMode={false} isSelected={false}
+                onSelect={() => {}} onClick={() => {}} onEdit={() => {}} onDelete={() => {}} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState title={t('payees.noTransactionsYet')} description={t('payees.noTransactionsForMerchant', { name: merchant.displayName })}
+            action={{ label: t('payees.addFirstExpense'), onClick: () => onAddExpense(merchant.displayName) }} />
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PayeesView() {
   const { t, i18n } = useTranslation();
   const { hideAmount } = usePrivacy();
@@ -263,117 +403,26 @@ export default function PayeesView() {
 
   // ── Detail view ────────────────────────────────────────────
   if (selectedMerchant) {
-    const m = selectedMerchant;
-    const isArchived = !!m.archivedAt;
-    const isFavorite = favoriteKeySet.has(normalizePayeeKey(m.displayName));
-    const detailMenuItems = [
-      {
-        label: isFavorite ? t('payees.removeFavorite') : t('payees.addFavorite'),
-        onClick: () => handleToggleFavorite(m),
-      },
-      { label: t('payees.renameMerchant'), onClick: () => { setRenamingMerchant(m); setNewMerchantName(m.displayName); } },
-      { label: t('payees.manageAliases'), onClick: async () => {
-        const alias = window.prompt(t('payees.addAliasPrompt'));
-        if (alias) { await addMerchantAlias(m.id!, alias); toast.add(t('payees.aliasAdded')); }
-      }},
-      ...(isArchived
-        ? [{ label: t('payees.restoreMerchant'), onClick: () => handleArchive(m) }]
-        : [{ label: t('payees.archiveMerchant'), onClick: () => handleArchive(m) }]
-      ),
-    ];
-
     return (
       <>
-        <div className="p-4 space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={() => setSelectedMerchantId(null)}
-              className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--border)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-              aria-label={t('payees.backToList')}
-            >
-              <ArrowLeft size={20} aria-hidden="true" />
-            </button>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold truncate">{m.displayName}</h1>
-              <p className="text-sm text-[var(--text-secondary)]">
-                {t('Merchant')}{isArchived && <span className="ml-2 text-xs italic">· {t('Archived')}</span>}
-              </p>
-            </div>
-            <CategoryOverflowMenu categoryName={m.displayName} items={detailMenuItems} />
-          </div>
-
-          {/* Summary */}
-          <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4">
-            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-3">{t('All Time')}</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-[var(--text-secondary)]">{t('payees.totalSpending')}</p>
-                <p className="text-xl font-mono font-bold">{hideAmount ? '•••••' : formatCurrency(m.stats.totalExpense)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-[var(--text-secondary)]">{t('payees.transactionCount')}</p>
-                <p className="text-xl font-mono font-bold">{m.stats.transactionCount} {t('Txs')}</p>
-              </div>
-              <div>
-                <p className="text-xs text-[var(--text-secondary)]">{t('payees.avgPerTransaction')}</p>
-                <p className="text-xl font-mono font-bold">{hideAmount ? '•••••' : formatCurrency(m.stats.averageAmount)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-[var(--text-secondary)]">{t('payees.lastActivity')}</p>
-                <p className="text-sm font-medium">{m.stats.lastTransactionDate ? displayDateMedium(m.stats.lastTransactionDate, i18n.language) : '—'}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Aliases */}
-          {m.aliases.length > 0 && (
-            <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4">
-              <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{t('payees.aliases')}</p>
-              <div className="flex flex-wrap gap-2">
-                {m.aliases.map(alias => (
-                  <span key={alias} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--bg)] border border-[var(--border)] text-xs">
-                    {alias}
-                    <button type="button" onClick={async () => { await removeMerchantAlias(m.id!, alias); toast.add(t('payees.aliasRemoved')); }}
-                      className="text-[var(--text-secondary)] hover:text-red-500 ml-1" aria-label={t('payees.removeAlias', { alias })}>
-                      <X size={12} aria-hidden="true" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Original name */}
-          {m.originalName !== m.displayName && (
-            <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4">
-              <p className="text-xs text-[var(--text-secondary)]">{t('payees.originalName')}: <span className="font-medium text-[var(--text-primary)]">{m.originalName}</span></p>
-            </div>
-          )}
-
-          {/* Add Expense CTA */}
-          <button type="button" onClick={() => openAddExpense(m.displayName)}
-            className="w-full flex items-center justify-center gap-2 h-12 bg-[var(--accent)] text-white rounded-xl font-medium hover:opacity-90 transition-colors">
-            <Plus size={18} aria-hidden="true" />
-            {t('payees.addExpenseFor', { name: m.displayName })}
-          </button>
-
-          {/* Transaction History */}
-          <div className="space-y-3">
-            <h2 className="text-lg font-bold">{t('payees.transactionHistory')}</h2>
-            {selectedTransactions && selectedTransactions.length > 0 ? (
-              <div className="space-y-2">
-                {selectedTransactions.map(tx => (
-                  <TransactionCard key={tx.id} tx={tx} categoryMap={categoryMap} walletMap={walletMap}
-                    searchTerm="" hideAmount={hideAmount} isSelectionMode={false} isSelected={false}
-                    onSelect={() => {}} onClick={() => {}} onEdit={() => {}} onDelete={() => {}} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState title={t('payees.noTransactionsYet')} description={t('payees.noTransactionsForMerchant', { name: m.displayName })}
-                action={{ label: t('payees.addFirstExpense'), onClick: () => openAddExpense(m.displayName) }} />
-            )}
-          </div>
-        </div>
+        <MerchantDetailView
+          merchant={selectedMerchant}
+          favoriteKeySet={favoriteKeySet}
+          categoryMap={categoryMap}
+          walletMap={walletMap}
+          transactions={selectedTransactions}
+          hideAmount={hideAmount}
+          onBack={() => setSelectedMerchantId(null)}
+          onAddExpense={openAddExpense}
+          onToggleFavorite={handleToggleFavorite}
+          onRename={(m) => { setRenamingMerchant(m); setNewMerchantName(m.displayName); }}
+          onAddAlias={async (m) => {
+            const alias = window.prompt(t('payees.addAliasPrompt'));
+            if (alias) { await addMerchantAlias(m.id!, alias); toast.add(t('payees.aliasAdded')); }
+          }}
+          onRemoveAlias={async (m, alias) => { await removeMerchantAlias(m.id!, alias); toast.add(t('payees.aliasRemoved')); }}
+          onArchive={handleArchive}
+        />
         {renameDialog}
         <Suspense fallback={null}>
           <TransactionFormSheet isOpen={isAddTxOpen} onClose={() => { setIsAddTxOpen(false); setTxInitialDescription(undefined); }} initialDescription={txInitialDescription} />
@@ -434,27 +483,28 @@ export default function PayeesView() {
         </div>
 
         {/* Quick sort chips (master.md 6.7) — common needs up front */}
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" role="list" aria-label={t('payees.quickSortLabel')}>
+        <ul className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 list-none" aria-label={t('payees.quickSortLabel')}>
           {QUICK_SORTS.map((opt) => {
             const isActive = sortConfig.field === opt.field && sortConfig.order === opt.order;
             return (
-              <button
-                key={opt.labelKey}
-                type="button"
-                onClick={() => setSortConfig({ field: opt.field, order: opt.order })}
-                className={cn(
-                  "shrink-0 px-3 py-2 rounded-lg border text-sm font-medium min-h-[44px] transition-colors",
-                  isActive
-                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                    : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] hover:text-[var(--text-primary)]"
-                )}
-                aria-pressed={isActive}
-              >
-                {t(opt.labelKey)}
-              </button>
+              <li key={opt.labelKey}>
+                <button
+                  type="button"
+                  onClick={() => setSortConfig({ field: opt.field, order: opt.order })}
+                  className={cn(
+                    "shrink-0 px-3 py-2 rounded-lg border text-sm font-medium min-h-[44px] transition-colors",
+                    isActive
+                      ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                      : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] hover:text-[var(--text-primary)]"
+                  )}
+                  aria-pressed={isActive}
+                >
+                  {t(opt.labelKey)}
+                </button>
+              </li>
             );
           })}
-        </div>
+        </ul>
 
         {/* Sort & Filter */}
         <div className="flex gap-2">

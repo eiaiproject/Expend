@@ -200,9 +200,10 @@ test.describe('export and import', () => {
     const preview = page.getByRole('dialog', { name: /backup found/i });
     await expect(preview).toBeVisible();
     await expect(preview.getByText(new RegExp(walletName))).toBeVisible();
+    const reloaded = page.waitForEvent('framenavigated');
     await preview.getByRole('button', { name: /restore now/i }).click();
     await expect(page.getByRole('status').getByText(/restored|success/i)).toBeVisible();
-    await page.waitForTimeout(800); // reload after restore
+    await reloaded; // reload after restore
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: /overview/i })).toBeVisible();

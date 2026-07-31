@@ -173,6 +173,49 @@ function daysBetween(now: Date, then: string): number {
   return Math.max(0, Math.floor((now.getTime() - thenMs) / DAY_MS));
 }
 
+const NO_PROMPT: SupportPromptEvaluation = { show: false, milestoneKey: null };
+
+/** True when any cooldown/suppression window is still active. */
+function isPromptSuppressed(state: SupportPromptState, now: Date): boolean {
+  if (state.permanentlySuppressed) return true;
+  if (state.supportClickedAt && daysBetween(now, state.supportClickedAt) < SUPPORT_CLICK_SUPPRESSION_DAYS) return true;
+  if (state.lastPromptShownAt && daysBetween(now, state.lastPromptShownAt) < SUPPORT_PROMPT_COOLDOWN_DAYS) return true;
+  if (state.lastPromptDismissedAt && daysBetween(now, state.lastPromptDismissedAt) < SUPPORT_PROMPT_COOLDOWN_DAYS) return true;
+  return false;
+}
+
+/**
+ * Pick the first eligible milestone that has not prompted yet, or null.
+ * Keeps the milestone rules together while lowering evaluateSupportPrompt's
+ * cognitive complexity.
+ */
+function pickEligibleMilestone(
+  state: SupportPromptState,
+  useDays: number,
+  txCount: number,
+  meaningfulUse: boolean,
+): SupportMilestoneKey | null {
+  const prompted = (key: SupportMilestoneKey) => state.promptedMilestones.includes(key);
+
+  // Successful restore
+  if (state.milestoneEvents['restore'] && !prompted('restore') && meaningfulUse) {
+    return 'restore';
+  }
+  // Settled debt
+  if (state.milestoneEvents['debt-settled'] && !prompted('debt-settled') && meaningfulUse) {
+    return 'debt-settled';
+  }
+  // 100 transactions
+  if (txCount >= SUPPORT_TX_MILESTONE && !prompted('100-tx') && meaningfulUse) {
+    return '100-tx';
+  }
+  // 30 days of meaningful use
+  if (useDays >= SUPPORT_LONG_USE_DAYS && !prompted('30-days')) {
+    return '30-days';
+  }
+  return null;
+}
+
 /**
  * Pure evaluation of whether the contextual support prompt should show.
  * Deterministic and unit-testable.
@@ -180,37 +223,11 @@ function daysBetween(now: Date, then: string): number {
 export function evaluateSupportPrompt(input: EvaluateSupportPromptInput): SupportPromptEvaluation {
   const { state, now, txCount, hasBackup, firstTransactionDate } = input;
 
-  // Never before the first completed transaction
-  if (txCount <= 0) return { show: false, milestoneKey: null };
-
-  // Permanent suppression
-  if (state.permanentlySuppressed) return { show: false, milestoneKey: null };
-
-  // Support action clicked → long suppression window
-  if (state.supportClickedAt) {
-    if (daysBetween(now, state.supportClickedAt) < SUPPORT_CLICK_SUPPRESSION_DAYS) {
-      return { show: false, milestoneKey: null };
-    }
-  }
-
-  // Cooldown after a prompt was shown
-  if (state.lastPromptShownAt) {
-    if (daysBetween(now, state.lastPromptShownAt) < SUPPORT_PROMPT_COOLDOWN_DAYS) {
-      return { show: false, milestoneKey: null };
-    }
-  }
-
-  // Cooldown after a dismissal
-  if (state.lastPromptDismissedAt) {
-    if (daysBetween(now, state.lastPromptDismissedAt) < SUPPORT_PROMPT_COOLDOWN_DAYS) {
-      return { show: false, milestoneKey: null };
-    }
-  }
-
-  const prompted = (key: SupportMilestoneKey) => state.promptedMilestones.includes(key);
+  // Never before the first completed transaction, and respect all cooldowns
+  if (txCount <= 0 || isPromptSuppressed(state, now)) return NO_PROMPT;
 
   // Strong milestone: first successful backup bypasses the 14-day gate
-  if (hasBackup && !prompted('first-backup')) {
+  if (hasBackup && !state.promptedMilestones.includes('first-backup')) {
     return { show: true, milestoneKey: 'first-backup' };
   }
 
@@ -219,27 +236,12 @@ export function evaluateSupportPrompt(input: EvaluateSupportPromptInput): Suppor
     : 0;
   const meaningfulUse = useDays >= SUPPORT_MEANINGFUL_USE_DAYS;
 
-  // Successful restore
-  if (state.milestoneEvents['restore'] && !prompted('restore') && meaningfulUse) {
-    return { show: true, milestoneKey: 'restore' };
+  const milestone = pickEligibleMilestone(state, useDays, txCount, meaningfulUse);
+  if (milestone) {
+    return { show: true, milestoneKey: milestone };
   }
 
-  // Settled debt
-  if (state.milestoneEvents['debt-settled'] && !prompted('debt-settled') && meaningfulUse) {
-    return { show: true, milestoneKey: 'debt-settled' };
-  }
-
-  // 100 transactions
-  if (txCount >= SUPPORT_TX_MILESTONE && !prompted('100-tx') && meaningfulUse) {
-    return { show: true, milestoneKey: '100-tx' };
-  }
-
-  // 30 days of meaningful use
-  if (useDays >= SUPPORT_LONG_USE_DAYS && !prompted('30-days')) {
-    return { show: true, milestoneKey: '30-days' };
-  }
-
-  return { show: false, milestoneKey: null };
+  return NO_PROMPT;
 }
 
 /**

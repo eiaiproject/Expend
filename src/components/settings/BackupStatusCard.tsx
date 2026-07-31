@@ -15,21 +15,21 @@ import type { BackupStatusType } from '../../services/backupService';
 
 export interface BackupStatusCardProps {
   /** The current backup status type */
-  status: BackupStatusType;
+  readonly status: BackupStatusType;
   /** ISO timestamp of the last backup, or null */
-  lastBackupAt: string | null;
+  readonly lastBackupAt: string | null;
   /** Days since last backup, or null if never */
-  daysSinceBackup: number | null;
+  readonly daysSinceBackup: number | null;
   /** Number of changes since last backup */
-  changesSinceBackup: number;
+  readonly changesSinceBackup: number;
   /** Whether data is loading */
-  loading: boolean;
+  readonly loading: boolean;
   /** Callback when "Back Up Now" is clicked */
-  onBackupNow: () => void;
+  readonly onBackupNow: () => void;
   /** Callback when "Restore Backup" is clicked */
-  onRestore: () => void;
+  readonly onRestore: () => void;
   /** Callback when "Import/Export" is clicked */
-  onImportExport: () => void;
+  readonly onImportExport: () => void;
 }
 
 export function BackupStatusCard({
@@ -57,36 +57,12 @@ export function BackupStatusCard({
   const statusConfig = getStatusConfig(status, t);
 
   return (
-    <div
-      className={`rounded-xl border p-4 ${
-        status === 'never' || status === 'many_changes'
-          ? 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20'
-          : status === 'old' || status === 'changes'
-            ? 'border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20'
-            : 'border-[var(--border)] bg-[var(--card)]'
-      }`}
-    >
+    <div className={`rounded-xl border p-4 ${getCardTone(status)}`}>
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
-          <div
-            className={`rounded-lg p-2 ${
-              status === 'never' || status === 'many_changes'
-                ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
-                : status === 'old' || status === 'changes'
-                  ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400'
-                  : status === 'recent'
-                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-[var(--accent)]/10 text-[var(--accent)]'
-            }`}
-          >
-            {status === 'recent' ? (
-              <CheckCircle size={18} aria-hidden="true" />
-            ) : status === 'never' ? (
-              <AlertTriangle size={18} aria-hidden="true" />
-            ) : (
-              <Clock size={18} aria-hidden="true" />
-            )}
+          <div className={`rounded-lg p-2 ${getIconTone(status)}`}>
+            {getStatusIcon(status)}
           </div>
           <div>
             <h3 className="text-sm font-bold text-[var(--text-primary)]">
@@ -99,15 +75,7 @@ export function BackupStatusCard({
         </div>
 
         {/* Status badge */}
-        <span
-          className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-full ${
-            status === 'recent'
-              ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
-              : status === 'never' || status === 'many_changes'
-                ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
-                : 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'
-          }`}
-        >
+        <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-full ${getBadgeTone(status)}`}>
           {statusConfig.badge}
         </span>
       </div>
@@ -168,6 +136,51 @@ interface StatusConfig {
   badge: string;
 }
 
+// ── Tone helpers (replaces nested ternaries in JSX) ───────────
+
+function getCardTone(status: BackupStatusType): string {
+  if (status === 'never' || status === 'many_changes') {
+    return 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20';
+  }
+  if (status === 'old' || status === 'changes') {
+    return 'border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20';
+  }
+  return 'border-[var(--border)] bg-[var(--card)]';
+}
+
+function getIconTone(status: BackupStatusType): string {
+  if (status === 'never' || status === 'many_changes') {
+    return 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400';
+  }
+  if (status === 'old' || status === 'changes') {
+    return 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400';
+  }
+  if (status === 'recent') {
+    return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400';
+  }
+  return 'bg-[var(--accent)]/10 text-[var(--accent)]';
+}
+
+function getBadgeTone(status: BackupStatusType): string {
+  if (status === 'recent') {
+    return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300';
+  }
+  if (status === 'never' || status === 'many_changes') {
+    return 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300';
+  }
+  return 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300';
+}
+
+function getStatusIcon(status: BackupStatusType): React.ReactNode {
+  if (status === 'recent') {
+    return <CheckCircle size={18} aria-hidden="true" />;
+  }
+  if (status === 'never') {
+    return <AlertTriangle size={18} aria-hidden="true" />;
+  }
+  return <Clock size={18} aria-hidden="true" />;
+}
+
 function getStatusConfig(status: BackupStatusType, t: (key: string, opts?: any) => string): StatusConfig {
   switch (status) {
     case 'never':
@@ -175,12 +188,6 @@ function getStatusConfig(status: BackupStatusType, t: (key: string, opts?: any) 
         title: t('backup.statusNeverTitle'),
         description: t('backup.statusNeverDesc'),
         badge: t('backup.statusNeverBadge'),
-      };
-    case 'recent':
-      return {
-        title: t('backup.statusRecentTitle'),
-        description: t('backup.statusRecentDesc'),
-        badge: t('backup.statusRecentBadge'),
       };
     case 'old':
       return {
@@ -201,6 +208,7 @@ function getStatusConfig(status: BackupStatusType, t: (key: string, opts?: any) 
         badge: t('backup.statusManyChangesBadge'),
       };
     default:
+      // 'recent' and any future/unknown status use the calm success state.
       return {
         title: t('backup.statusRecentTitle'),
         description: t('backup.statusRecentDesc'),

@@ -121,61 +121,51 @@ export const STORAGE_ERRORS: Record<StorageErrorCode, Omit<StorageErrorInfo, 'co
   },
 };
 
+interface StorageErrorMatcher {
+  code: StorageErrorCode;
+  matches: (lower: string) => boolean;
+}
+
+/**
+ * Lower-cased, stringified error text for pattern matching.
+ * Avoids the default '[object Object]' stringification of plain objects.
+ */
+function errorMessageText(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (typeof error === 'object' && error !== null) {
+    try {
+      const serialized = JSON.stringify(error);
+      if (serialized) return serialized;
+    } catch {
+      // fall through to the generic fallback
+    }
+  }
+  return 'Unknown error';
+}
+
+const STORAGE_ERROR_MATCHERS: StorageErrorMatcher[] = [
+  { code: 'IDB_UNAVAILABLE', matches: (m) => m.includes('indexeddb') && (m.includes('unavailable') || m.includes('not available') || m.includes('not supported')) },
+  { code: 'PRIVATE_BROWSING', matches: (m) => m.includes('private') && (m.includes('browsing') || m.includes('mode')) },
+  { code: 'STORAGE_QUOTA_EXCEEDED', matches: (m) => m.includes('quota') || m.includes('exceeded') || m.includes('full') },
+  { code: 'MIGRATION_FAILED', matches: (m) => m.includes('migration') && (m.includes('fail') || m.includes('version')) },
+  { code: 'DB_TRANSACTION_ABORTED', matches: (m) => m.includes('abort') || (m.includes('transaction') && m.includes('fail')) },
+  { code: 'CORRUPTED_RECORDS', matches: (m) => m.includes('corrupt') || m.includes('unreadable') || m.includes('integrity') },
+  { code: 'UNSUPPORTED_BACKUP_VERSION', matches: (m) => m.includes('backup') && (m.includes('version') || m.includes('unsupported')) },
+  { code: 'INVALID_IMPORT_FILE', matches: (m) => m.includes('import') && (m.includes('invalid') || m.includes('malformed')) },
+  { code: 'SW_VERSION_MISMATCH', matches: (m) => m.includes('service worker') || m.includes('version mismatch') },
+];
+
 /**
  * Classify an error into a known StorageErrorCode.
  * Returns UNKNOWN if the error does not match any known pattern.
  */
 export function classifyStorageError(error: unknown): StorageErrorCode {
   if (!error) return 'UNKNOWN';
-  const message = error instanceof Error ? error.message : String(error);
-  const lower = message.toLowerCase();
-
-  if (
-    lower.includes('indexeddb') && (lower.includes('unavailable') || lower.includes('not available') || lower.includes('not supported'))
-  ) {
-    return 'IDB_UNAVAILABLE';
+  const lower = errorMessageText(error).toLowerCase();
+  for (const { code, matches } of STORAGE_ERROR_MATCHERS) {
+    if (matches(lower)) return code;
   }
-  if (
-    lower.includes('private') && (lower.includes('browsing') || lower.includes('mode'))
-  ) {
-    return 'PRIVATE_BROWSING';
-  }
-  if (
-    lower.includes('quota') || lower.includes('exceeded') || lower.includes('full')
-  ) {
-    return 'STORAGE_QUOTA_EXCEEDED';
-  }
-  if (
-    lower.includes('migration') && (lower.includes('fail') || lower.includes('version'))
-  ) {
-    return 'MIGRATION_FAILED';
-  }
-  if (
-    lower.includes('abort') || lower.includes('transaction') && lower.includes('fail')
-  ) {
-    return 'DB_TRANSACTION_ABORTED';
-  }
-  if (
-    lower.includes('corrupt') || lower.includes('unreadable') || lower.includes('integrity')
-  ) {
-    return 'CORRUPTED_RECORDS';
-  }
-  if (
-    lower.includes('backup') && (lower.includes('version') || lower.includes('unsupported'))
-  ) {
-    return 'UNSUPPORTED_BACKUP_VERSION';
-  }
-  if (
-    lower.includes('import') && (lower.includes('invalid') || lower.includes('malformed'))
-  ) {
-    return 'INVALID_IMPORT_FILE';
-  }
-  if (
-    lower.includes('service worker') || lower.includes('version mismatch')
-  ) {
-    return 'SW_VERSION_MISMATCH';
-  }
-
   return 'UNKNOWN';
 }
 

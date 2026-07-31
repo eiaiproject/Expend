@@ -144,20 +144,7 @@ export function sanitizeCsvRows<T extends object>(rows: T[]): Record<string, unk
   ));
 }
 
-/**
- * Validate that a parsed JSON object is a valid import payload.
- * Returns an array of error messages (empty = valid).
- */
- // NOSONAR:S3776 — cognitive complexity is inherent to this business logic
-export function validateImportData(json: unknown): string[] {
-  const errors: string[] = [];
-
-  if (!isRecord(json)) {
-    return ['Invalid JSON structure.'];
-  }
-
-  const data = json;
-
+function validateRootArrays(data: Record<string, unknown>, errors: string[]): void {
   if (!Array.isArray(data.wallets)) {
     errors.push('Missing or invalid "wallets" array.');
   }
@@ -177,16 +164,17 @@ export function validateImportData(json: unknown): string[] {
   if (rawDebtPayments !== undefined && !Array.isArray(rawDebtPayments)) {
     errors.push('Invalid "debtPayments" array.');
   }
+}
 
-  if (errors.length > 0) return errors;
-
-  const wallets = data.wallets as unknown[];
-  const categories = data.categories as unknown[];
-  const transactions = data.transactions as unknown[];
-  const debts = (data.debts ?? []) as unknown[];
-  const debtPayments = ((data.debtPayments ?? data.debt_payments) ?? []) as unknown[];
-  const settings = (data.settings ?? []) as unknown[];
-
+function validateImportCounts(
+  wallets: unknown[],
+  categories: unknown[],
+  transactions: unknown[],
+  debts: unknown[],
+  debtPayments: unknown[],
+  settings: unknown[],
+  errors: string[],
+): void {
   if (wallets.length > MAX_IMPORT_RECORDS.wallets) {
     errors.push(`Too many wallets. Maximum supported is ${MAX_IMPORT_RECORDS.wallets}.`);
   }
@@ -205,8 +193,10 @@ export function validateImportData(json: unknown): string[] {
   if (settings.length > MAX_IMPORT_RECORDS.settings) {
     errors.push(`Too many settings. Maximum supported is ${MAX_IMPORT_RECORDS.settings}.`);
   }
+}
 
-  // Validate wallet fields
+/** Validate wallet records and return the set of referenced ids. */
+function validateWalletRecords(wallets: readonly unknown[], errors: string[]): Set<number> {
   const walletIds = new Set<number>();
   for (let i = 0; i < wallets.length; i++) {
     const w = wallets[i];
@@ -236,8 +226,11 @@ export function validateImportData(json: unknown): string[] {
       errors.push(`Wallet "${String(w.name) || i}": "currentBalance" must be a finite number within supported range when present.`);
     }
   }
+  return walletIds;
+}
 
-  // Validate category fields
+/** Validate category records and return the set of referenced ids. */
+function validateCategoryRecords(categories: readonly unknown[], errors: string[]): Set<number> {
   const categoryIds = new Set<number>();
   for (let i = 0; i < categories.length; i++) {
     const c = categories[i];
@@ -264,8 +257,15 @@ export function validateImportData(json: unknown): string[] {
       errors.push(`Category ${i}: "budget" must be a finite number within supported range when present.`);
     }
   }
+  return categoryIds;
+}
 
-  // Validate transaction fields
+function validateTransactionRecords(
+  transactions: readonly unknown[],
+  walletIds: ReadonlySet<number>,
+  categoryIds: ReadonlySet<number>,
+  errors: string[],
+): void {
   for (let i = 0; i < transactions.length; i++) {
     const tx = transactions[i];
     if (!isRecord(tx)) {
@@ -314,7 +314,14 @@ export function validateImportData(json: unknown): string[] {
       errors.push(`Transaction ${i}: "transferGroupId" must be a string up to ${MAX_LENGTH.transferGroupId} characters.`);
     }
   }
+}
 
+/** Validate debt records and return the set of referenced ids. */
+function validateDebtRecords(
+  debts: readonly unknown[],
+  walletIds: ReadonlySet<number>,
+  errors: string[],
+): Set<string> {
   const debtIds = new Set<string>();
   for (let i = 0; i < debts.length; i++) {
     const debt = debts[i];
@@ -349,7 +356,15 @@ export function validateImportData(json: unknown): string[] {
       errors.push(`Debt ${i}: "dueDate" must be null or a YYYY-MM-DD string.`);
     }
   }
+  return debtIds;
+}
 
+function validateDebtPaymentRecords(
+  debtPayments: readonly unknown[],
+  debtIds: ReadonlySet<string>,
+  walletIds: ReadonlySet<number>,
+  errors: string[],
+): void {
   for (let i = 0; i < debtPayments.length; i++) {
     const payment = debtPayments[i];
     if (!isRecord(payment)) {
@@ -375,8 +390,10 @@ export function validateImportData(json: unknown): string[] {
       errors.push(`Debt payment ${i}: "type" is invalid.`);
     }
   }
+}
 
-  // Validate setting fields. Only whitelisted settings are accepted during import.
+/** Validate setting fields. Only whitelisted settings are accepted during import. */
+function validateSettingRecords(settings: readonly unknown[], errors: string[]): void {
   for (let i = 0; i < settings.length; i++) {
     const setting = settings[i];
     if (!isRecord(setting)) {
@@ -395,6 +412,36 @@ export function validateImportData(json: unknown): string[] {
       errors.push(`Setting ${i}: "value" is too large or cannot be serialized.`);
     }
   }
+}
+
+/**
+ * Validate that a parsed JSON object is a valid import payload.
+ * Returns an array of error messages (empty = valid).
+ */
+export function validateImportData(json: unknown): string[] {
+  if (!isRecord(json)) {
+    return ['Invalid JSON structure.'];
+  }
+
+  const errors: string[] = [];
+  validateRootArrays(json, errors);
+  if (errors.length > 0) return errors;
+
+  const wallets = json.wallets as unknown[];
+  const categories = json.categories as unknown[];
+  const transactions = json.transactions as unknown[];
+  const debts = (json.debts ?? []) as unknown[];
+  const debtPayments = ((json.debtPayments ?? json.debt_payments) ?? []) as unknown[];
+  const settings = (json.settings ?? []) as unknown[];
+
+  validateImportCounts(wallets, categories, transactions, debts, debtPayments, settings, errors);
+
+  const walletIds = validateWalletRecords(wallets, errors);
+  const categoryIds = validateCategoryRecords(categories, errors);
+  validateTransactionRecords(transactions, walletIds, categoryIds, errors);
+  const debtIds = validateDebtRecords(debts, walletIds, errors);
+  validateDebtPaymentRecords(debtPayments, debtIds, walletIds, errors);
+  validateSettingRecords(settings, errors);
 
   return errors;
 }

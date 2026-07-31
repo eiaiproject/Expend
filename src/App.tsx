@@ -33,6 +33,7 @@ import { SidebarNav } from './components/SidebarNav';
 import { Download, WifiOff, X } from 'reicon-react';
 import OnboardingWizard from './components/OnboardingWizard';
 import { UpdatePrompt } from './components/UpdatePrompt';
+import { WhatsNewDialog } from './components/WhatsNewDialog';
 import { useInstallPrompt, useOnlineStatus } from './utils/pwaUtils';
 import type { TransactionType } from './hooks/useTransactionForm';
 
@@ -233,6 +234,9 @@ function AppContent() {
 
       {/* Contextual support prompt — only inside the unlocked app shell */}
       <SupportPrompt />
+
+      {/* What's New popup — once after each version change */}
+      <WhatsNewDialog />
     </div>
   );
 }
