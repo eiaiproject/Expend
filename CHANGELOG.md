@@ -2,6 +2,16 @@
 
 All notable changes to Expend are documented here.
 
+## 1.12.0 - 2026-07-31
+### Added
+
+- Add en and id strings for backup, recurring, support and payee features
+- Add Trakteer support card and contextual prompt with cooldown
+- Add recurring schedules, upcoming section, debt reminders and DB v14 migration
+- Add backup metadata, status card, reminders and storage error taxonomy
+- Add quick add, default wallet, category suggestions, templates and atomic transfer editing
+- Add frequent payee shortcuts, favorites and transaction CTA
+
 ## 1.11.4 - 2026-07-28
 ### Fixed
 
