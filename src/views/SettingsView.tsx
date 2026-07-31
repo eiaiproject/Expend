@@ -22,9 +22,15 @@ import {
   exportDebtsCsv,
   exportDebtPaymentsCsv,
   parseTransactionsCsv,
-  importCsvTransactions
+  importCsvTransactions,
+  detectDuplicateRows,
+  downloadCsvErrorReport,
+  type CsvImportReport,
 } from '../services/csvService';
 import { MAX_IMPORT_FILE_SIZE, STORAGE_KEYS, APP_VERSION, AUTO_LOCK_TIMEOUT_OPTIONS, BACKUP_FORMAT_VERSION } from '../utils/constants';
+
+/** master.md 11: imports above this size snapshot the DB first. */
+const CSV_SNAPSHOT_THRESHOLD = 20;
 import { downloadBlob } from '../utils/downloadUtils';
 import { useInstallPrompt, useIsStandalone } from '../utils/pwaUtils';
 import { getTodayStr } from '../utils/dateUtils';
@@ -159,17 +165,22 @@ interface CsvPreviewRow {
   readonly type: string;
 }
 
-function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
+function CsvPreviewModal({ isOpen, onClose, rows, errors, duplicates, skipDuplicates, onSkipDuplicatesChange, onConfirm }: {
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly rows: CsvPreviewRow[];
   readonly errors: string[];
+  readonly duplicates: boolean[];
+  readonly skipDuplicates: boolean;
+  readonly onSkipDuplicatesChange: (value: boolean) => void;
   readonly onConfirm: () => void;
 }) {
   const { t } = useTranslation();
   if (!isOpen) return null;
 
   const previewRows = rows.slice(0, 8);
+  const duplicateCount = duplicates.filter(Boolean).length;
+  const importableCount = skipDuplicates ? rows.length - duplicateCount : rows.length;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4">
@@ -192,6 +203,34 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
               {errors.slice(0, 5).map((err, i) => <li key={err}>{err}</li>)}
               {errors.length > 5 && <li>...{errors.length - 5} more</li>}
             </ul>
+          </div>
+        )}
+
+        {duplicateCount > 0 && (
+          <div className="p-4 border-b border-[var(--border)]">
+            <p className="text-sm font-medium">{t('settings.csvDuplicatesFound', { count: duplicateCount })}</p>
+            <div className="mt-2 space-y-2 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="duplicate-behavior"
+                  checked={skipDuplicates}
+                  onChange={() => onSkipDuplicatesChange(true)}
+                  className="accent-[var(--accent)]"
+                />
+                {t('settings.csvSkipDuplicates')}
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="duplicate-behavior"
+                  checked={!skipDuplicates}
+                  onChange={() => onSkipDuplicatesChange(false)}
+                  className="accent-[var(--accent)]"
+                />
+                {t('settings.csvImportAnyway')}
+              </label>
+            </div>
           </div>
         )}
 
@@ -229,10 +268,60 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
           <button
             type="button"
             onClick={onConfirm}
-            disabled={errors.length > 0}
+            disabled={errors.length > 0 || rows.length === 0}
             className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {t('settings.csvPreviewImport', { count: rows.length })}
+            {importableCount === 0
+              ? t('settings.csvImportAnyway')
+              : t('settings.csvPreviewImport', { count: importableCount })}
+          </button>
+        </div>
+      </dialog>
+    </div>
+  );
+}
+
+// ── CSV Import Report ────────────────────────────────────────
+
+function CsvImportReportModal({ report, onClose }: {
+  readonly report: CsvImportReport | null;
+  readonly onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  if (!report) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4">
+      <dialog
+        open
+        aria-label={t('settings.csvReportTitle')}
+        className="bg-[var(--card)] rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl p-0 border-0 backdrop:bg-transparent m-0"
+      >
+        <div className="p-4 border-b border-[var(--border)]">
+          <h2 className="text-lg font-bold">{t('settings.csvReportTitle')}</h2>
+        </div>
+        <div className="flex-1 overflow-auto p-4 space-y-3 text-sm">
+          <p className="font-medium">{t('settings.csvReportImported', { count: report.imported })}</p>
+          <p>{t('settings.csvReportSkipped', { count: report.skipped })}</p>
+          <p>{t('settings.csvReportFailed', { count: report.failed })}</p>
+          {report.errors.length > 0 && (
+            <div className="pt-2">
+              <ul className="mt-1 text-xs text-red-600 dark:text-red-400 space-y-0.5 max-h-32 overflow-auto">
+                {report.errors.map((err) => <li key={err}>{err}</li>)}
+              </ul>
+              <button
+                type="button"
+                onClick={() => downloadCsvErrorReport(report.errors)}
+                className="mt-3 h-10 rounded-xl border border-[var(--border)] font-medium px-4 hover:bg-[var(--bg)] transition-colors"
+              >
+                {t('settings.csvReportDownloadErrors')}
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="p-4 border-t border-[var(--border)] flex gap-3">
+          <button type="button" onClick={onClose} className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium hover:opacity-90 transition-colors">
+            {t('Done')}
           </button>
         </div>
       </dialog>
@@ -328,7 +417,9 @@ export default function SettingsView() {
   const [pendingAction, setPendingAction] = useState<'changePin' | 'disableSecurity' | null>(null);
 
   // CSV Preview state
-  const [csvPreview, setCsvPreview] = useState<{ rows: CsvPreviewRow[]; errors: string[] } | null>(null);
+  const [csvPreview, setCsvPreview] = useState<{ rows: CsvPreviewRow[]; errors: string[]; duplicates: boolean[] } | null>(null);
+  const [csvSkipDuplicates, setCsvSkipDuplicates] = useState(true);
+  const [csvResult, setCsvResult] = useState<CsvImportReport | null>(null);
 
   // Restore Preview state
   const [restoreData, setRestoreData] = useState<{ wallets: any[]; transactions: any[]; categories: any[]; debts: any[]; payments: any[]; exportedAt: string; version: string } | null>(null);
@@ -391,9 +482,10 @@ export default function SettingsView() {
 
     try {
       const { rows, errors } = await parseTransactionsCsv(file);
+      const duplicates = await detectDuplicateRows(rows);
 
       // Show preview modal
-      setCsvPreview({ rows, errors });
+      setCsvPreview({ rows, errors, duplicates });
     } catch {
       toast.add(t('Import Error'));
     } finally {
@@ -404,9 +496,18 @@ export default function SettingsView() {
   const handleCsvConfirmImport = async () => {
     if (!csvPreview) return;
     try {
-      await importCsvTransactions(csvPreview.rows);
-      toast.add(t('settings.importCsvSuccess', { count: csvPreview.rows.length }));
+      // master.md 11: pre-import snapshot for high-impact imports.
+      if (csvPreview.rows.length >= CSV_SNAPSHOT_THRESHOLD) {
+        await createBackup();
+        toast.add(t('settings.csvSnapshotCreated'));
+      }
+      const report = await importCsvTransactions(csvPreview.rows as unknown as Array<Record<string, unknown>>, {
+        skipDuplicates: csvSkipDuplicates,
+      });
+      setCsvResult(report);
       setCsvPreview(null);
+      if (report.imported === 0) return; // nothing changed — no reload needed
+      toast.add(t('settings.importCsvSuccess', { count: report.imported }));
       window.setTimeout(() => window.location.reload(), 600);
     } catch {
       toast.add(t('Import Error'));
@@ -1039,8 +1140,14 @@ export default function SettingsView() {
         onClose={() => setCsvPreview(null)}
         rows={csvPreview?.rows ?? []}
         errors={csvPreview?.errors ?? []}
+        duplicates={csvPreview?.duplicates ?? []}
+        skipDuplicates={csvSkipDuplicates}
+        onSkipDuplicatesChange={setCsvSkipDuplicates}
         onConfirm={handleCsvConfirmImport}
       />
+
+      {/* CSV Import Report Modal */}
+      <CsvImportReportModal report={csvResult} onClose={() => setCsvResult(null)} />
 
       {/* Restore Preview Modal */}
       <RestorePreviewModal
