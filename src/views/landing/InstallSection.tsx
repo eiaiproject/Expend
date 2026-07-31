@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { Download, Check } from 'reicon-react';
+import { Download, Check, Coffee } from 'reicon-react';
 import { isIOSDevice } from '../../utils/pwaUtils';
 import { useState, useEffect } from 'react';
 import { APP_VERSION } from '../../utils/constants';
+import { TRAKTEER_URL } from '../../services/supportService';
 
 export function InstallSection({
   onEnter,
@@ -154,6 +155,21 @@ export function LandingFooter() {
             className="text-xs sm:text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           >
             {t('landing.footerGitHub')}
+          </a>
+        </div>
+
+        {/* Secondary support CTA — must not compete with the primary install CTA (9.3) */}
+        <div className="flex items-center justify-center gap-1.5 mb-6">
+          <a
+            href={TRAKTEER_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+            aria-label={t('landing.supportCta')}
+          >
+            <Coffee size={14} aria-hidden="true" />
+            {t('landing.supportCta')}
+            <span aria-hidden="true">↗</span>
           </a>
         </div>
 

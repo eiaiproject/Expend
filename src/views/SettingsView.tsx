@@ -1,13 +1,12 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/db';
-import { useSecurity } from '../contexts/SecurityContext';
-import {
-  Moon, Sun, Monitor, Download, Upload, Lock, Trash2, Check,
-  Information, Tag, ShoppingBag, Database, HardDrive,
-  Link as ExternalLinkIcon, ChevronRight, Eye, EyeOff, Mobile,
-  Clock, AlertTriangle
-} from 'reicon-react';
+import { useSecurity } from '../contexts/SecurityContext';  import {
+    Moon, Sun, Monitor, Download, Upload, Lock, Trash2, Check,
+    Information, Tag, ShoppingBag, Database, HardDrive,
+    Link as ExternalLinkIcon, ChevronRight, Eye, EyeOff, Mobile,
+    Clock, AlertTriangle, Coffee, Heart, ShieldCheck, Bug, Repeat
+  } from 'reicon-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { Link } from 'react-router-dom';
@@ -25,7 +24,7 @@ import {
   parseTransactionsCsv,
   importCsvTransactions
 } from '../services/csvService';
-import { MAX_IMPORT_FILE_SIZE, STORAGE_KEYS, APP_VERSION, AUTO_LOCK_TIMEOUT_OPTIONS } from '../utils/constants';
+import { MAX_IMPORT_FILE_SIZE, STORAGE_KEYS, APP_VERSION, AUTO_LOCK_TIMEOUT_OPTIONS, BACKUP_FORMAT_VERSION } from '../utils/constants';
 import { downloadBlob } from '../utils/downloadUtils';
 import { useInstallPrompt, useIsStandalone } from '../utils/pwaUtils';
 import { getTodayStr } from '../utils/dateUtils';
@@ -34,13 +33,20 @@ import { getTodayStr } from '../utils/dateUtils';
 import { SettingsAccordion } from '../components/settings/SettingsAccordion';
 import { VerifyCurrentPinModal } from '../components/settings/VerifyCurrentPinModal';
 import { PinSetupModal } from '../components/settings/PinSetupModal';
-
-// ── Constants ──────────────────────────────────────────────────
-
-const SOURCE_CODE_URL = 'https://github.com/expend/expend-app';
-const TRAKTEER_URL = 'https://trakteer.id/eiaiproject';
-
-const BACKUP_REMINDER_DAYS = 7;
+import { BackupStatusCard } from '../components/settings/BackupStatusCard';
+import { SupportCard } from '../components/settings/SupportCard';
+import {
+  getBackupStatusInfo,
+  recordSuccessfulBackup,
+  getBackupMetadata,
+  evaluateBackupReminder,
+} from '../services/backupService';
+import {
+  TRAKTEER_URL,
+  SOURCE_CODE_URL,
+  ISSUES_URL,
+  recordSupportMilestone,
+} from '../services/supportService';
 
 // ── Helper components ──────────────────────────────────────────
 
@@ -111,31 +117,35 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
-// ── Backup Reminder Hook ───────────────────────────────────────
+// ── Backup Status Hook ────────────────────────────────────────
 
-function useBackupReminder() {
-  const [lastBackup, setLastBackup] = useState<string | null>(null);
+function useBackupStatus() {
+  const [backupInfo, setBackupInfo] = useState<{
+    status: import('../services/backupService').BackupStatusType;
+    lastBackupAt: string | null;
+    daysSinceBackup: number | null;
+    changesSinceBackup: number;
+    loading: boolean;
+  }>({ status: 'never', lastBackupAt: null, daysSinceBackup: null, changesSinceBackup: 0, loading: true });
 
-  useEffect(() => {
-    db.settings.get('lastBackupAt').then(setting => {
-      if (setting?.value && typeof setting.value === 'string') {
-        setLastBackup(setting.value);
-      }
-    }).catch(() => {});
+  const refresh = useCallback(async () => {
+    const info = await getBackupStatusInfo();
+    setBackupInfo({ ...info, loading: false });
   }, []);
 
-  const needsBackup = useMemo(() => {
-    if (!lastBackup) return true;
-    const daysSince = (Date.now() - new Date(lastBackup).getTime()) / (1000 * 60 * 60 * 24);
-    return daysSince > BACKUP_REMINDER_DAYS;
-  }, [lastBackup]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-  const markBackupDone = async () => {
-    await db.settings.put({ key: 'lastBackupAt', value: new Date().toISOString() });
-    setLastBackup(new Date().toISOString());
-  };
+  const createBackup = useCallback(async () => {
+    const data = await generateExport();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, `expend-backup-${getTodayStr()}T${new Date().toTimeString().slice(0, 8).replaceAll(':', '-')}.json`);
+    await recordSuccessfulBackup(BACKUP_FORMAT_VERSION);
+    await refresh();
+  }, [refresh]);
 
-  return { lastBackup, needsBackup, markBackupDone };
+  return { ...backupInfo, createBackup, refresh };
 }
 
 // ── CSV Preview ────────────────────────────────────────────────
@@ -339,7 +349,15 @@ export default function SettingsView() {
   const { deferredPrompt, showInstallPrompt } = useInstallPrompt();
   const isStandalone = useIsStandalone();
   const storageEstimate = useStorageEstimate();
-  const { needsBackup, markBackupDone } = useBackupReminder();
+  const {
+    status: backupStatus,
+    lastBackupAt,
+    daysSinceBackup,
+    changesSinceBackup: backupChanges,
+    loading: backupLoading,
+    createBackup,
+    refresh: refreshBackupStatus,
+  } = useBackupStatus();
 
   // ── Language ──────────────────────────────────────────────
 
@@ -399,10 +417,7 @@ export default function SettingsView() {
   // ── JSON Backup Export ────────────────────────────────────
 
   const handleExportJSON = async () => {
-    const data = await generateExport();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    downloadBlob(blob, `expend-backup-${getTodayStr()}T${new Date().toTimeString().slice(0, 8).replaceAll(':', '-')}.json`);
-    await markBackupDone();
+    await createBackup();
     toast.add(t('settings.backupCreated'));
   };
 
@@ -452,6 +467,9 @@ export default function SettingsView() {
       await importData(restoreData as any);
       toast.add(t('settings.restoreSuccess'));
       setRestoreData(null);
+      // Positive moment → contextual support prompt eligibility (9.4).
+      // Record AFTER importData since restore replaces the settings store.
+      await recordSupportMilestone('restore');
       window.setTimeout(() => window.location.reload(), 600);
     } catch {
       toast.add(t('settings.restoreError'));
@@ -487,12 +505,13 @@ export default function SettingsView() {
 
     if (!confirmed) return;
 
-    await db.transaction('rw', [db.transactions, db.categories, db.wallets, db.debts, db.debtPayments, db.settings], async () => {
+    await db.transaction('rw', [db.transactions, db.categories, db.wallets, db.debts, db.debtPayments, db.schedules, db.settings], async () => {
       await db.transactions.clear();
       await db.categories.clear();
       await db.wallets.clear();
       await db.debts.clear();
       await db.debtPayments.clear();
+      await db.schedules.clear();
       await db.settings.clear();
     });
 
@@ -642,6 +661,24 @@ export default function SettingsView() {
         </label>
       </div>
 
+      {/* ── BACKUP STATUS ────────────────────────────────── */}
+      <SectionHeading>{t('backup.sectionTitle')}</SectionHeading>
+
+      {/* Backup Status Card */}
+      <BackupStatusCard
+        status={backupStatus}
+        lastBackupAt={lastBackupAt}
+        daysSinceBackup={daysSinceBackup}
+        changesSinceBackup={backupChanges}
+        loading={backupLoading}
+        onBackupNow={handleExportJSON}
+        onRestore={() => restoreInputRef.current?.click()}
+        onImportExport={() => csvInputRef.current?.click()}
+      />
+
+      {/* Permanent support card — visible without excessive scrolling (9.1) */}
+      <SupportCard />
+
       {/* ── DATA ────────────────────────────────────────── */}
       <SectionHeading>{t('settings.sectionData')}</SectionHeading>
 
@@ -665,14 +702,9 @@ export default function SettingsView() {
       {/* Backup & Restore */}
       <SettingsAccordion title={t('settings.sectionBackupRestore')}>
         <div className="flex flex-col">
-          {needsBackup && (
-            <div className="mx-4 mt-3 mb-1 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-              <div className="flex items-start gap-2">
-                <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">{t('settings.backupReminder')}</p>
-              </div>
-            </div>
-          )}
+          <div className="p-4 border-b border-[var(--border)]">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{t('backup.jsonFormat')}</p>
+          </div>
           <NavRow
             icon={Download}
             label={t('settings.exportBackup')}
@@ -698,6 +730,9 @@ export default function SettingsView() {
       {/* Transaction Import & Export */}
       <SettingsAccordion title={t('settings.sectionTxImportExport')}>
         <div className="flex flex-col">
+          <div className="p-4 border-b border-[var(--border)]">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{t('backup.csvFormat')}</p>
+          </div>
           <NavRow
             icon={Download}
             label={t('settings.exportTransactionsCsv')}
@@ -744,6 +779,13 @@ export default function SettingsView() {
         label={t('settings.recipientsMerchants')}
         description={t('settings.recipientsMerchantsDesc')}
         to="/payees"
+      />
+
+      <NavRow
+        icon={Repeat}
+        label={t('settings.recurringSchedules')}
+        description={t('settings.recurringSchedulesDesc')}
+        to="/schedules"
       />
 
       {/* ── SECURITY ────────────────────────────────────── */}
@@ -876,6 +918,19 @@ export default function SettingsView() {
           <div>
             <h3 className="text-sm font-bold text-[var(--text-primary)]">Expend</h3>
             <p className="text-xs text-[var(--text-secondary)]">{t('settings.versionLabel')}: {APP_VERSION}</p>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.aboutAuthor', { author: 'Anggie Irawan' })}</p>
+          </div>
+        </div>
+
+        {/* Open-source / no ads / no tracking status (9.2) */}
+        <div className="px-4 pb-1 border-t border-[var(--border)] pt-3 space-y-2">
+          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <Heart size={14} className="text-[var(--accent)]" aria-hidden="true" />
+            <span>{t('settings.aboutFreeOpenSource')}</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <ShieldCheck size={14} className="text-[var(--accent)]" aria-hidden="true" />
+            <span>{t('settings.aboutNoAdsNoTracking')}</span>
           </div>
         </div>
 
@@ -887,6 +942,17 @@ export default function SettingsView() {
         >
           <ExternalLinkIcon size={18} className="text-[var(--text-secondary)]" aria-hidden="true" />
           <span className="text-sm font-medium text-[var(--text-primary)] flex-1">{t('settings.viewSourceCode')}</span>
+          <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
+        </a>
+
+        <a
+          href={ISSUES_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center gap-3 p-4 border-t border-[var(--border)] text-left hover:bg-[var(--bg)] transition-colors min-h-[44px]"
+        >
+          <Bug size={18} className="text-[var(--text-secondary)]" aria-hidden="true" />
+          <span className="text-sm font-medium text-[var(--text-primary)] flex-1">{t('settings.reportIssue')}</span>
           <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
         </a>
 
@@ -921,15 +987,16 @@ export default function SettingsView() {
           return null;
         })()}
 
-        {/* Support Developer */}
+        {/* Support Developer — permanent secondary link (9.2) */}
         <a
           href={TRAKTEER_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full flex items-center gap-3 p-4 border-t border-[var(--border)] text-left hover:bg-[var(--bg)] transition-colors min-h-[44px]"
         >
-          <HardDrive size={18} className="text-[var(--text-secondary)]" aria-hidden="true" />
+          <Coffee size={18} className="text-[var(--text-secondary)]" aria-hidden="true" />
           <span className="text-sm font-medium text-[var(--text-primary)] flex-1">{t('settings.supportOnTrakteer')}</span>
+          <span className="sr-only">{t('settings.opensExternalSite')}</span>
           <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
         </a>
       </div>
