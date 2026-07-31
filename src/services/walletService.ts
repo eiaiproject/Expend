@@ -17,6 +17,7 @@
  */
 import { db } from '../db/db';
 import { getBalanceDelta } from '../utils/balanceUtils';
+import { incrementChangeCount } from './backupService';
 
 export interface DeleteWalletResult {
   success: boolean;
@@ -54,6 +55,15 @@ export async function canDeleteWallet(walletId: number): Promise<{ canDelete: bo
   const nonTransferTxs = walletTxs.filter(t => t.type !== 'transfer_in' && t.type !== 'transfer_out');
   if (nonTransferTxs.length > 0) {
     return { canDelete: false, reason: `Wallet has ${nonTransferTxs.length} associated transaction(s).`, reasonKey: 'wallet.deleteBlocked', reasonOptions: { count: nonTransferTxs.length } };
+  }
+
+  // Recurring schedules reference this wallet; deleting it would orphan them.
+  const scheduleCount = await db.schedules
+    .where('walletId')
+    .equals(walletId)
+    .count();
+  if (scheduleCount > 0) {
+    return { canDelete: false, reason: `Wallet is linked to ${scheduleCount} recurring schedule(s).`, reasonKey: 'wallet.deleteBlockedSchedules', reasonOptions: { count: scheduleCount } };
   }
 
   return { canDelete: true };
@@ -130,6 +140,14 @@ export async function deleteWalletSafely(walletId: number): Promise<DeleteWallet
       await db.wallets.delete(walletId);
     });
 
+    // Track wallet deletion for backup metadata. The wallet is already deleted,
+    // so a metadata-write failure must not misreport the operation as failed.
+    try {
+      await incrementChangeCount(pairsToDelete.size > 0 ? pairsToDelete.size : 1);
+    } catch {
+      // ignore: deletion already committed
+    }
+
     return { success: true };
   } catch (err) {
     return {
@@ -178,6 +196,9 @@ export async function adjustWalletBalance(
       lastUpdated: new Date().toISOString(),
     });
   });
+
+  // Track the balance adjustment for backup metadata
+  await incrementChangeCount(1);
 }
 
 /**
@@ -188,6 +209,9 @@ export async function deactivateWallet(walletId: number): Promise<void> {
   await db.wallets.update(walletId, {
     archivedAt: new Date().toISOString(),
   });
+
+  // Track the wallet deactivation for backup metadata
+  await incrementChangeCount(1);
 }
 
 /**
@@ -197,4 +221,7 @@ export async function reactivateWallet(walletId: number): Promise<void> {
   await db.wallets.update(walletId, {
     archivedAt: null,
   });
+
+  // Track the wallet reactivation for backup metadata
+  await incrementChangeCount(1);
 }

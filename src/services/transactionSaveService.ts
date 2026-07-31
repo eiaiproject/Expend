@@ -1,6 +1,7 @@
 import { db, type Transaction } from '../db/db';
 import { assertWalletBalanceCanApplyDelta, getBalanceDelta, getWalletBalance } from '../utils/balanceUtils';
 import { INSUFFICIENT_WALLET_BALANCE_MESSAGE } from './errors';
+import { incrementChangeCount } from './backupService';
 
 export { INSUFFICIENT_WALLET_BALANCE_MESSAGE } from './errors';
 const WALLET_NOT_FOUND_MESSAGE = 'Wallet not found.';
@@ -190,6 +191,9 @@ export async function saveTransaction(
       });
     }
   });
+
+  // Track the transaction mutation for backup metadata
+  await incrementChangeCount(1);
 }
 
 /**
@@ -241,4 +245,108 @@ export async function saveTransfer(params: SaveTransferParams): Promise<void> {
       lastUpdated: new Date().toISOString(),
     });
   });
+
+  // Track the transfer creation for backup metadata
+  await incrementChangeCount(2);
+}
+
+export interface UpdateTransferParams extends SaveTransferParams {
+  transferGroupId: string;
+}
+
+/**
+ * Edit an existing transfer pair atomically (master.md 5.6).
+ *
+ * Steps:
+ * 1. Locate both sides via the transfer group id.
+ * 2. Validate that the pair is complete.
+ * 3. Reverse the previous balance effects logically.
+ * 4. Validate the proposed source/destination wallets.
+ * 5. Validate sufficient balance after considering reversal.
+ * 6. Update both records and apply the new balance effects.
+ * 7. Commit atomically; Dexie rolls everything back on failure.
+ *
+ * Supports changes to amount, date, source wallet, destination wallet,
+ * notes, and description. Prevents transfer to the same wallet.
+ */
+export async function updateTransfer(params: UpdateTransferParams): Promise<void> {
+  // Reuse the same validations as transfer creation
+  validateTransferParams({
+    amount: params.amount,
+    description: params.description,
+    date: params.date,
+    fromWalletId: params.fromWalletId,
+    toWalletId: params.toWalletId,
+    notes: params.notes,
+  });
+
+  await db.transaction('rw', [db.transactions, db.wallets], async () => {
+    const pair = await db.transactions
+      .where('transferGroupId')
+      .equals(params.transferGroupId)
+      .toArray();
+
+    const outTx = pair.find((t) => t.type === 'transfer_out');
+    const inTx = pair.find((t) => t.type === 'transfer_in');
+    if (!outTx?.id || !inTx?.id) {
+      throw new Error('Transfer pair is incomplete.');
+    }
+
+    const fromWallet = await db.wallets.get(params.fromWalletId);
+    const toWallet = await db.wallets.get(params.toWalletId);
+    if (!fromWallet || !toWallet) throw new Error(WALLET_NOT_FOUND_MESSAGE);
+
+    // Aggregate balance deltas per wallet so that wallet swaps (old source
+    // becoming new destination, etc.) are applied exactly once each.
+    const deltasByWallet = new Map<number, number>();
+
+    // 3. Reverse previous balance effects
+    const addDelta = (walletId: number, delta: number) => {
+      deltasByWallet.set(walletId, (deltasByWallet.get(walletId) ?? 0) + delta);
+    };
+    addDelta(outTx.walletId, outTx.amount);        // undo source debit
+    addDelta(inTx.walletId, -inTx.amount);         // undo destination credit
+
+    // 4. Proposed wallets exist (checked above)
+    // 5. Validate sufficient balance after considering reversal
+    addDelta(params.fromWalletId, -params.amount); // new source debit
+    addDelta(params.toWalletId, params.amount);    // new destination credit
+
+    const newSourceNetDelta = deltasByWallet.get(params.fromWalletId) ?? 0;
+    assertWalletBalanceCanApplyDelta(
+      fromWallet,
+      newSourceNetDelta,
+      INSUFFICIENT_WALLET_BALANCE_MESSAGE,
+    );
+
+    // 6. Update both records, preserving the canonical group id
+    await db.transactions.update(outTx.id, {
+      amount: params.amount,
+      description: `${params.description} (Out)`,
+      date: params.date,
+      walletId: params.fromWalletId,
+      notes: params.notes,
+    });
+    await db.transactions.update(inTx.id, {
+      amount: params.amount,
+      description: `${params.description} (In)`,
+      date: params.date,
+      walletId: params.toWalletId,
+      notes: params.notes,
+    });
+
+    // Apply the new balance effects
+    for (const [walletId, delta] of deltasByWallet.entries()) {
+      const wallet = await db.wallets.get(walletId);
+      if (wallet) {
+        await db.wallets.update(walletId, {
+          currentBalance: getWalletBalance(wallet) + delta,
+          lastUpdated: new Date().toISOString(),
+        });
+      }
+    }
+  });
+
+  // Track the transfer edit for backup metadata
+  await incrementChangeCount(2);
 }

@@ -1,6 +1,7 @@
 import { db, Transaction } from '../db/db';
 import { findPairedTransfer } from '../utils/transferUtils';
 import { getBalanceDelta } from '../utils/balanceUtils';
+import { incrementChangeCount } from './backupService';
 
 
 
@@ -50,6 +51,9 @@ export async function deleteTransactionsWithPairs(ids: number[]): Promise<Transa
     await db.transactions.bulkDelete([...allIdsToDelete]);
   });
 
+  // Track the deletion for backup metadata
+  await incrementChangeCount(allIdsToDelete.size > 0 ? allIdsToDelete.size : ids.length);
+
   return backups;
 }
 
@@ -77,4 +81,7 @@ export async function restoreTransactions(backups: Transaction[]): Promise<void>
       }
     }
   });
+
+  // Track the undo restore as a data change for backup metadata
+  await incrementChangeCount(backups.length);
 }

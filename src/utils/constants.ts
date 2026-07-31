@@ -39,16 +39,28 @@ export const PRESET_AMOUNTS = [10000, 20000, 50000, 100000, 200000, 500000] as c
 
 /** Auto-lock timeout options in milliseconds. */
 export const AUTO_LOCK_TIMEOUT_OPTIONS = [
-  { value: 60_000, labelKey: 'settings.autoLock1min' },
-  { value: 120_000, labelKey: 'settings.autoLock2min' },
+  { value: 1, labelKey: 'settings.autoLockImmediately' },
   { value: 300_000, labelKey: 'settings.autoLock5min' },
-  { value: 900_000, labelKey: 'settings.autoLock15min' },
   { value: 1_800_000, labelKey: 'settings.autoLock30min' },
   { value: 0, labelKey: 'settings.autoLockNever' },
 ] as const;
 
-/** Default auto-lock timeout (2 minutes). */
-export const AUTO_LOCK_TIMEOUT_MS = 120_000;
+/**
+ * Map a stored auto-lock timeout to the simplified option set (master.md 8.5).
+ * Legacy values (1/2/15 min) collapse to the nearest new option:
+ * 1-2 min → 5 min, 15 min → 30 min. Unknown values → 5 min default.
+ */
+export function normalizeAutoLockTimeout(value: number | null | undefined): number {
+  if (value == null) return 300_000;
+  const allowed: Set<number> = new Set(AUTO_LOCK_TIMEOUT_OPTIONS.map((o) => o.value));
+  if (allowed.has(value)) return value;
+  if (value === 60_000 || value === 120_000) return 300_000;
+  if (value === 900_000) return 1_800_000;
+  return 300_000;
+}
+
+/** Default auto-lock timeout (5 minutes). */
+export const AUTO_LOCK_TIMEOUT_MS = 300_000;
 
 /** Number of days before a wallet is considered stale (30 days). */
 export const WALLET_STALE_DAYS = 30;
@@ -65,6 +77,24 @@ export const BUDGET_NEAR_LIMIT_THRESHOLD = 0.80;
 
 /** Valid transaction types for import validation. */
 export const VALID_TX_TYPES = ['expense', 'balance_adjustment', 'transfer_in', 'transfer_out'] as const;
+
+/** Backup format version constant. */
+export const BACKUP_FORMAT_VERSION = '1.0';
+
+/** Number of days before a backup is considered old. */
+export const BACKUP_OLD_DAYS = 30;
+
+/** Minimum changes since backup before recommending another backup. */
+export const BACKUP_CHANGES_THRESHOLD = 50;
+
+/** Critical changes since backup threshold. */
+export const BACKUP_CHANGES_CRITICAL = 100;
+
+/** Minimum transactions before prompting first backup. */
+export const BACKUP_MIN_TX_FOR_PROMPT = 10;
+
+/** Default reminder postponement in days. */
+export const BACKUP_POSTPONE_DAYS = 7;
 
 /** LocalStorage keys for app state persistence. */
 export const STORAGE_KEYS = {

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Coffee, Keyboard, X } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { TRAKTEER_URL } from '../services/supportService';
 
 export function InfoPopup({ isOpen, onClose }: { readonly isOpen: boolean; readonly onClose: () => void }) {
   const { t } = useTranslation();
@@ -91,13 +92,14 @@ export function InfoPopup({ isOpen, onClose }: { readonly isOpen: boolean; reado
           </div>
 
           <a
-            href="https://trakteer.id/eiaiproject"
+            href={TRAKTEER_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl flex items-center justify-center gap-2 font-medium transition-colors active:scale-95 shadow-md"
           >
-            <Coffee size={18} />
+            <Coffee size={18} aria-hidden="true" />
             {t('settings.supportOnTrakteer')}
+            <span className="sr-only">{t('settings.opensExternalSite')}</span>
           </a>
         </div>
       </dialog>

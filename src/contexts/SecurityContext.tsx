@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { db, type Setting } from '../db/db';
 import { hashPin, verifyPin, verifyLegacySha256 } from '../utils/cryptoUtils';
-import { AUTO_LOCK_TIMEOUT_MS } from '../utils/constants';
+import { AUTO_LOCK_TIMEOUT_MS, normalizeAutoLockTimeout } from '../utils/constants';
 
 interface SecuritySettingsValue {
   readonly enabled: boolean;
@@ -54,7 +54,8 @@ export function SecurityProvider({ children }: { readonly children: ReactNode })
     try {
       const setting = await db.settings.get('autoLockTimeout');
       if (setting && typeof setting.value === 'number') {
-        setAutoLockTimeout(setting.value);
+        // master.md 8.5: legacy values map onto the simplified option set.
+        setAutoLockTimeout(normalizeAutoLockTimeout(setting.value));
       }
     } catch { /* ignore */ }
   };

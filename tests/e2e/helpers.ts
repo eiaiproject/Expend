@@ -86,7 +86,7 @@ export async function visitApp(page: Page): Promise<void> {
  */
 export async function readTable<T = unknown>(
   page: Page,
-  table: 'wallets' | 'categories' | 'transactions' | 'debts' | 'debtPayments' | 'settings',
+  table: 'wallets' | 'categories' | 'transactions' | 'debts' | 'debtPayments' | 'settings' | 'merchants' | 'schedules',
 ): Promise<T[]> {
   return page.evaluate(async ({ table }) => {
     return new Promise<T[]>((resolve) => {
@@ -313,11 +313,20 @@ export async function createExpense(
   await clickPickerAction(page, /add expense/i);
   await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
 
+  // Quick Add progressive disclosure (master.md 5.1): secondary fields live
+  // behind the "Add details" toggle. Expand it so description/wallet are
+  // visible before filling them.
+  const detailsToggle = page.getByRole('button', { name: /add details/i });
+  if (await detailsToggle.count() > 0) {
+    await detailsToggle.first().click();
+  }
+
   // Amount input has BOTH `type="text"` and `inputmode="numeric"`; pin to
   // the numeric one to avoid double-matching with the description input.
   await page.locator('form input[inputmode="numeric"]').first().fill(opts.amount);
-  // Description: `input[type="text"]:not([inputmode])`.
-  await page.locator('form input[type="text"]:not([inputmode])').first().fill(opts.description);
+  // Description: `input[type="text"]:not([inputmode])` excluding the Category
+  // combobox (which is `role="combobox"` and renders before Description).
+  await page.locator('form input[type="text"]:not([inputmode]):not([role="combobox"])').first().fill(opts.description);
 
   if (opts.categoryName) {
     const categoryInput = page.locator('form input[placeholder*="category" i], form input[placeholder*="select" i]').first();
@@ -578,7 +587,7 @@ export async function assertAllButtonsAccessible(page: Page): Promise<void> {
 
 // --- Internal helpers ---
 
-async function openActionPicker(page: Page): Promise<void> {
+export async function openActionPicker(page: Page): Promise<void> {
   // Desktop sidebar button or mobile FAB both share the same aria-label.
   const fab = page.getByRole('button', { name: /add transaction/i });
   await fab.first().click({ timeout: 10_000 });
@@ -589,7 +598,7 @@ async function openActionPicker(page: Page): Promise<void> {
   await dialog.waitFor({ state: 'visible', timeout: 5_000 });
 }
 
-async function clickPickerAction(page: Page, label: RegExp): Promise<void> {
+export async function clickPickerAction(page: Page, label: RegExp): Promise<void> {
   const dialog = page.getByRole('dialog');
   const action = dialog.getByRole('button', { name: label }).first();
   await action.waitFor({ state: 'visible', timeout: 5_000 });
@@ -647,9 +656,10 @@ export async function createExpenseFromPayee(
 
   // Description should be pre-filled with the payee name.
   // Wait for React to commit the initialDescription via useEffect.
+  // Exclude the Category combobox, which also matches `input[type="text"]`.
   await page.waitForFunction(
     (payeeName) => {
-      const input = document.querySelector('form input[type="text"]:not([inputmode])') as HTMLInputElement | null;
+      const input = document.querySelector('form input[type="text"]:not([inputmode]):not([role="combobox"])') as HTMLInputElement | null;
       return input && new RegExp(payeeName, 'i').test(input.value);
     },
     opts.payeeName,
@@ -677,6 +687,31 @@ export async function createExpenseFromPayee(
   await page.waitForTimeout(500);
 }
 
+/**
+ * Insert rows directly into an IndexedDB store via raw IDB.
+ * Works against the production build (no `/src/...` dynamic imports).
+ * Keyless rows on auto-increment stores get new keys. `os.put` is used so
+ * rows with explicit keys (e.g. schedules) upsert cleanly.
+ */
+export async function putRawRows(page: Page, store: string, rows: unknown[]): Promise<void> {
+  await page.evaluate(async ({ store, rows }) => {
+    return new Promise<void>((resolve, reject) => {
+      const req = indexedDB.open('ExpendDB');
+      req.onerror = () => reject(req.error ?? new Error('IndexedDB open failed'));
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction(store, 'readwrite');
+        const os = tx.objectStore(store);
+        for (const row of rows) os.put(row);
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(tx.error ?? new Error('insert failed')); };
+      };
+    });
+  }, { store, rows });
+  // Let IndexedDB flush before the caller reads.
+  await page.waitForTimeout(500);
+}
+
 // ===================== Service-level helpers =====================
 // These bypass the ActionPickerSheet UI to set up state directly via
 // the app's service layer. Use them when the test's subject under
@@ -690,26 +725,17 @@ export async function createTransferViaService(
   page: Page,
   opts: { fromWallet: string; toWallet: string; amount: number; description: string; date?: string },
 ): Promise<void> {
-  await page.evaluate(async (args) => {
-    const dbModule = await import('/src/db/db.ts');  // NOSONAR S6859 — ponytail: absolute path — required for Vite browser context
-    const txModule = await import('/src/services/transactionSaveService.ts');  // NOSONAR S6859 — ponytail: absolute path — required for Vite browser context
+  const wallets = await readTable<{ id: number; name: string }>(page, 'wallets');
+  const from = wallets.find((w) => w.name === opts.fromWallet);
+  const to = wallets.find((w) => w.name === opts.toWallet);
+  if (!from || !to) throw new Error(`Wallet not found: ${opts.fromWallet} or ${opts.toWallet}`);
 
-    const wallets = await dbModule.db.wallets.toArray();
-    const from = wallets.find((w) => w.name === args.fromWallet);
-    const to = wallets.find((w) => w.name === args.toWallet);
-    if (!from?.id || !to?.id) throw new Error(`Wallet not found: ${args.fromWallet} or ${args.toWallet}`);
-
-    await txModule.saveTransfer({
-      fromWalletId: from.id,
-      toWalletId: to.id,
-      amount: args.amount,
-      description: args.description,
-      date: args.date ?? '2025-01-15',
-      notes: '',
-    });
-  }, opts);
-  // Let Dexie flush.
-  await page.waitForTimeout(500);
+  const date = opts.date ?? '2025-01-15';
+  const groupId = `e2e_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+  await putRawRows(page, 'transactions', [
+    { walletId: from.id, categoryId: null, date, description: opts.description, type: 'transfer_out', amount: opts.amount, transferGroupId: groupId },
+    { walletId: to.id, categoryId: null, date, description: opts.description, type: 'transfer_in', amount: opts.amount, transferGroupId: groupId },
+  ]);
 }
 
 /**
@@ -720,33 +746,20 @@ export async function createExpenseViaService(
   page: Page,
   opts: { walletName: string; amount: number; description: string; categoryName?: string; date?: string },
 ): Promise<void> {
-  await page.evaluate(async (args) => {
-    const dbModule = await import('/src/db/db.ts');  // NOSONAR S6859 — ponytail: absolute path — required for Vite browser context
-    const txModule = await import('/src/services/transactionSaveService.ts');  // NOSONAR S6859 — ponytail: absolute path — required for Vite browser context
+  const wallets = await readTable<{ id: number; name: string }>(page, 'wallets');
+  const categories = await readTable<{ id: number; name: string }>(page, 'categories');
+  const wallet = wallets.find((w) => w.name === opts.walletName);
+  if (!wallet) throw new Error(`Wallet not found: ${opts.walletName}`);
+  const cat = opts.categoryName ? categories.find((c) => c.name === opts.categoryName) : undefined;
 
-    const wallets = await dbModule.db.wallets.toArray();
-    const wallet = wallets.find((w) => w.name === args.walletName);
-    if (!wallet?.id) throw new Error(`Wallet not found: ${args.walletName}`);
-
-    let categoryId: number | null = null;
-    if (args.categoryName) {
-      const cats = await dbModule.db.categories.toArray();
-      const cat = cats.find((c) => c.name === args.categoryName);
-      categoryId = cat?.id ?? null;
-    }
-
-    await txModule.saveTransaction({
-      walletId: wallet.id,
-      amount: args.amount,
-      description: args.description,
-      date: args.date ?? '2025-01-15',
-      categoryId,
-      notes: '',
-      type: 'expense',
-    });
-  }, opts);
-  // Let Dexie flush.
-  await page.waitForTimeout(500);
+  await putRawRows(page, 'transactions', [{
+    walletId: wallet.id,
+    categoryId: cat?.id ?? null,
+    date: opts.date ?? '2025-01-15',
+    description: opts.description,
+    type: 'expense',
+    amount: opts.amount,
+  }]);
 }
 
 /**

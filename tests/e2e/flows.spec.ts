@@ -8,6 +8,7 @@ import {
   createDebt,
   recordDebtPayment,
   readTable,
+  readTransactions,
   readWalletByName,
   readDebts,
   readDebtPayments,
@@ -74,8 +75,11 @@ test.describe('wallet deletion safety', () => {
     await confirmDialog.getByRole('button', { name: /^delete$/i }).first().click();
     await confirmDialog.waitFor({ state: 'hidden' });
 
-    const wallet = await readWalletByName(page, extraWallet);
-    expect(wallet).toBeFalsy();
+    // Dialog hides before deleteWalletSafely commits — poll the DB so the
+    // assertion never races the deletion.
+    await expect.poll(async () => (await readWalletByName(page, extraWallet)) === undefined, {
+      timeout: 5_000,
+    }).toBe(true);
   });
 });
 
@@ -169,6 +173,41 @@ test.describe('export and import', () => {
 
     expect(download.suggestedFilename()).toMatch(/\.csv/);
   });
+
+  test('restore previews a backup and replaces data (master.md 14.3 #7)', async ({ page }) => {
+    const walletName = uniqueName('Restore');
+    await onboard(page, walletName);
+    await createExpense(page, {
+      amount: '25000',
+      description: uniqueName('lunch'),
+      walletName,
+      categoryName: 'Food & Drinks',
+    });
+
+    // Create the backup file.
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /backup & restore/i }).first().click();
+    const downloadPromise = page.waitForEvent('download', { timeout: 10_000 });
+    await page.getByRole('button', { name: /export full backup|export json/i }).first().click();
+    const download = await downloadPromise;
+    const backupPath = await download.path();
+    expect(backupPath).toBeTruthy();
+
+    // Restore from that file: preview → confirm → data comes back.
+    await page.getByRole('button', { name: /restore from backup/i }).first().click();
+    await page.locator('input[type="file"][accept*="json"]').setInputFiles(backupPath!);
+    const preview = page.getByRole('dialog', { name: /backup found/i });
+    await expect(preview).toBeVisible();
+    await expect(preview.getByText(new RegExp(walletName))).toBeVisible();
+    await preview.getByRole('button', { name: /restore now/i }).click();
+    await expect(page.getByRole('status').getByText(/restored|success/i)).toBeVisible();
+    await page.waitForTimeout(800); // reload after restore
+    await page.goto('/');
+
+    await expect(page.getByRole('heading', { name: /overview/i })).toBeVisible();
+    await expect(page.getByText(new RegExp(walletName)).first()).toBeVisible();
+  });
 });
 
 // ─── Language / Theme ────────────────────────────────────────────
@@ -235,6 +274,34 @@ test.describe('language and theme', () => {
 // ─── Error states ────────────────────────────────────────────────
 
 test.describe('error states', () => {
+  test('closing the form with unsaved changes asks for confirmation (master.md 8.4)', async ({ page }) => {
+    await onboard(page, uniqueName('DirtyForm'), ['Food & Drinks']);
+
+    await openActionPicker(page);
+    await clickPickerAction(page, /add expense/i);
+    await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+
+    // Type an amount, then try to dismiss via Escape.
+    await page.locator('form input[inputmode="numeric"]').first().fill('5000');
+    await page.keyboard.press('Escape');
+
+    const discardDialog = page.getByRole('dialog', { name: /discard changes/i });
+    await discardDialog.waitFor({ state: 'visible', timeout: 5_000 });
+
+    // Cancelling keeps the form open with the typed amount intact.
+    await discardDialog.getByRole('button', { name: /cancel/i }).click();
+    await expect(page.locator('form input[inputmode="numeric"]').first()).toHaveValue(/5[.,]?000/);
+
+    // Confirming discard closes the form without saving.
+    await page.keyboard.press('Escape');
+    await discardDialog.waitFor({ state: 'visible', timeout: 5_000 });
+    await discardDialog.getByRole('button', { name: /discard/i }).click();
+    await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+
+    const txs = await readTransactions(page);
+    expect(txs).toHaveLength(0);
+  });
+
   test('expense exceeding wallet balance shows error', async ({ page }) => {
     const walletName = await onboard(page, uniqueName('ErrBal'));
 
@@ -397,7 +464,7 @@ test.describe('PIN security extended', () => {
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
     // Security section is directly visible — find the Set up PIN button directly.
-    await page.getByRole('button', { name: /set up pin/i }).first().click();
+    await page.getByRole('button', { name: /set up app lock/i }).first().click();
 
     let dialog = page.getByRole('dialog', { name: /create pin/i });
     for (const digit of ['5', '6', '7', '8']) {
@@ -441,7 +508,7 @@ test.describe('PIN security extended', () => {
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
     // Security section is directly visible.
-    await page.getByRole('button', { name: /set up pin/i }).first().click();
+    await page.getByRole('button', { name: /set up app lock/i }).first().click();
 
     // Set up PIN first
     let dialog = page.getByRole('dialog', { name: /create pin/i });
@@ -458,7 +525,7 @@ test.describe('PIN security extended', () => {
     await expect(dialog).toBeHidden();
 
     // Now disable security
-    const disableBtn = page.getByRole('button', { name: /disable security/i }).first();
+    const disableBtn = page.getByRole('button', { name: /disable app lock/i }).first();
     await disableBtn.waitFor({ state: 'visible', timeout: 5_000 });
     await disableBtn.click();
 
@@ -477,7 +544,7 @@ test.describe('PIN security extended', () => {
     await confirmDialog.waitFor({ state: 'hidden' });
 
     // Verify security is disabled — "Set up PIN" should be visible again
-    await expect(page.getByRole('button', { name: /set up pin/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /set up app lock/i })).toBeVisible({ timeout: 5_000 });
   });
 });
 

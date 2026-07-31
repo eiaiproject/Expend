@@ -23,6 +23,7 @@ beforeEach(async () => {
   await db.categories.clear();
   await db.debts.clear();
   await db.debtPayments.clear();
+  await db.schedules.clear();
   await db.settings.clear();
 });
 
@@ -177,6 +178,34 @@ describe('deleteWalletSafely', () => {
     // Wallet B transactions must remain
     const bTxs = await db.transactions.where('walletId').equals(walletBId).toArray();
     expect(bTxs).toHaveLength(1);
+  });
+
+  it('Scenario E: Reject deleting a wallet referenced by a recurring schedule', async () => {
+    const walletId = await db.wallets.add({
+      name: 'Wallet A', currency: 'IDR', initialBalance: 1000000,
+      lastUpdated: '2025-01-01T00:00:00.000Z',
+    });
+    await db.wallets.update(walletId, { currentBalance: 1000000 });
+
+    const catId = await db.categories.add({ name: 'Rent', icon: '🏠', color: '#0000FF' });
+    await db.schedules.add({
+      id: 'schedule_test_1', type: 'expense', frequency: 'monthly',
+      startDate: '2025-01-01', nextOccurrence: '2025-02-01', endDate: null,
+      amount: 1000000, categoryId: catId, walletId, payee: 'Rent',
+      mode: 'create', active: true, lastProcessedOccurrence: null,
+      createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z',
+    });
+
+    const result = await deleteWalletSafely(walletId);
+    expect(result.success).toBe(false);
+    expect(result.reasonKey).toBe('wallet.deleteBlockedSchedules');
+    expect(result.reason).toMatch(/schedule/i);
+
+    // Wallet and schedule remain intact
+    const wallet = await db.wallets.get(walletId);
+    expect(wallet).toBeTruthy();
+    const schedule = await db.schedules.get('schedule_test_1');
+    expect(schedule).toBeTruthy();
   });
 
   it('Scenario D: Delete wallet with multiple transfer pairs; all other wallets corrected', async () => {

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Merchant } from '../db/db';
 import {
-  Search, ArrowLeft, ShoppingBag, Plus, X, Filter, SortV
+  Search, ArrowLeft, ShoppingBag, Plus, X, Filter, SortV, Star, StarOff
 } from 'reicon-react';
 import { cn } from '../utils/cn';
 import { formatCurrency } from '../utils/formatUtils';
@@ -13,12 +13,16 @@ import { confirm } from '../components/ConfirmDialog';
 import {
   getPayeeStatsFromTransactions, filterTransactionsByPayee,
   normalizePayeeKey, normalizePayeeName,
-  type PayeeStats, type PayeeSortConfig, type PayeeTransactionFilters, type PayeeAggregateFilters
+  type PayeeStats, type PayeeSortConfig, type PayeeSortField,
+  type PayeeTransactionFilters, type PayeeAggregateFilters
 } from '../services/payeeService';
 import {
   renameMerchant, addMerchantAlias, removeMerchantAlias,
   archiveMerchant, restoreMerchant, syncMerchants
 } from '../services/merchantService';
+import {
+  getFavoritePayeeKeys, toggleFavoritePayee
+} from '../services/payeeFavoritesService';
 import { TransactionCard } from '../components/home/TransactionCard';
 import { EmptyState } from '../components/EmptyState';
 import { toast } from '../components/Toaster';
@@ -62,6 +66,13 @@ export default function PayeesView() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterDraft, setFilterDraft] = useState<PayeeFilterDraft>(EMPTY_FILTER_DRAFT);
   const [showArchived, setShowArchived] = useState(false);
+
+  // Favorited payees (master.md 6.4) — normalized keys from settings store
+  const favoriteKeys = useLiveQuery(() => getFavoritePayeeKeys(), [], []);
+  const favoriteKeySet = useMemo(
+    () => new Set(favoriteKeys ?? []),
+    [favoriteKeys]
+  );
 
   const [isAddTxOpen, setIsAddTxOpen] = useState(false);
   const [txInitialDescription, setTxInitialDescription] = useState<string | undefined>();
@@ -196,6 +207,13 @@ export default function PayeesView() {
     setRenamingMerchant(null);
   };
 
+  const handleToggleFavorite = useCallback(async (merchant: MerchantWithStats) => {
+    const isFav = await toggleFavoritePayee(merchant.displayName);
+    toast.add(isFav
+      ? t('payees.favorited', { name: merchant.displayName })
+      : t('payees.unfavorited', { name: merchant.displayName }));
+  }, [t]);
+
   const handleArchive = async (m: MerchantWithStats) => {
     if (m.archivedAt) {
       await restoreMerchant(m.id!);
@@ -247,7 +265,12 @@ export default function PayeesView() {
   if (selectedMerchant) {
     const m = selectedMerchant;
     const isArchived = !!m.archivedAt;
+    const isFavorite = favoriteKeySet.has(normalizePayeeKey(m.displayName));
     const detailMenuItems = [
+      {
+        label: isFavorite ? t('payees.removeFavorite') : t('payees.addFavorite'),
+        onClick: () => handleToggleFavorite(m),
+      },
       { label: t('payees.renameMerchant'), onClick: () => { setRenamingMerchant(m); setNewMerchantName(m.displayName); } },
       { label: t('payees.manageAliases'), onClick: async () => {
         const alias = window.prompt(t('payees.addAliasPrompt'));
@@ -410,6 +433,29 @@ export default function PayeesView() {
           )}
         </div>
 
+        {/* Quick sort chips (master.md 6.7) — common needs up front */}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" role="list" aria-label={t('payees.quickSortLabel')}>
+          {QUICK_SORTS.map((opt) => {
+            const isActive = sortConfig.field === opt.field && sortConfig.order === opt.order;
+            return (
+              <button
+                key={opt.labelKey}
+                type="button"
+                onClick={() => setSortConfig({ field: opt.field, order: opt.order })}
+                className={cn(
+                  "shrink-0 px-3 py-2 rounded-lg border text-sm font-medium min-h-[44px] transition-colors",
+                  isActive
+                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                    : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] hover:text-[var(--text-primary)]"
+                )}
+                aria-pressed={isActive}
+              >
+                {t(opt.labelKey)}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Sort & Filter */}
         <div className="flex gap-2">
           <button type="button" onClick={() => setIsFilterOpen(true)}
@@ -423,8 +469,8 @@ export default function PayeesView() {
           </button>
           <button type="button" onClick={() => setIsSortOpen(true)}
             className="flex items-center gap-2 px-3 py-2.5 rounded-lg border bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] text-sm font-medium min-h-[44px]"
-            aria-label={t('payees.sortLabel')} aria-haspopup="dialog" aria-expanded={isSortOpen}>
-            <SortV size={14} aria-hidden="true" /><span>{t('payees.sortLabel')}</span>
+            aria-label={t('payees.advancedSortLabel')} aria-haspopup="dialog" aria-expanded={isSortOpen}>
+            <SortV size={14} aria-hidden="true" /><span>{t('payees.advancedSortLabel')}</span>
           </button>
         </div>
 
@@ -436,6 +482,8 @@ export default function PayeesView() {
             <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider px-1">{t('Active Merchants')}</h2>
             {activeMerchants.map(m => (
               <MerchantCard key={m.id} merchant={m} hideAmount={hideAmount}
+                isFavorite={favoriteKeySet.has(normalizePayeeKey(m.displayName))}
+                onToggleFavorite={() => handleToggleFavorite(m)}
                 onOpen={() => setSelectedMerchantId(m.id!)} onAddExpense={() => openAddExpense(m.displayName)} onArchive={() => handleArchive(m)} />
             ))}
           </div>
@@ -451,6 +499,8 @@ export default function PayeesView() {
             </button>
             {showArchived && archivedMerchants.map(m => (
               <MerchantCard key={m.id} merchant={m} hideAmount={hideAmount} isArchived
+                isFavorite={favoriteKeySet.has(normalizePayeeKey(m.displayName))}
+                onToggleFavorite={() => handleToggleFavorite(m)}
                 onOpen={() => setSelectedMerchantId(m.id!)} onAddExpense={() => openAddExpense(m.displayName)} onArchive={() => handleArchive(m)} />
             ))}
           </div>
@@ -490,11 +540,20 @@ function buildAggFilters(draft: PayeeFilterDraft): PayeeAggregateFilters | undef
   };
 }
 
+// ── Quick sort chips (master.md 6.7) ─────────────────────────
+const QUICK_SORTS: { field: PayeeSortField; order: 'asc' | 'desc'; labelKey: string }[] = [
+  { field: 'totalExpense', order: 'desc', labelKey: 'payees.sortHighestSpending' },
+  { field: 'lastTransactionDate', order: 'desc', labelKey: 'payees.sortMostRecent' },
+  { field: 'transactionCount', order: 'desc', labelKey: 'payees.sortMostFrequent' },
+  { field: 'name', order: 'asc', labelKey: 'payees.sortAlphabetical' },
+];
+
 // ── Merchant Card ─────────────────────────────────────────────
 function MerchantCard({
-  merchant, hideAmount, isArchived, onOpen, onAddExpense, onArchive,
+  merchant, hideAmount, isArchived, isFavorite, onToggleFavorite, onOpen, onAddExpense, onArchive,
 }: {
   readonly merchant: MerchantWithStats; readonly hideAmount: boolean; readonly isArchived?: boolean;
+  readonly isFavorite?: boolean; readonly onToggleFavorite?: () => void;
   readonly onOpen: () => void; readonly onAddExpense: () => void; readonly onArchive: () => void;
 }) {
   const { t } = useTranslation();
@@ -506,7 +565,10 @@ function MerchantCard({
         aria-label={merchant.displayName}>
         <div className="p-2 bg-[var(--bg)] rounded-xl text-[var(--accent)] shrink-0"><ShoppingBag size={20} aria-hidden="true" /></div>
         <div className="min-w-0 flex-1">
-          <p className="font-bold text-sm truncate">{merchant.displayName}</p>
+          <p className="font-bold text-sm truncate">
+            {merchant.displayName}
+            {isFavorite && <Star size={12} className="inline-block ml-1 text-[var(--accent)] -mt-0.5" aria-hidden="true" />}
+          </p>
           <p className="text-xs text-[var(--text-secondary)]">
             {t('Merchant')} · {s.transactionCount === 1 ? t('1 transaction') : t('{{count}} transactions', { count: s.transactionCount })}
             {isArchived && <span className="ml-1 italic">· {t('Archived')}</span>}
@@ -522,8 +584,23 @@ function MerchantCard({
           aria-label={t('payees.addExpenseFor', { name: merchant.displayName })}>
           <Plus size={16} aria-hidden="true" />
         </button>
+        <button type="button" onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(); }}
+          className={cn(
+            "flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] transition-colors",
+            isFavorite
+              ? "text-[var(--accent)] bg-[var(--accent)]/10 border-[var(--accent)]/20"
+              : "text-[var(--text-secondary)] bg-[var(--card)] hover:bg-[var(--bg)] hover:text-[var(--accent)]"
+          )}
+          aria-label={isFavorite ? t('payees.removeFavorite') : t('payees.addFavorite')}
+          aria-pressed={isFavorite}
+        >
+          {isFavorite
+            ? <Star size={16} aria-hidden="true" />
+            : <StarOff size={16} aria-hidden="true" />}
+        </button>
         <CategoryOverflowMenu categoryName={merchant.displayName} items={[
           { label: t('payees.viewTransactions'), onClick: onOpen },
+          ...(onToggleFavorite ? [{ label: isFavorite ? t('payees.removeFavorite') : t('payees.addFavorite'), onClick: onToggleFavorite }] : []),
           { label: isArchived ? t('payees.restoreMerchant') : t('payees.archiveMerchant'), onClick: onArchive },
         ]} />
       </div>

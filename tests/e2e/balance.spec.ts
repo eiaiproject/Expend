@@ -94,7 +94,7 @@ test.describe('wallet balance smoke', () => {
     expect(pair[1].transferGroupId).toBe(pair[0].transferGroupId);
   });
 
-  test('transfer detail does not allow repeat without paired wallet context', async ({ page }) => {
+  test('transfer repeat creates a new valid pair with a fresh group id', async ({ page }) => {
     const fromWallet = await onboard(page, uniqueName('RepeatFrom'), []);
     const toWallet = uniqueName('RepeatTo');
     const description = uniqueName('repeat-transfer');
@@ -110,7 +110,24 @@ test.describe('wallet balance smoke', () => {
 
     await page.locator('[data-testid="transaction-row"]', { hasText: `${description} (Out)` }).first().click();
     await expect(page.getByRole('dialog', { name: new RegExp(description, 'i') })).toBeVisible();
-    await expect(page.getByRole('button', { name: /repeat transaction/i })).toBeDisabled();
+
+    // master.md 5.5: repeat of a transfer is now supported — it must create a
+    // new pair rather than copying unsafe identifiers.
+    const repeatBtn = page.getByRole('button', { name: /repeat transaction/i });
+    await expect(repeatBtn).toBeEnabled();
+    await repeatBtn.click();
+
+    // Form opens prefilled in transfer mode; save as-is.
+    await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+    await page.getByRole('button', { name: /^save$/i }).first().click();
+    await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+    await page.waitForTimeout(500); // NOSONAR S2925
+
+    const txs = (await readTransactions(page)).filter((t) => t.description?.startsWith(description));
+    expect(txs).toHaveLength(4); // original pair + repeated pair
+    const groups = new Set(txs.map((t) => t.transferGroupId));
+    expect(groups.size).toBe(2); // distinct groups — no orphaned/duplicated pair
+    expect(txs.map((t) => t.type).sort()).toEqual(['transfer_in', 'transfer_in', 'transfer_out', 'transfer_out']);
   });
 
   test('payable debt cashflow and repayment update wallet and debt records', async ({ page }) => {

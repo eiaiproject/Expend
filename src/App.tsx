@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense, useEffect, useCallback } from 'react';
+import { useState, lazy, Suspense, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { BottomNav, FabButton } from './components/BottomNav';
@@ -11,11 +11,13 @@ const StatsView = lazy(() => import('./views/StatsView'));
 const SettingsView = lazy(() => import('./views/SettingsView'));
 const CategoriesView = lazy(() => import('./views/CategoriesView'));
 const PayeesView = lazy(() => import('./views/PayeesView'));
+const SchedulesView = lazy(() => import('./views/SchedulesView'));
 
 import { TransactionFormSheet } from './components/TransactionFormSheet';
 import { ActionPickerSheet } from './components/ActionPickerSheet';
 import { DebtFormSheet } from './components/debts/DebtFormSheet';
 import { Toaster } from './components/Toaster';
+import { SupportPrompt } from './components/SupportPrompt';
 import { PrivacyProvider } from './contexts/PrivacyContext';
 import { ConfirmDialogProvider } from './components/ConfirmDialog';
 import { LockScreen } from './components/LockScreen';
@@ -23,6 +25,7 @@ import { SecurityProvider, useSecurity } from './contexts/SecurityContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Skeleton } from './components/Skeleton';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
+import { processDueSchedules } from './services/recurringService';
 import './i18n/init';
 
 import LandingView from './views/LandingView';
@@ -61,6 +64,21 @@ function AppContent() {
     setTxInitialDescription(desc);
     setIsAddTxOpen(true);
   }, []);
+
+  // Recurring schedules: process due 'create'-mode schedules once per app
+  // session after the app is opened and unlocked (master.md 7.2/7.3).
+  // Idempotent, but a one-shot guard avoids re-running on lock/unlock toggles.
+  const schedulesProcessedRef = useRef(false);
+  useEffect(() => {
+    if (schedulesProcessedRef.current) return;
+    if (!isSecurityLoaded || isLocked) return;
+    if (!hasOnboarded || !onboardingCompleted) return;
+    schedulesProcessedRef.current = true;
+    processDueSchedules().catch(() => {
+      // Allow a retry on a later unlock/state change if processing failed.
+      schedulesProcessedRef.current = false;
+    });
+  }, [isSecurityLoaded, isLocked, hasOnboarded, onboardingCompleted]);
 
   // Keyboard shortcut: N to open Add Transaction
   useEffect(() => {
@@ -212,6 +230,9 @@ function AppContent() {
         isOpen={isDebtFormOpen}
         onClose={() => setIsDebtFormOpen(false)}
       />
+
+      {/* Contextual support prompt — only inside the unlocked app shell */}
+      <SupportPrompt />
     </div>
   );
 }
@@ -245,6 +266,7 @@ function RoutesWithSuspense() {
           <Route path="/settings" element={<SettingsView />} />
           <Route path="/categories" element={<CategoriesView />} />
           <Route path="/payees" element={<PayeesView />} />
+          <Route path="/schedules" element={<SchedulesView />} />
           <Route path="*" element={<NotFoundView />} />
         </Routes>
       </Suspense>

@@ -1,13 +1,12 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/db';
-import { useSecurity } from '../contexts/SecurityContext';
-import {
-  Moon, Sun, Monitor, Download, Upload, Lock, Trash2, Check,
-  Information, Tag, ShoppingBag, Database, HardDrive,
-  Link as ExternalLinkIcon, ChevronRight, Eye, EyeOff, Mobile,
-  Clock, AlertTriangle
-} from 'reicon-react';
+import { useSecurity } from '../contexts/SecurityContext';  import {
+    Moon, Sun, Monitor, Download, Upload, Lock, Trash2, Check,
+    Information, Tag, ShoppingBag, Database, HardDrive,
+    Link as ExternalLinkIcon, ChevronRight, Eye, EyeOff, Mobile,
+    Clock, AlertTriangle, Coffee, Heart, ShieldCheck, Bug, Repeat
+  } from 'reicon-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { Link } from 'react-router-dom';
@@ -23,9 +22,15 @@ import {
   exportDebtsCsv,
   exportDebtPaymentsCsv,
   parseTransactionsCsv,
-  importCsvTransactions
+  importCsvTransactions,
+  detectDuplicateRows,
+  downloadCsvErrorReport,
+  type CsvImportReport,
 } from '../services/csvService';
-import { MAX_IMPORT_FILE_SIZE, STORAGE_KEYS, APP_VERSION, AUTO_LOCK_TIMEOUT_OPTIONS } from '../utils/constants';
+import { MAX_IMPORT_FILE_SIZE, STORAGE_KEYS, APP_VERSION, AUTO_LOCK_TIMEOUT_OPTIONS, BACKUP_FORMAT_VERSION } from '../utils/constants';
+
+/** master.md 11: imports above this size snapshot the DB first. */
+const CSV_SNAPSHOT_THRESHOLD = 20;
 import { downloadBlob } from '../utils/downloadUtils';
 import { useInstallPrompt, useIsStandalone } from '../utils/pwaUtils';
 import { getTodayStr } from '../utils/dateUtils';
@@ -34,13 +39,20 @@ import { getTodayStr } from '../utils/dateUtils';
 import { SettingsAccordion } from '../components/settings/SettingsAccordion';
 import { VerifyCurrentPinModal } from '../components/settings/VerifyCurrentPinModal';
 import { PinSetupModal } from '../components/settings/PinSetupModal';
-
-// ── Constants ──────────────────────────────────────────────────
-
-const SOURCE_CODE_URL = 'https://github.com/expend/expend-app';
-const TRAKTEER_URL = 'https://trakteer.id/eiaiproject';
-
-const BACKUP_REMINDER_DAYS = 7;
+import { BackupStatusCard } from '../components/settings/BackupStatusCard';
+import { SupportCard } from '../components/settings/SupportCard';
+import {
+  getBackupStatusInfo,
+  recordSuccessfulBackup,
+  getBackupMetadata,
+  evaluateBackupReminder,
+} from '../services/backupService';
+import {
+  TRAKTEER_URL,
+  SOURCE_CODE_URL,
+  ISSUES_URL,
+  recordSupportMilestone,
+} from '../services/supportService';
 
 // ── Helper components ──────────────────────────────────────────
 
@@ -111,31 +123,35 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
-// ── Backup Reminder Hook ───────────────────────────────────────
+// ── Backup Status Hook ────────────────────────────────────────
 
-function useBackupReminder() {
-  const [lastBackup, setLastBackup] = useState<string | null>(null);
+function useBackupStatus() {
+  const [backupInfo, setBackupInfo] = useState<{
+    status: import('../services/backupService').BackupStatusType;
+    lastBackupAt: string | null;
+    daysSinceBackup: number | null;
+    changesSinceBackup: number;
+    loading: boolean;
+  }>({ status: 'never', lastBackupAt: null, daysSinceBackup: null, changesSinceBackup: 0, loading: true });
 
-  useEffect(() => {
-    db.settings.get('lastBackupAt').then(setting => {
-      if (setting?.value && typeof setting.value === 'string') {
-        setLastBackup(setting.value);
-      }
-    }).catch(() => {});
+  const refresh = useCallback(async () => {
+    const info = await getBackupStatusInfo();
+    setBackupInfo({ ...info, loading: false });
   }, []);
 
-  const needsBackup = useMemo(() => {
-    if (!lastBackup) return true;
-    const daysSince = (Date.now() - new Date(lastBackup).getTime()) / (1000 * 60 * 60 * 24);
-    return daysSince > BACKUP_REMINDER_DAYS;
-  }, [lastBackup]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-  const markBackupDone = async () => {
-    await db.settings.put({ key: 'lastBackupAt', value: new Date().toISOString() });
-    setLastBackup(new Date().toISOString());
-  };
+  const createBackup = useCallback(async () => {
+    const data = await generateExport();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, `expend-backup-${getTodayStr()}T${new Date().toTimeString().slice(0, 8).replaceAll(':', '-')}.json`);
+    await recordSuccessfulBackup(BACKUP_FORMAT_VERSION);
+    await refresh();
+  }, [refresh]);
 
-  return { lastBackup, needsBackup, markBackupDone };
+  return { ...backupInfo, createBackup, refresh };
 }
 
 // ── CSV Preview ────────────────────────────────────────────────
@@ -149,17 +165,22 @@ interface CsvPreviewRow {
   readonly type: string;
 }
 
-function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
+function CsvPreviewModal({ isOpen, onClose, rows, errors, duplicates, skipDuplicates, onSkipDuplicatesChange, onConfirm }: {
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly rows: CsvPreviewRow[];
   readonly errors: string[];
+  readonly duplicates: boolean[];
+  readonly skipDuplicates: boolean;
+  readonly onSkipDuplicatesChange: (value: boolean) => void;
   readonly onConfirm: () => void;
 }) {
   const { t } = useTranslation();
   if (!isOpen) return null;
 
   const previewRows = rows.slice(0, 8);
+  const duplicateCount = duplicates.filter(Boolean).length;
+  const importableCount = skipDuplicates ? rows.length - duplicateCount : rows.length;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4">
@@ -182,6 +203,34 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
               {errors.slice(0, 5).map((err, i) => <li key={err}>{err}</li>)}
               {errors.length > 5 && <li>...{errors.length - 5} more</li>}
             </ul>
+          </div>
+        )}
+
+        {duplicateCount > 0 && (
+          <div className="p-4 border-b border-[var(--border)]">
+            <p className="text-sm font-medium">{t('settings.csvDuplicatesFound', { count: duplicateCount })}</p>
+            <div className="mt-2 space-y-2 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="duplicate-behavior"
+                  checked={skipDuplicates}
+                  onChange={() => onSkipDuplicatesChange(true)}
+                  className="accent-[var(--accent)]"
+                />
+                {t('settings.csvSkipDuplicates')}
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="duplicate-behavior"
+                  checked={!skipDuplicates}
+                  onChange={() => onSkipDuplicatesChange(false)}
+                  className="accent-[var(--accent)]"
+                />
+                {t('settings.csvImportAnyway')}
+              </label>
+            </div>
           </div>
         )}
 
@@ -219,10 +268,60 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, onConfirm }: {
           <button
             type="button"
             onClick={onConfirm}
-            disabled={errors.length > 0}
+            disabled={errors.length > 0 || rows.length === 0}
             className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {t('settings.csvPreviewImport', { count: rows.length })}
+            {importableCount === 0
+              ? t('settings.csvImportAnyway')
+              : t('settings.csvPreviewImport', { count: importableCount })}
+          </button>
+        </div>
+      </dialog>
+    </div>
+  );
+}
+
+// ── CSV Import Report ────────────────────────────────────────
+
+function CsvImportReportModal({ report, onClose }: {
+  readonly report: CsvImportReport | null;
+  readonly onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  if (!report) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4">
+      <dialog
+        open
+        aria-label={t('settings.csvReportTitle')}
+        className="bg-[var(--card)] rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl p-0 border-0 backdrop:bg-transparent m-0"
+      >
+        <div className="p-4 border-b border-[var(--border)]">
+          <h2 className="text-lg font-bold">{t('settings.csvReportTitle')}</h2>
+        </div>
+        <div className="flex-1 overflow-auto p-4 space-y-3 text-sm">
+          <p className="font-medium">{t('settings.csvReportImported', { count: report.imported })}</p>
+          <p>{t('settings.csvReportSkipped', { count: report.skipped })}</p>
+          <p>{t('settings.csvReportFailed', { count: report.failed })}</p>
+          {report.errors.length > 0 && (
+            <div className="pt-2">
+              <ul className="mt-1 text-xs text-red-600 dark:text-red-400 space-y-0.5 max-h-32 overflow-auto">
+                {report.errors.map((err) => <li key={err}>{err}</li>)}
+              </ul>
+              <button
+                type="button"
+                onClick={() => downloadCsvErrorReport(report.errors)}
+                className="mt-3 h-10 rounded-xl border border-[var(--border)] font-medium px-4 hover:bg-[var(--bg)] transition-colors"
+              >
+                {t('settings.csvReportDownloadErrors')}
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="p-4 border-t border-[var(--border)] flex gap-3">
+          <button type="button" onClick={onClose} className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium hover:opacity-90 transition-colors">
+            {t('Done')}
           </button>
         </div>
       </dialog>
@@ -318,7 +417,9 @@ export default function SettingsView() {
   const [pendingAction, setPendingAction] = useState<'changePin' | 'disableSecurity' | null>(null);
 
   // CSV Preview state
-  const [csvPreview, setCsvPreview] = useState<{ rows: CsvPreviewRow[]; errors: string[] } | null>(null);
+  const [csvPreview, setCsvPreview] = useState<{ rows: CsvPreviewRow[]; errors: string[]; duplicates: boolean[] } | null>(null);
+  const [csvSkipDuplicates, setCsvSkipDuplicates] = useState(true);
+  const [csvResult, setCsvResult] = useState<CsvImportReport | null>(null);
 
   // Restore Preview state
   const [restoreData, setRestoreData] = useState<{ wallets: any[]; transactions: any[]; categories: any[]; debts: any[]; payments: any[]; exportedAt: string; version: string } | null>(null);
@@ -339,7 +440,15 @@ export default function SettingsView() {
   const { deferredPrompt, showInstallPrompt } = useInstallPrompt();
   const isStandalone = useIsStandalone();
   const storageEstimate = useStorageEstimate();
-  const { needsBackup, markBackupDone } = useBackupReminder();
+  const {
+    status: backupStatus,
+    lastBackupAt,
+    daysSinceBackup,
+    changesSinceBackup: backupChanges,
+    loading: backupLoading,
+    createBackup,
+    refresh: refreshBackupStatus,
+  } = useBackupStatus();
 
   // ── Language ──────────────────────────────────────────────
 
@@ -373,9 +482,10 @@ export default function SettingsView() {
 
     try {
       const { rows, errors } = await parseTransactionsCsv(file);
+      const duplicates = await detectDuplicateRows(rows);
 
       // Show preview modal
-      setCsvPreview({ rows, errors });
+      setCsvPreview({ rows, errors, duplicates });
     } catch {
       toast.add(t('Import Error'));
     } finally {
@@ -386,9 +496,16 @@ export default function SettingsView() {
   const handleCsvConfirmImport = async () => {
     if (!csvPreview) return;
     try {
-      await importCsvTransactions(csvPreview.rows);
-      toast.add(t('settings.importCsvSuccess', { count: csvPreview.rows.length }));
+      // master.md 11: pre-import snapshot for high-impact imports — the
+      // service snapshots the DB and rolls back automatically on failure.
+      const report = await importCsvTransactions(csvPreview.rows as unknown as Array<Record<string, unknown>>, {
+        skipDuplicates: csvSkipDuplicates,
+        preImportSnapshot: csvPreview.rows.length >= CSV_SNAPSHOT_THRESHOLD,
+      });
+      setCsvResult(report);
       setCsvPreview(null);
+      if (report.imported === 0) return; // nothing changed — no reload needed
+      toast.add(t('settings.importCsvSuccess', { count: report.imported }));
       window.setTimeout(() => window.location.reload(), 600);
     } catch {
       toast.add(t('Import Error'));
@@ -399,10 +516,7 @@ export default function SettingsView() {
   // ── JSON Backup Export ────────────────────────────────────
 
   const handleExportJSON = async () => {
-    const data = await generateExport();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    downloadBlob(blob, `expend-backup-${getTodayStr()}T${new Date().toTimeString().slice(0, 8).replaceAll(':', '-')}.json`);
-    await markBackupDone();
+    await createBackup();
     toast.add(t('settings.backupCreated'));
   };
 
@@ -452,6 +566,9 @@ export default function SettingsView() {
       await importData(restoreData as any);
       toast.add(t('settings.restoreSuccess'));
       setRestoreData(null);
+      // Positive moment → contextual support prompt eligibility (9.4).
+      // Record AFTER importData since restore replaces the settings store.
+      await recordSupportMilestone('restore');
       window.setTimeout(() => window.location.reload(), 600);
     } catch {
       toast.add(t('settings.restoreError'));
@@ -487,12 +604,13 @@ export default function SettingsView() {
 
     if (!confirmed) return;
 
-    await db.transaction('rw', [db.transactions, db.categories, db.wallets, db.debts, db.debtPayments, db.settings], async () => {
+    await db.transaction('rw', [db.transactions, db.categories, db.wallets, db.debts, db.debtPayments, db.schedules, db.settings], async () => {
       await db.transactions.clear();
       await db.categories.clear();
       await db.wallets.clear();
       await db.debts.clear();
       await db.debtPayments.clear();
+      await db.schedules.clear();
       await db.settings.clear();
     });
 
@@ -642,6 +760,24 @@ export default function SettingsView() {
         </label>
       </div>
 
+      {/* ── BACKUP STATUS ────────────────────────────────── */}
+      <SectionHeading>{t('backup.sectionTitle')}</SectionHeading>
+
+      {/* Backup Status Card */}
+      <BackupStatusCard
+        status={backupStatus}
+        lastBackupAt={lastBackupAt}
+        daysSinceBackup={daysSinceBackup}
+        changesSinceBackup={backupChanges}
+        loading={backupLoading}
+        onBackupNow={handleExportJSON}
+        onRestore={() => restoreInputRef.current?.click()}
+        onImportExport={() => csvInputRef.current?.click()}
+      />
+
+      {/* Permanent support card — visible without excessive scrolling (9.1) */}
+      <SupportCard />
+
       {/* ── DATA ────────────────────────────────────────── */}
       <SectionHeading>{t('settings.sectionData')}</SectionHeading>
 
@@ -665,14 +801,9 @@ export default function SettingsView() {
       {/* Backup & Restore */}
       <SettingsAccordion title={t('settings.sectionBackupRestore')}>
         <div className="flex flex-col">
-          {needsBackup && (
-            <div className="mx-4 mt-3 mb-1 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-              <div className="flex items-start gap-2">
-                <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">{t('settings.backupReminder')}</p>
-              </div>
-            </div>
-          )}
+          <div className="p-4 border-b border-[var(--border)]">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{t('backup.jsonFormat')}</p>
+          </div>
           <NavRow
             icon={Download}
             label={t('settings.exportBackup')}
@@ -698,6 +829,9 @@ export default function SettingsView() {
       {/* Transaction Import & Export */}
       <SettingsAccordion title={t('settings.sectionTxImportExport')}>
         <div className="flex flex-col">
+          <div className="p-4 border-b border-[var(--border)]">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{t('backup.csvFormat')}</p>
+          </div>
           <NavRow
             icon={Download}
             label={t('settings.exportTransactionsCsv')}
@@ -744,6 +878,13 @@ export default function SettingsView() {
         label={t('settings.recipientsMerchants')}
         description={t('settings.recipientsMerchantsDesc')}
         to="/payees"
+      />
+
+      <NavRow
+        icon={Repeat}
+        label={t('settings.recurringSchedules')}
+        description={t('settings.recurringSchedulesDesc')}
+        to="/schedules"
       />
 
       {/* ── SECURITY ────────────────────────────────────── */}
@@ -876,6 +1017,19 @@ export default function SettingsView() {
           <div>
             <h3 className="text-sm font-bold text-[var(--text-primary)]">Expend</h3>
             <p className="text-xs text-[var(--text-secondary)]">{t('settings.versionLabel')}: {APP_VERSION}</p>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.aboutAuthor', { author: 'Anggie Irawan' })}</p>
+          </div>
+        </div>
+
+        {/* Open-source / no ads / no tracking status (9.2) */}
+        <div className="px-4 pb-1 border-t border-[var(--border)] pt-3 space-y-2">
+          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <Heart size={14} className="text-[var(--accent)]" aria-hidden="true" />
+            <span>{t('settings.aboutFreeOpenSource')}</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <ShieldCheck size={14} className="text-[var(--accent)]" aria-hidden="true" />
+            <span>{t('settings.aboutNoAdsNoTracking')}</span>
           </div>
         </div>
 
@@ -887,6 +1041,30 @@ export default function SettingsView() {
         >
           <ExternalLinkIcon size={18} className="text-[var(--text-secondary)]" aria-hidden="true" />
           <span className="text-sm font-medium text-[var(--text-primary)] flex-1">{t('settings.viewSourceCode')}</span>
+          <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
+        </a>
+
+        <a
+          href={ISSUES_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center gap-3 p-4 border-t border-[var(--border)] text-left hover:bg-[var(--bg)] transition-colors min-h-[44px]"
+        >
+          <Bug size={18} className="text-[var(--text-secondary)]" aria-hidden="true" />
+          <span className="text-sm font-medium text-[var(--text-primary)] flex-1">{t('settings.reportIssue')}</span>
+          <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
+        </a>
+
+        {/* Trakteer support action (master.md 9.2) */}
+        <a
+          href={TRAKTEER_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center gap-3 p-4 border-t border-[var(--border)] text-left hover:bg-[var(--bg)] transition-colors min-h-[44px]"
+        >
+          <Coffee size={18} className="text-[var(--accent)]" aria-hidden="true" />
+          <span className="text-sm font-medium text-[var(--text-primary)] flex-1">{t('settings.aboutSupport')}</span>
+          <span className="sr-only">{t('settings.opensExternalSite')}</span>
           <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
         </a>
 
@@ -921,15 +1099,16 @@ export default function SettingsView() {
           return null;
         })()}
 
-        {/* Support Developer */}
+        {/* Support Developer — permanent secondary link (9.2) */}
         <a
           href={TRAKTEER_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full flex items-center gap-3 p-4 border-t border-[var(--border)] text-left hover:bg-[var(--bg)] transition-colors min-h-[44px]"
         >
-          <HardDrive size={18} className="text-[var(--text-secondary)]" aria-hidden="true" />
+          <Coffee size={18} className="text-[var(--text-secondary)]" aria-hidden="true" />
           <span className="text-sm font-medium text-[var(--text-primary)] flex-1">{t('settings.supportOnTrakteer')}</span>
+          <span className="sr-only">{t('settings.opensExternalSite')}</span>
           <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
         </a>
       </div>
@@ -959,8 +1138,14 @@ export default function SettingsView() {
         onClose={() => setCsvPreview(null)}
         rows={csvPreview?.rows ?? []}
         errors={csvPreview?.errors ?? []}
+        duplicates={csvPreview?.duplicates ?? []}
+        skipDuplicates={csvSkipDuplicates}
+        onSkipDuplicatesChange={setCsvSkipDuplicates}
         onConfirm={handleCsvConfirmImport}
       />
+
+      {/* CSV Import Report Modal */}
+      <CsvImportReportModal report={csvResult} onClose={() => setCsvResult(null)} />
 
       {/* Restore Preview Modal */}
       <RestorePreviewModal

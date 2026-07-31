@@ -65,3 +65,6 @@ test-*.ts
 .wrangler
 .dev.vars*
 !.dev.vars.example
+
+# Local Lighthouse CI artifacts
+.lighthouseci/

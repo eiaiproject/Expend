@@ -1,11 +1,13 @@
 import { db } from '../db/db';
 import Papa from 'papaparse';
-import { sanitizeCsvRows } from './importExportService';
+import { sanitizeCsvRows, sanitizeCsvField } from './importExportService';
+import { createDataSnapshot, restoreFromSnapshot } from './backupService';
 import { getTodayStr } from '../utils/dateUtils';
 import { downloadBlob } from '../utils/downloadUtils';
 import { VALID_TX_TYPES } from '../utils/constants';
 import { recomputeWalletCurrentBalances } from '../utils/balanceUtils';
 import { ensureMerchant } from './merchantService';
+import { incrementChangeCount } from './backupService';
 
 export interface TransactionCsvRow {
   date: string;
@@ -196,10 +198,12 @@ export async function parseTransactionsCsv(file: File): Promise<{ rows: any[]; e
             date,
             walletId: walletMap.get(walletName.toLowerCase()!),
             categoryId: type === 'expense' ? categoryMap.get(categoryName.toLowerCase()!) : null,
-            description: recipient || 'Imported',
+            // Formula-injection guard (master.md 11): strings that look like
+            // spreadsheet formulas are stored as literal text.
+            description: sanitizeCsvField(recipient || 'Imported') as string,
             amount,
             type,
-            notes: row.notes || '',
+            notes: sanitizeCsvField(row.notes || '') as string,
             transferGroupId: row.transferGroupId || undefined,
           });
         });
@@ -211,29 +215,120 @@ export async function parseTransactionsCsv(file: File): Promise<{ rows: any[]; e
 }
 
 /**
- * Import validated CSV transactions.
+ * Normalize free text so 'Kopi Senja', 'kopi  senja' and 'KOPI SENJA' fingerprint alike.
  */
-export async function importCsvTransactions(rows: any[]): Promise<void> {
-  await db.transaction('rw', [db.transactions, db.wallets, db.debts, db.debtPayments, db.merchants], async () => {
-    for (const row of rows) {
-      await db.transactions.add(row);
-      // Auto-create merchant entry for expenses
-      if (row.type === 'expense' && row.description) {
-        await ensureMerchant(row.description);
-      }
-    }
+export function normalizeFingerprintText(text: string): string {
+  return text.trim().toLowerCase().replace(/\s+/g, ' ');
+}
 
-    const wallets = await db.wallets.toArray();
-    const transactions = await db.transactions.toArray();
-    const debts = await db.debts.toArray();
-    const debtPayments = await db.debtPayments.toArray();
-    
-    const recomputed = recomputeWalletCurrentBalances(wallets, transactions, debts, debtPayments);
-    for (const w of recomputed) {
-      await db.wallets.update(w.id!, {
-        currentBalance: w.currentBalance,
-        lastUpdated: new Date().toISOString(),
-      });
+/**
+ * Testable transaction fingerprint (master.md 11): date, amount, type, wallet
+ * and normalized description. Enough to catch a re-imported CSV without
+ * treating every repeated coffee as a duplicate.
+ */
+export function computeTransactionFingerprint(row: {
+  date: string;
+  amount: number;
+  type: string;
+  walletId?: number;
+  description?: string;
+}): string {
+  return [row.date, row.amount, row.type, row.walletId ?? '', normalizeFingerprintText(row.description ?? '')].join('|');
+}
+
+/** Load every existing transaction fingerprint from the DB (master.md 11). */
+export async function loadExistingFingerprints(): Promise<Set<string>> {
+  const transactions = await db.transactions.toArray();
+  return new Set(transactions.map((t) => computeTransactionFingerprint({
+    date: t.date,
+    amount: t.amount,
+    type: t.type,
+    walletId: t.walletId,
+    description: t.description,
+  })));
+}
+
+/**
+ * Mark which parsed rows match an existing transaction (master.md 11).
+ * Returns the same-length boolean array (true = possible duplicate).
+ */
+export async function detectDuplicateRows(rows: Array<{ date: string; amount: number; type: string; walletId?: number; description?: string }>): Promise<boolean[]> {
+  const existing = await loadExistingFingerprints();
+  return rows.map((row) => existing.has(computeTransactionFingerprint(row)));
+}
+
+export interface CsvImportReport {
+  imported: number;
+  skipped: number;
+  failed: number;
+  errors: string[];
+}
+
+/** Download the failed-row report as a CSV (master.md 11). */
+export function downloadCsvErrorReport(errors: string[]): void {
+  const csv = Papa.unparse(errors.map((message) => ({ message })));
+  downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), `expend_import_errors_${getTodayStr()}.csv`);
+}
+
+/**
+ * Import validated CSV transactions atomically (master.md 11).
+ * When `skipDuplicates` is set, rows whose fingerprint already exists in the
+ * DB are skipped; the counts are returned in the report.
+ */
+export async function importCsvTransactions(
+  rows: Array<Record<string, unknown>>,
+  options: { skipDuplicates?: boolean; preImportSnapshot?: boolean } = {},
+): Promise<CsvImportReport> {
+  const report: CsvImportReport = { imported: 0, skipped: 0, failed: 0, errors: [] };
+  const existing = options.skipDuplicates ? await loadExistingFingerprints() : null;
+
+  // master.md 11: pre-import snapshot before high-impact imports. If the
+  // import fails mid-way, the snapshot is restored so the user's data is
+  // exactly as it was before the attempt.
+  const snapshot = options.preImportSnapshot ? await createDataSnapshot() : null;
+  try {
+    await db.transaction('rw', [db.transactions, db.wallets, db.debts, db.debtPayments, db.merchants], async () => {
+      for (const row of rows) {
+        if (existing && existing.has(computeTransactionFingerprint(
+          row as unknown as { date: string; amount: number; type: string; walletId?: number; description?: string },
+        ))) {
+          report.skipped += 1;
+          continue;
+        }
+        // No per-row catch: a save failure aborts the atomic transaction and
+        // the snapshot is restored below — the user's data is never left in
+        // a half-imported state (master.md 11).
+        await db.transactions.add(row as never);
+        // Auto-create merchant entry for expenses
+        if (row.type === 'expense' && row.description) {
+          await ensureMerchant(row.description as string);
+        }
+        report.imported += 1;
+      }
+
+      const wallets = await db.wallets.toArray();
+      const transactions = await db.transactions.toArray();
+      const debts = await db.debts.toArray();
+      const debtPayments = await db.debtPayments.toArray();
+      
+      const recomputed = recomputeWalletCurrentBalances(wallets, transactions, debts, debtPayments);
+      for (const w of recomputed) {
+        await db.wallets.update(w.id!, {
+          currentBalance: w.currentBalance,
+          lastUpdated: new Date().toISOString(),
+        });
+      }
+    });
+  } catch (err) {
+    if (snapshot) {
+      await restoreFromSnapshot(snapshot);
+      report.failed = rows.length - report.imported - report.skipped;
+      report.errors.push(`Import failed mid-way; previous data restored.`);
     }
-  });
+    throw err;
+  }
+
+  // Track the CSV import for backup metadata
+  await incrementChangeCount(report.imported);
+  return report;
 }
