@@ -28,6 +28,12 @@ import { ActiveFilterChips } from '../components/home/ActiveFilterChips';
 import { TransactionGroup } from '../components/home/TransactionGroup';
 import { EmptyState } from '../components/EmptyState';
 import { UpcomingSection } from '../components/UpcomingSection';
+import { InsightsCard } from '../components/InsightsCard';
+import {
+  generateInsights,
+  getDismissedInsightIds,
+  dismissInsight,
+} from '../services/insightsService';
 
 const TransactionFormSheet = lazy(() => import('../components/TransactionFormSheet').then(m => ({ default: m.TransactionFormSheet })));
 const FilterSheet = lazy(() => import('../components/FilterSheet').then(m => ({ default: m.FilterSheet })));
@@ -83,6 +89,7 @@ export default function HomeView() {
   const debtRecords = useLiveQuery(() => db.debts.toArray(), [], undefined);
   const debtPayments = useLiveQuery(() => db.debtPayments.toArray(), [], undefined);
   const schedules = useLiveQuery(() => db.schedules.toArray(), [], undefined);
+  const dismissedInsightIds = useLiveQuery(() => getDismissedInsightIds(), [], new Set<string>());
 
   // Filter hook
   const {
@@ -342,6 +349,24 @@ export default function HomeView() {
     [t],
   );
 
+  // Actionable insights (master.md 10) — deterministic, dismissed items
+  // excluded, shown at most three by priority.
+  const insights = useMemo(() => {
+    if (transactions === undefined || categories === undefined || wallets === undefined) return [];
+    return generateInsights({
+      transactions,
+      categories,
+      wallets,
+      debts: debtRecords ?? [],
+      schedules: schedules ?? [],
+      dismissedIds: dismissedInsightIds,
+    });
+  }, [transactions, categories, wallets, debtRecords, schedules, dismissedInsightIds]);
+
+  const handleDismissInsight = useCallback((id: string) => {
+    void dismissInsight(id);
+  }, []);
+
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (filters.type !== 'all') count++;
@@ -453,6 +478,13 @@ export default function HomeView() {
         hideAmount={hideAmount}
         frequencyLabel={upcomingFrequencyLabel}
         viewAllTarget={upcomingItems.some((item) => item.kind === 'debt') ? '/debts' : '/schedules'}
+      />
+
+      {/* Actionable insights (compact — max 3 items) */}
+      <InsightsCard
+        insights={insights}
+        hideAmount={hideAmount}
+        onDismiss={handleDismissInsight}
       />
 
       {/* Debt Summary */}
