@@ -2,6 +2,20 @@
 
 All notable changes to Expend are documented here.
 
+## 1.13.0 - 2026-07-31
+### Added
+
+- Pre-import snapshot with automatic rollback on failed import
+- Staged import with duplicate detection, skip/anyway choice, snapshot and report
+- Add csv import wizard strings
+- Actionable insights on Home with drill-down and dismissal
+- Add insight strings
+- Add Trakteer action to Settings About section
+- Simplify auto-lock to four options with legacy migration
+- Confirm before discarding unsaved form changes
+- Add auto-lock, unsaved-discard and about-support strings
+
+
 ## 1.12.0 - 2026-07-31
 ### Added
 
