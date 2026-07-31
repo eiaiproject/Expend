@@ -731,7 +731,7 @@ export async function createTransferViaService(
   if (!from || !to) throw new Error(`Wallet not found: ${opts.fromWallet} or ${opts.toWallet}`);
 
   const date = opts.date ?? '2025-01-15';
-  const groupId = `e2e_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const groupId = `e2e_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
   await putRawRows(page, 'transactions', [
     { walletId: from.id, categoryId: null, date, description: opts.description, type: 'transfer_out', amount: opts.amount, transferGroupId: groupId },
     { walletId: to.id, categoryId: null, date, description: opts.description, type: 'transfer_in', amount: opts.amount, transferGroupId: groupId },

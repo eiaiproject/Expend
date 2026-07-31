@@ -216,7 +216,7 @@ function buildStaleWallet(ctx: InsightContext): Insight | null {
       ctx.transactions
         .filter((t) => t.walletId === wallet.id)
         .map((t) => t.date)
-        .sort()
+        .sort((a, b) => a.localeCompare(b))
         .pop() ?? wallet.lastUpdated.slice(0, 10),
       today,
     );
