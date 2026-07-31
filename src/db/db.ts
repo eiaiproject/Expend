@@ -62,6 +62,39 @@ export interface Debt {
   createdAt: string;
   updatedAt: string;
   archivedAt?: string | null;
+  /** Reminder preference: number of days before the due date to remind (7, 3, 0). null/undefined = disabled. */
+  reminderDaysBefore?: number | null;
+  /** ISO date until which reminders for this debt are postponed, or null. */
+  reminderPostponedUntil?: string | null;
+}
+
+export type ScheduleFrequency = 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+
+/**
+ * How a recurring schedule is handled each occurrence:
+ * - 'remind': surface the occurrence in the Upcoming section; the user records it manually.
+ * - 'create': automatically create the expense transaction when Expend is opened.
+ */
+export type ScheduleMode = 'remind' | 'create';
+
+export interface Schedule {
+  id: string;
+  type: 'expense'; // recurring schedules currently create expense transactions only
+  frequency: ScheduleFrequency;
+  startDate: string; // YYYY-MM-DD
+  nextOccurrence: string; // YYYY-MM-DD
+  endDate?: string | null; // optional last allowed occurrence
+  amount: number;
+  categoryId: number | null;
+  walletId: number;
+  payee?: string; // description used for the created transaction
+  notes?: string;
+  mode: ScheduleMode;
+  active: boolean; // paused = false
+  /** Stable occurrence identity of the last processed occurrence: `scheduleId:YYYY-MM-DD`. */
+  lastProcessedOccurrence: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type DebtPaymentType = 'initial' | 'repayment' | 'adjustment' | 'write_off';
@@ -90,6 +123,7 @@ const db = new Dexie('ExpendDB') as Dexie & {
   debts: EntityTable<Debt, 'id'>;
   debtPayments: EntityTable<DebtPayment, 'id'>;
   merchants: EntityTable<Merchant, 'id'>;
+  schedules: EntityTable<Schedule, 'id'>;
   settings: EntityTable<Setting, 'key'>;
 };
 
@@ -123,6 +157,14 @@ const V13_STORES = {
   ...V12_STORES,
   merchants: '++id, displayName, originalName, archivedAt, mergedIntoId',
 };
+
+// NOTE: `active` (boolean) and `mode` are intentionally NOT indexed — IndexedDB
+// keys cannot be booleans, and all schedule access is via toArray()+filter.
+const SCHEDULE_STORES = {
+  schedules: 'id, type, frequency, startDate, nextOccurrence, endDate, walletId, categoryId',
+};
+
+const V14_STORES = { ...V13_STORES, ...SCHEDULE_STORES };
 
 // ── Migrations (idempotent via `migration_*` settings records) ──────────
 
@@ -313,5 +355,8 @@ db.version(13).stores(V13_STORES).upgrade(async (tx) => {
   }
   await settingsTable.put({ key: 'merchants_synced_v13', value: true });
 });
+
+// v14: add recurring schedules table
+db.version(14).stores(V14_STORES);
 
 export { db };

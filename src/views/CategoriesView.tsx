@@ -53,6 +53,7 @@ export default function CategoriesView() {
 
   const categories = useLiveQuery(() => db.categories.toArray(), [], []);
   const transactions = useLiveQuery(() => db.transactions.toArray(), [], []);
+  const schedules = useLiveQuery(() => db.schedules.toArray(), [], []);
 
   // UI state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -159,6 +160,11 @@ export default function CategoriesView() {
     return transactions.some(tx => tx.categoryId === catId);
   };
 
+  const hasSchedules = (catId: number) => {
+    if (!schedules) return false;
+    return schedules.some(s => s.categoryId === catId);
+  };
+
   const handleAddCategory = async (data: { name: string; color: string; budget?: number }) => {
     try {
       await db.categories.add({
@@ -227,6 +233,10 @@ export default function CategoriesView() {
   const handleDelete = async (cat: CategoryWithStats) => {
     if (hasTransactions(cat.id)) {
       toast.add(t('categories.cannotDeleteHasHistory'));
+      return;
+    }
+    if (hasSchedules(cat.id)) {
+      toast.add(t('categories.cannotDeleteSchedules'));
       return;
     }
 
@@ -306,8 +316,8 @@ export default function CategoriesView() {
       });
     }
 
-    // Hard delete only if no transactions
-    if (!hasTransactions(cat.id)) {
+    // Hard delete only if no transactions or recurring schedules
+    if (!hasTransactions(cat.id) && !hasSchedules(cat.id)) {
       items.push({
         label: t('categories.deletePermanently'),
         onClick: () => handleDelete(cat),

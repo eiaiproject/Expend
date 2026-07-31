@@ -2,6 +2,8 @@ import { db, type Debt, type DebtPayment, type DebtStatus, type DebtType } from 
 import { getTodayStr, normaliseDate } from '../utils/dateUtils';
 import { assertWalletBalanceCanApplyDelta, getWalletBalance } from '../utils/balanceUtils';
 import { DEBT_ERROR_MESSAGES, DEBT_PAYMENT_NOTE_KEYS, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from './errors';
+import { incrementChangeCount } from './backupService';
+import { recordSupportMilestone } from './supportService';
 
 export interface CreateDebtParams {
   type: DebtType;
@@ -212,6 +214,8 @@ export async function createDebt(params: CreateDebtParams): Promise<string> {
       createdAt: now,
       updatedAt: now,
       archivedAt: null,
+      reminderDaysBefore: DEBT_DEFAULT_REMINDER_DAYS,
+      reminderPostponedUntil: null,
     };
 
     const payment: DebtPayment = {
@@ -230,6 +234,9 @@ export async function createDebt(params: CreateDebtParams): Promise<string> {
     await db.debtPayments.add(payment);
     await applyWalletDelta(params.walletId, initialWalletDelta(params.type, params.principalAmount));
   });
+
+  // Track the debt creation for backup metadata
+  await incrementChangeCount(2);
 
   return debtId;
 }
@@ -283,6 +290,9 @@ export async function updateDebt(debtId: string, params: UpdateDebtParams): Prom
       status: calculateDebtStatus(nextDebt, payments),
     });
   });
+
+  // Track the debt update for backup metadata
+  await incrementChangeCount(1);
 }
 
 export async function recordDebtPayment(params: RecordDebtPaymentParams): Promise<void> {
@@ -334,9 +344,13 @@ export async function recordDebtPayment(params: RecordDebtPaymentParams): Promis
     });
     await applyWalletDelta(params.walletId, repaymentWalletDelta(debt.type, params.amount));
   });
+
+  // Track the debt payment for backup metadata
+  await incrementChangeCount(1);
 }
 
 export async function markDebtPaidWithoutCashflow(debtId: string, notes?: string): Promise<void> {
+  let changed = false;
   await db.transaction('rw', [db.debts, db.debtPayments], async () => {
     const debt = await db.debts.get(debtId);
     if (!debt || debt.archivedAt) throw new Error(DEBT_ERROR_MESSAGES.debtNotFound);
@@ -362,10 +376,17 @@ export async function markDebtPaidWithoutCashflow(debtId: string, notes?: string
       status: 'paid',
       updatedAt: now,
     });
+    changed = true;
   });
+
+  // Track the mark-as-paid for backup metadata (only when a change occurred)
+  if (changed) await incrementChangeCount(1);
+  // Positive moment → make the contextual support prompt eligible (9.4)
+  if (changed) await recordSupportMilestone('debt-settled');
 }
 
 export async function writeOffReceivable(debtId: string, notes?: string): Promise<void> {
+  let changed = false;
   await db.transaction('rw', [db.debts, db.debtPayments], async () => {
     const debt = await db.debts.get(debtId);
     if (!debt || debt.archivedAt) throw new Error(DEBT_ERROR_MESSAGES.debtNotFound);
@@ -392,12 +413,75 @@ export async function writeOffReceivable(debtId: string, notes?: string): Promis
       status: 'written_off',
       updatedAt: now,
     });
+    changed = true;
   });
+
+  // Track the write-off for backup metadata (only when a change occurred)
+  if (changed) await incrementChangeCount(1);
+  // Positive moment → make the contextual support prompt eligible (9.4)
+  if (changed) await recordSupportMilestone('debt-settled');
 }
 
 export async function archiveDebt(debtId: string): Promise<void> {
   await db.debts.update(debtId, {
     archivedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+
+  // Track the debt archive for backup metadata
+  await incrementChangeCount(1);
+}
+
+// ── Debt reminders (master.md 7.5) ───────────────────────────
+
+/** Default reminder window: remind from 7 days before the due date. */
+export const DEBT_DEFAULT_REMINDER_DAYS = 7;
+
+/**
+ * Whether a debt should appear in the Upcoming section today.
+ *
+ * A debt is eligible when:
+ * - It is not archived or closed.
+ * - It has a due date.
+ * - Reminders are not disabled for it (reminderDaysBefore !== null).
+ * - Its reminder window has started (due date minus preference days <= today),
+ *   which also covers overdue debts.
+ * - Its reminder has not been postponed past today.
+ */
+export function shouldRemindDebt(debt: Pick<Debt, 'archivedAt' | 'dueDate' | 'reminderDaysBefore' | 'reminderPostponedUntil' | 'remainingAmount' | 'status'>, today = getTodayStr()): boolean {
+  if (debt.archivedAt) return false;
+  if (!debt.dueDate) return false;
+  if (debt.reminderDaysBefore === null) return false;
+  if (debt.remainingAmount <= MONEY_EPSILON) return false;
+  if (debt.status === 'written_off') return false;
+  if (debt.reminderPostponedUntil && debt.reminderPostponedUntil > today) return false;
+
+  // null disables; undefined (pre-existing debts) falls back to the default window.
+  const daysBefore = debt.reminderDaysBefore ?? DEBT_DEFAULT_REMINDER_DAYS;
+  const remindFrom = addDaysStr(debt.dueDate, -daysBefore);
+  return today >= remindFrom;
+}
+
+/**
+ * Set (or disable) the reminder window for a debt.
+ * `daysBefore` is the number of days before the due date to start reminding
+ * (e.g. 7, 3, 0 for the due date itself). Pass null to disable reminders.
+ */
+export async function setDebtReminder(debtId: string, daysBefore: number | null): Promise<void> {
+  await db.debts.update(debtId, {
+    reminderDaysBefore: daysBefore,
+    reminderPostponedUntil: null,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+/**
+ * Postpone a debt's reminder for `days` (default 7).
+ * Keeps the reminder enabled but suppresses it until the postponed date.
+ */
+export async function postponeDebtReminder(debtId: string, days = 7): Promise<void> {
+  await db.debts.update(debtId, {
+    reminderPostponedUntil: addDaysStr(getTodayStr(), days),
     updatedAt: new Date().toISOString(),
   });
 }

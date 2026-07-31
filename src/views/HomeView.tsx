@@ -12,9 +12,12 @@ import { toast } from '../components/Toaster';
 import { deleteTransactionsWithPairs, restoreTransactions } from '../services/deleteTransactionService';
 import { computeDailySpending, generateInsight } from '../services/budgetService';
 import { buildDebtPaymentsMap, summarizeDebts } from '../services/debtService';
+import { getUpcomingItems, type UpcomingItem } from '../services/recurringService';
+import { findPairedTransfer } from '../utils/transferUtils';
 
 import { Skeleton } from '../components/Skeleton';
 import { displayDateLong, getTodayStr, getYesterdayStr, getWeekStartStr, getMonthStartStr, normaliseDate } from '../utils/dateUtils';
+import type { TransactionType } from '../hooks/useTransactionForm';
 import { formatCurrency } from '../utils/formatUtils';
 import { useTransactionFilters } from '../hooks/useTransactionFilters';
 import { useTransactionSelection } from '../hooks/useTransactionSelection';
@@ -24,6 +27,7 @@ import { SummaryCard } from '../components/home/SummaryCard';
 import { ActiveFilterChips } from '../components/home/ActiveFilterChips';
 import { TransactionGroup } from '../components/home/TransactionGroup';
 import { EmptyState } from '../components/EmptyState';
+import { UpcomingSection } from '../components/UpcomingSection';
 
 const TransactionFormSheet = lazy(() => import('../components/TransactionFormSheet').then(m => ({ default: m.TransactionFormSheet })));
 const FilterSheet = lazy(() => import('../components/FilterSheet').then(m => ({ default: m.FilterSheet })));
@@ -38,6 +42,14 @@ export default function HomeView() {
   const { hideAmount, toggleHideAmount } = usePrivacy();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
+  const [repeatInitials, setRepeatInitials] = useState<{
+    initialType?: TransactionType;
+    initialDescription?: string;
+    initialFromWalletId?: number;
+    initialToWalletId?: number;
+    initialAmount?: string;
+    initialNotes?: string;
+  } | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -70,6 +82,7 @@ export default function HomeView() {
   const wallets = useLiveQuery(() => db.wallets.toArray(), [], undefined);
   const debtRecords = useLiveQuery(() => db.debts.toArray(), [], undefined);
   const debtPayments = useLiveQuery(() => db.debtPayments.toArray(), [], undefined);
+  const schedules = useLiveQuery(() => db.schedules.toArray(), [], undefined);
 
   // Filter hook
   const {
@@ -309,6 +322,26 @@ export default function HomeView() {
 
   const showDebtSummaryCard = debtSummary.activeCount > 0 || debtSummary.attentionCount > 0;
 
+  // Upcoming section (master.md 7.4): schedule occurrences + debt due dates
+  const upcomingItems: UpcomingItem[] = useMemo(() => {
+    if (!debtRecords || !debtPayments) return [];
+    const paymentsByDebt = buildDebtPaymentsMap(debtPayments);
+    return getUpcomingItems(schedules ?? [], debtRecords, paymentsByDebt);
+  }, [debtRecords, debtPayments, schedules]);
+
+  const upcomingFrequencyLabel = useCallback(
+    (frequency: string): string => {
+      switch (frequency) {
+        case 'weekly': return t('recurring.freqWeekly');
+        case 'biweekly': return t('recurring.freqBiweekly');
+        case 'monthly': return t('recurring.freqMonthly');
+        case 'yearly': return t('recurring.freqYearly');
+        default: return '';
+      }
+    },
+    [t],
+  );
+
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (filters.type !== 'all') count++;
@@ -326,12 +359,35 @@ export default function HomeView() {
     setIsFormOpen(true);
   }, []);
 
-  const handleRepeat = useCallback((tx: Transaction) => {
-    if (tx.type !== 'expense') return;
-    const { id: _id, transferGroupId: _tg, ...rest } = tx;
-    setEditTx({ ...rest, date: getTodayStr() });
-    setIsFormOpen(true);
-  }, []);
+  const handleRepeat = useCallback(async (tx: Transaction) => {
+    // Strip unsafe identifiers (primary id, transfer group id) so a repeat
+    // creates a brand-new transaction/pair (master.md 5.5).
+    if (tx.type === 'expense') {
+      const { id: _id, transferGroupId: _tg, ...rest } = tx;
+      setEditTx({ ...rest, date: getTodayStr() });
+      setIsFormOpen(true);
+      return;
+    }
+    if (tx.type === 'transfer_in' || tx.type === 'transfer_out') {
+      const paired = await findPairedTransfer(tx);
+      if (!paired) {
+        toast.add(t('Cannot repeat this transfer.'));
+        return;
+      }
+      const outSide = tx.type === 'transfer_out' ? tx : paired;
+      const inSide = tx.type === 'transfer_in' ? tx : paired;
+      setEditTx(null);
+      setRepeatInitials({
+        initialType: 'transfer',
+        initialDescription: tx.description.replace(/\s\((In|Out)\)$/, ''),
+        initialFromWalletId: outSide.walletId,
+        initialToWalletId: inSide.walletId,
+        initialAmount: outSide.amount.toString(),
+        initialNotes: outSide.notes ?? '',
+      });
+      setIsFormOpen(true);
+    }
+  }, [t]);
 
   const handleDelete = useCallback(async (tx: Transaction) => {
     if (!tx.id) return;
@@ -389,6 +445,14 @@ export default function HomeView() {
         dailySummary={dailySummary}
         smartInsight={smartInsight}
         hideAmount={hideAmount}
+      />
+
+      {/* Upcoming (compact — max 3 items) */}
+      <UpcomingSection
+        items={upcomingItems}
+        hideAmount={hideAmount}
+        frequencyLabel={upcomingFrequencyLabel}
+        viewAllTarget={upcomingItems.some((item) => item.kind === 'debt') ? '/debts' : '/schedules'}
       />
 
       {/* Debt Summary */}
@@ -629,8 +693,14 @@ export default function HomeView() {
       <Suspense fallback={null}>
         <TransactionFormSheet
           isOpen={isFormOpen}
-          onClose={() => { setIsFormOpen(false); setEditTx(null); }}
+          onClose={() => { setIsFormOpen(false); setEditTx(null); setRepeatInitials(null); }}
           txToEdit={editTx}
+          initialType={repeatInitials?.initialType}
+          initialDescription={repeatInitials?.initialDescription}
+          initialFromWalletId={repeatInitials?.initialFromWalletId}
+          initialToWalletId={repeatInitials?.initialToWalletId}
+          initialAmount={repeatInitials?.initialAmount}
+          initialNotes={repeatInitials?.initialNotes}
         />
       </Suspense>
     </div>

@@ -1,10 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { ArrowDownLeft, ArrowUpRight, CheckCircle, Edit, Trash2 } from 'reicon-react';
+import { ArrowDownLeft, ArrowUpRight, Bell, BellOff, CheckCircle, Edit, Trash2 } from 'reicon-react';
 import { type Debt, type DebtPayment, type Wallet } from '../../db/db';
-import { archiveDebt, calculateDebtStatus, isDebtClosed, markDebtPaidWithoutCashflow, writeOffReceivable } from '../../services/debtService';
+import { archiveDebt, calculateDebtStatus, isDebtClosed, markDebtPaidWithoutCashflow, postponeDebtReminder, setDebtReminder, writeOffReceivable } from '../../services/debtService';
 import { getDisplayDebtPaymentNote, getKnownErrorMessage } from '../../services/errors';
 import { cn } from '../../utils/cn';
-import { displayDateMedium, displayDateShort } from '../../utils/dateUtils';
+import { displayDateMedium, displayDateShort, getTodayStr } from '../../utils/dateUtils';
 import { formatCurrency } from '../../utils/formatUtils';
 import { BottomSheetShell } from '../BottomSheetShell';
 import { confirm } from '../ConfirmDialog';
@@ -70,6 +70,9 @@ export function DebtDetailSheet({
       message: hideAmount
         ? t('Mark paid desc', { type: isPayable ? t('Payable') : t('Receivable') })
         : t('Mark paid desc amount', { type: isPayable ? t('Payable') : t('Receivable') }),
+      // Cashflow clarity (master.md 7.6): settling without recording cashflow
+      // does not change any wallet balance.
+      note: t('debt.cashflowNoChange'),
       confirmLabel: t('Status Paid'),
     });
     if (!confirmed) return;
@@ -88,6 +91,8 @@ export function DebtDetailSheet({
       message: hideAmount
         ? t('Write off desc')
         : t('Write off desc amount'),
+      // Cashflow clarity (master.md 7.6): writing off never changes a wallet balance.
+      note: t('debt.cashflowWriteOff'),
       confirmLabel: t('Write Off'),
       variant: 'danger',
     });
@@ -96,6 +101,24 @@ export function DebtDetailSheet({
     try {
       await writeOffReceivable(debt.id);
       toast.add(t('debt.toastWrittenOff'));
+    } catch (error) {
+      toast.add(getKnownErrorMessage(error, t, 'Action failed'));
+    }
+  };
+
+  const handleReminderChange = async (daysBefore: number | null) => {
+    try {
+      await setDebtReminder(debt.id, daysBefore);
+      toast.add(t('debt.reminderUpdated'));
+    } catch (error) {
+      toast.add(getKnownErrorMessage(error, t, 'Action failed'));
+    }
+  };
+
+  const handlePostponeReminder = async () => {
+    try {
+      await postponeDebtReminder(debt.id);
+      toast.add(t('debt.reminderPostponed'));
     } catch (error) {
       toast.add(getKnownErrorMessage(error, t, 'Action failed'));
     }
@@ -201,6 +224,59 @@ export function DebtDetailSheet({
           >
             {isPayable ? t('Pay debt') : t('Receive payment')}
           </button>
+        )}
+
+        {/* Reminder preferences (master.md 7.5) */}
+        {!closed && (
+          <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-4">
+            <fieldset>
+              <legend className="mb-2 flex items-center gap-2 text-sm font-bold">
+                {debt.reminderDaysBefore === null ? <BellOff size={15} className="text-[var(--text-secondary)]" aria-hidden="true" /> : <Bell size={15} className="text-[var(--accent)]" aria-hidden="true" />}
+                {t('debt.reminderTitle')}
+              </legend>
+              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t('debt.reminderTitle')}>
+                {([
+                  { value: 7, label: t('debt.reminder7') },
+                  { value: 3, label: t('debt.reminder3') },
+                  { value: 0, label: t('debt.reminderDueDate') },
+                  { value: null, label: t('debt.reminderOff') },
+                ] as Array<{ value: number | null; label: string }>).map((option) => {
+                  const isSelected = option.value === null
+                    ? debt.reminderDaysBefore === null
+                    : (debt.reminderDaysBefore ?? 7) === option.value;
+                  return (
+                    <button
+                      key={String(option.value)}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => handleReminderChange(option.value)}
+                      className={cn(
+                        'min-h-[44px] rounded-xl border px-2 py-2.5 text-xs font-bold transition-colors',
+                        isSelected
+                          ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                          : 'border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] hover:bg-[var(--bg)]',
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {debt.reminderPostponedUntil && debt.reminderPostponedUntil > getTodayStr() && (
+                <p className="mt-2 text-xs text-[var(--text-secondary)]">
+                  {t('debt.reminderPostponedUntil', { date: displayDateShort(debt.reminderPostponedUntil, i18n.language) })}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handlePostponeReminder}
+                className="mt-2 w-full min-h-[44px] rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2.5 text-xs font-bold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg)]"
+              >
+                {t('debt.postponeReminder')}
+              </button>
+            </fieldset>
+          </div>
         )}
 
         {/* Secondary actions */}

@@ -7,6 +7,8 @@ interface ConfirmDialogOptions {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: 'default' | 'danger';
+  /** Optional secondary note shown below the message (e.g. cashflow clarity). */
+  note?: string;
   /** If set, user must type this exact string to enable confirm button. */
   requireTypedConfirm?: string;
 }
@@ -79,6 +81,11 @@ export function ConfirmDialogProvider() {
               <p className="text-sm text-[var(--text-secondary)] whitespace-pre-line">
                 {currentDialog.message}
               </p>
+              {currentDialog.note && (
+                <p className="text-xs font-medium text-[var(--text-secondary)] whitespace-pre-line border-t border-[var(--border)] pt-2">
+                  {currentDialog.note}
+                </p>
+              )}
             </div>
 
             {currentDialog.requireTypedConfirm && (

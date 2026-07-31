@@ -12,6 +12,7 @@ import { findPairedTransfer, assignTransferGroupId } from '../utils/transferUtil
 import { VALID_TX_TYPES } from '../utils/constants';
 import { recomputeWalletCurrentBalances } from '../utils/balanceUtils';
 import { getTodayStr } from '../utils/dateUtils';
+import { incrementChangeCount } from './backupService';
 
 export const EXPORT_SCHEMA_VERSION = '2.1';
 
@@ -562,7 +563,7 @@ export async function importData(data: ExportData): Promise<void> {
   const sanitizedData = sanitizeImportData(data);
   // ... (rest of the function)
 
-  await db.transaction('rw', [db.wallets, db.categories, db.transactions, db.debts, db.debtPayments, db.settings, db.merchants], async () => {
+  await db.transaction('rw', [db.wallets, db.categories, db.transactions, db.debts, db.debtPayments, db.schedules, db.settings, db.merchants], async () => {
     const localSecurity = await db.settings.get('security');
     const walletsWithBalances = recomputeWalletCurrentBalances(
       sanitizedData.wallets,
@@ -577,6 +578,9 @@ export async function importData(data: ExportData): Promise<void> {
     await db.transactions.clear();
     await db.debts.clear();
     await db.debtPayments.clear();
+    // Schedules reference wallet/category IDs that are replaced by the import,
+    // so they are intentionally not portable and are cleared.
+    await db.schedules.clear();
     await db.settings.clear();
     await db.merchants.clear();
 
@@ -610,4 +614,8 @@ export async function importData(data: ExportData): Promise<void> {
       }
     }
   });
+
+  // Track the import as a significant data change for backup metadata
+  const importedTxCount = sanitizedData.transactions.length || 1;
+  await incrementChangeCount(importedTxCount);
 }
