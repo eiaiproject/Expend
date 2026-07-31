@@ -1,13 +1,12 @@
 import { db } from '../db/db';
 import Papa from 'papaparse';
 import { sanitizeCsvRows, sanitizeCsvField } from './importExportService';
-import { createDataSnapshot, restoreFromSnapshot } from './backupService';
+import { createDataSnapshot, restoreFromSnapshot, incrementChangeCount } from './backupService';
 import { getTodayStr } from '../utils/dateUtils';
 import { downloadBlob } from '../utils/downloadUtils';
 import { VALID_TX_TYPES } from '../utils/constants';
 import { recomputeWalletCurrentBalances } from '../utils/balanceUtils';
 import { ensureMerchant } from './merchantService';
-import { incrementChangeCount } from './backupService';
 
 export interface TransactionCsvRow {
   date: string;
@@ -289,7 +288,7 @@ export async function importCsvTransactions(
   try {
     await db.transaction('rw', [db.transactions, db.wallets, db.debts, db.debtPayments, db.merchants], async () => {
       for (const row of rows) {
-        if (existing && existing.has(computeTransactionFingerprint(
+        if (existing?.has(computeTransactionFingerprint(
           row as unknown as { date: string; amount: number; type: string; walletId?: number; description?: string },
         ))) {
           report.skipped += 1;

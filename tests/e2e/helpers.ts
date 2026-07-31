@@ -102,11 +102,11 @@ export async function readTable<T = unknown>(
         const tx = db.transaction(table, 'readonly');
         const store = tx.objectStore(table);
         const getAll = store.getAll();
-        getAll.onsuccess = () => { // NOSONAR (S2004) — IndexedDB pattern
+        getAll.onsuccess = () => { // NOSONAR:S2004 — IndexedDB callback nesting is idiomatic
           db.close();
           resolve((getAll.result ?? []) as T[]);
         };
-        getAll.onerror = () => { // NOSONAR (S2004) — IndexedDB pattern
+        getAll.onerror = () => { // NOSONAR:S2004 — IndexedDB callback nesting is idiomatic
           db.close();
           resolve([]);
         };
@@ -115,31 +115,35 @@ export async function readTable<T = unknown>(
   }, { table });
 }
 
+type WalletRow = Record<string, unknown> & { id?: number; name?: string; currentBalance?: number; initialBalance?: number };
+
 export async function readWalletByName(
   page: Page,
   walletName: string,
-): Promise<(Record<string, unknown> & { id?: number; name?: string; currentBalance?: number; initialBalance?: number }) | undefined> {
+): Promise<WalletRow | undefined> {
   return page.evaluate(async ({ walletName }) => {
-    return new Promise<(Record<string, unknown> & { id?: number; name?: string; currentBalance?: number; initialBalance?: number }) | undefined>((resolve) => {
-      const request = indexedDB.open('ExpendDB');
-      request.onerror = () => resolve(undefined);
-      request.onsuccess = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains('wallets')) {
-          db.close();
-          resolve(undefined);
-          return;
-        }
-        const tx = db.transaction('wallets', 'readonly');
-        const req = tx.objectStore('wallets').getAll();
-        req.onsuccess = () => { // NOSONAR (S2004) — IndexedDB pattern
-          db.close();
-          const wallets = (req.result ?? []) as Array<Record<string, unknown> & { id?: number; name?: string; currentBalance?: number; initialBalance?: number }>;
-          resolve(wallets.find((w) => w.name === walletName));
-        };
-        req.onerror = () => { db.close(); resolve(undefined); }; // NOSONAR (S2004) — IndexedDB pattern
-      };
-    });
+    // Flatten the IndexedDB callback chain with async/await to keep the
+    // nesting well under the S2004 limit.
+    try {
+      const openRequest = indexedDB.open('ExpendDB');
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        openRequest.onerror = () => reject(openRequest.error ?? new Error('open failed'));
+        openRequest.onsuccess = () => resolve(openRequest.result);
+      });
+      if (!db.objectStoreNames.contains('wallets')) {
+        db.close();
+        return undefined;
+      }
+      const readRequest = db.transaction('wallets', 'readonly').objectStore('wallets').getAll();
+      const wallets = await new Promise<WalletRow[]>((resolve, reject) => {
+        readRequest.onsuccess = () => resolve((readRequest.result ?? []) as WalletRow[]);
+        readRequest.onerror = () => reject(readRequest.error ?? new Error('read failed'));
+      });
+      db.close();
+      return wallets.find((w) => w.name === walletName);
+    } catch {
+      return undefined;
+    }
   }, { walletName });
 }
 

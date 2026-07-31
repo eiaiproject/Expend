@@ -78,7 +78,7 @@ export function computeNextOccurrence(
   frequency: ScheduleFrequency,
   anchorDay: number,
 ): string {
-  const { y, m, d } = parseDateOnly(currentDate);
+  const { y, m } = parseDateOnly(currentDate);
 
   if (frequency === 'weekly') {
     return addDays(currentDate, 7);
@@ -209,7 +209,7 @@ export async function updateSchedule(id: string, params: UpdateScheduleParams): 
   let nextOccurrence: string;
   let lastProcessedOccurrence: string | null;
   if (existing.lastProcessedOccurrence !== null) {
-    nextOccurrence = existing.nextOccurrence > startDate ? existing.nextOccurrence : startDate;
+    nextOccurrence = existing.nextOccurrence > startDate ? existing.nextOccurrence : startDate; // NOSONAR:S7766 — Math.max() would coerce the YYYY-MM-DD strings to NaN; lexicographic comparison is intended.
     lastProcessedOccurrence = existing.lastProcessedOccurrence;
   } else {
     nextOccurrence = firstOccurrenceOnOrAfter(getTodayStr(), params.frequency, startDate);
@@ -247,14 +247,52 @@ export async function setScheduleActive(id: string, active: boolean): Promise<vo
 }
 
 /**
- * Process all due 'create'-mode schedules for `today`.
+ * Advance a single 'create'-mode schedule, creating any occurrences that are
+ * due up to today. Returns the number of transactions created.
  *
  * Idempotent by design: an occurrence is only created when its stable identity
  * (`scheduleId:YYYY-MM-DD`) differs from the schedule's last processed
  * occurrence, and the transaction creation + schedule advance happen in one
  * atomic IndexedDB transaction. Retrying (reopen, pause/resume, crash) can
  * never duplicate an occurrence.
- *
+ */
+async function processSchedule(schedule: Schedule, today: string): Promise<number> {
+  const anchorDay = parseDateOnly(schedule.startDate).d;
+  const endDate = schedule.endDate ?? null;
+
+  let next = schedule.nextOccurrence;
+  let lastProcessed = schedule.lastProcessedOccurrence;
+  let created = 0;
+
+  while (
+    next <= today &&
+    (!endDate || next <= endDate) &&
+    created < MAX_OCCURRENCES_PER_RUN
+  ) {
+    const occurrenceId = `${schedule.id}:${next}`;
+    if (occurrenceId !== lastProcessed) {
+      const following = computeNextOccurrence(next, schedule.frequency, anchorDay);
+      try {
+        await createOccurrenceAndAdvance(schedule, next, following);
+      } catch {
+        // Insufficient balance, wallet archived/deleted, etc. Leave the
+        // occurrence due so it stays visible in Upcoming and retries on the
+        // next open.
+        break;
+      }
+      lastProcessed = occurrenceId;
+      created += 1;
+    } else {
+      lastProcessed = null; // defensive: identity matches but we still advance below
+    }
+    next = computeNextOccurrence(next, schedule.frequency, anchorDay);
+  }
+
+  return created;
+}
+
+/**
+ * Process all due 'create'-mode schedules for `today`.
  * Returns the number of transactions created.
  */
 export async function processDueSchedules(today = getTodayStr()): Promise<number> {
@@ -263,40 +301,7 @@ export async function processDueSchedules(today = getTodayStr()): Promise<number
 
   for (const schedule of schedules) {
     if (!schedule.active || schedule.mode !== 'create') continue;
-    const anchorDay = parseDateOnly(schedule.startDate).d;
-    const endDate = schedule.endDate ?? null;
-
-    let next = schedule.nextOccurrence;
-    let lastProcessed = schedule.lastProcessedOccurrence;
-    let created = 0;
-
-    while (
-      next <= today &&
-      (!endDate || next <= endDate) &&
-      created < MAX_OCCURRENCES_PER_RUN
-    ) {
-      const occurrenceId = `${schedule.id}:${next}`;
-      if (occurrenceId !== lastProcessed) {
-        const following = computeNextOccurrence(next, schedule.frequency, anchorDay);
-        try {
-          await createOccurrenceAndAdvance(schedule, next, following);
-        } catch {
-          // Insufficient balance, wallet archived/deleted, etc. Leave the
-          // occurrence due so it stays visible in Upcoming and retries on the
-          // next open.
-          break;
-        }
-        lastProcessed = occurrenceId;
-        created += 1;
-      } else {
-        lastProcessed = null; // defensive: identity matches but we still advance below
-      }
-      next = computeNextOccurrence(next, schedule.frequency, anchorDay);
-    }
-
-    if (created > 0) {
-      createdCount += created;
-    }
+    createdCount += await processSchedule(schedule, today);
   }
 
   return createdCount;
@@ -352,24 +357,12 @@ function urgencyFor(date: string, today: string): UpcomingItem['urgency'] {
   return 'soon';
 }
 
-/**
- * Build the compact Upcoming list shown on Home (master.md 7.4).
- *
- * Includes:
- * - Active schedules whose next occurrence is overdue, today, or within the
- *   next 7 days ('remind' mode, plus 'create' mode occurrences that are still
- *   due because processing failed).
- * - Debts/receivables whose due date falls within their reminder window.
- *
- * Sorted by urgency (overdue first), then by date.
- */
-export function getUpcomingItems(
+/** Build the schedule-derived Upcoming items for the current horizon. */
+function buildScheduleUpcomingItems(
   schedules: readonly Schedule[],
-  debts: readonly Debt[],
-  paymentsByDebt: Record<string, readonly DebtPayment[]>,
-  today = getTodayStr(),
+  today: string,
+  horizon: string,
 ): UpcomingItem[] {
-  const horizon = addDays(today, 7);
   const items: UpcomingItem[] = [];
 
   for (const schedule of schedules) {
@@ -395,6 +388,17 @@ export function getUpcomingItems(
     });
   }
 
+  return items;
+}
+
+/** Build the debt/receivable-derived Upcoming items for the current horizon. */
+function buildDebtUpcomingItems(
+  debts: readonly Debt[],
+  paymentsByDebt: Record<string, readonly DebtPayment[]>,
+  today: string,
+): UpcomingItem[] {
+  const items: UpcomingItem[] = [];
+
   for (const debt of debts) {
     if (!shouldRemindDebt(debt, today)) continue;
     const dueDate = debt.dueDate!;
@@ -414,10 +418,40 @@ export function getUpcomingItems(
     });
   }
 
+  return items;
+}
+
+/** Sort by urgency (overdue first), then by date. */
+function sortUpcomingItems(items: UpcomingItem[]): UpcomingItem[] {
   const urgencyRank = { overdue: 0, today: 1, soon: 2 } as const;
   return items.sort((a, b) => {
     const rankDiff = urgencyRank[a.urgency] - urgencyRank[b.urgency];
     if (rankDiff !== 0) return rankDiff;
     return a.date.localeCompare(b.date);
   });
+}
+
+/**
+ * Build the compact Upcoming list shown on Home (master.md 7.4).
+ *
+ * Includes:
+ * - Active schedules whose next occurrence is overdue, today, or within the
+ *   next 7 days ('remind' mode, plus 'create' mode occurrences that are still
+ *   due because processing failed).
+ * - Debts/receivables whose due date falls within their reminder window.
+ *
+ * Sorted by urgency (overdue first), then by date.
+ */
+export function getUpcomingItems(
+  schedules: readonly Schedule[],
+  debts: readonly Debt[],
+  paymentsByDebt: Record<string, readonly DebtPayment[]>,
+  today = getTodayStr(),
+): UpcomingItem[] {
+  const horizon = addDays(today, 7);
+  const items = [
+    ...buildScheduleUpcomingItems(schedules, today, horizon),
+    ...buildDebtUpcomingItems(debts, paymentsByDebt, today),
+  ];
+  return sortUpcomingItems(items);
 }

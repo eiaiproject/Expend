@@ -40,8 +40,180 @@ const FilterSheet = lazy(() => import('../components/FilterSheet').then(m => ({ 
 
 const TRANSACTION_RENDER_PAGE_SIZE = 100;
 
+// ── Quick Filter Chips ────────────────────────────────────────
 
-// NOSONAR:S3776 — cognitive complexity is inherent to this business logic
+interface QuickFilterChipsProps {
+  readonly isSelectionMode: boolean;
+  readonly quickFilter: 'today' | 'week' | 'transfers' | null;
+  readonly onSelect: (value: 'today' | 'week' | 'transfers' | null) => void;
+  readonly t: (key: string) => string;
+}
+
+function QuickFilterChips({ isSelectionMode, quickFilter, onSelect, t }: QuickFilterChipsProps) {
+  if (isSelectionMode) return null;
+  const label = (qf: 'today' | 'week' | 'transfers'): string => {
+    if (qf === 'today') return t('home.filterToday');
+    if (qf === 'week') return t('home.filterThisWeek');
+    return t('home.filterTransfers');
+  };
+
+  return (
+    <fieldset
+      className="flex gap-2 overflow-x-auto pb-1 border-0 p-0 m-0"
+      aria-label={t('home.filterTransactions')}
+      style={{ scrollbarWidth: 'auto', scrollPaddingInline: '1rem' }}
+    >
+      {(['today', 'week', 'transfers'] as const).map(qf => {
+        const isActive = quickFilter === qf;
+        return (
+          <button type="button"
+            key={qf}
+            onClick={() => onSelect(isActive ? null : qf)}
+            aria-pressed={isActive}
+            className={cn(
+              "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
+              isActive
+                ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
+            )}
+          >
+            {label(qf)}
+          </button>
+        );
+      })}
+      {quickFilter && (
+        <button type="button"
+          onClick={() => onSelect(null)}
+          className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--expense)] transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+        >
+          {t('home.clearFilters')}
+        </button>
+      )}
+    </fieldset>
+  );
+}
+
+// ── Transaction List Header + Controls ────────────────────────
+
+interface TransactionListControlsProps {
+  readonly isSelectionMode: boolean;
+  readonly selectedIds: readonly number[];
+  readonly filteredCount: number;
+  readonly isFilterOpen: boolean;
+  readonly activeFilterCount: number;
+  readonly sortLabel: string;
+  readonly onExitSelection: () => void;
+  readonly onEnterSelection: () => void;
+  readonly onToggleFilter: () => void;
+  readonly onToggleSort: () => void;
+  readonly onSelectAll: () => void;
+  readonly onDeselectAll: () => void;
+  readonly onBulkDelete: () => void;
+  readonly t: (key: string, opts?: Record<string, string | number>) => string;
+}
+
+function TransactionListControls({
+  isSelectionMode,
+  selectedIds,
+  filteredCount,
+  isFilterOpen,
+  activeFilterCount,
+  sortLabel,
+  onExitSelection,
+  onEnterSelection,
+  onToggleFilter,
+  onToggleSort,
+  onSelectAll,
+  onDeselectAll,
+  onBulkDelete,
+  t,
+}: TransactionListControlsProps) {
+  const allSelected = selectedIds.length === filteredCount;
+  return (
+    <div className="flex justify-between items-center">
+      <div className="flex items-center gap-2">
+        {!isSelectionMode ? (
+          <h2 className="text-lg font-bold">{t('Recent Transactions')}</h2>
+        ) : (
+          <>
+            <button type="button"
+              onClick={onExitSelection}
+              className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+              aria-label={t('home.cancelSelection')}
+            >
+              <XCircle size={20} />
+            </button>
+            <span className="text-lg font-bold">{t('home.selectedCount', { count: selectedIds.length })}</span>
+          </>
+        )}
+      </div>
+      <div className="flex gap-1">
+        {!isSelectionMode ? (
+          <>
+            <button type="button"
+              onClick={onEnterSelection}
+              className="h-11 px-3 flex items-center justify-center rounded-lg text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+            >
+              {t('home.selectTransactions')}
+            </button>
+            <button type="button"
+              onClick={onToggleFilter}
+              className={cn(
+                "relative w-11 h-11 flex items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
+                isFilterOpen
+                  ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                  : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
+              )}
+              aria-label={activeFilterCount > 0 ? t('home.filterTransactions') + ', ' + t('home.filterActive', { count: activeFilterCount }) : t('home.filterTransactions')}
+              aria-expanded={isFilterOpen}
+              aria-haspopup="dialog"
+            >
+              <Filter size={18} />
+              {activeFilterCount > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[var(--accent)] text-white text-[9px] font-bold flex items-center justify-center pointer-events-none">
+                  {activeFilterCount}
+                </span>
+              )}
+              <kbd className="absolute -bottom-1 -right-1 hidden md:inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--border)] bg-[var(--bg)] text-[8px] font-mono font-bold text-[var(--text-secondary)] shadow-sm" aria-hidden="true">
+                F
+              </kbd>
+            </button>
+            <button type="button"
+              onClick={onToggleSort}
+              className="relative w-11 h-11 flex items-center justify-center rounded-lg border bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+              aria-label={sortLabel}
+            >
+              <SortV size={18} />
+              <kbd className="absolute -bottom-1 -right-1 hidden md:inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--border)] bg-[var(--bg)] text-[8px] font-mono font-bold text-[var(--text-secondary)] shadow-sm" aria-hidden="true">
+                S
+              </kbd>
+            </button>
+          </>
+        ) : (
+          <>
+            <button type="button"
+              onClick={allSelected ? onDeselectAll : onSelectAll}
+              className="h-11 px-3 flex items-center justify-center rounded-lg text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+            >
+              {allSelected ? t('home.deselectAll') : t('home.selectAll')}
+            </button>
+            {selectedIds.length > 0 && (
+              <button type="button"
+                onClick={onBulkDelete}
+                className="h-11 px-3 flex items-center justify-center gap-2 bg-red-500 text-white rounded-lg border border-red-600 transition-colors hover:bg-red-600 active:scale-95 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/30"
+                aria-label={t('Bulk Delete')}
+              >
+                <Trash2 size={16} />
+                {t('Delete')}
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function HomeView() {
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
@@ -565,123 +737,30 @@ export default function HomeView() {
       />
 
       {/* Quick Filter Chips */}
-      {!isSelectionMode && (
-        <fieldset
-          className="flex gap-2 overflow-x-auto pb-1 border-0 p-0 m-0"
-          aria-label={t('home.filterTransactions')}
-          style={{ scrollbarWidth: 'auto', scrollPaddingInline: '1rem' }}
-        >
-          {(['today', 'week', 'transfers'] as const).map(qf => {
-            const label = (() => { switch (qf) { case 'today': return t('home.filterToday'); case 'week': return t('home.filterThisWeek'); default: return t('home.filterTransfers'); } })()
-            return (
-              <button type="button"
-                key={qf}
-                onClick={() => filterActions.setQuickFilter(filters.quickFilter === qf ? null : qf)}
-                aria-pressed={filters.quickFilter === qf}
-                className={cn(
-                  "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
-                  filters.quickFilter === qf
-                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                    : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
-                )}
-              >
-                {label}
-              </button>
-            );
-          })}
-          {filters.quickFilter && (
-            <button type="button"
-              onClick={() => filterActions.setQuickFilter(null)}
-              className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--expense)] transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-            >
-              {t('home.clearFilters')}
-            </button>
-          )}
-        </fieldset>
-      )}
+      <QuickFilterChips
+        isSelectionMode={isSelectionMode}
+        quickFilter={filters.quickFilter}
+        onSelect={filterActions.setQuickFilter}
+        t={t}
+      />
 
       {/* Transaction List Header + Controls */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          {!isSelectionMode ? (
-            <h2 className="text-lg font-bold">{t('Recent Transactions')}</h2>
-          ) : (
-            <>
-              <button type="button"
-                onClick={exitSelectionMode}
-                className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-                aria-label={t('home.cancelSelection')}
-              >
-                <XCircle size={20} />
-              </button>
-              <span className="text-lg font-bold">{t('home.selectedCount', { count: selectedIds.length })}</span>
-            </>
-          )}
-        </div>
-        <div className="flex gap-1">
-          {!isSelectionMode ? (
-            <>
-              <button type="button"
-                onClick={enterSelectionMode}
-                className="h-11 px-3 flex items-center justify-center rounded-lg text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-              >
-                {t('home.selectTransactions')}
-              </button>
-              <button type="button"
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={cn(
-                  "relative w-11 h-11 flex items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
-                  isFilterOpen
-                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                    : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
-                )}
-                aria-label={activeFilterCount > 0 ? t('home.filterTransactions') + ', ' + t('home.filterActive', { count: activeFilterCount }) : t('home.filterTransactions')}
-                aria-expanded={isFilterOpen}
-                aria-haspopup="dialog"
-              >
-                <Filter size={18} />
-                {activeFilterCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[var(--accent)] text-white text-[9px] font-bold flex items-center justify-center pointer-events-none">
-                    {activeFilterCount}
-                  </span>
-                )}
-                <kbd className="absolute -bottom-1 -right-1 hidden md:inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--border)] bg-[var(--bg)] text-[8px] font-mono font-bold text-[var(--text-secondary)] shadow-sm" aria-hidden="true">
-                  F
-                </kbd>
-              </button>
-              <button type="button"
-                onClick={toggleSortOrder}
-                className="relative w-11 h-11 flex items-center justify-center rounded-lg border bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-                aria-label={sortLabel}
-              >
-                <SortV size={18} />
-                <kbd className="absolute -bottom-1 -right-1 hidden md:inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--border)] bg-[var(--bg)] text-[8px] font-mono font-bold text-[var(--text-secondary)] shadow-sm" aria-hidden="true">
-                  S
-                </kbd>
-              </button>
-            </>
-          ) : (
-            <>
-              <button type="button"
-                onClick={selectedIds.length === filteredTransactions.length ? deselectAll : () => selectAll(filteredTransactions.map(tx => tx.id!).filter(id => id != null))}
-                className="h-11 px-3 flex items-center justify-center rounded-lg text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-              >
-                {selectedIds.length === filteredTransactions.length ? t('home.deselectAll') : t('home.selectAll')}
-              </button>
-              {selectedIds.length > 0 && (
-                <button type="button"
-                  onClick={handleBulkDelete}
-                  className="h-11 px-3 flex items-center justify-center gap-2 bg-red-500 text-white rounded-lg border border-red-600 transition-colors hover:bg-red-600 active:scale-95 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/30"
-                  aria-label={t('Bulk Delete')}
-                >
-                  <Trash2 size={16} />
-                  {t('Delete')}
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      <TransactionListControls
+        isSelectionMode={isSelectionMode}
+        selectedIds={selectedIds}
+        filteredCount={filteredTransactions.length}
+        isFilterOpen={isFilterOpen}
+        activeFilterCount={activeFilterCount}
+        sortLabel={sortLabel}
+        onExitSelection={exitSelectionMode}
+        onEnterSelection={enterSelectionMode}
+        onToggleFilter={() => setIsFilterOpen(prev => !prev)}
+        onToggleSort={toggleSortOrder}
+        onSelectAll={() => selectAll(filteredTransactions.map(tx => tx.id!).filter(id => id != null))}
+        onDeselectAll={deselectAll}
+        onBulkDelete={handleBulkDelete}
+        t={t}
+      />
 
       {/* Filter Sheet */}
       {!isLoading && (

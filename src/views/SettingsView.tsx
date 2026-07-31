@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/db';
 import { useSecurity } from '../contexts/SecurityContext';  import {
@@ -44,8 +44,6 @@ import { SupportCard } from '../components/settings/SupportCard';
 import {
   getBackupStatusInfo,
   recordSuccessfulBackup,
-  getBackupMetadata,
-  evaluateBackupReminder,
 } from '../services/backupService';
 import {
   TRAKTEER_URL,
@@ -447,7 +445,6 @@ export default function SettingsView() {
     changesSinceBackup: backupChanges,
     loading: backupLoading,
     createBackup,
-    refresh: refreshBackupStatus,
   } = useBackupStatus();
 
   // ── Language ──────────────────────────────────────────────

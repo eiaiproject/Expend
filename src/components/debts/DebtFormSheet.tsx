@@ -23,8 +23,60 @@ interface DebtFormSheetProps {
 const EMPTY_WALLETS: WalletType[] = [];
 const EMPTY_DEBTS: Debt[] = [];
 
+function getSheetTitle(isEdit: boolean, isPayable: boolean, step: 'type' | 'details', t: (key: string) => string): string {
+  if (isEdit) return isPayable ? t('Edit Payable') : t('Edit Receivable');
+  if (step === 'type') return t('debt.formWhat');
+  return isPayable ? t('I Owe') : t('I Lend');
+}
 
-// NOSONAR:S3776 — cognitive complexity is inherent to this business logic
+function getImpactText(
+  hasWalletMovement: boolean,
+  isPayable: boolean,
+  selectedWalletName: string,
+  rawAmount: number,
+  hideAmount: boolean,
+  t: (key: string, options?: Record<string, string | number>) => string,
+): string {
+  if (!hasWalletMovement) return t('debt.formNoImpact');
+  return isPayable
+    ? t('wallet increases', { wallet: selectedWalletName, amount: formatCurrency(rawAmount, hideAmount) })
+    : t('wallet decreases', { wallet: selectedWalletName, amount: formatCurrency(rawAmount, hideAmount) });
+}
+
+function getBalanceImpactNote(hasWalletMovement: boolean, isPayable: boolean, t: (key: string) => string): string {
+  if (!hasWalletMovement) return t('debt.formNoImpact');
+  return isPayable ? t('Payable active increases') : t('Receivable active increases');
+}
+
+function getSubmitLabel(isEdit: boolean, isPayable: boolean, t: (key: string) => string): string {
+  if (isEdit) return t('Save Changes');
+  return isPayable ? t('Save Payable') : t('Save Receivable');
+}
+
+function navigatePersonSuggestions(
+  e: KeyboardEvent<HTMLInputElement>,
+  suggestions: readonly string[],
+  showSuggestions: boolean,
+  suggestionIndexRef: React.RefObject<number>,
+  onSelect: (name: string) => void,
+  onClose: () => void,
+): void {
+  if (!showSuggestions || suggestions.length === 0) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    suggestionIndexRef.current = Math.min(suggestionIndexRef.current + 1, suggestions.length - 1);
+    onSelect(suggestions[suggestionIndexRef.current]!);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    suggestionIndexRef.current = Math.max(suggestionIndexRef.current - 1, 0);
+    onSelect(suggestions[suggestionIndexRef.current]!);
+  } else if (e.key === 'Enter' && suggestionIndexRef.current >= 0) {
+    e.preventDefault();
+    onSelect(suggestions[suggestionIndexRef.current]!);
+    onClose();
+  }
+}
+
 export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit = null }: DebtFormSheetProps) {
   const { t } = useTranslation();
   const formId = useId();
@@ -147,18 +199,16 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
     </div>
   ) : null;
 
-  const titleText = (() => {
-    if (isEdit) return isPayable ? t('Edit Payable') : t('Edit Receivable');
-    if (step === 'type') return t('debt.formWhat');
-    return isPayable ? t('I Owe') : t('I Lend');
-  })();
+  const titleText = getSheetTitle(isEdit, isPayable, step, t);
 
-  const impactText = (() => {
-    if (!hasWalletMovement) return t('debt.formNoImpact');
-    return isPayable
-      ? t('wallet increases', { wallet: selectedWallet?.name ?? t('Wallet'), amount: formatCurrency(rawAmount, hideAmount) })
-      : t('wallet decreases', { wallet: selectedWallet?.name ?? t('Wallet'), amount: formatCurrency(rawAmount, hideAmount) });
-  })();
+  const impactText = getImpactText(
+    hasWalletMovement,
+    isPayable,
+    selectedWallet?.name ?? t('Wallet'),
+    rawAmount,
+    hideAmount,
+    t,
+  );
 
   let impactColor: string;
   if (!hasWalletMovement) {
@@ -266,22 +316,14 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
               }}
               onFocus={() => setShowPersonSuggestions(true)}
               onBlur={() => setTimeout(() => setShowPersonSuggestions(false), 150)}
-              onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-                if (!showPersonSuggestions || personSuggestions.length === 0) return;
-                if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  suggestionIndexRef.current = Math.min(suggestionIndexRef.current + 1, personSuggestions.length - 1);
-                  setPersonName(personSuggestions[suggestionIndexRef.current]!);
-                } else if (e.key === 'ArrowUp') {
-                  e.preventDefault();
-                  suggestionIndexRef.current = Math.max(suggestionIndexRef.current - 1, 0);
-                  setPersonName(personSuggestions[suggestionIndexRef.current]!);
-                } else if (e.key === 'Enter' && suggestionIndexRef.current >= 0) {
-                  e.preventDefault();
-                  setPersonName(personSuggestions[suggestionIndexRef.current]!);
-                  setShowPersonSuggestions(false);
-                }
-              }}
+              onKeyDown={(e) => navigatePersonSuggestions(
+                e,
+                personSuggestions,
+                showPersonSuggestions,
+                suggestionIndexRef,
+                setPersonName,
+                () => setShowPersonSuggestions(false),
+              )}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               autoComplete="off"
             />
@@ -417,10 +459,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
               {impactText}
             </p>
             <p className="mt-1 text-xs text-[var(--text-secondary)]">
-              {(() => {
-                if (!hasWalletMovement) return t('debt.formNoImpact');
-                return isPayable ? t('Payable active increases') : t('Receivable active increases');
-              })()}
+              {getBalanceImpactNote(hasWalletMovement, isPayable, t)}
             </p>
           </div>
 
@@ -431,10 +470,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
               disabled={isSubmitting || hasInsufficientBalance}
               className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] py-3 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
             >
-              {(() => {
-                if (isEdit) return t('Save Changes');
-                return isPayable ? t('Save Payable') : t('Save Receivable');
-              })()}
+              {getSubmitLabel(isEdit, isPayable, t)}
             </button>
           </div>
         </form>

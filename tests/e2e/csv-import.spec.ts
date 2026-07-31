@@ -52,9 +52,10 @@ test.describe('csv import wizard (master.md 11)', () => {
     const reportDialog = page.getByRole('dialog', { name: /import report/i });
     await expect(reportDialog).toBeVisible();
     await expect(reportDialog.getByText(/imported: 2/i)).toBeVisible();
+    const reloaded = page.waitForEvent('framenavigated');
     await reportDialog.getByRole('button', { name: /done/i }).click();
     await expect(page.getByRole('status').getByText(/2 transaction/i)).toBeVisible();
-    await page.waitForTimeout(800); // reload happens after the toast
+    await reloaded; // reload happens after the toast
     expect(await readTransactions(page)).toHaveLength(2);
 
     // Re-import the same file: duplicates are detected and skipped by default.
@@ -69,8 +70,9 @@ test.describe('csv import wizard (master.md 11)', () => {
     await importCsv(page, file, { skip: false });
     const report3 = page.getByRole('dialog', { name: /import report/i });
     await expect(report3.getByText(/imported: 2/i)).toBeVisible();
+    const reloaded3 = page.waitForEvent('framenavigated');
     await report3.getByRole('button', { name: /done/i }).click();
-    await page.waitForTimeout(800);
+    await reloaded3;
     expect(await readTransactions(page)).toHaveLength(4);
   });
 });

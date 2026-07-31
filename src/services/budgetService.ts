@@ -96,18 +96,11 @@ export function computeBudgetStatuses(
   return statuses;
 }
 
-/**
- * Generate a smart spending insight based on current data.
- * Returns null when no notable insight is found.
- */
- // NOSONAR:S3776 — cognitive complexity is inherent to this business logic
-export function generateInsight(
-  transactions: Transaction[],
-  categories: Category[],
-  t: (key: string, options?: Record<string, string | number>) => string
+/** First matching budget alert (over-budget takes precedence over near-limit). */
+function buildBudgetAlert(
+  budgetStatuses: BudgetStatus[],
+  t: (key: string, options?: Record<string, string | number>) => string,
 ): SpendingInsight | null {
-  // 1. Budget alerts
-  const budgetStatuses = computeBudgetStatuses(transactions, categories);
   for (const bs of budgetStatuses) {
     const categoryName = bs.categoryName === FALLBACK_CATEGORY_NAME ? t('Other') : bs.categoryName;
     if (bs.isOverBudget) {
@@ -125,51 +118,75 @@ export function generateInsight(
       };
     }
   }
+  return null;
+}
 
-  // 2. Today vs Yesterday comparison
-  const todayResult = computeDailySpending(transactions);
-  const { today, yesterday } = todayResult;
-  if (today > 0 && yesterday > 0) {
-    const diff = ((today - yesterday) / yesterday) * 100;
-    if (Math.abs(diff) > 10) {
-      return {
-        text: diff > 0
-          ? t('Spending up compared to yesterday', { percent: diff.toFixed(0) })
-          : t('Spending down compared to yesterday', { percent: Math.abs(diff).toFixed(0) }),
-        type: diff > 0 ? 'warning' : 'success',
-        color: 'text-white',
-      };
-    }
-  }
+/** Insight when today's spending differs meaningfully from yesterday's. */
+function buildDailyComparison(
+  daily: DailySpending,
+  t: (key: string, options?: Record<string, string | number>) => string,
+): SpendingInsight | null {
+  const { today, yesterday } = daily;
+  if (today <= 0 || yesterday <= 0) return null;
+  const diff = ((today - yesterday) / yesterday) * 100;
+  if (Math.abs(diff) <= 10) return null;
+  return {
+    text: diff > 0
+      ? t('Spending up compared to yesterday', { percent: diff.toFixed(0) })
+      : t('Spending down compared to yesterday', { percent: Math.abs(diff).toFixed(0) }),
+    type: diff > 0 ? 'warning' : 'success',
+    color: 'text-white',
+  };
+}
 
-  // 3. Top spending category this month
+/** Insight naming the top spending category for the current month. */
+function buildTopCategoryInsight(
+  transactions: Transaction[],
+  categories: Category[],
+  t: (key: string, options?: Record<string, string | number>) => string,
+): SpendingInsight | null {
   const monthStart = getMonthStartStr();
   const nextMonthStart = getNextMonthStartStr();
   const monthTxs = transactions.filter(
-    (t) => t.type === 'expense' && normaliseDate(t.date) >= monthStart && normaliseDate(t.date) < nextMonthStart
+    (tx) => tx.type === 'expense' && normaliseDate(tx.date) >= monthStart && normaliseDate(tx.date) < nextMonthStart
   );
+  if (monthTxs.length === 0) return null;
 
-  if (monthTxs.length > 0) {
-    const catTotals: Record<number, number> = {};
-    for (const tx of monthTxs) {
-      if (tx.categoryId) catTotals[tx.categoryId] = (catTotals[tx.categoryId] || 0) + tx.amount;
-    }
-
-    const entries = Object.entries(catTotals);
-    if (entries.length > 0) {
-      const topEntry = entries.reduce((a, b) => (a[1] > b[1] ? a : b), entries[0] as [string, number]);
-      const topCatId = Number.parseInt(topEntry[0]);
-      const topCat = categories.find((c) => c.id === topCatId);
-
-      if (topCat) {
-        return {
-          text: `${topCat.name} ${t('is your top spending category this month')}.`,
-          type: 'info',
-          color: 'text-white',
-        };
-      }
-    }
+  const catTotals: Record<number, number> = {};
+  for (const tx of monthTxs) {
+    if (tx.categoryId) catTotals[tx.categoryId] = (catTotals[tx.categoryId] || 0) + tx.amount;
   }
 
-  return null;
+  const entries = Object.entries(catTotals);
+  if (entries.length === 0) return null;
+  const topEntry = entries.reduce((a, b) => (a[1] > b[1] ? a : b), entries[0] as [string, number]);
+  const topCat = categories.find((c) => c.id === Number.parseInt(topEntry[0]));
+  if (!topCat) return null;
+
+  return {
+    text: `${topCat.name} ${t('is your top spending category this month')}.`,
+    type: 'info',
+    color: 'text-white',
+  };
+}
+
+/**
+ * Generate a smart spending insight based on current data.
+ * Returns null when no notable insight is found.
+ */
+export function generateInsight(
+  transactions: Transaction[],
+  categories: Category[],
+  t: (key: string, options?: Record<string, string | number>) => string
+): SpendingInsight | null {
+  // 1. Budget alerts
+  const budgetAlert = buildBudgetAlert(computeBudgetStatuses(transactions, categories), t);
+  if (budgetAlert) return budgetAlert;
+
+  // 2. Today vs Yesterday comparison
+  const dailyComparison = buildDailyComparison(computeDailySpending(transactions), t);
+  if (dailyComparison) return dailyComparison;
+
+  // 3. Top spending category this month
+  return buildTopCategoryInsight(transactions, categories, t);
 }

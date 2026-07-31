@@ -189,16 +189,18 @@ export interface PayeeRankingItem {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function rankPayees(
-  transactions: readonly Transaction[],
-  favorites: ReadonlySet<string> = new Set(),
-  today: string = new Date().toISOString().slice(0, 10),
-): PayeeRankingItem[] {
-  const todayMs = new Date(`${today}T00:00:00`).getTime();
-  const windowStartMs = todayMs - 90 * DAY_MS;
-  const recencyStartMs = todayMs - 7 * DAY_MS;
+interface PayeeStat {
+  count: number;
+  name: string;
+  lastTime: number;
+}
 
-  const stats = new Map<string, { count: number; name: string; lastTime: number }>();
+/** Accumulate per-payee transaction counts and last-use times within the window. */
+function accumulatePayeeStats(
+  transactions: readonly Transaction[],
+  windowStartMs: number,
+): Map<string, PayeeStat> {
+  const stats = new Map<string, PayeeStat>();
 
   for (const tx of transactions) {
     if (tx.type !== 'expense') continue;
@@ -217,6 +219,15 @@ export function rankPayees(
     }
   }
 
+  return stats;
+}
+
+/** Score each payee (frequency + recency bonus + favorite bonus) and sort by score. */
+function rankAccumulatedStats(
+  stats: Map<string, PayeeStat>,
+  favorites: ReadonlySet<string>,
+  recencyStartMs: number,
+): PayeeRankingItem[] {
   const results: PayeeRankingItem[] = [];
   for (const [key, stat] of stats.entries()) {
     const favorite = favorites.has(key);
@@ -225,7 +236,19 @@ export function rankPayees(
     const score = stat.count * 2 + (hasRecency ? 1 : 0) + (favorite ? 3 : 0);
     results.push({ key, name: stat.name, frequency: stat.count, score, favorite });
   }
-
   results.sort((a, b) => b.score - a.score);
   return results;
+}
+
+export function rankPayees(
+  transactions: readonly Transaction[],
+  favorites: ReadonlySet<string> = new Set(),
+  today: string = new Date().toISOString().slice(0, 10),
+): PayeeRankingItem[] {
+  const todayMs = new Date(`${today}T00:00:00`).getTime();
+  const windowStartMs = todayMs - 90 * DAY_MS;
+  const recencyStartMs = todayMs - 7 * DAY_MS;
+
+  const stats = accumulatePayeeStats(transactions, windowStartMs);
+  return rankAccumulatedStats(stats, favorites, recencyStartMs);
 }

@@ -202,19 +202,20 @@ export function TransactionFormSheet({
         {isQuickAdd && templates.length > 0 && (
           <div>
             <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{t('Templates')}</p>
-            <div className="flex gap-2 overflow-x-auto pb-1" role="list" aria-label={t('Templates')}>
+            <ul className="flex gap-2 overflow-x-auto pb-1 list-none" aria-label={t('Templates')}>
               {templates.slice(0, 4).map((template) => (
-                <button
-                  key={template.id}
-                  type="button"
-                  onClick={() => void actions.applyTemplate(template)}
-                  className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5"
-                >
-                  <Bookmark size={14} aria-hidden="true" />
-                  {template.name}
-                </button>
+                <li key={template.id}>
+                  <button
+                    type="button"
+                    onClick={() => void actions.applyTemplate(template)}
+                    className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5"
+                  >
+                    <Bookmark size={14} aria-hidden="true" />
+                    {template.name}
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
 
@@ -233,20 +234,21 @@ export function TransactionFormSheet({
                 {t('View all')}
               </button>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-1" role="list" aria-label={t('Frequently used')}>
+            <ul className="flex gap-2 overflow-x-auto pb-1 list-none" aria-label={t('Frequently used')}>
               {frequentPayees.slice(0, 6).map((payee) => (
-                <button
-                  key={payee.key}
-                  type="button"
-                  onClick={() => actions.applyPayee(payee.name)}
-                  className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5"
-                  aria-label={t('payees.addExpenseFor', { name: payee.name })}
-                >
-                  {payee.favorite && <Star size={12} className="text-[var(--accent)]" aria-hidden="true" />}
-                  {payee.name}
-                </button>
+                <li key={payee.key}>
+                  <button
+                    type="button"
+                    onClick={() => actions.applyPayee(payee.name)}
+                    className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5"
+                    aria-label={t('payees.addExpenseFor', { name: payee.name })}
+                  >
+                    {payee.favorite && <Star size={12} className="text-[var(--accent)]" aria-hidden="true" />}
+                    {payee.name}
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
 
