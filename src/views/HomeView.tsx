@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, Suspense, lazy } from 'react';
+import { useKeyboardShortcutGuard } from '../hooks/useKeyboardShortcut';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -410,15 +411,10 @@ export default function HomeView() {
   }, [t]);
 
   // Keyboard shortcuts — disabled when typing or in modal
+  const isShortcutIgnored = useKeyboardShortcutGuard();
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      const tag = target.tagName;
-      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable || target.hasAttribute('contenteditable') || target.getAttribute('role') === 'textbox';
-      if (isEditable) return;
-      if (document.querySelector('[role="dialog"]')) return; // NOSONAR S6819 — runtime detection
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
+      if (isShortcutIgnored(e)) return;
       if (e.key === '/') {
         e.preventDefault();
         searchRef.current?.focus();
@@ -430,9 +426,9 @@ export default function HomeView() {
         setIsFilterOpen(prev => !prev);
       }
     };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [searchRef, toggleSortOrder]);
+    document.addEventListener('keydown', handler as EventListener);
+    return () => document.removeEventListener('keydown', handler as EventListener);
+  }, [searchRef, toggleSortOrder, isShortcutIgnored]);
 
   const dailySummary = useMemo(() => {
     if (!transactions) return { today: 0, yesterday: 0 };

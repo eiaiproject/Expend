@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense, useEffect, useCallback, useRef } from 'react';
+import { useKeyboardShortcutGuard } from './hooks/useKeyboardShortcut';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { BottomNav } from './components/BottomNav';
@@ -112,23 +113,18 @@ function AppContent() {
   }, [isSecurityLoaded, isLocked, hasOnboarded, onboardingCompleted, t]);
 
   // Keyboard shortcut: N to open Add Transaction
+  const isShortcutIgnored = useKeyboardShortcutGuard();
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      const tag = target.tagName;
-      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable || target.hasAttribute('contenteditable') || target.getAttribute('role') === 'textbox';
-      if (isEditable) return;
-      if (document.querySelector('[role="dialog"]')) return; // NOSONAR S6819 — used for runtime detection
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
+      if (isShortcutIgnored(e)) return;
       if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
         openAddTx('expense');
       }
     };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [openAddTx]);
+    document.addEventListener('keydown', handler as EventListener);
+    return () => document.removeEventListener('keydown', handler as EventListener);
+  }, [openAddTx, isShortcutIgnored]);
 
   if (!isSecurityLoaded) {
     return <SecureLoadingScreen />;

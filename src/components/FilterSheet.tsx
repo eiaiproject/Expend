@@ -41,30 +41,27 @@ interface DraftState {
 export function FilterSheet({ isOpen, onClose, filters, categories, wallets }: FilterSheetProps) {
   const { t } = useTranslation();
 
-  const [draft, setDraft] = useState<DraftState>({
-    type: filters.type,
-    categories: [...filters.categories],
-    wallets: [...filters.wallets],
-    startDate: filters.startDate,
-    endDate: filters.endDate,
-    minAmount: filters.minAmount,
-    maxAmount: filters.maxAmount,
-  });
+  const createDraft = useCallback(
+    (f: typeof filters): DraftState => ({
+      type: f.type,
+      categories: [...f.categories],
+      wallets: [...f.wallets],
+      startDate: f.startDate,
+      endDate: f.endDate,
+      minAmount: f.minAmount,
+      maxAmount: f.maxAmount,
+    }),
+    []
+  );
+
+  const [draft, setDraft] = useState<DraftState>(() => createDraft(filters));
 
   // Sync draft when sheet opens
   useEffect(() => {
     if (isOpen) {
-      setDraft({
-        type: filters.type,
-        categories: [...filters.categories],
-        wallets: [...filters.wallets],
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        minAmount: filters.minAmount,
-        maxAmount: filters.maxAmount,
-      });
+      setDraft(createDraft(filters));
     }
-  }, [isOpen, filters.type, filters.categories, filters.wallets, filters.startDate, filters.endDate, filters.minAmount, filters.maxAmount]);
+  }, [isOpen, filters, createDraft]);
 
   const updateDraft = useCallback((patch: Partial<DraftState>) => {
     setDraft(prev => ({ ...prev, ...patch }));
