@@ -73,7 +73,7 @@ export function ConfirmDialogProvider() {
           ref={dialogRef as unknown as React.RefObject<HTMLDialogElement>}
           open
           aria-label={currentDialog.title}
-          className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl border-0 backdrop:bg-black/50 fixed m-0"
+          className="bg-[var(--card)] rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl border-0 backdrop:bg-black/50 fixed m-0 animate-in fade-in zoom-in-95 duration-200"
           style={{ zIndex: 110, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
         >
             <div className="text-center space-y-2">

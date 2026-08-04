@@ -74,6 +74,13 @@ All Phase 1 shared UX contracts are implemented: `PageHeader` primitive (title/d
 - **Scroll snap** (§3.19): `snap-x snap-mandatory` + `snap-start` on horizontal chip rows (Home quick filters, Quick Add templates + frequent payees, Payees quick-sort).
 - Verified already in place: offline banner (amber, `role=status`), Toaster (undo, pause on hover/focus, above bottom nav), UpdatePrompt (re-show after 10 min, reload warning), Skeleton shimmer, ErrorBoundary reload, `prefers-reduced-motion` kill-switch, loading states.
 - **E2E hardening**: stats tour clicks the period radio's `<label>` (real user gesture) instead of force-checking the sr-only input; Scenario E flake root-caused to the splash overlay.
+### Resolved (Phase 7 — cross-cutting states and polish)
+
+- **Entry animations actually run** (biggest find): the app used `animate-in fade-in slide-in-from-* zoom-in-95` everywhere but **tailwindcss-animate was never installed** — every class was a dead no-op. Hand-rolled keyframe utilities in `index.css` (`.animate-in` + fade/slide/pop names, `sm:` variants, 150–300ms scale) now animate: bottom sheets (slide-up), ConfirmDialog/InfoPopup/WhatsNewDialog (pop), overflow menus (pop), UpdatePrompt (slide-down), backdrop fades. Reduced-motion kill-switch still applies.
+- **High-contrast** (`prefers-contrast: more`): stronger `--border` + `--text-secondary` per theme + 3px focus ring.
+- **Horizontal-scroll affordance**: `.scroll-fade-x` edge-fade mask on the 4 chip rows (Home quick filters, Quick Add templates + frequent payees, Payees quick-sort).
+- **Animation consistency**: overflow menus (wallet/category/debt) gained pop-in; sheet + dialog + drill-down entry transitions now share the same duration/curve scale (150/200/300ms, ease-out).
+- Verified already in place: empty/search-empty/filter-empty states on all 8 views (Home Reset All, Wallets clear, Debts search-empty + all-settled, Payees search/filter empty, Categories search-empty + all-archived, Schedules CTA, Stats, WalletDetail not-found + no-txs); error recovery (ErrorBoundary reload + retry affordances); offline banner (`role=status`); UpdatePrompt re-show after 10 min; Toaster pause-on-hover/focus + undo; Suspense skeleton + SecureLoadingScreen + per-view skeleton rows; `prefers-reduced-motion` kill-switch.
 6. **No drag handle / swipe on sheets** (deferred; dirty-guard exists on transaction form).
 7. **Android system Back on open sheets** not intercepted (native `<dialog>` not `showModal`) — documented limitation.
 8. Sidebar missing Schedules entry (desktop parity).

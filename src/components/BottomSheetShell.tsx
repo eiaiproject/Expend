@@ -76,7 +76,7 @@ export function BottomSheetShell({
         <>
           {/* Backdrop — sibling of the dialog so clicks land on it reliably */}
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300"
             style={{ zIndex: zIndex - 1 }}
             onClick={onClose}
             aria-hidden="true"
@@ -86,7 +86,7 @@ export function BottomSheetShell({
             key="sheet"
             open
             onClose={(e) => { e.preventDefault(); onClose(); }}
-            className={`fixed inset-x-0 bottom-0 m-0 max-w-full w-full bg-[var(--card)] rounded-t-2xl flex flex-col border-0 ${heightClass}`}
+            className={`fixed inset-x-0 bottom-0 m-0 max-w-full w-full bg-[var(--card)] rounded-t-2xl flex flex-col border-0 animate-in slide-in-from-bottom-full duration-300 ease-out ${heightClass}`}
             aria-modal="true"
             aria-labelledby={ariaLabel ? undefined : titleId}
             aria-label={ariaLabel}

@@ -60,7 +60,7 @@ function QuickFilterChips({ isSelectionMode, quickFilter, onSelect, t }: QuickFi
 
   return (
     <fieldset
-      className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 pb-1 border-0 p-0 m-0"
+      className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 scroll-fade-x pb-1 border-0 p-0 m-0"
       aria-label={t('home.filterTransactions')}
       style={{ scrollbarWidth: 'auto', scrollPaddingInline: '1rem' }}
     >

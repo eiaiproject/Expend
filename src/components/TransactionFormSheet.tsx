@@ -215,7 +215,7 @@ export function TransactionFormSheet({
         {isQuickAdd && templates.length > 0 && (
           <div>
             <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{t('Templates')}</p>
-            <ul className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 pb-1 list-none" aria-label={t('Templates')}>
+            <ul className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 scroll-fade-x pb-1 list-none" aria-label={t('Templates')}>
               {templates.slice(0, 4).map((template) => (
                 <li key={template.id} className="snap-start">
                   <button
@@ -247,7 +247,7 @@ export function TransactionFormSheet({
                 {t('View all')}
               </button>
             </div>
-            <ul className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 pb-1 list-none" aria-label={t('Frequently used')}>
+            <ul className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 scroll-fade-x pb-1 list-none" aria-label={t('Frequently used')}>
               {frequentPayees.slice(0, 6).map((payee) => (
                 <li key={payee.key} className="snap-start">
                   <button

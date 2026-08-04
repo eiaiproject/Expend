@@ -128,7 +128,7 @@ export function WalletOverflowMenu({
           tabIndex={-1}
           aria-label={label}
           onKeyDown={handleKeyDown}
-          className="absolute right-0 top-full mt-1 z-50 w-56 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden"
+          className="absolute right-0 top-full mt-1 z-50 w-56 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         >
           <button
             type="button"
