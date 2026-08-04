@@ -169,8 +169,18 @@ export function TransactionFormSheet({
       onClose={handleCloseRequest}
       title={isEditingExistingTransaction ? t('Edit') : t('Add Transaction')}
       ariaLabel={isEditingExistingTransaction ? t('Edit') : t('Add Transaction')}
+      footer={
+        <button
+          type="submit"
+          form={formId}
+          disabled={actions.isSubmitting}
+          className="w-full bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-[var(--accent-fill)]/20 disabled:opacity-50 min-h-[52px]"
+        >
+          {t('Save')}
+        </button>
+      }
     >
-      <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+      <form id={formId} onSubmit={handleFormSubmit} className="px-3 py-4 space-y-5">
         {/* Type Tabs */}
         <div className="flex p-1 bg-[var(--bg)] rounded-xl border border-[var(--border)]" role="radiogroup" aria-label={t('Transaction type')}>
           {[
@@ -459,16 +469,7 @@ export function TransactionFormSheet({
           </div>
         )}
 
-        {/* Submit */}
-        <div className="pt-4 pb-6">
-          <button
-            type="submit"
-            disabled={actions.isSubmitting}
-            className="w-full bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-[var(--accent-fill)]/20 disabled:opacity-50"
-          >
-            {t('Save')}
-          </button>
-        </div>
+        {/* Submit — sticky footer in BottomSheetShell (visible above keyboard) */}
       </form>
     </BottomSheetShell>
   );

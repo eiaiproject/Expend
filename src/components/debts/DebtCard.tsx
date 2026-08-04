@@ -202,7 +202,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                       role="menu"
                       aria-label={t('debt.actionsFor', { name: debt.personName })}
                       onKeyDown={handleMenuKeyDown}
-                      className="absolute right-0 z-20 mt-1 w-48 rounded-xl border border-[var(--border)] bg-[var(--card)] py-1 shadow-lg"
+                      className="absolute right-0 z-50 mt-1 w-48 rounded-xl border border-[var(--border)] bg-[var(--card)] py-1 shadow-lg"
                     >
                       <button
                         type="button"

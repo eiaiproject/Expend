@@ -21,6 +21,12 @@
 }
 
 @layer utilities {
+  /* Bottom sheet default height: dynamic viewport with vh fallback (master.md §3.4) */
+  .sheet-height {
+    height: 85vh;
+    height: 85dvh;
+  }
+
   /* Hide scrollbar but keep scroll functionality */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
