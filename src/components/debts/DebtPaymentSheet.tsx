@@ -7,6 +7,7 @@ import { recordDebtPayment } from '../../services/debtService';
 import { getKnownErrorMessage, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '../../services/errors';
 import { getTodayStr } from '../../utils/dateUtils';
 import { formatCurrency, parseAmount, formatAmountInput } from '../../utils/formatUtils';
+import { AmountInput } from '../AmountInput';
 import { cn } from '../../utils/cn';
 import { BottomSheetShell } from '../BottomSheetShell';
 import { DatePicker } from '../DatePicker';
@@ -118,15 +119,12 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
             <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-[var(--text-secondary)]">
               {t('Currency Symbol')}
             </span>
-            <input
+            <AmountInput
               id={`${formId}-amount`}
-              type="text"
-              inputMode="numeric"
-              required
               value={amount}
-              onChange={(event) => setAmount(formatAmountInput(event.target.value))}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-4 font-mono text-xl font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-              placeholder="0"
+              onChange={setAmount}
+              label={t('debt.payPayment')}
+              required
             />
           </div>
           <div className="mt-3 grid grid-cols-4 gap-2">

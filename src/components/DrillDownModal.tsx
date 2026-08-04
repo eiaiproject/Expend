@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
+import { useEscapeKeyClose } from '../hooks/useEscapeKeyClose';
 import { Transaction } from '../db/db';
 import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
 import { displayDateShort } from '../utils/dateUtils';
@@ -20,15 +21,7 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
   const { hideAmount } = usePrivacy();
   const dialogRef = useFocusTrap(isOpen);
 
-  // Close on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  useEscapeKeyClose(isOpen, onClose);
 
   return (
     <>

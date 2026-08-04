@@ -7,6 +7,7 @@ import { createSchedule, updateSchedule } from '../services/recurringService';
 import { getKnownErrorMessage } from '../services/errors';
 import { getTodayStr } from '../utils/dateUtils';
 import { formatAmountInput, parseAmount } from '../utils/formatUtils';
+import { AmountInput } from './AmountInput';
 import { cn } from '../utils/cn';
 import { BottomSheetShell } from './BottomSheetShell';
 import { CategorySelect } from './CategorySelect';
@@ -169,26 +170,13 @@ export function ScheduleFormSheet({ isOpen, onClose, scheduleToEdit = null }: Sc
         </div>
 
         {/* Amount */}
-        <div>
-          <label htmlFor={`${formId}-amount`} className="block text-sm font-medium mb-1">
-            {t('Amount')} *
-          </label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-[var(--text-secondary)]">
-              {t('Currency Symbol')}
-            </span>
-            <input
-              id={`${formId}-amount`}
-              type="text"
-              inputMode="numeric"
-              required
-              value={amount}
-              onChange={(event) => setAmount(formatAmountInput(event.target.value))}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-4 font-mono text-xl font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-              placeholder="0"
-            />
-          </div>
-        </div>
+        <AmountInput
+          id={`${formId}-amount`}
+          value={amount}
+          onChange={setAmount}
+          label={t('Amount')}
+          required
+        />
 
         {/* Frequency */}
         <fieldset>

@@ -1,4 +1,5 @@
 import { useEffect, useId, type ReactNode } from 'react';
+import { useEscapeKeyClose } from '../hooks/useEscapeKeyClose';
 import { X } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../hooks/useFocusTrap';
@@ -60,15 +61,7 @@ export function BottomSheetShell({
     };
   }, [isOpen]);
 
-  // Close on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  useEscapeKeyClose(isOpen, onClose);
 
   return (
     <>
