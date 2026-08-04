@@ -27,6 +27,7 @@
 ## Shared primitives
 
 - `BottomSheetShell` — `<dialog open>` + focus trap, Esc close, body scroll lock. Fixed `h-[85vh]` only. **No backdrop click, no drag handle, no size variants, no footer slot.**
+- No shared `PageHeader` — each view hand-rolls its own header/back/actions markup.
 - `ConfirmDialog` (provider), `Toaster`, `EmptyState`, `ErrorBoundary`, `Skeleton`, `FilterControls`/`FilterSheet`, `ActionPickerSheet`, `DatePicker`, `CategorySelect`, `WalletSelect`, `OnboardingWizard`, `LockScreen`, `UpdatePrompt`, `InfoPopup`, `DrillDownModal`.
 - Focus trap: `useFocusTrap` — saves/restores focus, traps Tab, no focus-visible regression.
 
@@ -37,6 +38,10 @@
 3. **FAB not integrated with nav**; spec prefers central Add (§3.3).
 4. **`BottomSheetShell` fixed 85vh, no backdrop click, no footer** → Save hidden behind keyboard on forms (§3.4/§3.7). Uses `vh` not `dvh`.
 5. **Page-header size drift**: text-2xl vs text-xl across views (minor).
+
+### Resolved (Phase 1 & 2)
+
+All Phase 1 shared UX contracts are implemented: `PageHeader` primitive (title/description/actions/onBack/backLabel) migrated into all views; `BottomSheetShell` size variants (`content`/`medium`/`full`) + backdrop click-to-close + sticky safe-area footer; form sheets use sticky footers with `form=` association; toolbar/button/empty/error/loading/toast/safe-area patterns standardized by convention.
 6. **No drag handle / swipe on sheets** (deferred; dirty-guard exists on transaction form).
 7. **Android system Back on open sheets** not intercepted (native `<dialog>` not `showModal`) — documented limitation.
 8. Sidebar missing Schedules entry (desktop parity).
