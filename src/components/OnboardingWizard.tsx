@@ -62,7 +62,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
 
         await db.categories.add({
           name: t(categoryKey),
-          icon: '🏷️',
+          icon: 'Tag',
           color: color,
         });
       }

@@ -67,7 +67,7 @@ export async function seedDemoData(): Promise<number> {
   await db.categories.bulkPut(CATEGORY_DEFS.map((def, i) => ({
     id: 101 + i,
     name: def.name,
-    icon: '🏷️',
+    icon: 'Tag',
     color: def.color,
   }) satisfies Category));
 

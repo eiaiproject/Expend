@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Code2, Mobile, Database, Shield, ChartBar, Bolt, Code, ChevronDown } from 'reicon-react';
+import { Code2, Mobile, Database, Shield, ChartBar, Bolt, Code, ChevronDown, Link as ExternalLink } from 'reicon-react';
 import { useState, useCallback } from 'react';
 
 const techItems = [
@@ -71,7 +71,7 @@ export function TechStackSection() {
               className="inline-flex items-center gap-2 text-sm text-[var(--accent)] hover:underline"
             >
               <Code size={16} aria-hidden="true" />
-              {t('landing.source', 'View Source Code')} →
+              {t('landing.source', 'View Source Code')} <ExternalLink size={14} aria-hidden="true" />
             </a>
           </div>
         </section>

@@ -170,7 +170,7 @@ export default function CategoriesView() {
     try {
       await db.categories.add({
         name: data.name,
-        icon: '🏷️',
+        icon: 'Tag',
         color: data.color,
         budget: data.budget,
       });

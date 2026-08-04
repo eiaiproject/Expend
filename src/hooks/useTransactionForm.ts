@@ -115,7 +115,7 @@ async function resolveCategoryIdForSubmit(
   const color = available.length > 0
     ? available[Math.floor(Math.random() * available.length)]!  // NOSONAR:S2245 — design color selection, not security
     : CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!;  // NOSONAR:S2245 — design color selection, not security
-  const newId = await db.categories.add({ name, icon: '🏷️', color });
+  const newId = await db.categories.add({ name, icon: 'Tag', color });
   return newId ?? null;
 }
 

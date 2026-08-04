@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Coffee, X } from 'reicon-react';
+import { Coffee, X, Link as ExternalLink } from 'reicon-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import {
   TRAKTEER_URL,
@@ -116,7 +116,7 @@ export function SupportPrompt() {
               aria-label={t('support.promptAction')}
             >
               {t('support.promptAction')}
-              <span className="text-xs opacity-70">↗</span>
+              <ExternalLink size={14} className="opacity-70" aria-hidden="true" />
             </a>
             <button
               type="button"

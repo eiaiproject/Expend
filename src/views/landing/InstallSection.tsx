@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Download, Check, Coffee } from 'reicon-react';
+import { Download, Check, Coffee, Link as ExternalLink } from 'reicon-react';
 import { isIOSDevice } from '../../utils/pwaUtils';
 import { useState, useEffect } from 'react';
 import { APP_VERSION } from '../../utils/constants';
@@ -169,7 +169,7 @@ export function LandingFooter() {
           >
             <Coffee size={14} aria-hidden="true" />
             {t('landing.supportCta')}
-            <span aria-hidden="true">↗</span>
+            <ExternalLink size={14} aria-hidden="true" />
           </a>
         </div>
 

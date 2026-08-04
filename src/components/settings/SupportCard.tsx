@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Coffee } from 'reicon-react';
+import { Coffee, Link as ExternalLink } from 'reicon-react';
 import { TRAKTEER_URL } from '../../services/supportService';
 
 /**
@@ -36,7 +36,7 @@ export function SupportCard() {
         className="w-full flex items-center justify-center gap-2 h-12 rounded-xl bg-[var(--accent)] text-white font-bold hover:opacity-90 active:scale-95 transition-[opacity,transform] shadow-lg shadow-[var(--accent)]/20 min-h-[44px]"
       >
         {t('settings.supportCardAction')}
-        <span aria-hidden="true">↗</span>
+        <ExternalLink size={14} aria-hidden="true" />
         <span className="sr-only">{t('settings.opensExternalSite')}</span>
       </a>
 
