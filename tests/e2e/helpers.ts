@@ -592,8 +592,10 @@ export async function assertAllButtonsAccessible(page: Page): Promise<void> {
 // --- Internal helpers ---
 
 export async function openActionPicker(page: Page): Promise<void> {
-  // Desktop sidebar button or mobile FAB both share the same aria-label.
-  const fab = page.getByRole('button', { name: /add transaction/i });
+  // Persistent Add control: desktop sidebar button or mobile bottom-nav Add
+  // (aria-label "Add Transaction"). Scoped to nav/aside so a Home empty-state
+  // "Add Transaction" button can never steal the click.
+  const fab = page.locator('nav button[aria-label="Add Transaction"]:visible, aside button[aria-label="Add Transaction"]:visible');
   await fab.first().click({ timeout: 10_000 });
   // The picker is rendered as a dialog with multiple action buttons. Scope
   // all further interaction to the dialog to avoid collisions with header

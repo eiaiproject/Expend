@@ -74,7 +74,7 @@ test.describe('Interactive tour — every page exercised end-to-end', () => {
     }
   });
 
-  test('home — FAB opens action picker, expense creates and appears in list', async ({ page }) => {
+  test('home — Add opens action picker, expense creates and appears in list', async ({ page }) => {
     await visitApp(page);
     await completeOnboarding(page, {
       walletName: uniqueName('Home'),
@@ -86,8 +86,8 @@ test.describe('Interactive tour — every page exercised end-to-end', () => {
     await page.goto('/');
     await expect(page.locator('main h1, main h2').first()).toBeVisible();
 
-    // FAB opens picker; picker is a dialog
-    await page.getByRole('button', { name: /add transaction/i }).first().click();
+    // Persistent Add control (sidebar / bottom nav) opens picker; picker is a dialog
+    await page.locator('nav button[aria-label="Add Transaction"]:visible, aside button[aria-label="Add Transaction"]:visible').first().click();
     const picker = page.getByRole('dialog');
     await expect(picker).toBeVisible();
     await expect(picker.getByRole('button', { name: /add expense/i })).toBeVisible();

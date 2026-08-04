@@ -71,7 +71,7 @@ test.describe('insights (master.md 10)', () => {
     const curRows = Array.from({ length: 6 }, (_, i) => ({
       walletId: 1,
       categoryId: 1,
-      date: `${dateStr(0).slice(0, 8)}${String(Math.min(curDay, 28) - i).padStart(2, '0')}`,
+      date: `${dateStr(0).slice(0, 8)}${String(Math.max(1, curDay - i)).padStart(2, '0')}`,
       description: 'Groceries',
       type: 'expense',
       amount: 10000,

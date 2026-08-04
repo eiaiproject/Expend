@@ -588,7 +588,7 @@ test.describe('receivable full flow', () => {
 // ─── Helpers (local to this file) ────────────────────────────────
 
 async function openActionPicker(page: import('@playwright/test').Page) {
-  const fab = page.getByRole('button', { name: /add transaction/i });
+  const fab = page.locator('nav button[aria-label="Add Transaction"]:visible, aside button[aria-label="Add Transaction"]:visible');
   await fab.first().click({ timeout: 10_000 });
   const dialog = page.getByRole('dialog');
   await dialog.waitFor({ state: 'visible', timeout: 5_000 });
