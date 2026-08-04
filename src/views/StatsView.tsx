@@ -23,6 +23,7 @@ import { DrillDownModal } from '../components/DrillDownModal';
 import { EmptyState } from '../components/EmptyState';
 import { ChartBar, ChevronDown, ChevronUp } from 'reicon-react';
 import { cn } from '../utils/cn';
+import { PageHeader } from '../components/PageHeader';
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -768,7 +769,7 @@ export default function StatsView() {
   if (isEmpty) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">{t('stats.statistics')}</h1>
+        <PageHeader title={t('stats.statistics')} />
         <EmptyState
           icon={<ChartBar size={36} />}
           title={t('stats.emptyFirstUse')}
@@ -782,7 +783,7 @@ export default function StatsView() {
   return (
     <div className="space-y-6">
       {/* H1 */}
-      <h1 className="text-2xl font-bold">{t('stats.statistics')}</h1>
+      <PageHeader title={t('stats.statistics')} />
 
       {/* Period selector — native radio fieldset */}
       <fieldset>

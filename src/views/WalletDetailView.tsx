@@ -9,6 +9,7 @@ import { formatCurrency, formatSignedCurrency } from '../utils/formatUtils';
 import { displayDateMedium, daysBetweenDateOnly, getTodayStr, getYesterdayStr, getWeekStartStr, normaliseDate } from '../utils/dateUtils';
 import { WALLET_STALE_DAYS } from '../utils/constants';
 import { EmptyState } from '../components/EmptyState';
+import { PageHeader } from '../components/PageHeader';
 import { TransactionDetailSheet } from '../components/TransactionDetailSheet';
 import { Skeleton } from '../components/Skeleton';
 
@@ -159,28 +160,15 @@ export default function WalletDetailView() {
 
   return (
     <div className="space-y-6">
-      {/* Back link */}
-      <Link
-        to="/wallets"
-        className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30 focus-visible:rounded-lg"
-      >
-        <ArrowLeft size={16} aria-hidden="true" />
-        {t('Wallets')}
-      </Link>
-
       {/* Wallet header */}
-      <div className="flex items-start gap-4">
-        <div className="p-3 rounded-xl shrink-0" style={{ backgroundColor: wallet.color ? `${wallet.color}15` : undefined }}>
-          <WalletIcon size={32} style={{ color: wallet.color || 'var(--accent)' }} aria-hidden="true" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold truncate" style={{ fontFamily: 'var(--font-display)' }}>
-            {wallet.name}
-          </h1>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-[var(--text-secondary)]">
-              {wallet.currency}
+      <PageHeader
+        title={wallet.name}
+        description={
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg shrink-0" style={{ backgroundColor: wallet.color ? `${wallet.color}15` : undefined }}>
+              <WalletIcon size={16} style={{ color: wallet.color || 'var(--accent)' }} aria-hidden="true" />
             </span>
+            <span>{wallet.currency}</span>
             {isStale && (
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-500/10 text-amber-600 text-[10px] font-semibold rounded">
                 <AlertCircle size={10} aria-hidden="true" />
@@ -193,8 +181,10 @@ export default function WalletDetailView() {
               </span>
             )}
           </div>
-        </div>
-      </div>
+        }
+        onBack={() => navigate('/wallets')}
+        backLabel={t('Wallets')}
+      />
 
       {/* Balance */}
       <div className="bg-[var(--card)] rounded-[16px] p-5 border border-[var(--border)]">

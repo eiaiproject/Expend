@@ -169,6 +169,7 @@ export function TransactionFormSheet({
       onClose={handleCloseRequest}
       title={isEditingExistingTransaction ? t('Edit') : t('Add Transaction')}
       ariaLabel={isEditingExistingTransaction ? t('Edit') : t('Add Transaction')}
+      size="full"
       footer={
         <button
           type="submit"

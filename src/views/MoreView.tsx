@@ -7,6 +7,7 @@ import {
 } from 'reicon-react';
 import { MORE_SECTIONS, type MoreLink } from '../components/moreSections';
 import { TRAKTEER_URL, SOURCE_CODE_URL, ISSUES_URL } from '../services/supportService';
+import { PageHeader } from '../components/PageHeader';
 
 const ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   stats: ChartPie,
@@ -62,9 +63,7 @@ export default function MoreView() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-        {t('More')}
-      </h1>
+      <PageHeader title={t('More')} />
 
       {MORE_SECTIONS.map(section => (
         <section key={section.key} aria-labelledby={`more-${section.key}`}>

@@ -14,6 +14,7 @@ import { EmptyState } from '../components/EmptyState';
 import { ScheduleFormSheet } from '../components/ScheduleFormSheet';
 import { confirm } from '../components/ConfirmDialog';
 import { toast } from '../components/Toaster';
+import { PageHeader } from '../components/PageHeader';
 
 export default function SchedulesView() {
   const { t, i18n } = useTranslation();
@@ -234,17 +235,19 @@ export default function SchedulesView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{t('recurring.pageTitle')}</h1>
-        <button
-          type="button"
-          onClick={() => { setScheduleToEdit(null); setIsFormOpen(true); }}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20"
-          aria-label={t('recurring.addLabel')}
-        >
-          <Plus size={20} />
-        </button>
-      </div>
+      <PageHeader
+        title={t('recurring.pageTitle')}
+        actions={
+          <button
+            type="button"
+            onClick={() => { setScheduleToEdit(null); setIsFormOpen(true); }}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20"
+            aria-label={t('recurring.addLabel')}
+          >
+            <Plus size={20} />
+          </button>
+        }
+      />
 
       {/* Browser limitation note (master.md 7.2) */}
       <output

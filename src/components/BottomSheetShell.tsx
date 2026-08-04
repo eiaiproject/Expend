@@ -12,19 +12,28 @@ interface BottomSheetShellProps {
   readonly ariaLabel?: string;
   /** Optional z-index override (default 50) */
   readonly zIndex?: number;
+  /** Size variant: content-sized pickers, medium filters, full forms. */
+  readonly size?: 'content' | 'medium' | 'full';
   /** Optional height class override (default sheet-height: 85dvh with vh fallback) */
   readonly heightClass?: string;
   /** Optional sticky footer (e.g. form Save) rendered above the safe area */
   readonly footer?: ReactNode;
 }
 
+const SIZE_CLASS: Record<NonNullable<BottomSheetShellProps['size']>, string> = {
+  content: 'sheet-height-content',
+  medium: 'sheet-height-medium',
+  full: 'sheet-height-full',
+};
+
 /**
  * Reusable bottom sheet wrapper (master.md §3.4):
  * - Backdrop click-to-close, Escape to close
  * - Focus trap with restoration
  * - Body scroll lock
+ * - Size variants: content / medium / full
  * - Safe-area-aware footer slot for sticky form actions
- * - `sheet-height` utility: 85dvh with an 85vh fallback for old browsers
+ * - `sheet-height` utilities: dvh with vh fallbacks
  */
 export function BottomSheetShell({
   isOpen,
@@ -33,7 +42,8 @@ export function BottomSheetShell({
   children,
   ariaLabel,
   zIndex = 50,
-  heightClass = 'sheet-height',
+  size,
+  heightClass = size ? SIZE_CLASS[size] : 'sheet-height',
   footer,
 }: BottomSheetShellProps) {
   const { t } = useTranslation();

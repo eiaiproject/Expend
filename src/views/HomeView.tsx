@@ -29,6 +29,7 @@ import { TransactionGroup } from '../components/home/TransactionGroup';
 import { EmptyState } from '../components/EmptyState';
 import { UpcomingSection } from '../components/UpcomingSection';
 import { InsightsCard } from '../components/InsightsCard';
+import { PageHeader } from '../components/PageHeader';
 import {
   generateInsights,
   getDismissedInsightIds,
@@ -599,33 +600,29 @@ export default function HomeView() {
   return (
     <div className="space-y-6">
       {/* Page Header — single H1 */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-            {t('home.title')}
-          </h1>
-          <p className="text-xs text-[var(--text-secondary)] mt-1">
-            {displayDateLong(new Date(), i18n.language)}
-          </p>
-        </div>
-        <div className="flex items-center gap-1">
-          <button type="button"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-            aria-label={theme === 'dark' ? t('home.useLightTheme') : t('home.useDarkTheme')}
-          >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-          <button type="button"
-            onClick={toggleHideAmount}
-            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-            aria-label={hideAmount ? t('home.showBalance') : t('home.hideBalance')}
-            aria-pressed={hideAmount}
-          >
-            {hideAmount ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={t('home.title')}
+        description={displayDateLong(new Date(), i18n.language)}
+        actions={
+          <div className="flex items-center gap-1">
+            <button type="button"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+              aria-label={theme === 'dark' ? t('home.useLightTheme') : t('home.useDarkTheme')}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <button type="button"
+              onClick={toggleHideAmount}
+              className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+              aria-label={hideAmount ? t('home.showBalance') : t('home.hideBalance')}
+              aria-pressed={hideAmount}
+            >
+              {hideAmount ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+        }
+      />
 
       {/* Live region for privacy mode announcement */}
       <div className="sr-only" aria-live="polite">

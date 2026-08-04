@@ -1386,7 +1386,8 @@
     "more.supportDev": "Support Development",
     "more.supportDevDesc": "Voluntary — Trakteer",
     "more.sourceCode": "Source Code",
-    "more.reportIssue": "Report an Issue"
+    "more.reportIssue": "Report an Issue",
+    "categories.backToMore": "Back to More"
   },
   "Add details": "Add details",
   "Hide details": "Hide details",

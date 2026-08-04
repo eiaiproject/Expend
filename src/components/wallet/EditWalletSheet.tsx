@@ -97,6 +97,26 @@ export function EditWalletSheet({ isOpen, onClose, wallet }: EditWalletSheetProp
       onClose={onClose}
       title={t('wallet.editTitle')}
       ariaLabel={t('wallet.editTitle')}
+      size="content"
+      footer={
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors active:scale-95"
+          >
+            {t('Cancel')}
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving || !name.trim()}
+            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium transition-colors hover:opacity-90 active:scale-95 disabled:opacity-50"
+          >
+            {isSaving ? t('Saving...') : t('Save')}
+          </button>
+        </div>
+      }
     >
       <div className="p-4 space-y-5">
         {/* Wallet name */}
@@ -148,25 +168,6 @@ export function EditWalletSheet({ isOpen, onClose, wallet }: EditWalletSheetProp
         <p className="text-xs text-[var(--text-secondary)] bg-[var(--bg)] rounded-lg px-3 py-2">
           {t('wallet.reconcileImpact')}
         </p>
-
-        {/* Actions */}
-        <div className="flex gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors active:scale-95"
-          >
-            {t('Cancel')}
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving || !name.trim()}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium transition-colors hover:opacity-90 active:scale-95 disabled:opacity-50"
-          >
-            {isSaving ? t('Saving...') : t('Save')}
-          </button>
-        </div>
       </div>
     </BottomSheetShell>
   );

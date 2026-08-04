@@ -127,6 +127,7 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets }: F
       onClose={onClose}
       title={t('Transaction Filter')}
       ariaLabel={t('Transaction Filter')}
+      size="medium"
     >
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scroll-fade-bottom">

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Merchant } from '../db/db';
 import {
-  Search, ArrowLeft, ShoppingBag, Plus, X, Filter, SortV, Star, StarOff
+  Search, ShoppingBag, Plus, X, Filter, SortV, Star, StarOff
 } from 'reicon-react';
 import { cn } from '../utils/cn';
 import { formatCurrency } from '../utils/formatUtils';
@@ -30,6 +30,7 @@ import { PayeeSortSheet } from '../components/PayeeSortSheet';
 import { PayeeFilterSheet, type PayeeFilterDraft } from '../components/PayeeFilterSheet';
 import { CategoryOverflowMenu } from '../components/categories/CategoryOverflowMenu';
 import { useSearchParams } from 'react-router-dom';
+import { PageHeader } from '../components/PageHeader';
 
 const TransactionFormSheet = lazy(() => import('../components/TransactionFormSheet').then(m => ({ default: m.TransactionFormSheet })));
 
@@ -94,21 +95,18 @@ function MerchantDetailView({
   return (
     <div className="p-4 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <button type="button" onClick={onBack}
-          className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--border)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-          aria-label={t('payees.backToList')}
-        >
-          <ArrowLeft size={20} aria-hidden="true" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold truncate">{merchant.displayName}</h1>
-          <p className="text-sm text-[var(--text-secondary)]">
-            {t('Merchant')}{isArchived && <span className="ml-2 text-xs italic">· {t('Archived')}</span>}
-          </p>
-        </div>
-        <CategoryOverflowMenu categoryName={merchant.displayName} items={detailMenuItems} />
-      </div>
+      <PageHeader
+        title={merchant.displayName}
+        description={
+          <>
+            {t('Merchant')}
+            {isArchived && <span className="ml-2 text-xs italic">· {t('Archived')}</span>}
+          </>
+        }
+        onBack={onBack}
+        backLabel={t('payees.backToList')}
+        actions={<CategoryOverflowMenu categoryName={merchant.displayName} items={detailMenuItems} />}
+      />
 
       {/* Summary */}
       <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-4">
@@ -464,7 +462,7 @@ export default function PayeesView() {
   return (
     <>
       <div className="space-y-4">
-        <h1 className="text-xl font-bold">{t('payees.pageTitle')}</h1>
+        <PageHeader title={t('payees.pageTitle')} />
 
         {/* Search */}
         <div className="relative">

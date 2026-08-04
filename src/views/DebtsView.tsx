@@ -14,6 +14,7 @@ import { getTodayStr } from '../utils/dateUtils';
 import { formatCurrency, formatBalance } from '../utils/formatUtils';
 import { cn } from '../utils/cn';
 import { EmptyState } from '../components/EmptyState';
+import { PageHeader } from '../components/PageHeader';
 
 type DebtTypeFilter = 'all' | 'payable' | 'receivable';
 type DebtStatusFilter = 'all' | 'active' | 'due_soon' | 'overdue' | 'settled';

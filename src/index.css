@@ -26,6 +26,18 @@
     height: 85vh;
     height: 85dvh;
   }
+  .sheet-height-content {
+    max-height: 80vh;
+    max-height: 85dvh;
+  }
+  .sheet-height-medium {
+    height: 60vh;
+    height: 60dvh;
+  }
+  .sheet-height-full {
+    height: 92vh;
+    height: 92dvh;
+  }
 
   /* Hide scrollbar but keep scroll functionality */
   .no-scrollbar::-webkit-scrollbar {

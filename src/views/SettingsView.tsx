@@ -41,6 +41,7 @@ import { VerifyCurrentPinModal } from '../components/settings/VerifyCurrentPinMo
 import { PinSetupModal } from '../components/settings/PinSetupModal';
 import { BackupStatusCard } from '../components/settings/BackupStatusCard';
 import { SupportCard } from '../components/settings/SupportCard';
+import { PageHeader } from '../components/PageHeader';
 import {
   getBackupStatusInfo,
   recordSuccessfulBackup,
@@ -665,7 +666,7 @@ export default function SettingsView() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t('Settings')}</h1>
+      <PageHeader title={t('Settings')} />
 
       {/* ── PREFERENCES ─────────────────────────────────── */}
       <SectionHeading>{t('settings.sectionPreferences')}</SectionHeading>
