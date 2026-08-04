@@ -1396,7 +1396,17 @@
     "settings.defaultWalletDesc": "Used to prefill new expenses when no other wallet is selected.",
     "settings.defaultWalletAuto": "Automatic (last used)",
     "settings.defaultWalletSaved": "Default wallet updated",
-    "settings.supportOnTrakteer": "Support on Trakteer"
+    "settings.supportOnTrakteer": "Support on Trakteer",
+    "home.groupToday": "Today",
+    "home.groupYesterday": "Yesterday",
+    "home.groupThisWeek": "This Week",
+    "home.groupEarlier": "Earlier",
+    "landing.benefit1Title": "Lightning-fast entry",
+    "landing.benefit1Desc": "Save an expense in seconds with Quick Add and smart payee suggestions.",
+    "landing.benefit2Title": "Private by design",
+    "landing.benefit2Desc": "No account, no cloud, no tracking — your data stays on your device.",
+    "landing.benefit3Title": "Works offline",
+    "landing.benefit3Desc": "Full functionality without internet, after the first load."
   },
   "Add details": "Add details",
   "Hide details": "Hide details",
