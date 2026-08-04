@@ -2,6 +2,24 @@
 
 All notable changes to Expend are documented here.
 
+## 1.15.0 - 2026-08-04
+### Added
+
+- Phase 5 — stats mobile redesign: tappable trend, custom period, label sizes
+- Phase 4 — wallet detail actions, recurring processing feedback
+- Phase 3 core workflow polish — Quick Add wallet visibility, search enterKeyHint
+- Shared PageHeader primitive across views; sheet size variants + sticky footers
+
+### Changed
+
+- Mobile nav Home/Wallets/Add/Debts/More with central Add + More page
+
+### Fixed
+
+- Sheets above keyboard, backdrop click, menus above bottom nav
+- Resolve 88 SonarCloud issues — S6819 a11y roles, S3358 nested te… (#8)
+
+
 ## 1.14.0 - 2026-07-31
 ### Added
 

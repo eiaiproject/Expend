@@ -41,6 +41,27 @@ import type { TransactionType } from './hooks/useTransactionForm';
 
 function AppContent() {
   const { t } = useTranslation();
+
+  // Dev-only demo seeder: visit /?seed=demo (master.md §12 demo data)
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (!new URLSearchParams(window.location.search).has('seed')) return;
+    let cancelled = false;
+    void import('./utils/seedDemo').then(async ({ seedDemoData }) => {
+      if (cancelled) return;
+      const count = await seedDemoData();
+      if (cancelled) return;
+      window.history.replaceState({}, '', window.location.pathname);
+      if (count > 0) {
+        window.location.reload(); // re-boot so onboarding flag + data are live
+      }
+    }).catch((err) => {
+      console.error('seed failed:', err);
+      window.history.replaceState({}, '', window.location.pathname);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   const [isActionPickerOpen, setIsActionPickerOpen] = useState(false);
   const [isAddTxOpen, setIsAddTxOpen] = useState(false);
   const [txInitialType, setTxInitialType] = useState<TransactionType>('expense');

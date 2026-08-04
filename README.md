@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.14.0-teal" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.15.0-teal" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React 19">
   <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
@@ -159,6 +159,7 @@ npm run playwright:install
 | `npm run test:unit` | Run unit tests |
 | `npm run test:e2e` | Run Playwright end-to-end tests |
 | `npm run test:e2e:chromium` | Run Playwright end-to-end tests in Chromium |
+| `npm run test:e2e:mobile` | Run Playwright end-to-end tests in Mobile Chrome (Pixel 5 viewport) |
 | `npm run audit` | Check for critical npm vulnerabilities |
 | `npm run qa:automated` | Run lint, typecheck, i18n, unit tests, build, and Chromium E2E |
 
@@ -171,6 +172,7 @@ npm run i18n:check
 npm run test:unit
 npm run build
 npm run test:e2e:chromium
+npm run test:e2e:mobile
 ```
 
 Install Playwright browsers when running E2E tests on a fresh machine:
