@@ -5,19 +5,25 @@ All notable changes to Expend are documented here.
 ## 1.15.0 - 2026-08-04
 ### Added
 
-- Phase 5 — stats mobile redesign: tappable trend, custom period, label sizes
-- Phase 4 — wallet detail actions, recurring processing feedback
-- Phase 3 core workflow polish — Quick Add wallet visibility, search enterKeyHint
-- Shared PageHeader primitive across views; sheet size variants + sticky footers
+- Phase 0–8 UX/UI consistency overhaul: shared PageHeader across all views; BottomSheetShell size variants (content/medium/full) with sticky safe-area footer and backdrop click
+- Central Add action in the bottom nav (Home/Wallets/Add/Debts/More) replacing the FAB; new More feature directory; Settings slimmed to preferences, security, and danger zone
+- Quick Add wallet visibility indicator, search `enterKeyHint`, delete undo (single + bulk), repeat expense/transfer pairs, template + frequent-payee chip rows with scroll snap and edge-fade affordance
+- Wallet detail overflow menu (view/edit/transfer/reconcile/archive/delete) and primary action row; recurring-processing toast on boot
+- Stats mobile redesign: 11px chart labels, tappable 28px trend points with drill-down modal, custom period with auto-clamped date pair
+- Settings restructure: Your Data (backup status) first, Default Wallet preference, separated Danger Zone
+- Landing reorder (preview second), jargon-free tech copy, onboarding with preselectable categories
+- Real entry animations (sheets, dialogs, menus, banners), high-contrast mode, splash overlay tap-through fix
 
 ### Changed
 
-- Mobile nav Home/Wallets/Add/Debts/More with central Add + More page
+- Mobile navigation Home/Wallets/Add/Debts/More; desktop sidebar gains Recurring
+- Settings About support rows merged; Trakteer support stays permanent and voluntary
 
 ### Fixed
 
-- Sheets above keyboard, backdrop click, menus above bottom nav
-- Resolve 88 SonarCloud issues — S6819 a11y roles, S3358 nested te… (#8)
+- First-tap swallowing after app load (splash overlay kept pointer events while fading)
+- Dead `animate-in` classes (tailwindcss-animate plugin was never installed) — hand-rolled keyframe utilities
+- Stats and Scenario E E2E flakiness root-caused to the splash overlay and sr-only radio force-checks
 
 
 ## 1.14.0 - 2026-07-31
