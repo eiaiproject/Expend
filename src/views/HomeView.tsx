@@ -604,7 +604,7 @@ export default function HomeView() {
         title={t('home.title')}
         description={displayDateLong(new Date(), i18n.language)}
         actions={
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <button type="button"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
@@ -702,6 +702,7 @@ export default function HomeView() {
             type="search"
             name="search"
             autoComplete="off"
+            enterKeyHint="search"
             placeholder={t('home.searchPlaceholder')}
             value={filters.searchTerm}
             onChange={(e) => filterActions.setSearchTerm(e.target.value)}

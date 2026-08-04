@@ -614,6 +614,7 @@ export default function CategoriesView() {
             <input
               ref={searchRef}
               type="search"
+            enterKeyHint="search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('categories.searchPlaceholder')}

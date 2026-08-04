@@ -42,6 +42,13 @@
 ### Resolved (Phase 1 & 2)
 
 All Phase 1 shared UX contracts are implemented: `PageHeader` primitive (title/description/actions/onBack/backLabel) migrated into all views; `BottomSheetShell` size variants (`content`/`medium`/`full`) + backdrop click-to-close + sticky safe-area footer; form sheets use sticky footers with `form=` association; toolbar/button/empty/error/loading/toast/safe-area patterns standardized by convention.
+
+### Resolved (Phase 3 — core daily workflow)
+
+- **Quick Add default-wallet visibility** (§3.7): collapsed Quick Add now shows a tappable `Wallet: {name}` indicator so the destination wallet is never silently wrong; tapping expands details.
+- **Search inputs** (§3.6): `enterKeyHint="search"` on all search fields (Home, Wallets, Debts, Payees, Categories).
+- **Action separation** (§3.5): Home header theme/privacy icon buttons gap 4px → 8px.
+- Verified already in place: Quick Add progressive disclosure + presets + templates + frequent payees + description suggestions; dirty-guard confirm discard; sticky Save above keyboard; delete undo (single + bulk via `restoreTransactions`); repeat expense/transfer-with-pairs; empty vs. search-empty states with Reset All; active-filter badge; bulk-selection mode; insights ≤3 dismissible; upcoming ≤3 when relevant; toast z-100 above nav.
 6. **No drag handle / swipe on sheets** (deferred; dirty-guard exists on transaction form).
 7. **Android system Back on open sheets** not intercepted (native `<dialog>` not `showModal`) — documented limitation.
 8. Sidebar missing Schedules entry (desktop parity).

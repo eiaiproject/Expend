@@ -1,7 +1,7 @@
 import { useId, useRef, useEffect, useState, type KeyboardEvent } from 'react';
 import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
-import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Star, Link2 } from 'reicon-react';
+import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Star, Link2, Wallet } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { type Transaction } from '../db/db';
@@ -109,6 +109,8 @@ export function TransactionFormSheet({
       return confirmed;
     },
   });
+
+  const selectedWalletName = wallets.find((w) => w.id === Number(state.walletId))?.name;
 
   const handleDescriptionChange = (val: string) => {
     actions.setDescription(val);
@@ -326,6 +328,19 @@ export function TransactionFormSheet({
               placeholder={t('Type or select category')}
             />
           </div>
+        )}
+
+        {/* Quick Add default wallet — visible so the wrong wallet is never
+            used silently (master.md 3.7). Tapping expands the details section. */}
+        {isQuickAdd && !showDetails && selectedWalletName && (
+          <button
+            type="button"
+            onClick={() => setShowDetails(true)}
+            className="w-full flex items-center gap-2 py-2.5 px-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)] text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px]"
+          >
+            <Wallet size={14} aria-hidden="true" />
+            <span className="font-medium">{t('Wallet')}: {selectedWalletName}</span>
+          </button>
         )}
 
         {/* Progressive disclosure toggle (Quick Add) */}

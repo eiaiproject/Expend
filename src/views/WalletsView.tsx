@@ -353,6 +353,7 @@ export default function WalletsView() {
               <input
                 id="wallet-search"
                 type="search"
+            enterKeyHint="search"
                 name="walletSearch"
                 autoComplete="off"
                 placeholder={t('wallet.searchPh')}

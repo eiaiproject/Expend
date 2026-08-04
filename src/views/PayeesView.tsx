@@ -467,7 +467,8 @@ export default function PayeesView() {
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} aria-hidden="true" />
-          <input type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+          <input type="search"
+            enterKeyHint="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('payees.searchPlaceholder')}
             className="w-full h-11 pl-9 pr-9 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
             aria-label={t('payees.searchLabel')} />
