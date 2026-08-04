@@ -1,7 +1,7 @@
 import { useId, useRef, useEffect, useState, type KeyboardEvent } from 'react';
 import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
-import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Star, Link2, Wallet, History } from 'reicon-react';
+import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Star, Link2, Wallet } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { type Transaction } from '../db/db';
@@ -221,7 +221,7 @@ export function TransactionFormSheet({
                   <button
                     type="button"
                     onClick={() => void actions.applyTemplate(template)}
-                    className="shrink-0 h-11 px-3 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 flex items-center gap-1.5"
+                    className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5"
                   >
                     <Bookmark size={14} aria-hidden="true" />
                     {template.name}
@@ -253,10 +253,9 @@ export function TransactionFormSheet({
                   <button
                     type="button"
                     onClick={() => actions.applyPayee(payee.name)}
-                    className="shrink-0 h-11 px-3 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 flex items-center gap-1.5"
+                    className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5"
                     aria-label={t('payees.addExpenseFor', { name: payee.name })}
                   >
-                    <History size={14} className="text-[var(--text-muted)]" aria-hidden="true" />
                     {payee.favorite && <Star size={12} className="text-[var(--accent)]" aria-hidden="true" />}
                     {payee.name}
                   </button>
