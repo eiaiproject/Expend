@@ -1,7 +1,7 @@
 import { useId, useRef, useEffect, useState, type KeyboardEvent } from 'react';
 import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
-import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Star, Link2, Wallet } from 'reicon-react';
+import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Wallet } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { type Transaction } from '../db/db';
@@ -72,13 +72,6 @@ export function TransactionFormSheet({
     if (isOpen) setShowDetails(!isQuickAdd);
   }, [isOpen, isQuickAdd]);
 
-  // "View all" from the Frequently used section (master.md 6.5): close the
-  // sheet and open the complete payee list.
-  const handleViewAllPayees = () => {
-    onClose();
-    navigate('/payees');
-  };
-
   const formId = useId();
   const amountInputId = `${formId}-amount`;
   const descriptionInputId = `${formId}-description`;
@@ -90,7 +83,7 @@ export function TransactionFormSheet({
   const descriptionRef = useRef<HTMLInputElement>(null);
   const suggestionIndexRef = useRef(-1);
 
-  const { state, actions, wallets, categories, templates, frequentPayees } = useTransactionForm({
+  const { state, actions, wallets, categories, templates } = useTransactionForm({
     isOpen,
     txToEdit,
     initialType,
@@ -225,39 +218,6 @@ export function TransactionFormSheet({
                   >
                     <Bookmark size={14} aria-hidden="true" />
                     {template.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Frequently used payees (master.md 6.2) — tap to prefill payee,
-            category, and last-used wallet; amount stays empty (6.3). */}
-        {isQuickAdd && frequentPayees.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t('Frequently used')}</p>
-              <button
-                type="button"
-                onClick={handleViewAllPayees}
-                className="flex items-center gap-1 text-xs font-semibold text-[var(--accent)] hover:underline min-h-[44px] -mr-2 px-2"
-              >
-                <Link2 size={12} aria-hidden="true" />
-                {t('View all')}
-              </button>
-            </div>
-            <ul className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 scroll-fade-x pb-1 list-none" aria-label={t('Frequently used')}>
-              {frequentPayees.slice(0, 6).map((payee) => (
-                <li key={payee.key} className="snap-start">
-                  <button
-                    type="button"
-                    onClick={() => actions.applyPayee(payee.name)}
-                    className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5"
-                    aria-label={t('payees.addExpenseFor', { name: payee.name })}
-                  >
-                    {payee.favorite && <Star size={12} className="text-[var(--accent)]" aria-hidden="true" />}
-                    {payee.name}
                   </button>
                 </li>
               ))}

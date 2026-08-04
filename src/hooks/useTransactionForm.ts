@@ -8,8 +8,7 @@ import { getTodayStr } from '../utils/dateUtils';
 import { toast } from '../components/Toaster';
 import { findPairedTransfer } from '../utils/transferUtils';
 import { getDefaultExpenseWallet, rememberLastUsedWallet } from '../services/walletPreferenceService';
-import { rankPayees, suggestCategoryForPayee, type PayeeRankingItem } from '../services/categorySuggestionService';
-import { getFavoritePayeeKeys } from '../services/payeeFavoritesService';
+import { suggestCategoryForPayee } from '../services/categorySuggestionService';
 import { normalizePayeeKey, normalizePayeeName } from '../services/payeeService';
 import { getTemplates, resolveTemplate, saveTemplate, type TransactionTemplate } from '../services/templateService';
 
@@ -64,7 +63,6 @@ export interface UseTransactionFormResult {
   wallets: Wallet[];
   categories: Category[];
   templates: TransactionTemplate[];
-  frequentPayees: PayeeRankingItem[];
 }
 
 interface UseTransactionFormOptions {
@@ -225,7 +223,6 @@ export function useTransactionForm({
     () => db.transactions.orderBy('date').reverse().limit(100).toArray()
   );
   const templates = useLiveQuery(() => getTemplates(), [], EMPTY_TEMPLATES);
-  const favoritePayeeKeys = useLiveQuery(() => getFavoritePayeeKeys(), [], []);
   const wallets = queriedWallets ?? EMPTY_WALLETS;
   const categories = queriedCategories ?? EMPTY_CATEGORIES;
   const merchants = queriedMerchants ?? EMPTY_MERCHANTS;
@@ -241,17 +238,6 @@ export function useTransactionForm({
       )
     );
   }, [transactions]);
-
-  // Frequently used payees for Quick Add (master.md 6.2) — deterministic
-  // local ranking: frequency + 7-day recency bonus + favorite bonus.
-  // Archived or invalid merchants are excluded from suggestions (6.2).
-  const frequentPayees = useMemo<PayeeRankingItem[]>(() => {
-    const archivedKeys = new Set(
-      merchants.filter((m) => m.archivedAt).map((m) => normalizePayeeKey(m.displayName))
-    );
-    return rankPayees(transactions, new Set(favoritePayeeKeys))
-      .filter((item) => !archivedKeys.has(item.key));
-  }, [transactions, favoritePayeeKeys, merchants]);
 
   // Form state
   const [type, setType] = useState<TransactionType>('expense');
@@ -607,6 +593,5 @@ export function useTransactionForm({
     wallets,
     categories,
     templates,
-    frequentPayees,
   };
 }
