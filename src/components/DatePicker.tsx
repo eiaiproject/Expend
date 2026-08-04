@@ -122,13 +122,6 @@ export function DatePicker({ id, value, onChange, label, required }: DatePickerP
           </div>
         </div>
       )}
-
-      {/* Display formatted date below input */}
-      {value && (
-        <p className="text-xs text-[var(--text-secondary)] mt-1 ml-10">
-          {formatDate(value)}
-        </p>
-      )}
     </div>
   );
 }
