@@ -2,6 +2,22 @@
 
 All notable changes to Expend are documented here.
 
+## 1.16.0 - 2026-08-04
+### Added
+
+- Long-press or right-click a Quick Add template chip to delete it
+- Template CRUD and schedule CRUD E2E coverage
+
+### Changed
+
+- Remove the Frequently used payees section from Quick Add (templates and favorites cover the same workflow)
+- Remove redundant formatted date display from the date picker
+
+### Fixed
+
+- Group headers and landing benefits rendered raw i18n keys instead of translated strings
+
+
 ## 1.15.0 - 2026-08-04
 ### Added
 

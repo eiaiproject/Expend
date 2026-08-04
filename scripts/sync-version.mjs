@@ -13,7 +13,10 @@
  * package.json + package-lock.json are already bumped by `npm version`.
  *
  * Usage (manual): `node scripts/sync-version.mjs [fromTag]`
- *   fromTag defaults to the latest git tag (`git describe --tags --abbrev=0`).
+ *   fromTag defaults to the commit that last updated CHANGELOG.md (the
+ *   previous release), falling back to the latest git tag. Using the
+ *   changelog commit keeps the generated entry scoped to commits since the
+ *   last documented version even when git tags lag behind releases.
  */
 
 import { execSync } from 'node:child_process';
@@ -46,6 +49,12 @@ const changelogPath = resolve(root, 'CHANGELOG.md');
 const date = new Date().toISOString().slice(0, 10);
 
 const fromTag = process.argv[2] || (() => {
+  try {
+    // Last commit that updated CHANGELOG.md = the previous documented release.
+    return execSync('git log --format=%H -1 -- CHANGELOG.md', { cwd: root }).toString().trim(); // NOSONAR — S4036: no user input
+  } catch {
+    /* fall through to tag lookup */
+  }
   try {
     return execSync('git describe --tags --abbrev=0', { cwd: root }).toString().trim(); // NOSONAR — S4036: no user input
   } catch {
