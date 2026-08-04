@@ -11,9 +11,12 @@ root.render(
   </StrictMode>,
 );
 
-// Dismiss splash screen after React has mounted
+// Dismiss splash screen after React has mounted.
+// pointer-events:none immediately — the overlay must never swallow the
+// user's first tap while it fades out (master.md 3.19).
 const splashScreen = document.getElementById('splash-screen');
 if (splashScreen) {
+  splashScreen.style.pointerEvents = 'none';
   splashScreen.style.opacity = '0';
   setTimeout(() => {
     splashScreen.remove();

@@ -482,11 +482,11 @@ export default function PayeesView() {
         </div>
 
         {/* Quick sort chips (master.md 6.7) — common needs up front */}
-        <ul className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 list-none" aria-label={t('payees.quickSortLabel')}>
+        <ul className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 pb-1 -mx-1 px-1 list-none" aria-label={t('payees.quickSortLabel')}>
           {QUICK_SORTS.map((opt) => {
             const isActive = sortConfig.field === opt.field && sortConfig.order === opt.order;
             return (
-              <li key={opt.labelKey}>
+              <li key={opt.labelKey} className="snap-start">
                 <button
                   type="button"
                   onClick={() => setSortConfig({ field: opt.field, order: opt.order })}

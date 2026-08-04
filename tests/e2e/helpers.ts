@@ -260,7 +260,11 @@ export async function completeOnboarding(page: Page, options: OnboardOptions): P
     for (const category of options.categories) {
       // Use exact button name match to avoid hitting footer-related text.
       const catButton = page.getByRole('button', { name: new RegExp(`^${escapeRegex(category)}$`, 'i') });
-      await catButton.first().click({ timeout: 5_000 });
+      const pressed = await catButton.first().getAttribute('aria-pressed');
+      // Preselected categories (master.md 3.17) — only tap to ADD, never toggle off.
+      if (pressed !== 'true') {
+        await catButton.first().click({ timeout: 5_000 });
+      }
     }
   }
   const nextBtn2 = page.locator('button.h-12:has-text("Next")');

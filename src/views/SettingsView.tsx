@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { useSecurity } from '../contexts/SecurityContext';  import {
     Moon, Sun, Monitor, Download, Upload, Lock, Trash2, Check,
     Information, Database, HardDrive,
     Link as ExternalLinkIcon, ChevronRight, Eye, EyeOff, Mobile,
-    Clock, AlertTriangle, Coffee, Heart, ShieldCheck, Bug
+    Clock, AlertTriangle, Coffee, Heart, ShieldCheck, Bug, Wallet as WalletIcon
   } from 'reicon-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { Link } from 'react-router-dom';
 import { toast } from '../components/Toaster';
 import { confirm } from '../components/ConfirmDialog';
+import { getConfiguredDefaultWalletId, setDefaultWallet, clearDefaultWallet } from '../services/walletPreferenceService';
 import {
   generateExport,
   importData,
@@ -448,6 +450,25 @@ export default function SettingsView() {
     createBackup,
   } = useBackupStatus();
 
+  // ── Default wallet preference (master.md 3.15) ────────────
+
+  const configuredDefaultWalletId = useLiveQuery(getConfiguredDefaultWalletId, [], null);
+  const allWallets = useLiveQuery(() => db.wallets.toArray(), [], undefined) ?? [];
+  const activeWallets = allWallets.filter(w => !w.archivedAt);
+
+  const handleDefaultWalletChange = async (value: string) => {
+    try {
+      if (value) {
+        await setDefaultWallet(Number(value));
+      } else {
+        await clearDefaultWallet();
+      }
+      toast.add(t('settings.defaultWalletSaved'));
+    } catch {
+      toast.add(t('Error saving category'));
+    }
+  };
+
   // ── Language ──────────────────────────────────────────────
 
   const handleLangChange = async (lang: string) => {
@@ -668,96 +689,6 @@ export default function SettingsView() {
     <div className="space-y-6">
       <PageHeader title={t('Settings')} />
 
-      {/* ── PREFERENCES ─────────────────────────────────── */}
-      <SectionHeading>{t('settings.sectionPreferences')}</SectionHeading>
-
-      {/* Theme — native radio */}
-      <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4">
-        <fieldset>
-          <legend className="text-sm font-medium text-[var(--text-primary)] mb-3">{t('settings.themeLabel')}</legend>
-          <div className="space-y-1">
-            {([
-              { value: 'system' as const, icon: Monitor, label: t('settings.themeSystem') },
-              { value: 'light' as const, icon: Sun, label: t('settings.themeLight') },
-              { value: 'dark' as const, icon: Moon, label: t('settings.themeDark') },
-            ]).map(({ value, icon: Icon, label }) => (
-              <label
-                key={value}
-                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer min-h-[44px] transition-colors ${
-                  theme === value ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'hover:bg-[var(--bg)] text-[var(--text-primary)]'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="theme"
-                  value={value}
-                  checked={theme === value}
-                  onChange={() => setTheme(value)}
-                  className="sr-only"
-                />
-                <Icon size={18} className="shrink-0" aria-hidden="true" />
-                <span className="text-sm font-medium flex-1">{label}</span>
-                {theme === value && <Check size={16} className="text-[var(--accent)]" aria-hidden="true" />}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      </div>
-
-      {/* Language — native radio */}
-      <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4">
-        <fieldset>
-          <legend className="text-sm font-medium text-[var(--text-primary)] mb-3">{t('settings.languageLabel')}</legend>
-          <div className="space-y-1">
-            {([
-              { value: 'id', label: t('settings.langId') },
-              { value: 'en', label: t('settings.langEn') },
-            ]).map(({ value, label }) => (
-              <label
-                key={value}
-                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer min-h-[44px] transition-colors ${
-                  i18n.language?.startsWith(value) ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'hover:bg-[var(--bg)] text-[var(--text-primary)]'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="language"
-                  value={value}
-                  checked={i18n.language?.startsWith(value) ?? false}
-                  onChange={() => handleLangChange(value)}
-                  className="sr-only"
-                />
-                <span className="text-sm font-medium flex-1">{label}</span>
-                {i18n.language?.startsWith(value) && <Check size={16} className="text-[var(--accent)]" aria-hidden="true" />}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      </div>
-
-      {/* Hide Amounts — native switch */}
-      <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4">
-        <label className="flex items-center justify-between gap-4 min-h-[44px] cursor-pointer">
-          <div className="flex items-center gap-3">
-            {hideAmount ? <EyeOff size={20} className="text-[var(--text-secondary)]" aria-hidden="true" /> : <Eye size={20} className="text-[var(--text-secondary)]" aria-hidden="true" />}
-            <div>
-              <span className="text-sm font-medium text-[var(--text-primary)]">{t('settings.hideAmountsLabel')}</span>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.hideAmountsDesc')}</p>
-            </div>
-          </div>
-          <input
-            type="checkbox"
-            checked={hideAmount}
-            onChange={toggleHideAmount}
-            className="sr-only peer"
-            aria-label={t('settings.hideAmountsLabel')}
-          />
-          <div className="w-11 h-6 rounded-full bg-[var(--border)] peer-checked:bg-[var(--accent)] transition-colors relative shrink-0" aria-hidden="true">
-            <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${hideAmount ? 'translate-x-5' : ''}`} />
-          </div>
-        </label>
-      </div>
-
       {/* ── BACKUP STATUS ────────────────────────────────── */}
       <SectionHeading>{t('backup.sectionTitle')}</SectionHeading>
 
@@ -852,15 +783,116 @@ export default function SettingsView() {
         </div>
       </SettingsAccordion>
 
-      {/* Delete All Data */}
-      <NavRow
-        icon={Trash2}
-        label={t('settings.deleteAllLocalData')}
-        description={t('settings.deleteAllDesc')}
-        onClick={handleResetLocalData}
-        danger
-      />
+      {/* ── PREFERENCES ─────────────────────────────────── */}
+      <SectionHeading>{t('settings.sectionPreferences')}</SectionHeading>
 
+      {/* Theme — native radio */}
+      <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4">
+        <fieldset>
+          <legend className="text-sm font-medium text-[var(--text-primary)] mb-3">{t('settings.themeLabel')}</legend>
+          <div className="space-y-1">
+            {([
+              { value: 'system' as const, icon: Monitor, label: t('settings.themeSystem') },
+              { value: 'light' as const, icon: Sun, label: t('settings.themeLight') },
+              { value: 'dark' as const, icon: Moon, label: t('settings.themeDark') },
+            ]).map(({ value, icon: Icon, label }) => (
+              <label
+                key={value}
+                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer min-h-[44px] transition-colors ${
+                  theme === value ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'hover:bg-[var(--bg)] text-[var(--text-primary)]'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="theme"
+                  value={value}
+                  checked={theme === value}
+                  onChange={() => setTheme(value)}
+                  className="sr-only"
+                />
+                <Icon size={18} className="shrink-0" aria-hidden="true" />
+                <span className="text-sm font-medium flex-1">{label}</span>
+                {theme === value && <Check size={16} className="text-[var(--accent)]" aria-hidden="true" />}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+
+      {/* Language — native radio */}
+      <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4">
+        <fieldset>
+          <legend className="text-sm font-medium text-[var(--text-primary)] mb-3">{t('settings.languageLabel')}</legend>
+          <div className="space-y-1">
+            {([
+              { value: 'id', label: t('settings.langId') },
+              { value: 'en', label: t('settings.langEn') },
+            ]).map(({ value, label }) => (
+              <label
+                key={value}
+                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer min-h-[44px] transition-colors ${
+                  i18n.language?.startsWith(value) ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'hover:bg-[var(--bg)] text-[var(--text-primary)]'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="language"
+                  value={value}
+                  checked={i18n.language?.startsWith(value) ?? false}
+                  onChange={() => handleLangChange(value)}
+                  className="sr-only"
+                />
+                <span className="text-sm font-medium flex-1">{label}</span>
+                {i18n.language?.startsWith(value) && <Check size={16} className="text-[var(--accent)]" aria-hidden="true" />}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+
+      {/* Hide Amounts — native switch */}
+      <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4">
+        <label className="flex items-center justify-between gap-4 min-h-[44px] cursor-pointer">
+          <div className="flex items-center gap-3">
+            {hideAmount ? <EyeOff size={20} className="text-[var(--text-secondary)]" aria-hidden="true" /> : <Eye size={20} className="text-[var(--text-secondary)]" aria-hidden="true" />}
+            <div>
+              <span className="text-sm font-medium text-[var(--text-primary)]">{t('settings.hideAmountsLabel')}</span>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.hideAmountsDesc')}</p>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={hideAmount}
+            onChange={toggleHideAmount}
+            className="sr-only peer"
+            aria-label={t('settings.hideAmountsLabel')}
+          />
+          <div className="w-11 h-6 rounded-full bg-[var(--border)] peer-checked:bg-[var(--accent)] transition-colors relative shrink-0" aria-hidden="true">
+            <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${hideAmount ? 'translate-x-5' : ''}`} />
+          </div>
+        </label>
+      </div>
+
+
+      {/* Default wallet — native select (master.md 3.15) */}
+      <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4">
+        <div className="flex items-center gap-2 mb-1">
+          <WalletIcon size={18} className="text-[var(--text-secondary)]" aria-hidden="true" />
+          <legend className="text-sm font-medium text-[var(--text-primary)]">{t('settings.defaultWalletLabel')}</legend>
+        </div>
+        <p className="text-xs text-[var(--text-secondary)] mb-3">{t('settings.defaultWalletDesc')}</p>
+        <select
+          id="settings-default-wallet"
+          value={configuredDefaultWalletId ?? ''}
+          onChange={(e) => void handleDefaultWalletChange(e.target.value)}
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 min-h-[44px]"
+        >
+          <option value="">{t('settings.defaultWalletAuto')}</option>
+          {activeWallets.map(w => (
+            <option key={w.id} value={w.id}>{w.name}</option>
+          ))}
+        </select>
+      </div>
       {/* ── SECURITY ────────────────────────────────────── */}
       <SectionHeading>{t('settings.sectionSecurity')}</SectionHeading>
 
@@ -1029,7 +1061,7 @@ export default function SettingsView() {
           <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
         </a>
 
-        {/* Trakteer support action (master.md 9.2) */}
+        {/* Support developer — permanent secondary link (master.md 9.2) */}
         <a
           href={TRAKTEER_URL}
           target="_blank"
@@ -1041,9 +1073,6 @@ export default function SettingsView() {
           <span className="sr-only">{t('settings.opensExternalSite')}</span>
           <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
         </a>
-
-
-
 
         {/* PWA Install Status */}
         {(function renderPwaStatus() {
@@ -1085,6 +1114,23 @@ export default function SettingsView() {
           <span className="sr-only">{t('settings.opensExternalSite')}</span>
           <ExternalLinkIcon size={12} className="text-[var(--text-secondary)]" aria-hidden="true" />
         </a>
+      </div>
+
+
+      {/* ── DANGER ZONE (master.md 3.15 — visually separated) */}
+      <SectionHeading>{t('settings.dangerZone')}</SectionHeading>
+
+      <div className="rounded-[16px] border border-red-500/30 bg-[var(--card)] p-2">
+      {/* Delete All Data */}
+      <NavRow
+        icon={Trash2}
+        label={t('settings.deleteAllLocalData')}
+        description={t('settings.deleteAllDesc')}
+        onClick={handleResetLocalData}
+        danger
+      />
+
+
       </div>
 
       {/* ── Modals ──────────────────────────────────────── */}

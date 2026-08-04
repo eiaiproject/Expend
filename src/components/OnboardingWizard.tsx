@@ -15,7 +15,10 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   const [step, setStep] = useState(1);
   const [walletName, setWalletName] = useState('');
   const [walletBalance, setWalletBalance] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() =>
+    // master.md 3.17: preselect common categories — one-tap finish, uncheck to trim
+    DEFAULT_CATEGORIES.slice(0, 6).map(c => c.nameKey)
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const walletNameInputRef = useRef<HTMLInputElement>(null);

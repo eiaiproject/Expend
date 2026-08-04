@@ -173,24 +173,24 @@ export default function LandingView({
       {/* 1. Hero — always rendered (LCP element) */}
       <HeroSection onEnter={handleEnter} />
 
-      {/* 2. How It Works — lazy + reveal */}
+      {/* 2. App Preview — value-first, directly after the hero (master.md 3.16) */}
+      <LazySection>
+        <RevealOnScroll delay={100}>
+          <PreviewSection />
+        </RevealOnScroll>
+      </LazySection>
+
+      {/* 3. How It Works — lazy + reveal */}
       <LazySection>
         <RevealOnScroll>
           <HowItWorksSection />
         </RevealOnScroll>
       </LazySection>
 
-      {/* 3. Benefits + Features — lazy + reveal */}
+      {/* 4. Benefits + Features — lazy + reveal */}
       <LazySection>
         <RevealOnScroll delay={50}>
           <FeaturesSection />
-        </RevealOnScroll>
-      </LazySection>
-
-      {/* 4. App Preview — lazy + reveal */}
-      <LazySection>
-        <RevealOnScroll delay={100}>
-          <PreviewSection />
         </RevealOnScroll>
       </LazySection>
 
@@ -219,7 +219,7 @@ export default function LandingView({
         </RevealOnScroll>
       </LazySection>
 
-      {/* 8. Tech Stack — lazy + reveal */}
+      {/* 8. Tech Stack — developer content, collapsed and deferred (master.md 3.16) */}
       <LazySection>
         <RevealOnScroll>
           <TechStackSection />

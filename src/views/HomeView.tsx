@@ -60,7 +60,7 @@ function QuickFilterChips({ isSelectionMode, quickFilter, onSelect, t }: QuickFi
 
   return (
     <fieldset
-      className="flex gap-2 overflow-x-auto pb-1 border-0 p-0 m-0"
+      className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 pb-1 border-0 p-0 m-0"
       aria-label={t('home.filterTransactions')}
       style={{ scrollbarWidth: 'auto', scrollPaddingInline: '1rem' }}
     >
@@ -72,7 +72,7 @@ function QuickFilterChips({ isSelectionMode, quickFilter, onSelect, t }: QuickFi
             onClick={() => onSelect(isActive ? null : qf)}
             aria-pressed={isActive}
             className={cn(
-              "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
+              "shrink-0 snap-start px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
               isActive
                 ? "bg-[var(--accent)] text-white border-[var(--accent)]"
                 : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"

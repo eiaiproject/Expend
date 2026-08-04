@@ -64,6 +64,16 @@ All Phase 1 shared UX contracts are implemented: `PageHeader` primitive (title/d
 - **Category ranked rows**: add transaction count `(% · n)` beside amount.
 - i18n: `stats.periodCustom` / `stats.customStart` / `stats.customEnd` (en + id).
 - E2E: stats tour now exercises custom period + a tappable trend point opening a dialog.
+### Resolved (Phase 6 — settings IA, landing, onboarding, lock, states)
+
+- **Settings IA** (§3.15): reordered Your Data first — Backup Status card + SupportCard near top, then Preferences (theme/language/privacy + new **Default Wallet** native select — was service-only), Security, About, and a visually separated **Danger Zone** (red-bordered card) for Delete All Local Data. Duplicate About support row merged into `supportOnTrakteer` (InfoPopup also uses it); About keeps permanent `aboutSupport` secondary link (master.md 9.2). New i18n: `settings.dangerZone`, `settings.defaultWalletLabel/Desc/Auto/Saved`.
+- **Landing** (§3.16): Preview moved to position 2 (Hero → Preview → How It Works → Features → Privacy → Install → FAQ → TechStack collapsed → FinalCTA → footer); anchor IDs intact; jargon removed from tech copy (`landing.techPwaDesc`/`techDatabaseDesc` now plain-language, en + id).
+- **Onboarding** (§3.17): 6 common categories now preselected (one-tap finish, uncheck to trim); E2E helper respects `aria-pressed` (never toggles a preselected category off).
+- **Lock screen** (§3.18): verified already in place — numpad + dots + auto-submit, `aria-live` error, accurate wording (PIN protects the interface, does NOT encrypt IndexedDB data), auto-lock options Immediate/5/30 min/Never on `visibilitychange`.
+- **Splash first-tap swallow** (§3.19): `#splash-screen` kept `pointer-events` while fading — it could eat the first tap after every hard load (slow devices/parallel tests). Now `pointer-events:none` at fade start.
+- **Scroll snap** (§3.19): `snap-x snap-mandatory` + `snap-start` on horizontal chip rows (Home quick filters, Quick Add templates + frequent payees, Payees quick-sort).
+- Verified already in place: offline banner (amber, `role=status`), Toaster (undo, pause on hover/focus, above bottom nav), UpdatePrompt (re-show after 10 min, reload warning), Skeleton shimmer, ErrorBoundary reload, `prefers-reduced-motion` kill-switch, loading states.
+- **E2E hardening**: stats tour clicks the period radio's `<label>` (real user gesture) instead of force-checking the sr-only input; Scenario E flake root-caused to the splash overlay.
 6. **No drag handle / swipe on sheets** (deferred; dirty-guard exists on transaction form).
 7. **Android system Back on open sheets** not intercepted (native `<dialog>` not `showModal`) — documented limitation.
 8. Sidebar missing Schedules entry (desktop parity).
@@ -109,7 +119,7 @@ Pre-existing failures fixed: insights date bug (day 1–5 of month), FAB/EmptySt
 - Drag handle + swipe-to-dismiss — needs per-sheet dirty assessment; skip until confirmed safe.
 - Android Back interception on sheets — convert to `showModal()` pattern in a dedicated pass.
 - PageHeader shared primitive — headers already near-uniform (h1 24px); extract when a third inconsistency appears.
-- Landing/onboarding/stats mobile redesigns, sheet stacking audit — next phases (master.md Phase 4–7).
+- Landing/onboarding/stats mobile redesigns — completed in Phases 5–6 (stats §3.11, landing §3.16, onboarding §3.17).
 - Stats, Categories/Payees/Schedules UX detail work — next phases.
 - Overflow menus open downward even when near viewport bottom — would need upward flip logic.
 - WebKit/Firefox parallel-flaky tests — investigate test isolation (not in scope).
