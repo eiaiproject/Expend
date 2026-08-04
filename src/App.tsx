@@ -18,6 +18,7 @@ import { TransactionFormSheet } from './components/TransactionFormSheet';
 import { ActionPickerSheet } from './components/ActionPickerSheet';
 import { DebtFormSheet } from './components/debts/DebtFormSheet';
 import { Toaster } from './components/Toaster';
+import { toast } from './components/Toaster';
 import { SupportPrompt } from './components/SupportPrompt';
 import { PrivacyProvider } from './contexts/PrivacyContext';
 import { ConfirmDialogProvider } from './components/ConfirmDialog';
@@ -76,11 +77,18 @@ function AppContent() {
     if (!isSecurityLoaded || isLocked) return;
     if (!hasOnboarded || !onboardingCompleted) return;
     schedulesProcessedRef.current = true;
-    processDueSchedules().catch(() => {
-      // Allow a retry on a later unlock/state change if processing failed.
-      schedulesProcessedRef.current = false;
-    });
-  }, [isSecurityLoaded, isLocked, hasOnboarded, onboardingCompleted]);
+    processDueSchedules()
+      .then((createdCount) => {
+        // Transparent processing feedback (master.md 3.14).
+        if (createdCount > 0) {
+          toast.add(t('recurring.toastProcessed', { count: createdCount }));
+        }
+      })
+      .catch(() => {
+        // Allow a retry on a later unlock/state change if processing failed.
+        schedulesProcessedRef.current = false;
+      });
+  }, [isSecurityLoaded, isLocked, hasOnboarded, onboardingCompleted, t]);
 
   // Keyboard shortcut: N to open Add Transaction
   useEffect(() => {

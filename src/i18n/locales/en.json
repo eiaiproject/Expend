@@ -1387,7 +1387,8 @@
     "more.supportDevDesc": "Voluntary — Trakteer",
     "more.sourceCode": "Source Code",
     "more.reportIssue": "Report an Issue",
-    "categories.backToMore": "Back to More"
+    "categories.backToMore": "Back to More",
+    "recurring.toastProcessed": "{{count}} schedule{{count, plural, =1 {} other {s}}} processed"
   },
   "Add details": "Add details",
   "Hide details": "Hide details",

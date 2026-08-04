@@ -1387,7 +1387,8 @@
     "more.supportDevDesc": "Sukarela — Trakteer",
     "more.sourceCode": "Kode Sumber",
     "more.reportIssue": "Laporkan Masalah",
-    "categories.backToMore": "Kembali ke Lainnya"
+    "categories.backToMore": "Kembali ke Lainnya",
+    "recurring.toastProcessed": "{{count}} jadwal diproses"
   },
   "Add details": "Tambah detail",
   "Hide details": "Sembunyikan detail",

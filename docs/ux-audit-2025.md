@@ -49,6 +49,12 @@ All Phase 1 shared UX contracts are implemented: `PageHeader` primitive (title/d
 - **Search inputs** (§3.6): `enterKeyHint="search"` on all search fields (Home, Wallets, Debts, Payees, Categories).
 - **Action separation** (§3.5): Home header theme/privacy icon buttons gap 4px → 8px.
 - Verified already in place: Quick Add progressive disclosure + presets + templates + frequent payees + description suggestions; dirty-guard confirm discard; sticky Save above keyboard; delete undo (single + bulk via `restoreTransactions`); repeat expense/transfer-with-pairs; empty vs. search-empty states with Reset All; active-filter badge; bulk-selection mode; insights ≤3 dismissible; upcoming ≤3 when relevant; toast z-100 above nav.
+
+### Resolved (Phase 4 — financial entities)
+
+- **Wallet detail actions** (§3.9): detail now has the same overflow menu as the list (view txs / edit / transfer / reconcile / archive / delete) plus a prominent Transfer + secondary Edit primary-action row; destructive flows reuse the list-view confirm texts and services; delete navigates back to `/wallets`.
+- **Recurring processing feedback** (§3.14): App boot now toasts `N schedules processed` when create-mode processing produced transactions; new `recurring.toastProcessed` i18n key (en + id).
+- Verified already in place: archived wallets separated + hidden from transaction selectors; adjust-balance explains the balance-adjustment transaction; safe wallet delete with recovery-path errors; debt segmented All/I owe/Owed to me; payment impact text (`debt.payWalletImpact`); Mark-settled/write-off no-cashflow confirms; schedule cards show frequency/mode/next/status + Pause-over-Delete + Record Now; idempotent processing; categories delete blocked with related-record explanation + Archive offered; payee cards Add-Expense CTA + sort options (recent/frequent/highest/alpha); category color non-color indicator (ring + aria-checked).
 6. **No drag handle / swipe on sheets** (deferred; dirty-guard exists on transaction form).
 7. **Android system Back on open sheets** not intercepted (native `<dialog>` not `showModal`) — documented limitation.
 8. Sidebar missing Schedules entry (desktop parity).

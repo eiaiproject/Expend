@@ -3,13 +3,20 @@ import { useTranslation } from 'react-i18next';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Transaction } from '../db/db';
-import { ArrowLeft, Wallet as WalletIcon, AlertCircle, ArrowDownRight, ArrowUpRight, Scale } from 'reicon-react';
+import { ArrowLeft, Wallet as WalletIcon, AlertCircle, ArrowDownRight, ArrowUpRight, Scale, ArrowSwapHorizontal, Edit2 } from 'reicon-react';
 import { usePrivacy } from '../contexts/PrivacyContext';
+import { confirm } from '../components/ConfirmDialog';
+import { toast } from '../components/Toaster';
+import { deleteWalletSafely, deactivateWallet, reactivateWallet } from '../services/walletService';
 import { formatCurrency, formatSignedCurrency } from '../utils/formatUtils';
 import { displayDateMedium, daysBetweenDateOnly, getTodayStr, getYesterdayStr, getWeekStartStr, normaliseDate } from '../utils/dateUtils';
 import { WALLET_STALE_DAYS } from '../utils/constants';
 import { EmptyState } from '../components/EmptyState';
 import { PageHeader } from '../components/PageHeader';
+import { WalletOverflowMenu } from '../components/wallet/WalletOverflowMenu';
+import { EditWalletSheet } from '../components/wallet/EditWalletSheet';
+import { ReconcileBalanceSheet } from '../components/wallet/ReconcileBalanceSheet';
+import { TransactionFormSheet } from '../components/TransactionFormSheet';
 import { TransactionDetailSheet } from '../components/TransactionDetailSheet';
 import { Skeleton } from '../components/Skeleton';
 
@@ -44,6 +51,63 @@ export default function WalletDetailView() {
       return acc;
     }, {} as Record<number, { id: number; name: string; icon: string; color: string }>);
   }, [categories]);
+
+  // Action sheets (master.md 3.9 — detail offers the same actions as the list)
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isReconcileOpen, setIsReconcileOpen] = useState(false);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+
+  const openEdit = useCallback(() => setIsEditOpen(true), []);
+  const openReconcile = useCallback(() => setIsReconcileOpen(true), []);
+  const openTransfer = useCallback(() => setIsTransferOpen(true), []);
+
+  const handleDeactivate = useCallback(async () => {
+    if (!wallet) return;
+    const confirmed = await confirm({
+      title: t('wallet.deactivateTitle', { name: wallet.name }),
+      message: t('wallet.deactivateDesc'),
+      confirmLabel: t('wallet.deactivateCta'),
+    });
+    if (!confirmed) return;
+    try {
+      await deactivateWallet(wallet.id!);
+      toast.add(t('wallet.deactivated'));
+    } catch {
+      toast.add(t('wallet.reconcileError'));
+    }
+  }, [t, wallet]);
+
+  const handleReactivate = useCallback(async () => {
+    if (!wallet) return;
+    try {
+      await reactivateWallet(wallet.id!);
+      toast.add(t('wallet.reactivated'));
+    } catch {
+      toast.add(t('wallet.reconcileError'));
+    }
+  }, [t, wallet]);
+
+  const handleDelete = useCallback(async () => {
+    if (!wallet) return;
+    const confirmed = await confirm({
+      title: t('wallet.deleteTitle', { name: wallet.name }),
+      message: t('wallet.deleteDesc'),
+      confirmLabel: t('wallet.deleteCta'),
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      const result = await deleteWalletSafely(wallet.id!);
+      if (!result.success) {
+        toast.add(result.reasonKey ? t(result.reasonKey, result.reasonOptions) : t('wallet.deleteError'));
+        return;
+      }
+      toast.add(t('wallet.deleteSuccess'));
+      navigate('/wallets');
+    } catch {
+      toast.add(t('wallet.deleteError'));
+    }
+  }, [t, wallet, navigate]);
 
   // Group transactions by period
   const groupedTransactions = useMemo(() => {
@@ -160,7 +224,7 @@ export default function WalletDetailView() {
 
   return (
     <div className="space-y-6">
-      {/* Wallet header */}
+      {/* Wallet header — overflow menu mirrors the list view contract (master.md 3.9) */}
       <PageHeader
         title={wallet.name}
         description={
@@ -184,6 +248,18 @@ export default function WalletDetailView() {
         }
         onBack={() => navigate('/wallets')}
         backLabel={t('Wallets')}
+        actions={
+          <WalletOverflowMenu
+            wallet={wallet}
+            onViewTransactions={() => navigate(`/?wallet=${wallet.id}`)}
+            onEdit={openEdit}
+            onTransfer={openTransfer}
+            onReconcile={openReconcile}
+            onDeactivate={() => void handleDeactivate()}
+            onReactivate={() => void handleReactivate()}
+            onDelete={() => void handleDelete()}
+          />
+        }
       />
 
       {/* Balance */}
@@ -198,6 +274,26 @@ export default function WalletDetailView() {
         <p className="text-xs text-[var(--text-secondary)] mt-2">
           {t('wallet.lastActivity')}: {displayDateMedium(wallet.lastUpdated, i18n.language)}
         </p>
+      </div>
+
+      {/* Primary actions (master.md 3.5/3.9 — Transfer prominent, Edit secondary) */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={openTransfer}
+          className="flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[var(--accent-fill)] px-4 text-sm font-bold text-[var(--accent-ink)] shadow-lg shadow-[var(--accent-fill)]/20 transition-transform active:scale-95"
+        >
+          <ArrowSwapHorizontal size={18} aria-hidden="true" />
+          {t('wallet.transferFunds')}
+        </button>
+        <button
+          type="button"
+          onClick={openEdit}
+          className="flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 text-sm font-bold text-[var(--text-primary)] transition-colors active:scale-95"
+        >
+          <Edit2 size={18} aria-hidden="true" />
+          {t('wallet.editWallet')}
+        </button>
       </div>
 
       {/* Transactions */}
@@ -266,6 +362,30 @@ export default function WalletDetailView() {
         onDelete={() => {}}
         onRepeat={() => {}}
       />
+
+      {/* Wallet action sheets */}
+      {isEditOpen && (
+        <EditWalletSheet
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          wallet={wallet}
+        />
+      )}
+      {isReconcileOpen && (
+        <ReconcileBalanceSheet
+          isOpen={isReconcileOpen}
+          onClose={() => setIsReconcileOpen(false)}
+          wallet={wallet}
+        />
+      )}
+      {isTransferOpen && (
+        <TransactionFormSheet
+          isOpen={isTransferOpen}
+          onClose={() => setIsTransferOpen(false)}
+          initialType="transfer"
+          initialFromWalletId={wallet.id!}
+        />
+      )}
     </div>
   );
 }
