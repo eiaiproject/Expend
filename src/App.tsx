@@ -1,7 +1,7 @@
 import { useState, lazy, Suspense, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { BottomNav, FabButton } from './components/BottomNav';
+import { BottomNav } from './components/BottomNav';
 import { ErrorBoundary } from './components/ErrorBoundary';
 const HomeView = lazy(() => import('./views/HomeView'));
 const WalletsView = lazy(() => import('./views/WalletsView'));
@@ -12,6 +12,7 @@ const SettingsView = lazy(() => import('./views/SettingsView'));
 const CategoriesView = lazy(() => import('./views/CategoriesView'));
 const PayeesView = lazy(() => import('./views/PayeesView'));
 const SchedulesView = lazy(() => import('./views/SchedulesView'));
+const MoreView = lazy(() => import('./views/MoreView'));
 
 import { TransactionFormSheet } from './components/TransactionFormSheet';
 import { ActionPickerSheet } from './components/ActionPickerSheet';
@@ -190,16 +191,15 @@ function AppContent() {
 
         <main
           id="main-content"
-          className="flex-1 min-w-0 w-full max-w-4xl mx-auto overflow-y-auto px-4 pt-5 md:px-6 md:py-8 lg:pb-8 pb-[calc(80px+env(safe-area-inset-bottom,0px))]"
+          className="flex-1 min-w-0 w-full max-w-4xl mx-auto overflow-y-auto px-4 pt-5 md:px-6 md:py-8 lg:pb-8 pb-[calc(88px+env(safe-area-inset-bottom,0px))]"
           tabIndex={-1}
         >
           <RoutesWithSuspense />
         </main>
       </div>
 
-      {/* Bottom Nav + FAB — siblings */}
+      {/* Bottom Nav — central Add opens the action picker */}
       <BottomNav onAddClick={() => setIsActionPickerOpen(true)} />
-      <FabButton onAddClick={() => setIsActionPickerOpen(true)} />
 
       <ActionPickerSheet
         isOpen={isActionPickerOpen}
@@ -271,6 +271,7 @@ function RoutesWithSuspense() {
           <Route path="/categories" element={<CategoriesView />} />
           <Route path="/payees" element={<PayeesView />} />
           <Route path="/schedules" element={<SchedulesView />} />
+          <Route path="/more" element={<MoreView />} />
           <Route path="*" element={<NotFoundView />} />
         </Routes>
       </Suspense>

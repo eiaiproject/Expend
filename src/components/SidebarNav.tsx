@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Home, Wallet, ChartPie, Settings, Plus, Tag, Handshake, ShoppingBag } from 'reicon-react';
+import { Home, Wallet, ChartPie, Settings, Plus, Tag, Handshake, ShoppingBag, Repeat } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../utils/cn';
 
@@ -28,6 +28,7 @@ export function SidebarNav({ onAddClick }: { readonly onAddClick: () => void }) 
             <SidebarItem to="/debts" icon={<Handshake size={20} />} label={t('Debts & Receivables')} />
             <SidebarItem to="/payees" icon={<ShoppingBag size={20} />} label={t('Recipients & Merchants')} />
             <SidebarItem to="/categories" icon={<Tag size={20} />} label={t('Categories')} />
+            <SidebarItem to="/schedules" icon={<Repeat size={20} />} label={t('recurring.pageTitle')} />
             <SidebarItem to="/stats" icon={<ChartPie size={20} />} label={t('Stats')} />
             <SidebarItem to="/settings" icon={<Settings size={20} />} label={t('Settings')} />
           </ul>

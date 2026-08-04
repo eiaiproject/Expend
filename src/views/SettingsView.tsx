@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { db } from '../db/db';
 import { useSecurity } from '../contexts/SecurityContext';  import {
     Moon, Sun, Monitor, Download, Upload, Lock, Trash2, Check,
-    Information, Tag, ShoppingBag, Database, HardDrive,
+    Information, Database, HardDrive,
     Link as ExternalLinkIcon, ChevronRight, Eye, EyeOff, Mobile,
-    Clock, AlertTriangle, Coffee, Heart, ShieldCheck, Bug, Repeat
+    Clock, AlertTriangle, Coffee, Heart, ShieldCheck, Bug
   } from 'reicon-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
@@ -858,30 +858,6 @@ export default function SettingsView() {
         description={t('settings.deleteAllDesc')}
         onClick={handleResetLocalData}
         danger
-      />
-
-      {/* ── MANAGEMENT ──────────────────────────────────── */}
-      <SectionHeading>{t('settings.sectionManagement')}</SectionHeading>
-
-      <NavRow
-        icon={Tag}
-        label={t('settings.categoriesBudgets')}
-        description={t('settings.categoriesBudgetsDesc')}
-        to="/categories"
-      />
-
-      <NavRow
-        icon={ShoppingBag}
-        label={t('settings.recipientsMerchants')}
-        description={t('settings.recipientsMerchantsDesc')}
-        to="/payees"
-      />
-
-      <NavRow
-        icon={Repeat}
-        label={t('settings.recurringSchedules')}
-        description={t('settings.recurringSchedulesDesc')}
-        to="/schedules"
       />
 
       {/* ── SECURITY ────────────────────────────────────── */}
