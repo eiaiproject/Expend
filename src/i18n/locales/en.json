@@ -1388,7 +1388,10 @@
     "more.sourceCode": "Source Code",
     "more.reportIssue": "Report an Issue",
     "categories.backToMore": "Back to More",
-    "recurring.toastProcessed": "{{count}} schedule{{count, plural, =1 {} other {s}}} processed"
+    "recurring.toastProcessed": "{{count}} schedule{{count, plural, =1 {} other {s}}} processed",
+    "stats.periodCustom": "Custom",
+    "stats.customStart": "Start date",
+    "stats.customEnd": "End date"
   },
   "Add details": "Add details",
   "Hide details": "Hide details",

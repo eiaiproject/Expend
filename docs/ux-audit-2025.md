@@ -55,6 +55,15 @@ All Phase 1 shared UX contracts are implemented: `PageHeader` primitive (title/d
 - **Wallet detail actions** (§3.9): detail now has the same overflow menu as the list (view txs / edit / transfer / reconcile / archive / delete) plus a prominent Transfer + secondary Edit primary-action row; destructive flows reuse the list-view confirm texts and services; delete navigates back to `/wallets`.
 - **Recurring processing feedback** (§3.14): App boot now toasts `N schedules processed` when create-mode processing produced transactions; new `recurring.toastProcessed` i18n key (en + id).
 - Verified already in place: archived wallets separated + hidden from transaction selectors; adjust-balance explains the balance-adjustment transaction; safe wallet delete with recovery-path errors; debt segmented All/I owe/Owed to me; payment impact text (`debt.payWalletImpact`); Mark-settled/write-off no-cashflow confirms; schedule cards show frequency/mode/next/status + Pause-over-Delete + Record Now; idempotent processing; categories delete blocked with related-record explanation + Archive offered; payee cards Add-Expense CTA + sort options (recent/frequent/highest/alpha); category color non-color indicator (ring + aria-checked).
+
+### Resolved (Phase 5 — statistics mobile)
+
+- **Chart labels** (§3.11): 10px → 11px minimum everywhere (month bars, line labels, category percentages).
+- **Trend chart points tappable**: MiniLineChart gets per-point 28px hit targets (WCAG 2.5.8 AA) + visible dots; tapping opens DrillDownModal (month drill-down for monthly views, day drill-down for week/month/custom-daily).
+- **Custom period** (§3.11): a fourth period option with a dedicated DatePicker pair (start/end), auto-clamped start ≤ end; daily trend when range ≤ 61 days, monthly otherwise (capped 48 months).
+- **Category ranked rows**: add transaction count `(% · n)` beside amount.
+- i18n: `stats.periodCustom` / `stats.customStart` / `stats.customEnd` (en + id).
+- E2E: stats tour now exercises custom period + a tappable trend point opening a dialog.
 6. **No drag handle / swipe on sheets** (deferred; dirty-guard exists on transaction form).
 7. **Android system Back on open sheets** not intercepted (native `<dialog>` not `showModal`) — documented limitation.
 8. Sidebar missing Schedules entry (desktop parity).

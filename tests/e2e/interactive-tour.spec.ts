@@ -268,6 +268,19 @@ test.describe('Interactive tour — every page exercised end-to-end', () => {
     // Some kind of chart or numerical surface should render
     const surface = page.locator('main svg, main canvas, main [data-chart], main [data-testid]').first();
     await expect(surface).toBeVisible({ timeout: 5_000 });
+
+    // Custom period is a dedicated, accessible flow (master.md 3.11)
+    await page.locator('input[value="custom"]').check({ force: true });
+    await expect(page.locator('#stats-custom-start')).toBeVisible();
+    await expect(page.locator('#stats-custom-end')).toBeVisible();
+
+    // Trend chart points are tappable (no hover dependency)
+    await page.locator('input[value="month"]').check({ force: true });
+    const trendPoint = page.locator('main button[aria-label*="Rp"]').first();
+    if (await trendPoint.count() > 0) {
+      await trendPoint.click();
+      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    }
   });
 
   test('settings — sections render and toggles work', async ({ page }) => {

@@ -1388,7 +1388,10 @@
     "more.sourceCode": "Kode Sumber",
     "more.reportIssue": "Laporkan Masalah",
     "categories.backToMore": "Kembali ke Lainnya",
-    "recurring.toastProcessed": "{{count}} jadwal diproses"
+    "recurring.toastProcessed": "{{count}} jadwal diproses",
+    "stats.periodCustom": "Kustom",
+    "stats.customStart": "Tanggal mulai",
+    "stats.customEnd": "Tanggal akhir"
   },
   "Add details": "Tambah detail",
   "Hide details": "Sembunyikan detail",
