@@ -231,6 +231,31 @@ export default function WalletsView() {
     }
   }, [sortBy, t]);
 
+  // Shared header actions (help toggle + add wallet) rendered by both the
+  // empty state and the main content PageHeader.
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setShowHelp(!showHelp)}
+        className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+        aria-label={t('wallet.helpLabel')}
+        aria-pressed={showHelp}
+      >
+        <HelpCircle size={20} aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        onClick={() => setIsAddOpen(true)}
+        className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-white px-4 shadow transition-colors hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+        aria-label={t('wallet.addLabel')}
+      >
+        <Plus size={18} aria-hidden="true" />
+        <span className="text-sm font-semibold hidden sm:inline">{t('wallet.addLabel')}</span>
+      </button>
+    </div>
+  );
+
   // ── Loading state ────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -252,28 +277,7 @@ export default function WalletsView() {
       <div className="space-y-6">
         <PageHeader
           title={t('Wallets')}
-          actions={
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowHelp(!showHelp)}
-                className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-                aria-label={t('wallet.helpLabel')}
-                aria-pressed={showHelp}
-              >
-                <HelpCircle size={20} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsAddOpen(true)}
-                className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-white px-4 shadow transition-colors hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-                aria-label={t('wallet.addLabel')}
-              >
-                <Plus size={18} aria-hidden="true" />
-                <span className="text-sm font-semibold hidden sm:inline">{t('wallet.addLabel')}</span>
-              </button>
-            </div>
-          }
+          actions={headerActions}
         />
         {showHelp && <HelpPanel t={t} />}
         <EmptyState
@@ -295,28 +299,7 @@ export default function WalletsView() {
     <div className="space-y-6">
       <PageHeader
         title={t('Wallets')}
-        actions={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowHelp(!showHelp)}
-              className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-              aria-label={t('wallet.helpLabel')}
-              aria-pressed={showHelp}
-            >
-              <HelpCircle size={20} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsAddOpen(true)}
-              className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-white px-4 shadow transition-colors hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-              aria-label={t('wallet.addLabel')}
-            >
-              <Plus size={18} aria-hidden="true" />
-              <span className="text-sm font-semibold hidden sm:inline">{t('wallet.addLabel')}</span>
-            </button>
-          </div>
-        }
+        actions={headerActions}
       />
 
       {showHelp && <HelpPanel t={t} />}

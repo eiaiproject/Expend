@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BottomSheetShell } from '../BottomSheetShell';
+import { SheetFormFooter } from './SheetFormFooter';
 import { usePrivacy } from '../../contexts/PrivacyContext';
 import { formatCurrency } from '../../utils/formatUtils';
 import { adjustWalletBalance } from '../../services/walletService';
@@ -79,23 +80,7 @@ export function ReconcileBalanceSheet({ isOpen, onClose, wallet }: ReconcileBala
       ariaLabel={t('wallet.reconcileTitle')}
       size="content"
       footer={
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors active:scale-95"
-          >
-            {t('Cancel')}
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving || Number.isNaN(parsedActual)}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium transition-colors hover:opacity-90 active:scale-95 disabled:opacity-50"
-          >
-            {isSaving ? t('Saving...') : t('Save')}
-          </button>
-        </div>
+        <SheetFormFooter onCancel={onClose} onSave={handleSave} isSaving={isSaving} canSave={!Number.isNaN(parsedActual)} />
       }
     >
       <div className="p-4 space-y-5">

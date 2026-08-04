@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BottomSheetShell } from '../BottomSheetShell';
+import { SheetFormFooter } from './SheetFormFooter';
 import { db, type Wallet } from '../../db/db';
 import { toast } from '../Toaster';
 
@@ -99,23 +100,7 @@ export function EditWalletSheet({ isOpen, onClose, wallet }: EditWalletSheetProp
       ariaLabel={t('wallet.editTitle')}
       size="content"
       footer={
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)] transition-colors active:scale-95"
-          >
-            {t('Cancel')}
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving || !name.trim()}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium transition-colors hover:opacity-90 active:scale-95 disabled:opacity-50"
-          >
-            {isSaving ? t('Saving...') : t('Save')}
-          </button>
-        </div>
+        <SheetFormFooter onCancel={onClose} onSave={handleSave} isSaving={isSaving} canSave={!!name.trim()} />
       }
     >
       <div className="p-4 space-y-5">
