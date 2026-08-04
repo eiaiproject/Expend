@@ -1406,7 +1406,12 @@
     "landing.benefit2Title": "Pribadi sejak awal",
     "landing.benefit2Desc": "Tanpa akun, tanpa cloud, tanpa pelacakan — data Anda tetap di perangkat.",
     "landing.benefit3Title": "Tetap berfungsi offline",
-    "landing.benefit3Desc": "Fungsi penuh tanpa internet, setelah pemuatan pertama."
+    "landing.benefit3Desc": "Fungsi penuh tanpa internet, setelah pemuatan pertama.",
+    "templates.deleteTitle": "Hapus template?",
+    "templates.deleteMessage": "Hapus \"{name}\"? Tindakan ini tidak dapat dibatalkan.",
+    "templates.deleteConfirm": "Hapus",
+    "templates.deleteCancel": "Batal",
+    "templates.deletedToast": "Template dihapus"
   },
   "Add details": "Tambah detail",
   "Hide details": "Sembunyikan detail",

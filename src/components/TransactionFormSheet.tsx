@@ -13,6 +13,8 @@ import { CategorySelect } from './CategorySelect';
 import { DatePicker } from './DatePicker';
 import { WalletSelect } from './WalletSelect';
 import type { TransactionType } from '../hooks/useTransactionForm';
+import { deleteTemplate } from '../services/templateService';
+import type { TransactionTemplate } from '../services/templateService';
 
 interface TransactionFormSheetProps {
   readonly isOpen: boolean;
@@ -71,6 +73,44 @@ export function TransactionFormSheet({
   useEffect(() => {
     if (isOpen) setShowDetails(!isQuickAdd);
   }, [isOpen, isQuickAdd]);
+
+  // Long-press (600ms) or right-click on a template chip → delete (master.md 5.4)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
+
+  useEffect(() => () => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }, []);
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    const template = templates.find(t => t.id === id);
+    const ok = await confirm({
+      title: t('templates.deleteTitle'),
+      message: t('templates.deleteMessage', { name: template?.name ?? '' }),
+      confirmLabel: t('templates.deleteConfirm'),
+      cancelLabel: t('templates.deleteCancel'),
+      variant: 'danger',
+    });
+    if (!ok) return;
+    await deleteTemplate(id);
+    toast.add(t('templates.deletedToast'));
+  };
+
+  const startLongPress = (id: string) => {
+    cancelLongPress();
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      if (navigator.vibrate) navigator.vibrate(50); // NOSONAR:S6819 — haptic cue, not an interactive role
+      void handleDeleteTemplate(id);
+    }, 600);
+  };
+
+  const handleTemplateClick = (template: TransactionTemplate) => {
+    if (didLongPress.current) { didLongPress.current = false; return; } // suppress apply after delete long-press
+    void actions.applyTemplate(template);
+  };
 
   const formId = useId();
   const amountInputId = `${formId}-amount`;
@@ -213,8 +253,13 @@ export function TransactionFormSheet({
                 <li key={template.id} className="snap-start">
                   <button
                     type="button"
-                    onClick={() => void actions.applyTemplate(template)}
-                    className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5"
+                    onClick={() => handleTemplateClick(template)}
+                    onPointerDown={() => startLongPress(template.id)}
+                    onPointerUp={cancelLongPress}
+                    onPointerLeave={cancelLongPress}
+                    onPointerCancel={cancelLongPress}
+                    onContextMenu={(e) => { e.preventDefault(); void handleDeleteTemplate(template.id); }}
+                    className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5 select-none"
                   >
                     <Bookmark size={14} aria-hidden="true" />
                     {template.name}
