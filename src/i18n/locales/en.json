@@ -1067,6 +1067,7 @@
     "whatsNew.1_16_0_1": "Long-press or right-click a Quick Add template chip to delete it.",
     "whatsNew.1_16_0_2": "Removed the Frequently used payees section from Quick Add — templates and favorites cover the same workflow.",
     "whatsNew.1_16_0_3": "Fixed group headers and landing benefits showing raw translation keys.",
+    "whatsNew.1_16_1_1": "Improved code quality, reduced duplication, and overall stability.",
     "categories.backToSettings": "Back to Settings",
     "categories.helpLabel": "Help with categories and budgets",
     "categories.addLabel": "Add Category",

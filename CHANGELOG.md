@@ -2,6 +2,15 @@
 
 All notable changes to Expend are documented here.
 
+## 1.16.1 - 2026-08-05
+### Changed
+
+- Fix SonarCloud code smells and duplication (PR #15, main)
+- Eliminate remaining SonarCloud new_duplicated_lines_density (PR #15)
+- Eliminate more code duplication (SonarCloud new_duplicated_lines_density)
+- Eliminate code duplication (SonarCloud new_duplicated_lines_density)
+
+
 ## 1.16.0 - 2026-08-04
 ### Added
 
