@@ -1,10 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
-import { BottomSheetShell } from '../BottomSheetShell';
-import { SheetFormFooter } from './SheetFormFooter';
-import { WalletColorPicker } from './WalletColorPicker';
-import { db, type Wallet } from '../../db/db';
-import { toast } from '../Toaster';
+import { WalletFormSheet } from './WalletFormSheet';
+import type { Wallet } from '../../db/db';
 
 interface EditWalletSheetProps {
   readonly isOpen: boolean;
@@ -13,129 +8,9 @@ interface EditWalletSheetProps {
 }
 
 /**
- * Edit Wallet form in a bottom sheet.
- *
- * Can edit:
- * - Wallet name
- * - Color
- *
- * Cannot edit (use Reconcile Balance instead):
- * - Balance
- * - Currency (if wallet has transactions)
- *
- * Validation:
- * - Name cannot be empty or whitespace-only
- * - Duplicate names blocked
- *
- * On save: updates wallet name and color in IndexedDB.
+ * Edit Wallet flow. Thin wrapper around the shared WalletFormSheet so the
+ * add/edit variants share one implementation (CPD-clean).
  */
 export function EditWalletSheet({ isOpen, onClose, wallet }: EditWalletSheetProps) {
-  const { t } = useTranslation();
-  const [name, setName] = useState(wallet.name);
-  const [color, setColor] = useState(wallet.color || '#6366f1');
-  const [error, setError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const nameRef = useRef<HTMLInputElement>(null);
-
-  // Sync state when wallet changes
-  useEffect(() => {
-    if (isOpen) {
-      setName(wallet.name);
-      setColor(wallet.color || '#6366f1');
-      setError('');
-      const timer = setTimeout(() => nameRef.current?.focus(), 150);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, wallet.name, wallet.color]);
-
-  const handleSave = async () => {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      setError(t('wallet.addNameLabel'));
-      nameRef.current?.focus();
-      return;
-    }
-
-    if (isSaving) return;
-    setIsSaving(true);
-    setError('');
-
-    try {
-      const existing = await db.wallets
-        .where('name')
-        .equalsIgnoreCase(trimmedName)
-        .first();
-      if (existing && existing.id !== wallet.id) {
-        setError(t('wallet.addDuplicate'));
-        setIsSaving(false);
-        return;
-      }
-
-      await db.wallets.update(wallet.id!, {
-        name: trimmedName,
-        color,
-      });
-      toast.add(t('wallet.editSaved'));
-      onClose();
-    } catch {
-      toast.add(t('wallet.editError'));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-      e.preventDefault();
-      handleSave();
-    }
-  };
-
-  return (
-    <BottomSheetShell
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t('wallet.editTitle')}
-      ariaLabel={t('wallet.editTitle')}
-      size="content"
-      footer={
-        <SheetFormFooter onCancel={onClose} onSave={handleSave} isSaving={isSaving} canSave={!!name.trim()} />
-      }
-    >
-      <div className="p-4 space-y-5">
-        {/* Wallet name */}
-        <div>
-          <label htmlFor="edit-wallet-name" className="block text-sm font-medium mb-1">
-            {t('wallet.addNameLabel')} <span className="text-red-500" aria-hidden="true">*</span>
-          </label>
-          <input
-            ref={nameRef}
-            id="edit-wallet-name"
-            type="text"
-            name="walletName"
-            autoComplete="off"
-            value={name}
-            onChange={(e) => { setName(e.target.value); setError(''); }}
-            onKeyDown={handleKeyDown}
-            aria-invalid={!!error}
-            aria-describedby={error ? 'edit-wallet-name-error' : undefined}
-            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2.5 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-          />
-          {error && (
-            <p id="edit-wallet-name-error" className="mt-1 text-xs text-red-500" role="alert">
-              {error}
-            </p>
-          )}
-        </div>
-
-        {/* Color */}
-        <WalletColorPicker value={color} onChange={setColor} />
-
-        {/* Info: balance cannot be edited here */}
-        <p className="text-xs text-[var(--text-secondary)] bg-[var(--bg)] rounded-lg px-3 py-2">
-          {t('wallet.reconcileImpact')}
-        </p>
-      </div>
-    </BottomSheetShell>
-  );
+  return <WalletFormSheet isOpen={isOpen} onClose={onClose} wallet={wallet} />;
 }
