@@ -74,7 +74,7 @@ test.describe('Interactive tour — every page exercised end-to-end', () => {
     }
   });
 
-  test('home — FAB opens action picker, expense creates and appears in list', async ({ page }) => {
+  test('home — Add opens action picker, expense creates and appears in list', async ({ page }) => {
     await visitApp(page);
     await completeOnboarding(page, {
       walletName: uniqueName('Home'),
@@ -86,8 +86,8 @@ test.describe('Interactive tour — every page exercised end-to-end', () => {
     await page.goto('/');
     await expect(page.locator('main h1, main h2').first()).toBeVisible();
 
-    // FAB opens picker; picker is a dialog
-    await page.getByRole('button', { name: /add transaction/i }).first().click();
+    // Persistent Add control (sidebar / bottom nav) opens picker; picker is a dialog
+    await page.locator('nav button[aria-label="Add Transaction"]:visible, aside button[aria-label="Add Transaction"]:visible').first().click();
     const picker = page.getByRole('dialog');
     await expect(picker).toBeVisible();
     await expect(picker.getByRole('button', { name: /add expense/i })).toBeVisible();
@@ -267,7 +267,22 @@ test.describe('Interactive tour — every page exercised end-to-end', () => {
 
     // Some kind of chart or numerical surface should render
     const surface = page.locator('main svg, main canvas, main [data-chart], main [data-testid]').first();
-    await expect(surface).toBeVisible({ timeout: 5_000 });
+    // Full-suite runs share one webserver — allow load time under parallel load.
+    await expect(surface).toBeVisible({ timeout: 15_000 });
+
+    // Custom period is a dedicated, accessible flow (master.md 3.11).
+    // Click the label (real user gesture) — the radio itself is sr-only.
+    await page.locator('label:has(input[value="custom"])').click();
+    await expect(page.locator('#stats-custom-start')).toBeVisible();
+    await expect(page.locator('#stats-custom-end')).toBeVisible();
+
+    // Trend chart points are tappable (no hover dependency)
+    await page.locator('label:has(input[value="month"])').click();
+    const trendPoint = page.locator('main button[aria-label*="Rp"]').first();
+    if (await trendPoint.count() > 0) {
+      await trendPoint.click();
+      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    }
   });
 
   test('settings — sections render and toggles work', async ({ page }) => {

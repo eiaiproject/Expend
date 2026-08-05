@@ -6,7 +6,8 @@ import { db, type Schedule, type ScheduleFrequency, type ScheduleMode, type Wall
 import { createSchedule, updateSchedule } from '../services/recurringService';
 import { getKnownErrorMessage } from '../services/errors';
 import { getTodayStr } from '../utils/dateUtils';
-import { formatAmountInput, parseAmount } from '../utils/formatUtils';
+import { parseAmount } from '../utils/formatUtils';
+import { AmountInput } from './AmountInput';
 import { cn } from '../utils/cn';
 import { BottomSheetShell } from './BottomSheetShell';
 import { CategorySelect } from './CategorySelect';
@@ -138,9 +139,19 @@ export function ScheduleFormSheet({ isOpen, onClose, scheduleToEdit = null }: Sc
       onClose={onClose}
       title={title}
       ariaLabel={title}
-      heightClass="h-[92vh]"
+      size="full"
+      footer={
+        <button
+          type="submit"
+          form={formId}
+          disabled={isSubmitting || rawAmount <= 0 || !payee.trim()}
+          className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] py-3 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
+        >
+          {isEdit ? t('Save Changes') : t('recurring.addCta')}
+        </button>
+      }
     >
-      <form onSubmit={handleSubmit} className="px-3 py-4 space-y-5">
+      <form id={formId} onSubmit={handleSubmit} className="px-3 py-4 space-y-5">
         {/* Payee / description */}
         <div>
           <label htmlFor={`${formId}-payee`} className="block text-sm font-medium mb-1">
@@ -159,26 +170,13 @@ export function ScheduleFormSheet({ isOpen, onClose, scheduleToEdit = null }: Sc
         </div>
 
         {/* Amount */}
-        <div>
-          <label htmlFor={`${formId}-amount`} className="block text-sm font-medium mb-1">
-            {t('Amount')} *
-          </label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-[var(--text-secondary)]">
-              {t('Currency Symbol')}
-            </span>
-            <input
-              id={`${formId}-amount`}
-              type="text"
-              inputMode="numeric"
-              required
-              value={amount}
-              onChange={(event) => setAmount(formatAmountInput(event.target.value))}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] py-3 pl-12 pr-4 font-mono text-xl font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-              placeholder="0"
-            />
-          </div>
-        </div>
+        <AmountInput
+          id={`${formId}-amount`}
+          value={amount}
+          onChange={setAmount}
+          label={t('Amount')}
+          required
+        />
 
         {/* Frequency */}
         <fieldset>
@@ -319,17 +317,6 @@ export function ScheduleFormSheet({ isOpen, onClose, scheduleToEdit = null }: Sc
             onChange={(event) => setNotes(event.target.value)}
             className="min-h-20 w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
           />
-        </div>
-
-        {/* Submit */}
-        <div className="pt-2 pb-6">
-          <button
-            type="submit"
-            disabled={isSubmitting || rawAmount <= 0 || !payee.trim()}
-            className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] py-3 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
-          >
-            {isEdit ? t('Save Changes') : t('recurring.addCta')}
-          </button>
         </div>
       </form>
     </BottomSheetShell>

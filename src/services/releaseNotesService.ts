@@ -27,6 +27,19 @@ export interface ReleaseNote {
  * popup renders in both supported languages.
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
+  {
+    version: '1.16.1',
+    items: ['whatsNew.1_16_1_1'],
+  },
+  {
+    version: '1.16.0',
+    items: ['whatsNew.1_16_0_1', 'whatsNew.1_16_0_2', 'whatsNew.1_16_0_3'],
+  },
+  {
+    version: '1.15.0',
+    items: ['whatsNew.1_15_0_1', 'whatsNew.1_15_0_2', 'whatsNew.1_15_0_3'],
+  },
+  { version: '1.14.0', items: ['whatsNew.1_14_0_1'] },
   { version: '1.13.2', items: ['whatsNew.1_13_2_1'] },
   { version: '1.13.1', items: ['whatsNew.1_13_1_1'] },
   {

@@ -21,6 +21,24 @@
 }
 
 @layer utilities {
+  /* Bottom sheet default height: dynamic viewport with vh fallback (master.md §3.4) */
+  .sheet-height {
+    height: 85vh;
+    height: 85dvh;
+  }
+  .sheet-height-content {
+    max-height: 80vh;
+    max-height: 85dvh;
+  }
+  .sheet-height-medium {
+    height: 60vh;
+    height: 60dvh;
+  }
+  .sheet-height-full {
+    height: 92vh;
+    height: 92dvh;
+  }
+
   /* Hide scrollbar but keep scroll functionality */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -207,11 +225,68 @@ body {
   animation: shake 0.5s ease-in-out;
 }
 
+/* Entry animation utilities (master.md Phase 7) — hand-rolled so
+   animate-in/fade-in/slide-in-from-*/zoom-in-* actually run (the
+   tailwindcss-animate plugin is not installed; these were dead classes). */
+@keyframes expend-fade-in {
+  from { opacity: 0; }
+}
+@keyframes expend-slide-up {
+  from { opacity: 0; transform: translateY(100%); }
+}
+@keyframes expend-slide-up-sm {
+  from { opacity: 0; transform: translateY(0.5rem) scale(0.97); }
+}
+@keyframes expend-pop {
+  from { opacity: 0; transform: scale(0.95); }
+}
+@keyframes expend-slide-down {
+  from { opacity: 0; transform: translateY(-1rem); }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+  animation-timing-function: ease-out;
+  animation-duration: 300ms;
+}
+.fade-in { animation-name: expend-fade-in; }
+.slide-in-from-bottom-full { animation-name: expend-slide-up; }
+.slide-in-from-bottom-4 { animation-name: expend-slide-up-sm; }
+.slide-in-from-top-4 { animation-name: expend-slide-down; }
+.zoom-in-95 { animation-name: expend-pop; }
+
+@media (min-width: 640px) {
+  .sm\:slide-in-from-bottom-4 { animation-name: expend-slide-up-sm; }
+  .sm\:zoom-in-95 { animation-name: expend-pop; }
+}
+
 /* Honour reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* Horizontal-scroll affordance: fade both edges so overflow is discoverable
+   on touch (mobile scrollbars are hidden) (master.md Phase 7) */
+.scroll-fade-x {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 24px), transparent 100%);
+}
+/* Honour high-contrast preferences — strengthen borders and secondary text */
+@media (prefers-contrast: more) {
+  :root {
+    --text-secondary: #C9D1BE;
+    --border: #5C6850;
+  }
+  :root[data-theme="light"] {
+    --text-secondary: #33281C;
+    --border: #7E8A70;
+  }
+  *:focus-visible {
+    outline-width: 3px;
   }
 }

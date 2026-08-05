@@ -8,8 +8,7 @@ import { getTodayStr } from '../utils/dateUtils';
 import { toast } from '../components/Toaster';
 import { findPairedTransfer } from '../utils/transferUtils';
 import { getDefaultExpenseWallet, rememberLastUsedWallet } from '../services/walletPreferenceService';
-import { rankPayees, suggestCategoryForPayee, type PayeeRankingItem } from '../services/categorySuggestionService';
-import { getFavoritePayeeKeys } from '../services/payeeFavoritesService';
+import { suggestCategoryForPayee } from '../services/categorySuggestionService';
 import { normalizePayeeKey, normalizePayeeName } from '../services/payeeService';
 import { getTemplates, resolveTemplate, saveTemplate, type TransactionTemplate } from '../services/templateService';
 
@@ -64,7 +63,6 @@ export interface UseTransactionFormResult {
   wallets: Wallet[];
   categories: Category[];
   templates: TransactionTemplate[];
-  frequentPayees: PayeeRankingItem[];
 }
 
 interface UseTransactionFormOptions {
@@ -115,7 +113,7 @@ async function resolveCategoryIdForSubmit(
   const color = available.length > 0
     ? available[Math.floor(Math.random() * available.length)]!  // NOSONAR:S2245 — design color selection, not security
     : CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!;  // NOSONAR:S2245 — design color selection, not security
-  const newId = await db.categories.add({ name, icon: '🏷️', color });
+  const newId = await db.categories.add({ name, icon: 'Tag', color });
   return newId ?? null;
 }
 
@@ -205,6 +203,26 @@ async function submitExpense(
   }
 }
 
+/** Most frequently used category id among the given payee transactions. */
+function findMostCommonCategory(payeeTxs: readonly Transaction[]): number | null {
+  const counts = new Map<number, number>();
+  for (const t of payeeTxs) {
+    if (t.categoryId != null) counts.set(t.categoryId, (counts.get(t.categoryId) ?? 0) + 1);
+  }
+  let bestId: number | null = null;
+  let bestCount = 0;
+  for (const [id, count] of counts.entries()) {
+    if (count > bestCount) { bestId = id; bestCount = count; }
+  }
+  return bestId;
+}
+
+/** Most recent (by date) active wallet used for the given payee transactions. */
+function findLastUsedWallet(payeeTxs: readonly Transaction[], wallets: readonly Wallet[]): Wallet | undefined {
+  const sorted = [...payeeTxs].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+  return wallets.find((w) => w.id === sorted[0]?.walletId && !w.archivedAt);
+}
+
 export function useTransactionForm({
   isOpen,
   txToEdit,
@@ -225,7 +243,6 @@ export function useTransactionForm({
     () => db.transactions.orderBy('date').reverse().limit(100).toArray()
   );
   const templates = useLiveQuery(() => getTemplates(), [], EMPTY_TEMPLATES);
-  const favoritePayeeKeys = useLiveQuery(() => getFavoritePayeeKeys(), [], []);
   const wallets = queriedWallets ?? EMPTY_WALLETS;
   const categories = queriedCategories ?? EMPTY_CATEGORIES;
   const merchants = queriedMerchants ?? EMPTY_MERCHANTS;
@@ -241,17 +258,6 @@ export function useTransactionForm({
       )
     );
   }, [transactions]);
-
-  // Frequently used payees for Quick Add (master.md 6.2) — deterministic
-  // local ranking: frequency + 7-day recency bonus + favorite bonus.
-  // Archived or invalid merchants are excluded from suggestions (6.2).
-  const frequentPayees = useMemo<PayeeRankingItem[]>(() => {
-    const archivedKeys = new Set(
-      merchants.filter((m) => m.archivedAt).map((m) => normalizePayeeKey(m.displayName))
-    );
-    return rankPayees(transactions, new Set(favoritePayeeKeys))
-      .filter((item) => !archivedKeys.has(item.key));
-  }, [transactions, favoritePayeeKeys, merchants]);
 
   // Form state
   const [type, setType] = useState<TransactionType>('expense');
@@ -469,20 +475,11 @@ export function useTransactionForm({
     );
     if (payeeTxs.length > 0) {
       // Last-used valid wallet (most recent first, active wallet only)
-      const sorted = [...payeeTxs].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
-      const lastWallet = wallets.find((w) => w.id === sorted[0]?.walletId && !w.archivedAt);
+      const lastWallet = findLastUsedWallet(payeeTxs, wallets);
       if (lastWallet?.id) setWalletId(lastWallet.id.toString());
 
       // Most common category for the payee
-      const counts = new Map<number, number>();
-      for (const t of payeeTxs) {
-        if (t.categoryId != null) counts.set(t.categoryId, (counts.get(t.categoryId) ?? 0) + 1);
-      }
-      let bestId: number | null = null;
-      let bestCount = 0;
-      for (const [id, count] of counts.entries()) {
-        if (count > bestCount) { bestId = id; bestCount = count; }
-      }
+      const bestId = findMostCommonCategory(payeeTxs);
       const cat = bestId != null ? categories.find((c) => c.id === bestId) : undefined;
       if (cat && !manualCategoryPick) {
         categoryTouchedRef.current = true;
@@ -607,6 +604,5 @@ export function useTransactionForm({
     wallets,
     categories,
     templates,
-    frequentPayees,
   };
 }

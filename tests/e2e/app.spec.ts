@@ -82,7 +82,8 @@ test.describe('Scenario B — core routes render', () => {
     { name: 'Payees', path: '/payees', link: /(recipients|merchants)/i, fallbackHeading: /(recipients|merchants|payees)/i },
     { name: 'Categories', path: '/categories', link: /categories/i, fallbackHeading: /categories/i },
     { name: 'Stats', path: '/stats', link: /stats/i, fallbackHeading: /stats/i },
-    { name: 'Settings', path: '/settings', link: /(settings|more)/i, fallbackHeading: /settings/i },
+    { name: 'Settings', path: '/settings', link: /^settings$/i, fallbackHeading: /settings/i },
+    { name: 'More', path: '/more', link: /more/i, fallbackHeading: /more/i },
   ];
 
   for (const route of ROUTES) {

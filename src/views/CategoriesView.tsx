@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, Link } from 'react-router-dom';
 import { db, type Category } from '../db/db';
 import {
-  Tag, Plus, ArrowLeft, HelpCircle, Search, X as XIcon, SortV,
+  Tag, Plus, HelpCircle, Search, X as XIcon, SortV,
   ChevronDown, ChevronUp
 } from 'reicon-react';
 import { usePrivacy } from '../contexts/PrivacyContext';
@@ -18,6 +18,7 @@ import { EmptyState } from '../components/EmptyState';
 import { CategoryOverflowMenu } from '../components/categories/CategoryOverflowMenu';
 import { HelpDialog } from '../components/categories/HelpDialog';
 import { CategoryForm } from '../components/categories/CategoryForm';
+import { PageHeader } from '../components/PageHeader';
 
 // ponytail: inline former getCategoryDisplayName helper
 const catDisplayName = (name: string | null | undefined, t: (k: string) => string): string => {
@@ -169,7 +170,7 @@ export default function CategoriesView() {
     try {
       await db.categories.add({
         name: data.name,
-        icon: '🏷️',
+        icon: 'Tag',
         color: data.color,
         budget: data.budget,
       });
@@ -536,37 +537,32 @@ export default function CategoriesView() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link
-            to="/settings"
-            className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--border)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-            aria-label={t('categories.backToSettings')}
-          >
-            <ArrowLeft size={20} aria-hidden="true" />
-          </Link>
-          <h1 className="text-xl font-bold">{t('Categories & Budgets')}</h1>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setShowHelp(true)}
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--bg)] transition-colors"
-            aria-label={t('categories.helpLabel')}
-          >
-            <HelpCircle size={20} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowAddForm(true)}
-            className="flex h-11 items-center justify-center gap-2 px-3 bg-[var(--accent)] text-white rounded-xl shadow font-medium hover:opacity-90 transition-colors"
-            aria-label={t('categories.addLabel')}
-          >
-            <Plus size={18} aria-hidden="true" />
-            <span className="hidden sm:inline text-sm">{t('categories.addLabel')}</span>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={t('Categories & Budgets')}
+        onBack={() => navigate('/more')}
+        backLabel={t('categories.backToMore')}
+        actions={
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setShowHelp(true)}
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--bg)] transition-colors"
+              aria-label={t('categories.helpLabel')}
+            >
+              <HelpCircle size={20} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAddForm(true)}
+              className="flex h-11 items-center justify-center gap-2 px-3 bg-[var(--accent)] text-white rounded-xl shadow font-medium hover:opacity-90 transition-colors"
+              aria-label={t('categories.addLabel')}
+            >
+              <Plus size={18} aria-hidden="true" />
+              <span className="hidden sm:inline text-sm">{t('categories.addLabel')}</span>
+            </button>
+          </div>
+        }
+      />
 
       {/* Summary */}
       {summaryStats.activeCount > 0 && (
@@ -618,6 +614,7 @@ export default function CategoriesView() {
             <input
               ref={searchRef}
               type="search"
+            enterKeyHint="search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('categories.searchPlaceholder')}

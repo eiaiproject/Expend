@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEscapeKeyClose } from '../hooks/useEscapeKeyClose';
 import { Coffee, Keyboard, X } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../hooks/useFocusTrap';
@@ -8,15 +8,7 @@ export function InfoPopup({ isOpen, onClose }: { readonly isOpen: boolean; reado
   const { t } = useTranslation();
   const dialogRef = useFocusTrap(isOpen);
 
-  // Close on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  useEscapeKeyClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

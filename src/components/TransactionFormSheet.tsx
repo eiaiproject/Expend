@@ -1,9 +1,8 @@
 import { useId, useRef, useEffect, useState, type KeyboardEvent } from 'react';
 import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
-import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Star, Link2 } from 'reicon-react';
+import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Wallet } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { type Transaction } from '../db/db';
 import { cn } from '../utils/cn';
 import { PRESET_AMOUNTS } from '../utils/constants';
@@ -13,6 +12,8 @@ import { CategorySelect } from './CategorySelect';
 import { DatePicker } from './DatePicker';
 import { WalletSelect } from './WalletSelect';
 import type { TransactionType } from '../hooks/useTransactionForm';
+import { deleteTemplate } from '../services/templateService';
+import type { TransactionTemplate } from '../services/templateService';
 
 interface TransactionFormSheetProps {
   readonly isOpen: boolean;
@@ -49,7 +50,6 @@ export function TransactionFormSheet({
     !initialFromWalletId &&
     !initialToWalletId;
   const [showDetails, setShowDetails] = useState(!isQuickAdd);
-  const navigate = useNavigate();
 
   // master.md 8.4: closing the sheet (backdrop, Escape, X) with unsaved
   // changes requires explicit confirmation. Successful saves call onClose
@@ -72,11 +72,42 @@ export function TransactionFormSheet({
     if (isOpen) setShowDetails(!isQuickAdd);
   }, [isOpen, isQuickAdd]);
 
-  // "View all" from the Frequently used section (master.md 6.5): close the
-  // sheet and open the complete payee list.
-  const handleViewAllPayees = () => {
-    onClose();
-    navigate('/payees');
+  // Long-press (600ms) or right-click on a template chip → delete (master.md 5.4)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
+
+  useEffect(() => () => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }, []);
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    const template = templates.find(t => t.id === id);
+    const ok = await confirm({
+      title: t('templates.deleteTitle'),
+      message: t('templates.deleteMessage', { name: template?.name ?? '' }),
+      confirmLabel: t('templates.deleteConfirm'),
+      cancelLabel: t('templates.deleteCancel'),
+      variant: 'danger',
+    });
+    if (!ok) return;
+    await deleteTemplate(id);
+    toast.add(t('templates.deletedToast'));
+  };
+
+  const startLongPress = (id: string) => {
+    cancelLongPress();
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      if (navigator.vibrate) navigator.vibrate(50); // NOSONAR:S6819 — haptic cue, not an interactive role
+      void handleDeleteTemplate(id);
+    }, 600);
+  };
+
+  const handleTemplateClick = (template: TransactionTemplate) => {
+    if (didLongPress.current) { didLongPress.current = false; return; } // suppress apply after delete long-press
+    void actions.applyTemplate(template);
   };
 
   const formId = useId();
@@ -90,7 +121,7 @@ export function TransactionFormSheet({
   const descriptionRef = useRef<HTMLInputElement>(null);
   const suggestionIndexRef = useRef(-1);
 
-  const { state, actions, wallets, categories, templates, frequentPayees } = useTransactionForm({
+  const { state, actions, wallets, categories, templates } = useTransactionForm({
     isOpen,
     txToEdit,
     initialType,
@@ -109,6 +140,8 @@ export function TransactionFormSheet({
       return confirmed;
     },
   });
+
+  const selectedWalletName = wallets.find((w) => w.id === Number(state.walletId))?.name;
 
   const handleDescriptionChange = (val: string) => {
     actions.setDescription(val);
@@ -169,8 +202,19 @@ export function TransactionFormSheet({
       onClose={handleCloseRequest}
       title={isEditingExistingTransaction ? t('Edit') : t('Add Transaction')}
       ariaLabel={isEditingExistingTransaction ? t('Edit') : t('Add Transaction')}
+      size="full"
+      footer={
+        <button
+          type="submit"
+          form={formId}
+          disabled={actions.isSubmitting}
+          className="w-full bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-[var(--accent-fill)]/20 disabled:opacity-50 min-h-[52px]"
+        >
+          {t('Save')}
+        </button>
+      }
     >
-      <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+      <form id={formId} onSubmit={handleFormSubmit} className="px-3 py-4 space-y-5">
         {/* Type Tabs */}
         <div className="flex p-1 bg-[var(--bg)] rounded-xl border border-[var(--border)]" role="radiogroup" aria-label={t('Transaction type')}>
           {[
@@ -202,49 +246,21 @@ export function TransactionFormSheet({
         {isQuickAdd && templates.length > 0 && (
           <div>
             <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{t('Templates')}</p>
-            <ul className="flex gap-2 overflow-x-auto pb-1 list-none" aria-label={t('Templates')}>
+            <ul className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 scroll-fade-x pb-1 list-none" aria-label={t('Templates')}>
               {templates.slice(0, 4).map((template) => (
-                <li key={template.id}>
+                <li key={template.id} className="snap-start">
                   <button
                     type="button"
-                    onClick={() => void actions.applyTemplate(template)}
-                    className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5"
+                    onClick={() => handleTemplateClick(template)}
+                    onPointerDown={() => startLongPress(template.id)}
+                    onPointerUp={cancelLongPress}
+                    onPointerLeave={cancelLongPress}
+                    onPointerCancel={cancelLongPress}
+                    onContextMenu={(e) => { e.preventDefault(); void handleDeleteTemplate(template.id); }}
+                    className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5 select-none"
                   >
                     <Bookmark size={14} aria-hidden="true" />
                     {template.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Frequently used payees (master.md 6.2) — tap to prefill payee,
-            category, and last-used wallet; amount stays empty (6.3). */}
-        {isQuickAdd && frequentPayees.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t('Frequently used')}</p>
-              <button
-                type="button"
-                onClick={handleViewAllPayees}
-                className="flex items-center gap-1 text-xs font-semibold text-[var(--accent)] hover:underline min-h-[44px] -mr-2 px-2"
-              >
-                <Link2 size={12} aria-hidden="true" />
-                {t('View all')}
-              </button>
-            </div>
-            <ul className="flex gap-2 overflow-x-auto pb-1 list-none" aria-label={t('Frequently used')}>
-              {frequentPayees.slice(0, 6).map((payee) => (
-                <li key={payee.key}>
-                  <button
-                    type="button"
-                    onClick={() => actions.applyPayee(payee.name)}
-                    className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5"
-                    aria-label={t('payees.addExpenseFor', { name: payee.name })}
-                  >
-                    {payee.favorite && <Star size={12} className="text-[var(--accent)]" aria-hidden="true" />}
-                    {payee.name}
                   </button>
                 </li>
               ))}
@@ -315,6 +331,19 @@ export function TransactionFormSheet({
               placeholder={t('Type or select category')}
             />
           </div>
+        )}
+
+        {/* Quick Add default wallet — visible so the wrong wallet is never
+            used silently (master.md 3.7). Tapping expands the details section. */}
+        {isQuickAdd && !showDetails && selectedWalletName && (
+          <button
+            type="button"
+            onClick={() => setShowDetails(true)}
+            className="w-full flex items-center gap-2 py-2.5 px-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)] text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px]"
+          >
+            <Wallet size={14} aria-hidden="true" />
+            <span className="font-medium">{t('Wallet')}: {selectedWalletName}</span>
+          </button>
         )}
 
         {/* Progressive disclosure toggle (Quick Add) */}
@@ -459,16 +488,7 @@ export function TransactionFormSheet({
           </div>
         )}
 
-        {/* Submit */}
-        <div className="pt-4 pb-6">
-          <button
-            type="submit"
-            disabled={actions.isSubmitting}
-            className="w-full bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-[var(--accent-fill)]/20 disabled:opacity-50"
-          >
-            {t('Save')}
-          </button>
-        </div>
+        {/* Submit — sticky footer in BottomSheetShell (visible above keyboard) */}
       </form>
     </BottomSheetShell>
   );

@@ -70,7 +70,7 @@ export function CategoryOverflowMenu({ categoryName, items, disabled }: Category
           id={menuId}
           role="menu"
           aria-label={t('categories.actionsFor', { name: categoryName })}
-          className="absolute right-0 top-full mt-1 w-56 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-30 py-1 overflow-hidden"
+          className="absolute right-0 top-full mt-1 w-56 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         >
           {items.map((item, i) => (
             <button

@@ -24,10 +24,17 @@ function extractKeys(files) {
   const keys = new Set();
   // Match t('...') and t("...") — non-greedy
   const re = /\bt\(\s*['"]([^'"]+?)['"]\s*[,)]/g;
+  // Indirect keys assigned to *Key props then passed to t(variable) —
+  // e.g. labelKey/descLabelKey/nameKey/titleKey (Home/WalletDetail tx groups,
+  // PayeeSortSheet, DEFAULT_CATEGORIES, schedule frequency cards).
+  const indirectRe = /\b(?:labelKey|descLabelKey|nameKey|titleKey|descKey|frequencyKey|statusKey)\s*:\s*['"]([^'"]+?)['"]/g;
   for (const file of files) {
     const content = readFileSync(file, 'utf-8');
     let match;
     while ((match = re.exec(content)) !== null) {
+      keys.add(match[1]);
+    }
+    while ((match = indirectRe.exec(content)) !== null) {
       keys.add(match[1]);
     }
   }

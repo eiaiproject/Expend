@@ -148,7 +148,7 @@ export function DebtDetailSheet({
       onClose={onClose}
       title={title}
       ariaLabel={title}
-      heightClass="h-[90vh]"
+      size="full"
     >
       <div className="px-3 py-4 space-y-5">
         {/* Debt info */}

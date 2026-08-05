@@ -297,6 +297,7 @@ export default function DebtsView() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--accent)]" size={18} aria-hidden="true" />
           <input
             type="search"
+            enterKeyHint="search"
             aria-label={t('Search debt')}
             placeholder={t('Search debt')}
             value={searchTerm}

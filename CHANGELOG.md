@@ -2,6 +2,55 @@
 
 All notable changes to Expend are documented here.
 
+## 1.16.1 - 2026-08-05
+### Changed
+
+- Fix SonarCloud code smells and duplication (PR #15, main)
+- Eliminate remaining SonarCloud new_duplicated_lines_density (PR #15)
+- Eliminate more code duplication (SonarCloud new_duplicated_lines_density)
+- Eliminate code duplication (SonarCloud new_duplicated_lines_density)
+
+
+## 1.16.0 - 2026-08-04
+### Added
+
+- Long-press or right-click a Quick Add template chip to delete it
+- Template CRUD and schedule CRUD E2E coverage
+
+### Changed
+
+- Remove the Frequently used payees section from Quick Add (templates and favorites cover the same workflow)
+- Remove redundant formatted date display from the date picker
+
+### Fixed
+
+- Group headers and landing benefits rendered raw i18n keys instead of translated strings
+
+
+## 1.15.0 - 2026-08-04
+### Added
+
+- Phase 0–8 UX/UI consistency overhaul: shared PageHeader across all views; BottomSheetShell size variants (content/medium/full) with sticky safe-area footer and backdrop click
+- Central Add action in the bottom nav (Home/Wallets/Add/Debts/More) replacing the FAB; new More feature directory; Settings slimmed to preferences, security, and danger zone
+- Quick Add wallet visibility indicator, search `enterKeyHint`, delete undo (single + bulk), repeat expense/transfer pairs, template + frequent-payee chip rows with scroll snap and edge-fade affordance
+- Wallet detail overflow menu (view/edit/transfer/reconcile/archive/delete) and primary action row; recurring-processing toast on boot
+- Stats mobile redesign: 11px chart labels, tappable 28px trend points with drill-down modal, custom period with auto-clamped date pair
+- Settings restructure: Your Data (backup status) first, Default Wallet preference, separated Danger Zone
+- Landing reorder (preview second), jargon-free tech copy, onboarding with preselectable categories
+- Real entry animations (sheets, dialogs, menus, banners), high-contrast mode, splash overlay tap-through fix
+
+### Changed
+
+- Mobile navigation Home/Wallets/Add/Debts/More; desktop sidebar gains Recurring
+- Settings About support rows merged; Trakteer support stays permanent and voluntary
+
+### Fixed
+
+- First-tap swallowing after app load (splash overlay kept pointer events while fading)
+- Dead `animate-in` classes (tailwindcss-animate plugin was never installed) — hand-rolled keyframe utilities
+- Stats and Scenario E E2E flakiness root-caused to the splash overlay and sr-only radio force-checks
+
+
 ## 1.14.0 - 2026-07-31
 ### Added
 

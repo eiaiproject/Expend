@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
@@ -20,20 +20,25 @@ import {
 import { formatCurrency } from '../utils/formatUtils';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { DrillDownModal } from '../components/DrillDownModal';
+import { DatePicker } from '../components/DatePicker';
 import { EmptyState } from '../components/EmptyState';
 import { ChartBar, ChevronDown, ChevronUp } from 'reicon-react';
 import { cn } from '../utils/cn';
+import { PageHeader } from '../components/PageHeader';
 
 // ── Types ──────────────────────────────────────────────────────
 
-type Period = 'week' | 'month' | 'all';
+type Period = 'week' | 'month' | 'all' | 'custom';
 type TrendPoint = { date: string; amount: number; rawDate: string };
 type MonthPoint = { month: string; amount: number; monthIndex: number; year: number };
 type CategoryPoint = { id: number | null; name: string; value: number; color: string };
 
 // ── Period helpers ─────────────────────────────────────────────
 
-function getPeriodRange(period: Period, now = new Date()) {
+function getPeriodRange(period: Period, now = new Date(), customRange?: { start: string; end: string }) {
+  if (period === 'custom' && customRange?.start && customRange?.end) {
+    return { start: customRange.start, end: customRange.end, startLabel: customRange.start, endLabel: customRange.end };
+  }
   const todayStr = getTodayStr(now);
   if (period === 'week') {
     const startStr = getWeekStartStr(now);
@@ -103,7 +108,7 @@ function MiniBarChart({ data, onSelect, hideAmount }: { readonly data: MonthPoin
                     style={{ height: `${height}%` }}
                   />
                 </span>
-                <span className="truncate font-mono text-[10px] text-[var(--text-secondary)]">{item.month}</span>
+                <span className="truncate font-mono text-[11px] text-[var(--text-secondary)]">{item.month}</span>
               </button>
             </li>
           );
@@ -120,7 +125,7 @@ function MiniBarChart({ data, onSelect, hideAmount }: { readonly data: MonthPoin
                 style={{ height: `${height}%` }}
               />
             </span>
-            <span className="truncate font-mono text-[10px] text-[var(--text-secondary)]">{item.month}</span>
+            <span className="truncate font-mono text-[11px] text-[var(--text-secondary)]">{item.month}</span>
           </li>
         );
       })}
@@ -128,40 +133,46 @@ function MiniBarChart({ data, onSelect, hideAmount }: { readonly data: MonthPoin
   );
 }
 
-function MiniLineChart({ data, hideAmount }: { readonly data: TrendPoint[]; readonly hideAmount?: boolean }) {
+function MiniLineChart({ data, hideAmount, onSelect }: { readonly data: TrendPoint[]; readonly hideAmount?: boolean; readonly onSelect?: (item: TrendPoint) => void }) {
   const width = 320;
   const height = 150;
   const pad = 10;
   const max = Math.max(1, ...data.map(item => item.amount));
   const step = data.length > 1 ? (width - pad * 2) / (data.length - 1) : 0;
-  const points = data
-    .map((item, index) => {
-      const x = pad + index * step;
-      const y = height - pad - (item.amount / max) * (height - pad * 2);
-      return `${x},${y}`;
-    })
-    .join(' ');
+  const points = data.map((item, index) => {
+    const x = pad + index * step;
+    const y = height - pad - (item.amount / max) * (height - pad * 2);
+    return { x, y, ...item };
+  });
   const labels = data.filter((_, index) => index === 0 || index === data.length - 1 || index === Math.floor((data.length - 1) / 2));
 
   return (
-    <div className="grid h-full grid-rows-[1fr_auto] gap-2">
+    <div className="relative h-full">
       <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full" role="presentation" aria-hidden="true">
-        {/* Zero baseline */}
         <line x1={pad} x2={width - pad} y1={height - pad} y2={height - pad} stroke="var(--border)" strokeWidth="1" />
         {[0.25, 0.5, 0.75].map(line => (
-          <line
-            key={line}
-            x1={pad}
-            x2={width - pad}
-            y1={height * line}
-            y2={height * line}
-            stroke="var(--border)"
-            strokeDasharray="3 3"
-          />
+          <line key={line} x1={pad} x2={width - pad} y1={height * line} y2={height * line} stroke="var(--border)" strokeDasharray="3 3" />
         ))}
-        <polyline fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" points={points} />
+        <polyline fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" points={points.map(p => `${p.x},${p.y}`).join(' ')} />
+        {onSelect && points.map(p => (
+          <circle key={p.rawDate} cx={p.x} cy={p.y} r={4} fill="var(--accent)" />
+        ))}
       </svg>
-      <div className="flex justify-between gap-2 font-mono text-[10px] text-[var(--text-secondary)]" aria-hidden="true">
+      {/* Tappable hit targets — one per data point (master.md 3.11). Touch targets use 28px for dense daily charts; meets WCAG 2.5.8 AA. */}
+      {onSelect && points.map(p => {
+        const label = hideAmount ? '•••••' : formatCurrency(p.amount);
+        return (
+          <button
+            key={p.rawDate}
+            type="button"
+            onClick={() => onSelect(p)}
+            className="absolute -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full hover:bg-[var(--accent)]/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30 z-10"
+            style={{ left: `${(p.x / width) * 100}%`, top: `${(p.y / height) * 100}%` }}
+            aria-label={`${p.date}: ${label}`}
+          />
+        );
+      })}
+      <div className="flex justify-between gap-2 font-mono text-[11px] text-[var(--text-secondary)]" aria-hidden="true">
         {labels.map(item => (
           <span key={item.rawDate} className="truncate">{item.date}</span>
         ))}
@@ -216,11 +227,71 @@ function DataTableToggle({ label, children }: { readonly label: string; readonly
   );
 }
 
+// ── Shared card/table/chart building blocks (CPD-clean) ──────────
+
+function StatsCard({ title, titleClassName, summary, children }: {
+  readonly title: React.ReactNode;
+  readonly titleClassName?: string;
+  readonly summary: string;
+  readonly children: React.ReactNode;
+}) {
+  return (
+    <figure className="bg-[var(--card)] p-4 rounded-[16px] shadow-sm border border-[var(--border)]">
+      <figcaption>
+        <h2 className={`text-sm font-bold ${titleClassName ?? 'mb-1'} text-[var(--text-secondary)] uppercase tracking-wider`}>{title}</h2>
+        <p className="sr-only">{summary}</p>
+      </figcaption>
+      {children}
+    </figure>
+  );
+}
+
+function ChartArea({ isLoading, summary, chart, className = 'h-48' }: {
+  readonly isLoading: boolean;
+  readonly summary: string;
+  readonly chart: React.ReactNode;
+  readonly className?: string;
+}) {
+  return (
+    <div className={className} role="img" aria-label={summary}>
+      {isLoading ? <Skeleton className="w-full h-full rounded-lg" /> : chart}
+    </div>
+  );
+}
+
+function StatsTh({ align = 'left', children }: { readonly align?: 'left' | 'right'; readonly children: React.ReactNode }) {
+  return (
+    <th scope="col" className={`${align === 'right' ? 'text-right' : 'text-left'} py-2 font-bold text-[var(--text-secondary)]`}>
+      {children}
+    </th>
+  );
+}
+
+function StatsDataTable({ caption, headers, rows }: {
+  readonly caption: string;
+  readonly headers: React.ReactNode;
+  readonly rows: React.ReactNode;
+}) {
+  const { t } = useTranslation();
+  return (
+    <DataTableToggle label={t('stats.viewData')}>
+      <table className="w-full text-xs mt-2">
+        <caption className="sr-only">{caption}</caption>
+        <thead>
+          <tr className="border-b border-[var(--border)]">{headers}</tr>
+        </thead>
+        <tbody>{rows}</tbody>
+      </table>
+    </DataTableToggle>
+  );
+}
+
 // ── Stats sections (kept as components to keep StatsView lean) ──
 
 function getPeriodLabel(period: Period, t: (key: string) => string): string {
   if (period === 'week') return t('stats.periodWeek');
   if (period === 'month') return t('stats.periodMonth');
+  if (period === 'custom') return t('stats.periodCustom');
   return t('stats.periodAll');
 }
 
@@ -283,46 +354,32 @@ function MonthlyComparisonSection({
     .map(item => `${item.month}: ${hideAmount ? t('stats.amountHidden') : formatCurrency(item.amount)}`)
     .join(', ');
   return (
-    <figure className="bg-[var(--card)] p-4 rounded-[16px] shadow-sm border border-[var(--border)]">
-      <figcaption>
-        <h2 className="text-sm font-bold mb-1 text-[var(--text-secondary)] uppercase tracking-wider">{t('stats.monthlyComparison')}</h2>
-        <p className="sr-only">{summary}</p>
-      </figcaption>
-      <div className="h-48" role="img" aria-label={summary}>
-        {isLoading ? (
-          <Skeleton className="w-full h-full rounded-lg" />
-        ) : (
-          <MiniBarChart data={data} hideAmount={hideAmount} onSelect={onDrillDown} />
-        )}
-      </div>
-      <DataTableToggle label={t('stats.viewData')}>
-        <table className="w-full text-xs mt-2">
-          <caption className="sr-only">{t('stats.monthlyComparison')}</caption>
-          <thead>
-            <tr className="border-b border-[var(--border)]">
-              <th scope="col" className="text-left py-2 font-bold text-[var(--text-secondary)]">{t('stats.tablePeriod')}</th>
-              <th scope="col" className="text-right py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableSpending')}</th>
-              <th scope="col" className="text-right py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableTransactions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map(item => {
-              const monthKey = toMonthKey(new Date(item.year, item.monthIndex, 1));
-              const count = expenseAggregates.byMonth.get(monthKey) !== undefined
-                ? (allTransactions ?? []).filter(tx => tx.type === 'expense' && getMonthPrefix(normaliseDate(tx.date)) === monthKey).length
-                : 0;
-              return (
-                <tr key={`${item.year}-${item.monthIndex}`} className="border-b border-[var(--border)]">
-                  <td className="py-1.5">{item.month} {item.year}</td>
-                  <td className="py-1.5 text-right font-mono">{hideAmount ? '•••••' : formatCurrency(item.amount)}</td>
-                  <td className="py-1.5 text-right font-mono">{count}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </DataTableToggle>
-    </figure>
+    <StatsCard title={t('stats.monthlyComparison')} summary={summary}>
+      <ChartArea isLoading={isLoading} summary={summary} chart={<MiniBarChart data={data} hideAmount={hideAmount} onSelect={onDrillDown} />} />
+      <StatsDataTable
+        caption={t('stats.monthlyComparison')}
+        headers={<>
+          <StatsTh>{t('stats.tablePeriod')}</StatsTh>
+          <StatsTh align="right">{t('stats.tableSpending')}</StatsTh>
+          <StatsTh align="right">{t('stats.tableTransactions')}</StatsTh>
+        </>}
+        rows={<>
+          {data.map(item => {
+            const monthKey = toMonthKey(new Date(item.year, item.monthIndex, 1));
+            const count = expenseAggregates.byMonth.get(monthKey) !== undefined
+              ? (allTransactions ?? []).filter(tx => tx.type === 'expense' && getMonthPrefix(normaliseDate(tx.date)) === monthKey).length
+              : 0;
+            return (
+              <tr key={`${item.year}-${item.monthIndex}`} className="border-b border-[var(--border)]">
+                <td className="py-1.5">{item.month} {item.year}</td>
+                <td className="py-1.5 text-right font-mono">{hideAmount ? '•••••' : formatCurrency(item.amount)}</td>
+                <td className="py-1.5 text-right font-mono">{count}</td>
+              </tr>
+            );
+          })}
+        </>}
+      />
+    </StatsCard>
   );
 }
 
@@ -334,6 +391,7 @@ interface SpendingTrendSectionProps {
   readonly isLoading: boolean;
   readonly hideAmount: boolean;
   readonly t: (key: string, opts?: Record<string, string | number>) => string;
+  readonly onDrillDown?: (item: TrendPoint) => void;
 }
 
 function SpendingTrendSection({
@@ -344,16 +402,13 @@ function SpendingTrendSection({
   isLoading,
   hideAmount,
   t,
+  onDrillDown,
 }: SpendingTrendSectionProps) {
   const summary = trendData
     .map(item => `${item.date}: ${hideAmount ? t('stats.amountHidden') : formatCurrency(item.amount)}`)
     .join(', ');
   return (
-    <figure className="bg-[var(--card)] p-4 rounded-[16px] shadow-sm border border-[var(--border)]">
-      <figcaption>
-        <h2 className="text-sm font-bold mb-1 text-[var(--text-secondary)] uppercase tracking-wider">{t('stats.spendingTrend')} · {periodLabel}</h2>
-        <p className="sr-only">{summary}</p>
-      </figcaption>
+    <StatsCard title={<>{t('stats.spendingTrend')} · {periodLabel}</>} summary={summary}>
       {showInsufficientTrend ? (
         <div className="py-8 text-center">
           <p className="text-sm font-bold text-[var(--text-secondary)]">{t('stats.trendNotEnough')}</p>
@@ -361,35 +416,25 @@ function SpendingTrendSection({
         </div>
       ) : (
         <>
-          <div className="h-48" role="img" aria-label={summary}>
-            {isLoading ? (
-              <Skeleton className="w-full h-full rounded-lg" />
-            ) : (
-              <MiniLineChart data={trendData} hideAmount={hideAmount} />
-            )}
-          </div>
-          <DataTableToggle label={t('stats.viewData')}>
-            <table className="w-full text-xs mt-2">
-              <caption className="sr-only">{t('stats.spendingTrend')}</caption>
-              <thead>
-                <tr className="border-b border-[var(--border)]">
-                  <th scope="col" className="text-left py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableDate')}</th>
-                  <th scope="col" className="text-right py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableSpending')}</th>
+          <ChartArea isLoading={isLoading} summary={summary} chart={<MiniLineChart data={trendData} hideAmount={hideAmount} onSelect={onDrillDown} />} />
+          <StatsDataTable
+            caption={t('stats.spendingTrend')}
+            headers={<>
+              <StatsTh>{t('stats.tableDate')}</StatsTh>
+              <StatsTh align="right">{t('stats.tableSpending')}</StatsTh>
+            </>}
+            rows={<>
+              {trendData.filter(p => p.amount > 0).map(point => (
+                <tr key={point.rawDate} className="border-b border-[var(--border)]">
+                  <td className="py-1.5">{point.date}</td>
+                  <td className="py-1.5 text-right font-mono">{hideAmount ? '•••••' : formatCurrency(point.amount)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {trendData.filter(p => p.amount > 0).map(point => (
-                  <tr key={point.rawDate} className="border-b border-[var(--border)]">
-                    <td className="py-1.5">{point.date}</td>
-                    <td className="py-1.5 text-right font-mono">{hideAmount ? '•••••' : formatCurrency(point.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </DataTableToggle>
+              ))}
+            </>}
+          />
         </>
       )}
-    </figure>
+    </StatsCard>
   );
 }
 
@@ -416,11 +461,7 @@ function CategoryBreakdownSection({
     ? data.map(item => `${item.name}: ${hideAmount ? t('stats.amountHidden') : formatCurrency(item.value)}`).join(', ')
     : t('No transactions in this view');
   return (
-    <figure className="bg-[var(--card)] p-4 rounded-[16px] shadow-sm border border-[var(--border)]">
-      <figcaption>
-        <h2 className="text-sm font-bold mb-4 text-[var(--text-secondary)] uppercase tracking-wider">{t('stats.spendingByCategory')}</h2>
-      </figcaption>
-
+    <StatsCard title={t('stats.spendingByCategory')} titleClassName="mb-4" summary={summary}>
       {activeCategoryCount === 1 ? (
         /* Single category — no donut */
         <div className="py-4 text-center">
@@ -451,58 +492,55 @@ function CategoryBreakdownSection({
           </div>
 
           <ul className="mt-4 space-y-2 list-none" aria-label={t('stats.spendingByCategory')}>
-            {data.map((item) => (
-              <li key={item.id ?? 'other'} className="flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} aria-hidden="true" />
-                  <span className="text-sm font-medium truncate">{item.name}</span>
-                </div>
-                <div className="font-mono text-sm flex items-baseline shrink-0 ml-2">
-                  <span>{hideAmount ? '•••••' : formatCurrency(item.value)}</span>
-                  {categoryTotal > 0 && (
-                    <span className="text-[10px] text-[var(--text-secondary)] ml-1">
-                      ({Math.round((item.value / categoryTotal) * 100)}%)
+            {data.map((item) => {
+              const count = filteredTransactions.filter(tx => tx.categoryId === item.id).length;
+              return (
+                <li key={item.id ?? 'other'} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} aria-hidden="true" />
+                    <span className="text-sm font-medium truncate">{item.name}</span>
+                  </div>
+                  <div className="font-mono text-sm flex items-baseline shrink-0 ml-2 gap-2">
+                    <span>{hideAmount ? '•••••' : formatCurrency(item.value)}</span>
+                    <span className="text-[11px] text-[var(--text-secondary)]">
+                      ({Math.round((item.value / categoryTotal) * 100)}% · {count})
                     </span>
-                  )}
-                </div>
-              </li>
-            ))}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </>
       )}
 
-      <DataTableToggle label={t('stats.viewData')}>
-        <table className="w-full text-xs mt-2">
-          <caption className="sr-only">{t('stats.spendingByCategory')}</caption>
-          <thead>
-            <tr className="border-b border-[var(--border)]">
-              <th scope="col" className="text-left py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableCategory')}</th>
-              <th scope="col" className="text-right py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableSpending')}</th>
-              <th scope="col" className="text-right py-2 font-bold text-[var(--text-secondary)]">{t('stats.tablePercentage')}</th>
-              <th scope="col" className="text-right py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableTransactions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map(item => {
-              const count = filteredTransactions.filter(tx => tx.categoryId === item.id).length;
-              return (
-                <tr key={item.id ?? 'other'} className="border-b border-[var(--border)]">
-                  <td className="py-1.5 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} aria-hidden="true" />
-                    {item.name}
-                  </td>
-                  <td className="py-1.5 text-right font-mono">{hideAmount ? '•••••' : formatCurrency(item.value)}</td>
-                  <td className="py-1.5 text-right font-mono">
-                    {categoryTotal > 0 ? `${Math.round((item.value / categoryTotal) * 100)}%` : '—'}
-                  </td>
-                  <td className="py-1.5 text-right font-mono">{count}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </DataTableToggle>
-    </figure>
+      <StatsDataTable
+        caption={t('stats.spendingByCategory')}
+        headers={<>
+          <StatsTh>{t('stats.tableCategory')}</StatsTh>
+          <StatsTh align="right">{t('stats.tableSpending')}</StatsTh>
+          <StatsTh align="right">{t('stats.tablePercentage')}</StatsTh>
+          <StatsTh align="right">{t('stats.tableTransactions')}</StatsTh>
+        </>}
+        rows={<>
+          {data.map(item => {
+            const count = filteredTransactions.filter(tx => tx.categoryId === item.id).length;
+            return (
+              <tr key={item.id ?? 'other'} className="border-b border-[var(--border)]">
+                <td className="py-1.5 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} aria-hidden="true" />
+                  {item.name}
+                </td>
+                <td className="py-1.5 text-right font-mono">{hideAmount ? '•••••' : formatCurrency(item.value)}</td>
+                <td className="py-1.5 text-right font-mono">
+                  {categoryTotal > 0 ? `${Math.round((item.value / categoryTotal) * 100)}%` : '—'}
+                </td>
+                <td className="py-1.5 text-right font-mono">{count}</td>
+              </tr>
+            );
+          })}
+        </>}
+      />
+    </StatsCard>
   );
 }
 
@@ -513,6 +551,19 @@ export default function StatsView() {
   const { hideAmount } = usePrivacy();
   const [period, setPeriod] = useState<Period>('month');
   const [walletFilter, setWalletFilter] = useState<number | null>(null);
+  const [customRange, setCustomRange] = useState(() => {
+    const end = getTodayStr();
+    const start = getMonthStartStr();
+    return { start, end };
+  });
+
+  // Auto-correct custom range: clamp start to end so start ≤ end
+  useEffect(() => {
+    if (period !== 'custom') return;
+    if (customRange.start && customRange.end && customRange.start > customRange.end) {
+      setCustomRange(prev => ({ ...prev, start: prev.end }));
+    }
+  }, [period, customRange.start, customRange.end]);
 
   const allTransactions = useLiveQuery(() => db.transactions.toArray(), [], undefined);
   const transactions = useLiveQuery(() => db.transactions.where('type').equals('expense').toArray(), [], undefined);
@@ -522,6 +573,7 @@ export default function StatsView() {
   // Drill-down state
   const [drillDownCategory, setDrillDownCategory] = useState<{ id: number; name: string; color: string } | null>(null);
   const [drillDownMonthKey, setDrillDownMonthKey] = useState<{ label: string; monthIndex: number; year: number } | null>(null);
+  const [drillDownDateKey, setDrillDownDateKey] = useState<{ dateKey: string; label: string } | null>(null);
 
   const categoryMap = useMemo(() => {
     if (!categories) return {};
@@ -532,7 +584,7 @@ export default function StatsView() {
   }, [categories]);
 
   // Period range
-  const periodRange = useMemo(() => getPeriodRange(period), [period]);
+  const periodRange = useMemo(() => getPeriodRange(period, new Date(), customRange), [period, customRange]);
   const prevPeriodRange = useMemo(() => getPrevPeriodRange(period), [period]);
 
   // Filter expenses by period + wallet
@@ -614,8 +666,10 @@ export default function StatsView() {
     if (!transactions) return [];
     const now = new Date();
     const { start, end } = periodRange;
+    const isDaily = period === 'week' || period === 'month'
+      || (period === 'custom' && daysBetweenDateOnly(start, end) <= 61);
 
-    if (period === 'week' || period === 'month') {
+    if (isDaily) {
       // Daily trend
       const startD = new Date(normaliseDate(start) + 'T12:00:00Z');
       const endD = new Date(normaliseDate(end) + 'T12:00:00Z');
@@ -630,10 +684,16 @@ export default function StatsView() {
       }));
     }
 
-    // All time: monthly trend (last 12 months)
+    // Monthly trend: all-time (last 12 months) or long custom range
+    const startMonth = period === 'all'
+      ? new Date(now.getFullYear(), now.getMonth() - 11, 1)
+      : (() => { const m = new Date(normaliseDate(start) + 'T12:00:00Z'); m.setDate(1); return m; })();
+    const endMonth = new Date(now);
     const months: MonthPoint[] = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const limit = 48; // cap custom range to 48 months
+    const d = new Date(startMonth);
+    let safety = 0;
+    while (d <= endMonth && months.length < limit && safety < limit) {
       const key = toMonthKey(d);
       months.push({
         month: displayMonthShort(d, i18n.language),
@@ -641,6 +701,8 @@ export default function StatsView() {
         monthIndex: d.getMonth(),
         year: d.getFullYear(),
       });
+      d.setMonth(d.getMonth() + 1);
+      safety++;
     }
     return months.map(m => ({
       date: m.month,
@@ -719,6 +781,14 @@ export default function StatsView() {
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [drillDownMonthKey, allTransactions]);
 
+  const drillDownDateTransactions = useMemo(() => {
+    if (!drillDownDateKey || !allTransactions) return [];
+    const key = drillDownDateKey.dateKey;
+    return allTransactions
+      .filter(tx => tx.type === 'expense' && normaliseDate(tx.date) === key)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [drillDownDateKey, allTransactions]);
+
   // ── Trend unique days count (for insufficient data) ────────
 
   const trendDaysWithData = useMemo(() => {
@@ -768,7 +838,7 @@ export default function StatsView() {
   if (isEmpty) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">{t('stats.statistics')}</h1>
+        <PageHeader title={t('stats.statistics')} />
         <EmptyState
           icon={<ChartBar size={36} />}
           title={t('stats.emptyFirstUse')}
@@ -782,7 +852,7 @@ export default function StatsView() {
   return (
     <div className="space-y-6">
       {/* H1 */}
-      <h1 className="text-2xl font-bold">{t('stats.statistics')}</h1>
+      <PageHeader title={t('stats.statistics')} />
 
       {/* Period selector — native radio fieldset */}
       <fieldset>
@@ -792,6 +862,7 @@ export default function StatsView() {
             { value: 'week' as Period, label: t('stats.periodWeek') },
             { value: 'month' as Period, label: t('stats.periodMonth') },
             { value: 'all' as Period, label: t('stats.periodAll') },
+            { value: 'custom' as Period, label: t('stats.periodCustom') },
           ]).map(({ value, label }) => (
             <label
               key={value}
@@ -815,6 +886,24 @@ export default function StatsView() {
           ))}
         </div>
       </fieldset>
+
+      {/* Custom range — dedicated accessible flow (master.md 3.11) */}
+      {period === 'custom' && (
+        <div className="grid grid-cols-2 gap-3">
+          <DatePicker
+            id="stats-custom-start"
+            label={t('stats.customStart')}
+            value={customRange.start}
+            onChange={(value) => setCustomRange(prev => ({ ...prev, start: value }))}
+          />
+          <DatePicker
+            id="stats-custom-end"
+            label={t('stats.customEnd')}
+            value={customRange.end}
+            onChange={(value) => setCustomRange(prev => ({ ...prev, end: value }))}
+          />
+        </div>
+      )}
 
       {/* Date range */}
       {dateRangeLabel && (
@@ -883,6 +972,13 @@ export default function StatsView() {
           isLoading={isLoading}
           hideAmount={hideAmount}
           t={t}
+          onDrillDown={(point) => {
+            if (period === 'all' || period === 'custom') {
+              setDrillDownMonthKey({ label: point.date, monthIndex: Number(point.rawDate.slice(5, 7)) - 1, year: Number(point.rawDate.slice(0, 4)) });
+            } else {
+              setDrillDownDateKey({ dateKey: point.rawDate, label: point.date });
+            }
+          }}
         />
       )}
 
@@ -912,6 +1008,13 @@ export default function StatsView() {
         onClose={() => setDrillDownMonthKey(null)}
         title={drillDownMonthKey ? `${drillDownMonthKey.label} ${drillDownMonthKey.year}` : ''}
         transactions={drillDownMonthTransactions}
+        categoryMap={categoryMap}
+      />
+      <DrillDownModal
+        isOpen={!!drillDownDateKey}
+        onClose={() => setDrillDownDateKey(null)}
+        title={drillDownDateKey?.label || ''}
+        transactions={drillDownDateTransactions}
         categoryMap={categoryMap}
       />
     </div>

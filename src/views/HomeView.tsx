@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, Suspense, lazy } from 'react';
+import { useKeyboardShortcutGuard } from '../hooks/useKeyboardShortcut';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -29,6 +30,7 @@ import { TransactionGroup } from '../components/home/TransactionGroup';
 import { EmptyState } from '../components/EmptyState';
 import { UpcomingSection } from '../components/UpcomingSection';
 import { InsightsCard } from '../components/InsightsCard';
+import { PageHeader } from '../components/PageHeader';
 import {
   generateInsights,
   getDismissedInsightIds,
@@ -59,7 +61,7 @@ function QuickFilterChips({ isSelectionMode, quickFilter, onSelect, t }: QuickFi
 
   return (
     <fieldset
-      className="flex gap-2 overflow-x-auto pb-1 border-0 p-0 m-0"
+      className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 scroll-fade-x pb-1 border-0 p-0 m-0"
       aria-label={t('home.filterTransactions')}
       style={{ scrollbarWidth: 'auto', scrollPaddingInline: '1rem' }}
     >
@@ -71,7 +73,7 @@ function QuickFilterChips({ isSelectionMode, quickFilter, onSelect, t }: QuickFi
             onClick={() => onSelect(isActive ? null : qf)}
             aria-pressed={isActive}
             className={cn(
-              "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
+              "shrink-0 snap-start px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
               isActive
                 ? "bg-[var(--accent)] text-white border-[var(--accent)]"
                 : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
@@ -409,15 +411,10 @@ export default function HomeView() {
   }, [t]);
 
   // Keyboard shortcuts — disabled when typing or in modal
+  const isShortcutIgnored = useKeyboardShortcutGuard();
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      const tag = target.tagName;
-      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable || target.hasAttribute('contenteditable') || target.getAttribute('role') === 'textbox';
-      if (isEditable) return;
-      if (document.querySelector('[role="dialog"]')) return; // NOSONAR S6819 — runtime detection
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
+      if (isShortcutIgnored(e)) return;
       if (e.key === '/') {
         e.preventDefault();
         searchRef.current?.focus();
@@ -429,9 +426,9 @@ export default function HomeView() {
         setIsFilterOpen(prev => !prev);
       }
     };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [searchRef, toggleSortOrder]);
+    document.addEventListener('keydown', handler as EventListener);
+    return () => document.removeEventListener('keydown', handler as EventListener);
+  }, [searchRef, toggleSortOrder, isShortcutIgnored]);
 
   const dailySummary = useMemo(() => {
     if (!transactions) return { today: 0, yesterday: 0 };
@@ -599,33 +596,29 @@ export default function HomeView() {
   return (
     <div className="space-y-6">
       {/* Page Header — single H1 */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-            {t('home.title')}
-          </h1>
-          <p className="text-xs text-[var(--text-secondary)] mt-1">
-            {displayDateLong(new Date(), i18n.language)}
-          </p>
-        </div>
-        <div className="flex items-center gap-1">
-          <button type="button"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-            aria-label={theme === 'dark' ? t('home.useLightTheme') : t('home.useDarkTheme')}
-          >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-          <button type="button"
-            onClick={toggleHideAmount}
-            className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-            aria-label={hideAmount ? t('home.showBalance') : t('home.hideBalance')}
-            aria-pressed={hideAmount}
-          >
-            {hideAmount ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={t('home.title')}
+        description={displayDateLong(new Date(), i18n.language)}
+        actions={
+          <div className="flex items-center gap-2">
+            <button type="button"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+              aria-label={theme === 'dark' ? t('home.useLightTheme') : t('home.useDarkTheme')}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <button type="button"
+              onClick={toggleHideAmount}
+              className="w-11 h-11 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--card)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+              aria-label={hideAmount ? t('home.showBalance') : t('home.hideBalance')}
+              aria-pressed={hideAmount}
+            >
+              {hideAmount ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+        }
+      />
 
       {/* Live region for privacy mode announcement */}
       <div className="sr-only" aria-live="polite">
@@ -705,6 +698,7 @@ export default function HomeView() {
             type="search"
             name="search"
             autoComplete="off"
+            enterKeyHint="search"
             placeholder={t('home.searchPlaceholder')}
             value={filters.searchTerm}
             onChange={(e) => filterActions.setSearchTerm(e.target.value)}

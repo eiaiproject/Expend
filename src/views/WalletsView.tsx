@@ -17,6 +17,7 @@ import { AddWalletSheet } from '../components/wallet/AddWalletSheet';
 import { EditWalletSheet } from '../components/wallet/EditWalletSheet';
 import { ReconcileBalanceSheet } from '../components/wallet/ReconcileBalanceSheet';
 import { TransactionFormSheet } from '../components/TransactionFormSheet';
+import { PageHeader } from '../components/PageHeader';
 import type { SpendingTrend } from '../types/wallet';
 
 type SortOption = 'default' | 'name' | 'balance' | 'activity';
@@ -230,6 +231,31 @@ export default function WalletsView() {
     }
   }, [sortBy, t]);
 
+  // Shared header actions (help toggle + add wallet) rendered by both the
+  // empty state and the main content PageHeader.
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setShowHelp(!showHelp)}
+        className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+        aria-label={t('wallet.helpLabel')}
+        aria-pressed={showHelp}
+      >
+        <HelpCircle size={20} aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        onClick={() => setIsAddOpen(true)}
+        className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-white px-4 shadow transition-colors hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+        aria-label={t('wallet.addLabel')}
+      >
+        <Plus size={18} aria-hidden="true" />
+        <span className="text-sm font-semibold hidden sm:inline">{t('wallet.addLabel')}</span>
+      </button>
+    </div>
+  );
+
   // ── Loading state ────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -250,10 +276,8 @@ export default function WalletsView() {
     return (
       <div className="space-y-6">
         <PageHeader
-          onHelp={() => setShowHelp(!showHelp)}
-          onAdd={() => setIsAddOpen(true)}
-          showHelp={showHelp}
-          t={t}
+          title={t('Wallets')}
+          actions={headerActions}
         />
         {showHelp && <HelpPanel t={t} />}
         <EmptyState
@@ -274,10 +298,8 @@ export default function WalletsView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        onHelp={() => setShowHelp(!showHelp)}
-        onAdd={() => setIsAddOpen(true)}
-        showHelp={showHelp}
-        t={t}
+        title={t('Wallets')}
+        actions={headerActions}
       />
 
       {showHelp && <HelpPanel t={t} />}
@@ -314,6 +336,7 @@ export default function WalletsView() {
               <input
                 id="wallet-search"
                 type="search"
+            enterKeyHint="search"
                 name="walletSearch"
                 autoComplete="off"
                 placeholder={t('wallet.searchPh')}
@@ -537,41 +560,6 @@ function computeWalletSpending(
   }
 
   return { recentSpent, previousSpent };
-}
-
-function PageHeader({ onHelp, onAdd, showHelp, t }: {
-  readonly onHelp: () => void;
-  readonly onAdd: () => void;
-  readonly showHelp: boolean;
-  readonly t: (key: string) => string;
-}) {
-  return (
-    <div className="flex justify-between items-start">
-      <h1 className="text-2xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-        {t('Wallets')}
-      </h1>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onHelp}
-          className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-          aria-label={t('wallet.helpLabel')}
-          aria-pressed={showHelp}
-        >
-          <HelpCircle size={20} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-white px-4 shadow transition-colors hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
-          aria-label={t('wallet.addLabel')}
-        >
-          <Plus size={18} aria-hidden="true" />
-          <span className="text-sm font-semibold hidden sm:inline">{t('wallet.addLabel')}</span>
-        </button>
-      </div>
-    </div>
-  );
 }
 
 function HelpPanel({ t }: { readonly t: (key: string) => string }) {

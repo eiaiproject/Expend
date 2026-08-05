@@ -146,7 +146,7 @@ export function TransactionCard({
     <article
       className={cn("relative rounded-[16px] bg-[var(--card)] border transition-[border-color,background-color,box-shadow]",
         isSelectionMode && isSelected ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/20" : "border-[var(--border)]", // ponytail: flattened ternary
-        isMenuOpen && "z-40"
+        isMenuOpen && "z-50"
       )}
       data-testid="transaction-row"
       data-tx-id={tx.id}
@@ -230,7 +230,7 @@ export function TransactionCard({
               <div
                 id={`tx-menu-${tx.id}`}
                 role="menu"
-                className="absolute right-0 top-full mt-1 w-44 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-30 py-1"
+                className="absolute right-0 top-full mt-1 w-44 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-50 py-1"
               >
                 <button
                   type="button"

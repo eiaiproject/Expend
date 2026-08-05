@@ -101,6 +101,7 @@ export function PayeeFilterSheet({ isOpen, onClose, draft: initialDraft, onApply
       onClose={onClose}
       title={t('Payee Filter')}
       ariaLabel={t('Payee Filter')}
+      size="medium"
     >
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">

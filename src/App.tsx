@@ -1,7 +1,8 @@
 import { useState, lazy, Suspense, useEffect, useCallback, useRef } from 'react';
+import { useKeyboardShortcutGuard } from './hooks/useKeyboardShortcut';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { BottomNav, FabButton } from './components/BottomNav';
+import { BottomNav } from './components/BottomNav';
 import { ErrorBoundary } from './components/ErrorBoundary';
 const HomeView = lazy(() => import('./views/HomeView'));
 const WalletsView = lazy(() => import('./views/WalletsView'));
@@ -12,11 +13,12 @@ const SettingsView = lazy(() => import('./views/SettingsView'));
 const CategoriesView = lazy(() => import('./views/CategoriesView'));
 const PayeesView = lazy(() => import('./views/PayeesView'));
 const SchedulesView = lazy(() => import('./views/SchedulesView'));
+const MoreView = lazy(() => import('./views/MoreView'));
 
 import { TransactionFormSheet } from './components/TransactionFormSheet';
 import { ActionPickerSheet } from './components/ActionPickerSheet';
 import { DebtFormSheet } from './components/debts/DebtFormSheet';
-import { Toaster } from './components/Toaster';
+import { Toaster, toast } from './components/Toaster';
 import { SupportPrompt } from './components/SupportPrompt';
 import { PrivacyProvider } from './contexts/PrivacyContext';
 import { ConfirmDialogProvider } from './components/ConfirmDialog';
@@ -39,6 +41,27 @@ import type { TransactionType } from './hooks/useTransactionForm';
 
 function AppContent() {
   const { t } = useTranslation();
+
+  // Dev-only demo seeder: visit /?seed=demo (master.md §12 demo data)
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (!new URLSearchParams(window.location.search).has('seed')) return;
+    let cancelled = false;
+    void import('./utils/seedDemo').then(async ({ seedDemoData }) => {
+      if (cancelled) return;
+      const count = await seedDemoData();
+      if (cancelled) return;
+      window.history.replaceState({}, '', window.location.pathname);
+      if (count > 0) {
+        window.location.reload(); // re-boot so onboarding flag + data are live
+      }
+    }).catch((err) => {
+      console.error('seed failed:', err);
+      window.history.replaceState({}, '', window.location.pathname);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   const [isActionPickerOpen, setIsActionPickerOpen] = useState(false);
   const [isAddTxOpen, setIsAddTxOpen] = useState(false);
   const [txInitialType, setTxInitialType] = useState<TransactionType>('expense');
@@ -75,30 +98,32 @@ function AppContent() {
     if (!isSecurityLoaded || isLocked) return;
     if (!hasOnboarded || !onboardingCompleted) return;
     schedulesProcessedRef.current = true;
-    processDueSchedules().catch(() => {
-      // Allow a retry on a later unlock/state change if processing failed.
-      schedulesProcessedRef.current = false;
-    });
-  }, [isSecurityLoaded, isLocked, hasOnboarded, onboardingCompleted]);
+    processDueSchedules()
+      .then((createdCount) => {
+        // Transparent processing feedback (master.md 3.14).
+        if (createdCount > 0) {
+          toast.add(t('recurring.toastProcessed', { count: createdCount }));
+        }
+      })
+      .catch(() => {
+        // Allow a retry on a later unlock/state change if processing failed.
+        schedulesProcessedRef.current = false;
+      });
+  }, [isSecurityLoaded, isLocked, hasOnboarded, onboardingCompleted, t]);
 
   // Keyboard shortcut: N to open Add Transaction
+  const isShortcutIgnored = useKeyboardShortcutGuard();
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      const tag = target.tagName;
-      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable || target.hasAttribute('contenteditable') || target.getAttribute('role') === 'textbox';
-      if (isEditable) return;
-      if (document.querySelector('[role="dialog"]')) return; // NOSONAR S6819 — used for runtime detection
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
+      if (isShortcutIgnored(e)) return;
       if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
         openAddTx('expense');
       }
     };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [openAddTx]);
+    document.addEventListener('keydown', handler as EventListener);
+    return () => document.removeEventListener('keydown', handler as EventListener);
+  }, [openAddTx, isShortcutIgnored]);
 
   if (!isSecurityLoaded) {
     return <SecureLoadingScreen />;
@@ -190,16 +215,15 @@ function AppContent() {
 
         <main
           id="main-content"
-          className="flex-1 min-w-0 w-full max-w-4xl mx-auto overflow-y-auto px-4 pt-5 md:px-6 md:py-8 lg:pb-8 pb-[calc(80px+env(safe-area-inset-bottom,0px))]"
+          className="flex-1 min-w-0 w-full max-w-4xl mx-auto overflow-y-auto px-4 pt-5 md:px-6 md:py-8 lg:pb-8 pb-[calc(88px+env(safe-area-inset-bottom,0px))]"
           tabIndex={-1}
         >
           <RoutesWithSuspense />
         </main>
       </div>
 
-      {/* Bottom Nav + FAB — siblings */}
+      {/* Bottom Nav — central Add opens the action picker */}
       <BottomNav onAddClick={() => setIsActionPickerOpen(true)} />
-      <FabButton onAddClick={() => setIsActionPickerOpen(true)} />
 
       <ActionPickerSheet
         isOpen={isActionPickerOpen}
@@ -271,6 +295,7 @@ function RoutesWithSuspense() {
           <Route path="/categories" element={<CategoriesView />} />
           <Route path="/payees" element={<PayeesView />} />
           <Route path="/schedules" element={<SchedulesView />} />
+          <Route path="/more" element={<MoreView />} />
           <Route path="*" element={<NotFoundView />} />
         </Routes>
       </Suspense>

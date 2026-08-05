@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useEffect } from 'react';
+import { useEscapeKeyClose } from '../hooks/useEscapeKeyClose';
 import { Transaction } from '../db/db';
 import { FALLBACK_CATEGORY_NAME } from '../utils/constants';
 import { displayDateShort } from '../utils/dateUtils';
@@ -20,15 +20,7 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
   const { hideAmount } = usePrivacy();
   const dialogRef = useFocusTrap(isOpen);
 
-  // Close on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  useEscapeKeyClose(isOpen, onClose);
 
   return (
     <>
@@ -37,7 +29,7 @@ export function DrillDownModal({ isOpen, onClose, title, transactions, categoryM
           ref={dialogRef as unknown as React.RefObject<HTMLDialogElement>}
           open
           aria-label={title}
-          className="w-full sm:max-w-lg bg-[var(--card)] rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col border-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm fixed m-0 max-w-full"
+          className="w-full sm:max-w-lg bg-[var(--card)] rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col border-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm fixed m-0 max-w-full animate-in fade-in slide-in-from-bottom-full sm:slide-in-from-bottom-4 sm:zoom-in-95 duration-300 ease-out"
           style={{ zIndex: 50 }}
         >
             <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">

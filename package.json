@@ -1,7 +1,7 @@
 {
   "name": "expend",
   "private": true,
-  "version": "1.14.0",
+  "version": "1.16.1",
   "engines": {
     "node": ">=22"
   },
@@ -19,6 +19,7 @@
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:chromium": "playwright test --project=chromium",
+    "test:e2e:mobile": "playwright test --project='Mobile Chrome'",
     "test:e2e:ui": "playwright test --ui",
     "playwright:install": "playwright install --with-deps chromium firefox webkit",
     "version": "node scripts/sync-version.mjs",

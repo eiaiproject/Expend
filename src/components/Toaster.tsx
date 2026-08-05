@@ -70,6 +70,14 @@ function ToastItem({ toast: msg, onRemove, t: translate }: { readonly toast: Toa
   );
 }
 
+function ToastList({ toasts, onRemove, t }: {
+  readonly toasts: ToastMessage[];
+  readonly onRemove: (id: number) => void;
+  readonly t: (key: string) => string;
+}) {
+  return toasts.map(msg => <ToastItem key={msg.id} toast={msg} onRemove={onRemove} t={t} />);
+}
+
 export function Toaster() {
   const { t } = useTranslation();
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -100,9 +108,7 @@ export function Toaster() {
         aria-live="polite"
         role="status"
       >
-        {toasts.map(msg => (
-          <ToastItem key={msg.id} toast={msg} onRemove={removeToast} t={t} />
-        ))}
+        <ToastList toasts={toasts} onRemove={removeToast} t={t} />
       </div>
       {/* Desktop: bottom-right */}
       <div
@@ -110,9 +116,7 @@ export function Toaster() {
         aria-live="polite"
         role="status"
       >
-        {toasts.map(msg => (
-          <ToastItem key={msg.id} toast={msg} onRemove={removeToast} t={t} />
-        ))}
+        <ToastList toasts={toasts} onRemove={removeToast} t={t} />
       </div>
     </>
   );

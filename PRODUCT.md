@@ -36,7 +36,7 @@ WCAG AA compliance. Keyboard navigation throughout. Reduced motion support (pref
 
 ### Transactions
 
-- Quick Add: expense saved in seconds from the Home FAB; progressive disclosure keeps secondary fields (description, wallet, category, notes) behind an "Add details" toggle.
+- Quick Add: expense saved in seconds from the central Add action in the bottom nav; progressive disclosure keeps secondary fields (description, wallet, category, notes) behind an "Add details" toggle.
 - Suggestions: recent payees rank by frequency/recency, category suggestion follows the payee.
 - Templates: reusable transaction templates (name, amount, category, wallet, notes) fill the form in one tap.
 - Default wallet: configurable; falls back to last-used, then first valid wallet.

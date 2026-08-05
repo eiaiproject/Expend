@@ -55,7 +55,7 @@ export function ActionPickerSheet({
       onClose={onClose}
       title={t('Add Transaction')}
       ariaLabel={t('Choose action type')}
-      heightClass="h-auto max-h-[80vh]"
+      size="content"
     >
       <div className="px-3 py-4 space-y-3">
         {sorted.map(action => (

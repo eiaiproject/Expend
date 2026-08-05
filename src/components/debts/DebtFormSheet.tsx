@@ -261,7 +261,17 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
       onClose={onClose}
       title={titleText}
       ariaLabel={titleText}
-      heightClass="h-[90vh]"
+      size="full"
+      footer={step !== 'type' || isEdit ? (
+        <button
+          type="submit"
+          form={formId}
+          disabled={isSubmitting || hasInsufficientBalance}
+          className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] py-3 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
+        >
+          {getSubmitLabel(isEdit, isPayable, t)}
+        </button>
+      ) : undefined}
     >
       {step === 'type' && !isEdit ? (
         <div className="px-3 py-4 space-y-4">
@@ -298,7 +308,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
           </button>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="px-3 py-4 space-y-5">
+        <form id={formId} onSubmit={handleSubmit} className="px-3 py-4 space-y-5">
           {/* Person */}
           <div className="relative">
             <label htmlFor={`${formId}-person`} className="block text-sm font-medium mb-1">
@@ -461,17 +471,6 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
             <p className="mt-1 text-xs text-[var(--text-secondary)]">
               {getBalanceImpactNote(hasWalletMovement, isPayable, t)}
             </p>
-          </div>
-
-          {/* Submit */}
-          <div className="pt-2 pb-6">
-            <button
-              type="submit"
-              disabled={isSubmitting || hasInsufficientBalance}
-              className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] py-3 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
-            >
-              {getSubmitLabel(isEdit, isPayable, t)}
-            </button>
           </div>
         </form>
       )}

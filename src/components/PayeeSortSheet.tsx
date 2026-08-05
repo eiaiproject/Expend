@@ -49,6 +49,7 @@ export function PayeeSortSheet({ isOpen, onClose, sortConfig, onApply }: PayeeSo
       onClose={onClose}
       title={t('Sort Payees')}
       ariaLabel={t('Sort Payees')}
+      size="content"
     >
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
