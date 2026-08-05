@@ -255,8 +255,6 @@ body {
 .slide-in-from-top-4 { animation-name: expend-slide-down; }
 .zoom-in-95 { animation-name: expend-pop; }
 
-/* sm: variants — desktop dialogs pop instead of sliding (source order: later
-   name-class wins when combined; pop/slide keyframes include the fade) */
 @media (min-width: 640px) {
   .sm\:slide-in-from-bottom-4 { animation-name: expend-slide-up-sm; }
   .sm\:zoom-in-95 { animation-name: expend-pop; }

@@ -2,10 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BottomSheetShell } from '../BottomSheetShell';
 import { SheetFormFooter } from './SheetFormFooter';
+import { WalletColorPicker } from './WalletColorPicker';
 import { db, type Wallet } from '../../db/db';
 import { toast } from '../Toaster';
-
-const WALLET_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#64748b', '#78716c'];
 
 interface EditWalletSheetProps {
   readonly isOpen: boolean;
@@ -130,24 +129,7 @@ export function EditWalletSheet({ isOpen, onClose, wallet }: EditWalletSheetProp
         </div>
 
         {/* Color */}
-        <div>
-          <label className="block text-sm font-medium mb-2">{t('wallet.colorLabel')}</label>
-          <div className="flex flex-wrap gap-2">
-            {WALLET_COLORS.map((hex) => (
-              <button
-                key={hex}
-                type="button"
-                onClick={() => setColor(hex)}
-                className={`w-8 h-8 rounded-full transition-all ${
-                  color === hex ? 'ring-2 ring-offset-2 ring-[var(--accent)] scale-110' : 'hover:scale-110'
-                }`}
-                style={{ backgroundColor: hex }}
-                aria-label={hex}
-                aria-pressed={color === hex}
-              />
-            ))}
-          </div>
-        </div>
+        <WalletColorPicker value={color} onChange={setColor} />
 
         {/* Info: balance cannot be edited here */}
         <p className="text-xs text-[var(--text-secondary)] bg-[var(--bg)] rounded-lg px-3 py-2">

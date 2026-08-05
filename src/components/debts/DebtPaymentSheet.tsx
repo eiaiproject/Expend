@@ -6,7 +6,7 @@ import { db, type Debt, type Wallet } from '../../db/db';
 import { recordDebtPayment } from '../../services/debtService';
 import { getKnownErrorMessage, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '../../services/errors';
 import { getTodayStr } from '../../utils/dateUtils';
-import { formatCurrency, parseAmount, formatAmountInput } from '../../utils/formatUtils';
+import { formatCurrency, parseAmount } from '../../utils/formatUtils';
 import { AmountInput } from '../AmountInput';
 import { cn } from '../../utils/cn';
 import { BottomSheetShell } from '../BottomSheetShell';

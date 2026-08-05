@@ -195,6 +195,21 @@ function validateImportCounts(
   }
 }
 
+function validateWalletId(w: Record<string, unknown>, index: number, walletIds: Set<number>, errors: string[]): void {
+  if (w.id !== undefined && !isSafePositiveInteger(w.id)) {
+    errors.push(`Wallet ${index}: "id" must be a positive integer when present.`);
+  }
+  if (typeof w.id === 'number' && isSafePositiveInteger(w.id)) {
+    walletIds.add(w.id);
+  }
+}
+
+function validateWalletCurrentBalance(w: Record<string, unknown>, index: number, errors: string[]): void {
+  if (w.currentBalance !== undefined && !isFiniteMoney(w.currentBalance)) {
+    errors.push(`Wallet "${String(w.name) || index}": "currentBalance" must be a finite number within supported range when present.`);
+  }
+}
+
 /** Validate wallet records and return the set of referenced ids. */
 function validateWalletRecords(wallets: readonly unknown[], errors: string[]): Set<number> {
   const walletIds = new Set<number>();
@@ -204,12 +219,7 @@ function validateWalletRecords(wallets: readonly unknown[], errors: string[]): S
       errors.push(`Wallet ${i}: entry must be an object.`);
       continue;
     }
-    if (w.id !== undefined && !isSafePositiveInteger(w.id)) {
-      errors.push(`Wallet ${i}: "id" must be a positive integer when present.`);
-    }
-    if (typeof w.id === 'number' && isSafePositiveInteger(w.id)) {
-      walletIds.add(w.id);
-    }
+    validateWalletId(w, i, walletIds, errors);
     if (!isBoundedString(w.name, MAX_LENGTH.walletName)) {
       errors.push(`Wallet ${i}: "name" is required and must be a string up to ${MAX_LENGTH.walletName} characters.`);
     }
@@ -222,11 +232,18 @@ function validateWalletRecords(wallets: readonly unknown[], errors: string[]): S
     if (!isFiniteMoney(w.initialBalance)) {
       errors.push(`Wallet "${String(w.name) || i}": "initialBalance" must be a finite number within supported range.`);
     }
-    if (w.currentBalance !== undefined && !isFiniteMoney(w.currentBalance)) {
-      errors.push(`Wallet "${String(w.name) || i}": "currentBalance" must be a finite number within supported range when present.`);
-    }
+    validateWalletCurrentBalance(w, i, errors);
   }
   return walletIds;
+}
+
+function validateCategoryId(c: Record<string, unknown>, index: number, categoryIds: Set<number>, errors: string[]): void {
+  if (c.id !== undefined && !isSafePositiveInteger(c.id)) {
+    errors.push(`Category ${index}: "id" must be a positive integer when present.`);
+  }
+  if (typeof c.id === 'number' && isSafePositiveInteger(c.id)) {
+    categoryIds.add(c.id);
+  }
 }
 
 /** Validate category records and return the set of referenced ids. */
@@ -238,12 +255,7 @@ function validateCategoryRecords(categories: readonly unknown[], errors: string[
       errors.push(`Category ${i}: entry must be an object.`);
       continue;
     }
-    if (c.id !== undefined && !isSafePositiveInteger(c.id)) {
-      errors.push(`Category ${i}: "id" must be a positive integer when present.`);
-    }
-    if (typeof c.id === 'number' && isSafePositiveInteger(c.id)) {
-      categoryIds.add(c.id);
-    }
+    validateCategoryId(c, i, categoryIds, errors);
     if (!isBoundedString(c.name, MAX_LENGTH.categoryName)) {
       errors.push(`Category ${i}: "name" is required and must be a string up to ${MAX_LENGTH.categoryName} characters.`);
     }
@@ -260,6 +272,62 @@ function validateCategoryRecords(categories: readonly unknown[], errors: string[
   return categoryIds;
 }
 
+function validateTransactionId(tx: Record<string, unknown>, index: number, errors: string[]): void {
+  if (tx.id !== undefined && !isSafePositiveInteger(tx.id)) {
+    errors.push(`Transaction ${index}: "id" must be a positive integer when present.`);
+  }
+}
+
+function validateTransactionWallet(tx: Record<string, unknown>, index: number, walletIds: ReadonlySet<number>, errors: string[]): void {
+  if (!isSafePositiveInteger(tx.walletId)) {
+    errors.push(`Transaction ${index}: "walletId" is required and must be a positive integer.`);
+  } else if (!walletIds.has(tx.walletId)) {
+    errors.push(`Transaction ${index}: references wallet ID ${tx.walletId} which isn't in the import.`);
+  }
+}
+
+function validateTransactionType(tx: Record<string, unknown>, index: number, errors: string[]): void {
+  if (!tx.type || !(VALID_TX_TYPES as readonly string[]).includes(tx.type as string)) {
+    errors.push(`Transaction ${index}: "type" must be one of: ${VALID_TX_TYPES.join(', ')}.`);
+  }
+}
+
+function validateTransactionAmount(tx: Record<string, unknown>, index: number, errors: string[]): void {
+  if (tx.type === 'expense') {
+    if (!isFiniteMoney(tx.amount) || tx.amount <= 0) {
+      errors.push(`Transaction ${index}: "amount" must be a positive finite number for expenses.`);
+    }
+  } else if (tx.type === 'transfer_in' || tx.type === 'transfer_out') {
+    if (!isFiniteMoney(tx.amount) || tx.amount <= 0) {
+      errors.push(`Transaction ${index}: "amount" must be a positive finite number for transfers.`);
+    }
+  } else if (!isFiniteMoney(tx.amount)) {
+    errors.push(`Transaction ${index}: "amount" must be a finite number within supported range.`);
+  }
+}
+
+function validateTransactionCategory(tx: Record<string, unknown>, index: number, categoryIds: ReadonlySet<number>, errors: string[]): void {
+  if (tx.categoryId !== null && tx.categoryId !== undefined && typeof tx.categoryId !== 'number') {
+    errors.push(`Transaction ${index}: "categoryId" must be null or a number.`);
+  } else if (typeof tx.categoryId === 'number' && !isSafePositiveInteger(tx.categoryId)) {
+    errors.push(`Transaction ${index}: "categoryId" must be a positive integer when present.`);
+  } else if (tx.categoryId != null && !categoryIds.has(tx.categoryId)) {
+    errors.push(`Transaction ${index}: references category ID ${tx.categoryId} which isn't in the import.`);
+  }
+}
+
+function validateTransactionNotes(tx: Record<string, unknown>, index: number, errors: string[]): void {
+  if (tx.notes !== undefined && !isBoundedString(tx.notes, MAX_LENGTH.notes, true)) {
+    errors.push(`Transaction ${index}: "notes" must be a string up to ${MAX_LENGTH.notes} characters.`);
+  }
+}
+
+function validateTransactionTransferGroup(tx: Record<string, unknown>, index: number, errors: string[]): void {
+  if (tx.transferGroupId !== undefined && !isBoundedString(tx.transferGroupId, MAX_LENGTH.transferGroupId)) {
+    errors.push(`Transaction ${index}: "transferGroupId" must be a string up to ${MAX_LENGTH.transferGroupId} characters.`);
+  }
+}
+
 function validateTransactionRecords(
   transactions: readonly unknown[],
   walletIds: ReadonlySet<number>,
@@ -272,47 +340,39 @@ function validateTransactionRecords(
       errors.push(`Transaction ${i}: entry must be an object.`);
       continue;
     }
-    if (tx.id !== undefined && !isSafePositiveInteger(tx.id)) {
-      errors.push(`Transaction ${i}: "id" must be a positive integer when present.`);
-    }
-    if (!isSafePositiveInteger(tx.walletId)) {
-      errors.push(`Transaction ${i}: "walletId" is required and must be a positive integer.`);
-    } else if (!walletIds.has(tx.walletId)) {
-      errors.push(`Transaction ${i}: references wallet ID ${tx.walletId} which isn't in the import.`);
-    }
+    validateTransactionId(tx, i, errors);
+    validateTransactionWallet(tx, i, walletIds, errors);
     if (!isValidDateOnly(tx.date)) {
       errors.push(`Transaction ${i}: "date" must be a YYYY-MM-DD string.`);
     }
     if (!isBoundedString(tx.description, MAX_LENGTH.description)) {
       errors.push(`Transaction ${i}: "description" is required and must be up to ${MAX_LENGTH.description} characters.`);
     }
-    if (!tx.type || !(VALID_TX_TYPES as readonly string[]).includes(tx.type as string)) {
-      errors.push(`Transaction ${i}: "type" must be one of: ${VALID_TX_TYPES.join(', ')}.`);
-    }
-    if (tx.type === 'expense') {
-      if (!isFiniteMoney(tx.amount) || tx.amount <= 0) {
-        errors.push(`Transaction ${i}: "amount" must be a positive finite number for expenses.`);
-      }
-    } else if (tx.type === 'transfer_in' || tx.type === 'transfer_out') {
-      if (!isFiniteMoney(tx.amount) || tx.amount <= 0) {
-        errors.push(`Transaction ${i}: "amount" must be a positive finite number for transfers.`);
-      }
-    } else if (!isFiniteMoney(tx.amount)) {
-      errors.push(`Transaction ${i}: "amount" must be a finite number within supported range.`);
-    }
-    if (tx.categoryId !== null && tx.categoryId !== undefined && typeof tx.categoryId !== 'number') {
-      errors.push(`Transaction ${i}: "categoryId" must be null or a number.`);
-    } else if (typeof tx.categoryId === 'number' && !isSafePositiveInteger(tx.categoryId)) {
-      errors.push(`Transaction ${i}: "categoryId" must be a positive integer when present.`);
-    } else if (tx.categoryId != null && !categoryIds.has(tx.categoryId)) {
-      errors.push(`Transaction ${i}: references category ID ${tx.categoryId} which isn't in the import.`);
-    }
-    if (tx.notes !== undefined && !isBoundedString(tx.notes, MAX_LENGTH.notes, true)) {
-      errors.push(`Transaction ${i}: "notes" must be a string up to ${MAX_LENGTH.notes} characters.`);
-    }
-    if (tx.transferGroupId !== undefined && !isBoundedString(tx.transferGroupId, MAX_LENGTH.transferGroupId)) {
-      errors.push(`Transaction ${i}: "transferGroupId" must be a string up to ${MAX_LENGTH.transferGroupId} characters.`);
-    }
+    validateTransactionType(tx, i, errors);
+    validateTransactionAmount(tx, i, errors);
+    validateTransactionCategory(tx, i, categoryIds, errors);
+    validateTransactionNotes(tx, i, errors);
+    validateTransactionTransferGroup(tx, i, errors);
+  }
+}
+
+function validateDebtId(debt: Record<string, unknown>, index: number, debtIds: Set<string>, errors: string[]): void {
+  if (!isBoundedString(debt.id, MAX_LENGTH.debtId)) {
+    errors.push(`Debt ${index}: "id" is required and must be a bounded string.`);
+  } else {
+    debtIds.add(debt.id);
+  }
+}
+
+function validateDebtWallet(debt: Record<string, unknown>, index: number, walletIds: ReadonlySet<number>, errors: string[]): void {
+  if (!isSafePositiveInteger(debt.walletId) || !walletIds.has(debt.walletId)) {
+    errors.push(`Debt ${index}: references an unknown wallet.`);
+  }
+}
+
+function validateDebtDueDate(debt: Record<string, unknown>, index: number, errors: string[]): void {
+  if (debt.dueDate !== null && debt.dueDate !== undefined && !isValidDateOnly(debt.dueDate)) {
+    errors.push(`Debt ${index}: "dueDate" must be null or a YYYY-MM-DD string.`);
   }
 }
 
@@ -329,11 +389,7 @@ function validateDebtRecords(
       errors.push(`Debt ${i}: entry must be an object.`);
       continue;
     }
-    if (!isBoundedString(debt.id, MAX_LENGTH.debtId)) {
-      errors.push(`Debt ${i}: "id" is required and must be a bounded string.`);
-    } else {
-      debtIds.add(debt.id);
-    }
+    validateDebtId(debt, i, debtIds, errors);
     if (debt.type !== 'payable' && debt.type !== 'receivable') {
       errors.push(`Debt ${i}: "type" must be payable or receivable.`);
     }
@@ -346,15 +402,11 @@ function validateDebtRecords(
     if (!isFiniteMoney(debt.remainingAmount)) {
       errors.push(`Debt ${i}: "remainingAmount" must be a finite number.`);
     }
-    if (!isSafePositiveInteger(debt.walletId) || !walletIds.has(debt.walletId)) {
-      errors.push(`Debt ${i}: references an unknown wallet.`);
-    }
+    validateDebtWallet(debt, i, walletIds, errors);
     if (!isValidDateOnly(debt.startDate)) {
       errors.push(`Debt ${i}: "startDate" must be a YYYY-MM-DD string.`);
     }
-    if (debt.dueDate !== null && debt.dueDate !== undefined && !isValidDateOnly(debt.dueDate)) {
-      errors.push(`Debt ${i}: "dueDate" must be null or a YYYY-MM-DD string.`);
-    }
+    validateDebtDueDate(debt, i, errors);
   }
   return debtIds;
 }

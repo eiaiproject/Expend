@@ -145,7 +145,6 @@ function MiniLineChart({ data, hideAmount, onSelect }: { readonly data: TrendPoi
     return { x, y, ...item };
   });
   const labels = data.filter((_, index) => index === 0 || index === data.length - 1 || index === Math.floor((data.length - 1) / 2));
-  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
 
   return (
     <div className="relative h-full">
@@ -228,6 +227,65 @@ function DataTableToggle({ label, children }: { readonly label: string; readonly
   );
 }
 
+// ── Shared card/table/chart building blocks (CPD-clean) ──────────
+
+function StatsCard({ title, titleClassName, summary, children }: {
+  readonly title: React.ReactNode;
+  readonly titleClassName?: string;
+  readonly summary: string;
+  readonly children: React.ReactNode;
+}) {
+  return (
+    <figure className="bg-[var(--card)] p-4 rounded-[16px] shadow-sm border border-[var(--border)]">
+      <figcaption>
+        <h2 className={`text-sm font-bold ${titleClassName ?? 'mb-1'} text-[var(--text-secondary)] uppercase tracking-wider`}>{title}</h2>
+        <p className="sr-only">{summary}</p>
+      </figcaption>
+      {children}
+    </figure>
+  );
+}
+
+function ChartArea({ isLoading, summary, chart, className = 'h-48' }: {
+  readonly isLoading: boolean;
+  readonly summary: string;
+  readonly chart: React.ReactNode;
+  readonly className?: string;
+}) {
+  return (
+    <div className={className} role="img" aria-label={summary}>
+      {isLoading ? <Skeleton className="w-full h-full rounded-lg" /> : chart}
+    </div>
+  );
+}
+
+function StatsTh({ align = 'left', children }: { readonly align?: 'left' | 'right'; readonly children: React.ReactNode }) {
+  return (
+    <th scope="col" className={`${align === 'right' ? 'text-right' : 'text-left'} py-2 font-bold text-[var(--text-secondary)]`}>
+      {children}
+    </th>
+  );
+}
+
+function StatsDataTable({ caption, headers, rows }: {
+  readonly caption: string;
+  readonly headers: React.ReactNode;
+  readonly rows: React.ReactNode;
+}) {
+  const { t } = useTranslation();
+  return (
+    <DataTableToggle label={t('stats.viewData')}>
+      <table className="w-full text-xs mt-2">
+        <caption className="sr-only">{caption}</caption>
+        <thead>
+          <tr className="border-b border-[var(--border)]">{headers}</tr>
+        </thead>
+        <tbody>{rows}</tbody>
+      </table>
+    </DataTableToggle>
+  );
+}
+
 // ── Stats sections (kept as components to keep StatsView lean) ──
 
 function getPeriodLabel(period: Period, t: (key: string) => string): string {
@@ -296,46 +354,32 @@ function MonthlyComparisonSection({
     .map(item => `${item.month}: ${hideAmount ? t('stats.amountHidden') : formatCurrency(item.amount)}`)
     .join(', ');
   return (
-    <figure className="bg-[var(--card)] p-4 rounded-[16px] shadow-sm border border-[var(--border)]">
-      <figcaption>
-        <h2 className="text-sm font-bold mb-1 text-[var(--text-secondary)] uppercase tracking-wider">{t('stats.monthlyComparison')}</h2>
-        <p className="sr-only">{summary}</p>
-      </figcaption>
-      <div className="h-48" role="img" aria-label={summary}>
-        {isLoading ? (
-          <Skeleton className="w-full h-full rounded-lg" />
-        ) : (
-          <MiniBarChart data={data} hideAmount={hideAmount} onSelect={onDrillDown} />
-        )}
-      </div>
-      <DataTableToggle label={t('stats.viewData')}>
-        <table className="w-full text-xs mt-2">
-          <caption className="sr-only">{t('stats.monthlyComparison')}</caption>
-          <thead>
-            <tr className="border-b border-[var(--border)]">
-              <th scope="col" className="text-left py-2 font-bold text-[var(--text-secondary)]">{t('stats.tablePeriod')}</th>
-              <th scope="col" className="text-right py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableSpending')}</th>
-              <th scope="col" className="text-right py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableTransactions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map(item => {
-              const monthKey = toMonthKey(new Date(item.year, item.monthIndex, 1));
-              const count = expenseAggregates.byMonth.get(monthKey) !== undefined
-                ? (allTransactions ?? []).filter(tx => tx.type === 'expense' && getMonthPrefix(normaliseDate(tx.date)) === monthKey).length
-                : 0;
-              return (
-                <tr key={`${item.year}-${item.monthIndex}`} className="border-b border-[var(--border)]">
-                  <td className="py-1.5">{item.month} {item.year}</td>
-                  <td className="py-1.5 text-right font-mono">{hideAmount ? '•••••' : formatCurrency(item.amount)}</td>
-                  <td className="py-1.5 text-right font-mono">{count}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </DataTableToggle>
-    </figure>
+    <StatsCard title={t('stats.monthlyComparison')} summary={summary}>
+      <ChartArea isLoading={isLoading} summary={summary} chart={<MiniBarChart data={data} hideAmount={hideAmount} onSelect={onDrillDown} />} />
+      <StatsDataTable
+        caption={t('stats.monthlyComparison')}
+        headers={<>
+          <StatsTh>{t('stats.tablePeriod')}</StatsTh>
+          <StatsTh align="right">{t('stats.tableSpending')}</StatsTh>
+          <StatsTh align="right">{t('stats.tableTransactions')}</StatsTh>
+        </>}
+        rows={<>
+          {data.map(item => {
+            const monthKey = toMonthKey(new Date(item.year, item.monthIndex, 1));
+            const count = expenseAggregates.byMonth.get(monthKey) !== undefined
+              ? (allTransactions ?? []).filter(tx => tx.type === 'expense' && getMonthPrefix(normaliseDate(tx.date)) === monthKey).length
+              : 0;
+            return (
+              <tr key={`${item.year}-${item.monthIndex}`} className="border-b border-[var(--border)]">
+                <td className="py-1.5">{item.month} {item.year}</td>
+                <td className="py-1.5 text-right font-mono">{hideAmount ? '•••••' : formatCurrency(item.amount)}</td>
+                <td className="py-1.5 text-right font-mono">{count}</td>
+              </tr>
+            );
+          })}
+        </>}
+      />
+    </StatsCard>
   );
 }
 
@@ -364,11 +408,7 @@ function SpendingTrendSection({
     .map(item => `${item.date}: ${hideAmount ? t('stats.amountHidden') : formatCurrency(item.amount)}`)
     .join(', ');
   return (
-    <figure className="bg-[var(--card)] p-4 rounded-[16px] shadow-sm border border-[var(--border)]">
-      <figcaption>
-        <h2 className="text-sm font-bold mb-1 text-[var(--text-secondary)] uppercase tracking-wider">{t('stats.spendingTrend')} · {periodLabel}</h2>
-        <p className="sr-only">{summary}</p>
-      </figcaption>
+    <StatsCard title={<>{t('stats.spendingTrend')} · {periodLabel}</>} summary={summary}>
       {showInsufficientTrend ? (
         <div className="py-8 text-center">
           <p className="text-sm font-bold text-[var(--text-secondary)]">{t('stats.trendNotEnough')}</p>
@@ -376,35 +416,25 @@ function SpendingTrendSection({
         </div>
       ) : (
         <>
-          <div className="h-48" role="img" aria-label={summary}>
-            {isLoading ? (
-              <Skeleton className="w-full h-full rounded-lg" />
-            ) : (
-              <MiniLineChart data={trendData} hideAmount={hideAmount} onSelect={onDrillDown} />
-            )}
-          </div>
-          <DataTableToggle label={t('stats.viewData')}>
-            <table className="w-full text-xs mt-2">
-              <caption className="sr-only">{t('stats.spendingTrend')}</caption>
-              <thead>
-                <tr className="border-b border-[var(--border)]">
-                  <th scope="col" className="text-left py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableDate')}</th>
-                  <th scope="col" className="text-right py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableSpending')}</th>
+          <ChartArea isLoading={isLoading} summary={summary} chart={<MiniLineChart data={trendData} hideAmount={hideAmount} onSelect={onDrillDown} />} />
+          <StatsDataTable
+            caption={t('stats.spendingTrend')}
+            headers={<>
+              <StatsTh>{t('stats.tableDate')}</StatsTh>
+              <StatsTh align="right">{t('stats.tableSpending')}</StatsTh>
+            </>}
+            rows={<>
+              {trendData.filter(p => p.amount > 0).map(point => (
+                <tr key={point.rawDate} className="border-b border-[var(--border)]">
+                  <td className="py-1.5">{point.date}</td>
+                  <td className="py-1.5 text-right font-mono">{hideAmount ? '•••••' : formatCurrency(point.amount)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {trendData.filter(p => p.amount > 0).map(point => (
-                  <tr key={point.rawDate} className="border-b border-[var(--border)]">
-                    <td className="py-1.5">{point.date}</td>
-                    <td className="py-1.5 text-right font-mono">{hideAmount ? '•••••' : formatCurrency(point.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </DataTableToggle>
+              ))}
+            </>}
+          />
         </>
       )}
-    </figure>
+    </StatsCard>
   );
 }
 
@@ -431,11 +461,7 @@ function CategoryBreakdownSection({
     ? data.map(item => `${item.name}: ${hideAmount ? t('stats.amountHidden') : formatCurrency(item.value)}`).join(', ')
     : t('No transactions in this view');
   return (
-    <figure className="bg-[var(--card)] p-4 rounded-[16px] shadow-sm border border-[var(--border)]">
-      <figcaption>
-        <h2 className="text-sm font-bold mb-4 text-[var(--text-secondary)] uppercase tracking-wider">{t('stats.spendingByCategory')}</h2>
-      </figcaption>
-
+    <StatsCard title={t('stats.spendingByCategory')} titleClassName="mb-4" summary={summary}>
       {activeCategoryCount === 1 ? (
         /* Single category — no donut */
         <div className="py-4 text-center">
@@ -487,38 +513,34 @@ function CategoryBreakdownSection({
         </>
       )}
 
-      <DataTableToggle label={t('stats.viewData')}>
-        <table className="w-full text-xs mt-2">
-          <caption className="sr-only">{t('stats.spendingByCategory')}</caption>
-          <thead>
-            <tr className="border-b border-[var(--border)]">
-              <th scope="col" className="text-left py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableCategory')}</th>
-              <th scope="col" className="text-right py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableSpending')}</th>
-              <th scope="col" className="text-right py-2 font-bold text-[var(--text-secondary)]">{t('stats.tablePercentage')}</th>
-              <th scope="col" className="text-right py-2 font-bold text-[var(--text-secondary)]">{t('stats.tableTransactions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map(item => {
-              const count = filteredTransactions.filter(tx => tx.categoryId === item.id).length;
-              return (
-                <tr key={item.id ?? 'other'} className="border-b border-[var(--border)]">
-                  <td className="py-1.5 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} aria-hidden="true" />
-                    {item.name}
-                  </td>
-                  <td className="py-1.5 text-right font-mono">{hideAmount ? '•••••' : formatCurrency(item.value)}</td>
-                  <td className="py-1.5 text-right font-mono">
-                    {categoryTotal > 0 ? `${Math.round((item.value / categoryTotal) * 100)}%` : '—'}
-                  </td>
-                  <td className="py-1.5 text-right font-mono">{count}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </DataTableToggle>
-    </figure>
+      <StatsDataTable
+        caption={t('stats.spendingByCategory')}
+        headers={<>
+          <StatsTh>{t('stats.tableCategory')}</StatsTh>
+          <StatsTh align="right">{t('stats.tableSpending')}</StatsTh>
+          <StatsTh align="right">{t('stats.tablePercentage')}</StatsTh>
+          <StatsTh align="right">{t('stats.tableTransactions')}</StatsTh>
+        </>}
+        rows={<>
+          {data.map(item => {
+            const count = filteredTransactions.filter(tx => tx.categoryId === item.id).length;
+            return (
+              <tr key={item.id ?? 'other'} className="border-b border-[var(--border)]">
+                <td className="py-1.5 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} aria-hidden="true" />
+                  {item.name}
+                </td>
+                <td className="py-1.5 text-right font-mono">{hideAmount ? '•••••' : formatCurrency(item.value)}</td>
+                <td className="py-1.5 text-right font-mono">
+                  {categoryTotal > 0 ? `${Math.round((item.value / categoryTotal) * 100)}%` : '—'}
+                </td>
+                <td className="py-1.5 text-right font-mono">{count}</td>
+              </tr>
+            );
+          })}
+        </>}
+      />
+    </StatsCard>
   );
 }
 

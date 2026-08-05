@@ -6,7 +6,7 @@ import { db, type Schedule, type ScheduleFrequency, type ScheduleMode, type Wall
 import { createSchedule, updateSchedule } from '../services/recurringService';
 import { getKnownErrorMessage } from '../services/errors';
 import { getTodayStr } from '../utils/dateUtils';
-import { formatAmountInput, parseAmount } from '../utils/formatUtils';
+import { parseAmount } from '../utils/formatUtils';
 import { AmountInput } from './AmountInput';
 import { cn } from '../utils/cn';
 import { BottomSheetShell } from './BottomSheetShell';

@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useEscapeKeyClose } from '../hooks/useEscapeKeyClose';
 import { Coffee, Keyboard, X } from 'reicon-react';
 import { useTranslation } from 'react-i18next';

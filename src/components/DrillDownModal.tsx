@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { useEffect } from 'react';
 import { useEscapeKeyClose } from '../hooks/useEscapeKeyClose';
 import { Transaction } from '../db/db';
 import { FALLBACK_CATEGORY_NAME } from '../utils/constants';

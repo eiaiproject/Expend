@@ -3,7 +3,6 @@ import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
 import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Wallet } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { type Transaction } from '../db/db';
 import { cn } from '../utils/cn';
 import { PRESET_AMOUNTS } from '../utils/constants';
@@ -51,7 +50,6 @@ export function TransactionFormSheet({
     !initialFromWalletId &&
     !initialToWalletId;
   const [showDetails, setShowDetails] = useState(!isQuickAdd);
-  const navigate = useNavigate();
 
   // master.md 8.4: closing the sheet (backdrop, Escape, X) with unsaved
   // changes requires explicit confirmation. Successful saves call onClose

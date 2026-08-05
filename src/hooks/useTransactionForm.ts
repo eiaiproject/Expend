@@ -203,6 +203,26 @@ async function submitExpense(
   }
 }
 
+/** Most frequently used category id among the given payee transactions. */
+function findMostCommonCategory(payeeTxs: readonly Transaction[]): number | null {
+  const counts = new Map<number, number>();
+  for (const t of payeeTxs) {
+    if (t.categoryId != null) counts.set(t.categoryId, (counts.get(t.categoryId) ?? 0) + 1);
+  }
+  let bestId: number | null = null;
+  let bestCount = 0;
+  for (const [id, count] of counts.entries()) {
+    if (count > bestCount) { bestId = id; bestCount = count; }
+  }
+  return bestId;
+}
+
+/** Most recent (by date) active wallet used for the given payee transactions. */
+function findLastUsedWallet(payeeTxs: readonly Transaction[], wallets: readonly Wallet[]): Wallet | undefined {
+  const sorted = [...payeeTxs].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+  return wallets.find((w) => w.id === sorted[0]?.walletId && !w.archivedAt);
+}
+
 export function useTransactionForm({
   isOpen,
   txToEdit,
@@ -455,20 +475,11 @@ export function useTransactionForm({
     );
     if (payeeTxs.length > 0) {
       // Last-used valid wallet (most recent first, active wallet only)
-      const sorted = [...payeeTxs].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
-      const lastWallet = wallets.find((w) => w.id === sorted[0]?.walletId && !w.archivedAt);
+      const lastWallet = findLastUsedWallet(payeeTxs, wallets);
       if (lastWallet?.id) setWalletId(lastWallet.id.toString());
 
       // Most common category for the payee
-      const counts = new Map<number, number>();
-      for (const t of payeeTxs) {
-        if (t.categoryId != null) counts.set(t.categoryId, (counts.get(t.categoryId) ?? 0) + 1);
-      }
-      let bestId: number | null = null;
-      let bestCount = 0;
-      for (const [id, count] of counts.entries()) {
-        if (count > bestCount) { bestId = id; bestCount = count; }
-      }
+      const bestId = findMostCommonCategory(payeeTxs);
       const cat = bestId != null ? categories.find((c) => c.id === bestId) : undefined;
       if (cat && !manualCategoryPick) {
         categoryTouchedRef.current = true;
