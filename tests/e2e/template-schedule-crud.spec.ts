@@ -75,17 +75,23 @@ test.describe('template CRUD', () => {
       .getByRole('button', { name: new RegExp(tplName, 'i') });
     await expect(chip2).toBeVisible();
     // Let the sheet's slide-up animation finish so the chip is stationary.
-    await page.waitForTimeout(450);
+    await page.waitForFunction(
+      () => [...document.querySelectorAll('dialog[open]')]
+        .every((dialog) => dialog.getAnimations().every((animation) => animation.playState === 'finished')),
+      undefined,
+      { timeout: 5_000 },
+    );
 
     const box = await chip2.boundingBox();
     if (!box) throw new Error('template chip has no bounding box');
+    const confirmDialog = page.locator('dialog').filter({ hasText: /delete template/i });
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
-    await page.waitForTimeout(900);
+    // The long-press fires 600ms after pointer-down: wait for the delete
+    // confirmation dialog while the pointer is still held (no fixed waits).
+    await expect(confirmDialog).toBeVisible({ timeout: 5_000 });
     await page.mouse.up();
 
-    const confirmDialog = page.locator('dialog').filter({ hasText: /delete template/i });
-    await expect(confirmDialog).toBeVisible({ timeout: 5_000 });
     await confirmDialog.getByRole('button', { name: /^delete$/i }).click();
     await expect(page.getByRole('status').filter({ visible: true }).getByText('Template deleted')).toBeVisible({ timeout: 5_000 });
     // Templates row unmounts when the last template is deleted.
