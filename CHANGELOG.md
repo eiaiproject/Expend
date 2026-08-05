@@ -2,6 +2,12 @@
 
 All notable changes to Expend are documented here.
 
+## 1.16.2 - 2026-08-05
+### Changed
+
+- Reduce DebtFormSheet cognitive complexity and dedupe wallet sheets
+
+
 ## 1.16.1 - 2026-08-05
 ### Changed
 

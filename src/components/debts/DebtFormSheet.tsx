@@ -1,17 +1,18 @@
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Wallet, Ban } from 'reicon-react';
+import { ArrowDownLeft, ArrowUpRight } from 'reicon-react';
 import { db, type Debt, type DebtType, type Wallet as WalletType } from '../../db/db';
 import { createDebt, updateDebt } from '../../services/debtService';
-import { getKnownErrorMessage, INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '../../services/errors';
+import { getKnownErrorMessage } from '../../services/errors';
 import { getTodayStr } from '../../utils/dateUtils';
 import { formatCurrency, parseAmount, formatAmountInput } from '../../utils/formatUtils';
 import { cn } from '../../utils/cn';
 import { BottomSheetShell } from '../BottomSheetShell';
 import { DatePicker } from '../DatePicker';
 import { toast } from '../Toaster';
-import { WalletSelect } from '../WalletSelect';
+import { PersonNameField } from './PersonNameField';
+import { WalletMovementSection } from './WalletMovementSection';
 
 interface DebtFormSheetProps {
   readonly isOpen: boolean;
@@ -53,28 +54,25 @@ function getSubmitLabel(isEdit: boolean, isPayable: boolean, t: (key: string) =>
   return isPayable ? t('Save Payable') : t('Save Receivable');
 }
 
-function navigatePersonSuggestions(
-  e: KeyboardEvent<HTMLInputElement>,
-  suggestions: readonly string[],
-  showSuggestions: boolean,
-  suggestionIndexRef: React.RefObject<number>,
-  onSelect: (name: string) => void,
-  onClose: () => void,
-): void {
-  if (!showSuggestions || suggestions.length === 0) return;
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    suggestionIndexRef.current = Math.min(suggestionIndexRef.current + 1, suggestions.length - 1);
-    onSelect(suggestions[suggestionIndexRef.current]!);
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    suggestionIndexRef.current = Math.max(suggestionIndexRef.current - 1, 0);
-    onSelect(suggestions[suggestionIndexRef.current]!);
-  } else if (e.key === 'Enter' && suggestionIndexRef.current >= 0) {
-    e.preventDefault();
-    onSelect(suggestions[suggestionIndexRef.current]!);
-    onClose();
-  }
+function getWalletBalance(wallet: WalletType | undefined): number {
+  if (!wallet) return 0;
+  return wallet.currentBalance ?? wallet.initialBalance;
+}
+
+function hasInsufficientWalletBalance(
+  isEdit: boolean,
+  isPayable: boolean,
+  rawAmount: number,
+  selectedWallet: WalletType | undefined,
+  walletBalance: number,
+): boolean {
+  return isEdit && !isPayable && rawAmount > 0 && selectedWallet != null && rawAmount > walletBalance;
+}
+
+function getImpactColor(hasWalletMovement: boolean, isPayable: boolean): string {
+  if (!hasWalletMovement) return 'text-[var(--text-secondary)]';
+  if (isPayable) return 'text-[var(--accent)]';
+  return 'text-amber-500';
 }
 
 export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit = null }: DebtFormSheetProps) {
@@ -98,9 +96,6 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
   const [noDueDate, setNoDueDate] = useState(false);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPersonSuggestions, setShowPersonSuggestions] = useState(false);
-  const personInputRef = useRef<HTMLInputElement>(null);
-  const suggestionIndexRef = useRef(-1);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -156,48 +151,8 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
 
   const rawAmount = parseAmount(amount);
   const isPayable = type === 'payable';
-  const walletBalance = selectedWallet ? (selectedWallet.currentBalance ?? selectedWallet.initialBalance) : 0;
-  const hasInsufficientBalance = isEdit && !isPayable && rawAmount > 0 && selectedWallet != null && rawAmount > walletBalance;
-
-  const personSuggestionsList = showPersonSuggestions && personSuggestions.length > 0 ? (
-    <ul className="absolute z-10 mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] py-1 shadow-lg max-h-48 overflow-auto">
-      {personSuggestions.map((name) => (
-        <li key={name}>
-          <button
-            type="button"
-            onMouseDown={() => {
-              setPersonName(name);
-              setShowPersonSuggestions(false);
-            }}
-            className="w-full px-4 py-2 text-left text-sm hover:bg-[var(--bg)] transition-colors"
-          >
-            {name}
-          </button>
-        </li>
-      ))}
-    </ul>
-  ) : null;
-
-  const walletMovementField = hasWalletMovement ? (
-    <div>
-      <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
-        {isPayable ? t('Money into wallet') : t('Money from wallet')} *
-      </label>
-      <WalletSelect
-        id={`${formId}-wallet`}
-        value={walletId}
-        wallets={wallets}
-        placeholder={t('Select wallet')}
-        onChange={setWalletId}
-      />
-      {hasInsufficientBalance && (
-        <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300">
-          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-          <span>{t(INSUFFICIENT_WALLET_BALANCE_MESSAGE)}</span>
-        </div>
-      )}
-    </div>
-  ) : null;
+  const walletBalance = getWalletBalance(selectedWallet);
+  const hasInsufficientBalance = hasInsufficientWalletBalance(isEdit, isPayable, rawAmount, selectedWallet, walletBalance);
 
   const titleText = getSheetTitle(isEdit, isPayable, step, t);
 
@@ -210,14 +165,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
     t,
   );
 
-  let impactColor: string;
-  if (!hasWalletMovement) {
-    impactColor = 'text-[var(--text-secondary)]';
-  } else if (isPayable) {
-    impactColor = 'text-[var(--accent)]';
-  } else {
-    impactColor = 'text-amber-500';
-  }
+  const impactColor = getImpactColor(hasWalletMovement, isPayable);
 
   const handleSelectType = (nextType: DebtType) => {
     setType(nextType);
@@ -310,35 +258,12 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
       ) : (
         <form id={formId} onSubmit={handleSubmit} className="px-3 py-4 space-y-5">
           {/* Person */}
-          <div className="relative">
-            <label htmlFor={`${formId}-person`} className="block text-sm font-medium mb-1">
-              {t('debt.formPerson')} *
-            </label>
-            <input
-              ref={personInputRef}
-              id={`${formId}-person`}
-              type="text"
-              required
-              value={personName}
-              onChange={(event) => {
-                setPersonName(event.target.value);
-                setShowPersonSuggestions(true);
-              }}
-              onFocus={() => setShowPersonSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowPersonSuggestions(false), 150)}
-              onKeyDown={(e) => navigatePersonSuggestions(
-                e,
-                personSuggestions,
-                showPersonSuggestions,
-                suggestionIndexRef,
-                setPersonName,
-                () => setShowPersonSuggestions(false),
-              )}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-              autoComplete="off"
-            />
-            {personSuggestionsList}
-          </div>
+          <PersonNameField
+            id={`${formId}-person`}
+            value={personName}
+            suggestions={personSuggestions}
+            onChange={setPersonName}
+          />
 
           {/* Title */}
           <div>
@@ -378,43 +303,16 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
           </div>
 
           {/* Wallet movement */}
-          <div>
-            <p className="block text-sm font-medium mb-2">
-              {isPayable ? t('debt.formFundsReceived') : t('debt.formFundsProvided')}
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setHasWalletMovement(true)}
-                className={cn(
-                  'flex items-center gap-2 rounded-xl border px-3 py-3 text-sm font-bold transition-colors',
-                  hasWalletMovement
-                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
-                    : 'border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)]',
-                )}
-                aria-pressed={hasWalletMovement}
-              >
-                <Wallet size={16} />
-                {t('debt.formYesWallet')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setHasWalletMovement(false)}
-                className={cn(
-                  'flex items-center gap-2 rounded-xl border px-3 py-3 text-sm font-bold transition-colors',
-                  !hasWalletMovement
-                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
-                    : 'border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)]',
-                )}
-                aria-pressed={!hasWalletMovement}
-              >
-                <Ban size={16} />
-                {t('debt.formNoWallet')}
-              </button>
-            </div>
-          </div>
-
-          {walletMovementField}
+          <WalletMovementSection
+            formId={formId}
+            isPayable={isPayable}
+            hasWalletMovement={hasWalletMovement}
+            onToggle={setHasWalletMovement}
+            walletId={walletId}
+            onWalletChange={setWalletId}
+            wallets={wallets}
+            hasInsufficientBalance={hasInsufficientBalance}
+          />
 
           {/* Dates */}
           <DatePicker
