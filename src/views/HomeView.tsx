@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback, Suspense, lazy, useRef } from 'react';
+import { useEffect, useState, useMemo, useCallback, Suspense, lazy } from 'react';
 import { useOverflow } from '../hooks/useOverflow';
 import { useKeyboardShortcutGuard } from '../hooks/useKeyboardShortcut';
 import { useTranslation } from 'react-i18next';

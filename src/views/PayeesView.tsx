@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Merchant } from '../db/db';
