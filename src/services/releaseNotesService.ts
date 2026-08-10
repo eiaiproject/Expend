@@ -28,6 +28,10 @@ export interface ReleaseNote {
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.16.3',
+    items: ['whatsNew.1_16_3_1'],
+  },
+  {
     version: '1.16.2',
     items: ['whatsNew.1_16_2_1'],
   },

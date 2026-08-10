@@ -1,17 +1,11 @@
 # Expend — Privacy-First Offline Expense Tracker PWA
 
 <p align="center">
-  <img src="docs/screenshots/home.png" alt="Expend home dashboard" width="600">
+  <a href="https://expend.pages.dev/">Live Demo</a>
 </p>
 
 <p align="center">
-  <a href="https://expend.pages.dev/">Live Demo</a> ·
-  <a href="docs/screenshots/">Screenshots</a> ·
-  <a href="CHANGELOG.md">Changelog</a>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/version-1.16.2-teal" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.16.3-teal" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react" alt="React 19">
   <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
@@ -22,17 +16,9 @@
 
 Expend is a local-first personal finance tracker for expenses, budgets, wallets, debts, receivables, and monthly reports. Built as an offline-capable Progressive Web App (PWA). Stores all financial data locally in IndexedDB — no account, no cloud sync, no tracking.
 
-## Screenshots
-
-| | | |
-|---|---|---|
-| <img src="docs/screenshots/home.png" width="200" alt="Home"> | <img src="docs/screenshots/wallets.png" width="200" alt="Wallets"> | <img src="docs/screenshots/debts.png" width="200" alt="Debts"> |
-| <img src="docs/screenshots/stats.png" width="200" alt="Stats"> | <img src="docs/screenshots/payees.png" width="200" alt="Payees"> | <img src="docs/screenshots/add-expense.png" width="200" alt="Add expense"> |
-
 ## Table of Contents
 
 - [Why Expend](#why-expend)
-- [Screenshots](#screenshots)
 - [Features](#features)
 - [Privacy and Data Ownership](#privacy-and-data-ownership)
 - [Backup and Restore](#backup-and-restore)
@@ -47,7 +33,6 @@ Expend is a local-first personal finance tracker for expenses, budgets, wallets,
 - [Project Structure](#project-structure)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
-- [Changelog](#changelog)
 - [License](#license)
 
 ## Why Expend
@@ -226,10 +211,6 @@ tests/
 4. Run the relevant quality checks.
 5. Commit using Conventional Commits, for example `fix: repair debt migration`.
 6. Open a pull request.
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## Author
 
