@@ -22,7 +22,7 @@ export const DEFAULT_CATEGORIES = [
   { nameKey: 'Default Category Other', color: '#64748B' },
 ] as const;
 
-/** App version displayed in InfoPopup and Settings. Derived from package.json via Vite define. */
+/** App version displayed in Settings. Derived from package.json via Vite define. */
 export const APP_VERSION = `v${__APP_VERSION__}`;
 
 /** Sentinel name used for fallback categories (displayed as "Other"). */
