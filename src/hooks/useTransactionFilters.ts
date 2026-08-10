@@ -11,7 +11,7 @@ export interface FilterState {
   endDate: string;
   minAmount: string;
   maxAmount: string;
-  quickFilter: 'today' | 'week' | 'transfers' | null;
+  quickFilter: 'today' | 'week' | null;
 }
 
 export interface FilterActions {
@@ -143,8 +143,6 @@ export function useTransactionFilters(
       } else if (quickFilter === 'week') {
         const weekStartStr = getWeekStartStr();
         results = results.filter(tx => normaliseDate(tx.date) >= weekStartStr);
-      } else if (quickFilter === 'transfers') {
-        results = results.filter(tx => tx.type === 'transfer_in' || tx.type === 'transfer_out');
       }
     }
 

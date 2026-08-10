@@ -8,6 +8,9 @@ dist/
 build/
 coverage/
 
+# Vite dev cache
+.vite/
+
 # Test/QA output
 test-results/
 playwright-report/
@@ -68,3 +71,13 @@ test-*.ts
 
 # Local Lighthouse CI artifacts
 .lighthouseci/
+
+# Non-essential repo assets (kept on disk, not versioned)
+docs/screenshots/
+docs/superpowers/
+docs/ux-audit-2025.md
+master.md
+PRODUCT.md
+CHANGELOG.md
+.zed/
+scripts/screenshots.mjs

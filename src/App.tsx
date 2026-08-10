@@ -42,14 +42,26 @@ import type { TransactionType } from './hooks/useTransactionForm';
 function AppContent() {
   const { t } = useTranslation();
 
-  // Dev-only demo seeder: visit /?seed=demo (master.md §12 demo data)
+  // Dev-only seeders: /?seed=demo (master.md §12 demo data) or
+  // /?seed=sample (50 example transactions across 10 payees).
   useEffect(() => {
     if (!import.meta.env.DEV) return;
-    if (!new URLSearchParams(window.location.search).has('seed')) return;
+    const seed = new URLSearchParams(window.location.search).get('seed');
+    if (!seed) return;
     let cancelled = false;
-    void import('./utils/seedDemo').then(async ({ seedDemoData }) => {
-      if (cancelled) return;
-      const count = await seedDemoData();
+    const run = async (): Promise<number> => {
+      if (seed === 'sample') {
+        const { seedSampleData } = await import('./utils/seedSample');
+        // Guard BEFORE seeding: StrictMode double-invokes this effect in dev,
+        // so the cancelled flag must stop the second run before it writes.
+        if (cancelled) return 0;
+        return seedSampleData();
+      }
+      const { seedDemoData } = await import('./utils/seedDemo');
+      if (cancelled) return 0;
+      return seedDemoData();
+    };
+    void run().then((count) => {
       if (cancelled) return;
       window.history.replaceState({}, '', window.location.pathname);
       if (count > 0) {

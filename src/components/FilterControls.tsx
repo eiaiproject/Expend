@@ -150,7 +150,7 @@ export function CurrencyRangeFields({
   return (
     <FilterSection title={title}>
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <label className="text-[10px] text-[var(--text-secondary)] font-bold uppercase ml-1" htmlFor={`${idPrefix}-min`}>
             {t('Min')}
           </label>
@@ -167,7 +167,7 @@ export function CurrencyRangeFields({
             />
           </div>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <label className="text-[10px] text-[var(--text-secondary)] font-bold uppercase ml-1" htmlFor={`${idPrefix}-max`}>
             {t('Max')}
           </label>

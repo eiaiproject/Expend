@@ -100,7 +100,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
         </button>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} className="px-3 py-4 space-y-5">
+      <form id={formId} onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
         {/* Debt info */}
         <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-4">
           <p className="font-bold">{debt.personName}</p>
@@ -112,21 +112,13 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
 
         {/* Amount */}
         <div>
-          <label htmlFor={`${formId}-amount`} className="block text-sm font-medium mb-1">
-            {t('debt.payPayment')} *
-          </label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-[var(--text-secondary)]">
-              {t('Currency Symbol')}
-            </span>
-            <AmountInput
-              id={`${formId}-amount`}
-              value={amount}
-              onChange={setAmount}
-              label={t('debt.payPayment')}
-              required
-            />
-          </div>
+          <AmountInput
+            id={`${formId}-amount`}
+            value={amount}
+            onChange={setAmount}
+            label={t('debt.payPayment')}
+            required
+          />
           <div className="mt-3 grid grid-cols-4 gap-2">
             {[
               { label: '25%', ratio: 0.25 },
@@ -168,7 +160,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
 
         {/* Wallet */}
         <div>
-          <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
+          <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1.5">
             {isPayable ? t('debt.payFromWallet') : t('debt.payToWallet')} *
           </label>
           <WalletSelect
@@ -204,7 +196,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
 
         {/* Notes */}
         <div>
-          <label htmlFor={`${formId}-notes`} className="block text-sm font-medium mb-1">
+          <label htmlFor={`${formId}-notes`} className="block text-sm font-medium mb-1.5">
             {t('Notes')}
           </label>
           <input

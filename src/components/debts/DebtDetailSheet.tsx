@@ -150,7 +150,7 @@ export function DebtDetailSheet({
       ariaLabel={title}
       size="full"
     >
-      <div className="px-3 py-4 space-y-5">
+      <div className="px-4 py-4 space-y-4">
         {/* Debt info */}
         <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-4">
           <div className="flex items-start justify-between gap-3">

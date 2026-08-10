@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useOverflow } from '../hooks/useOverflow';
 import { Check } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../utils/cn';
@@ -55,6 +56,9 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets }: F
   );
 
   const [draft, setDraft] = useState<DraftState>(() => createDraft(filters));
+
+  // Bottom fade only when the filter content actually overflows the sheet.
+  const { ref: scrollRef, overflows: hasVerticalOverflow } = useOverflow<HTMLDivElement>('y');
 
   // Sync draft when sheet opens
   useEffect(() => {
@@ -127,7 +131,7 @@ export function FilterSheet({ isOpen, onClose, filters, categories, wallets }: F
       size="medium"
     >
       <div className="flex flex-col h-full">
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scroll-fade-bottom">
+        <div ref={scrollRef} className={cn("flex-1 overflow-y-auto px-4 py-4 space-y-6", hasVerticalOverflow && "scroll-fade-bottom")}>
           <fieldset className="space-y-3">
             <legend className="sr-only">{t('Filter Type')}</legend>
             <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">

@@ -73,7 +73,7 @@ export function WalletMovementSection({
 
       {hasWalletMovement && (
         <div>
-          <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
+          <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1.5">
             {isPayable ? t('Money into wallet') : t('Money from wallet')} *
           </label>
           <WalletSelect

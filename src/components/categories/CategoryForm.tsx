@@ -42,7 +42,7 @@ export function CategoryForm({ mode, initialCategory, onSubmit, onCancel, existi
   return (
     <div className="space-y-4">
       <div>
-        <label htmlFor={`cat-name-${mode}`} className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">
+        <label htmlFor={`cat-name-${mode}`} className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">
           {t('Category Name')}
         </label>
         <input
@@ -83,7 +83,7 @@ export function CategoryForm({ mode, initialCategory, onSubmit, onCancel, existi
       </div>
 
       <div>
-        <label htmlFor={`cat-budget-${mode}`} className="text-xs font-medium text-[var(--text-secondary)] mb-1 block">
+        <label htmlFor={`cat-budget-${mode}`} className="text-xs font-medium text-[var(--text-secondary)] mb-1.5 block">
           {t('Monthly Budget')}
         </label>
         <input

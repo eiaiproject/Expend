@@ -49,7 +49,7 @@ export function PersonNameField({ id, value, suggestions, onChange }: PersonName
 
   return (
     <div className="relative">
-      <label htmlFor={id} className="block text-sm font-medium mb-1">
+      <label htmlFor={id} className="block text-sm font-medium mb-1.5">
         {t('debt.formPerson')} *
       </label>
       <input

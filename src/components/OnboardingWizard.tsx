@@ -114,7 +114,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">{t('Name')}</label>
+                  <label className="block text-sm font-medium mb-1.5">{t('Name')}</label>
                   <input
                     ref={walletNameInputRef}
                     type="text"
@@ -125,7 +125,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">{t('Initial Balance')}</label>
+                  <label className="block text-sm font-medium mb-1.5">{t('Initial Balance')}</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] font-mono font-bold text-sm">Rp</span>
                     <input

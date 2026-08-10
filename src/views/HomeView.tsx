@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, Suspense, lazy } from 'react';
+import { useOverflow } from '../hooks/useOverflow';
 import { useKeyboardShortcutGuard } from '../hooks/useKeyboardShortcut';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -46,26 +47,31 @@ const TRANSACTION_RENDER_PAGE_SIZE = 100;
 
 interface QuickFilterChipsProps {
   readonly isSelectionMode: boolean;
-  readonly quickFilter: 'today' | 'week' | 'transfers' | null;
-  readonly onSelect: (value: 'today' | 'week' | 'transfers' | null) => void;
+  readonly quickFilter: 'today' | 'week' | null;
+  readonly onSelect: (value: 'today' | 'week' | null) => void;
   readonly t: (key: string) => string;
 }
 
 function QuickFilterChips({ isSelectionMode, quickFilter, onSelect, t }: QuickFilterChipsProps) {
+  // Edge fade only when the chips actually overflow the screen (master.md Phase 7).
+  const { ref: chipsRef, overflows: hasOverflow } = useOverflow<HTMLFieldSetElement>();
   if (isSelectionMode) return null;
-  const label = (qf: 'today' | 'week' | 'transfers'): string => {
+  const label = (qf: 'today' | 'week'): string => {
     if (qf === 'today') return t('home.filterToday');
-    if (qf === 'week') return t('home.filterThisWeek');
-    return t('home.filterTransfers');
+    return t('home.filterThisWeek');
   };
 
   return (
     <fieldset
-      className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 scroll-fade-x pb-1 border-0 p-0 m-0"
+      ref={chipsRef}
+      className={cn(
+        "flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 pb-1 border-0 p-0 m-0",
+        hasOverflow && "scroll-fade-x"
+      )}
       aria-label={t('home.filterTransactions')}
       style={{ scrollbarWidth: 'auto', scrollPaddingInline: '1rem' }}
     >
-      {(['today', 'week', 'transfers'] as const).map(qf => {
+      {(['today', 'week'] as const).map(qf => {
         const isActive = quickFilter === qf;
         return (
           <button type="button"

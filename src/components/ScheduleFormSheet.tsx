@@ -151,10 +151,10 @@ export function ScheduleFormSheet({ isOpen, onClose, scheduleToEdit = null }: Sc
         </button>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} className="px-3 py-4 space-y-5">
+      <form id={formId} onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
         {/* Payee / description */}
         <div>
-          <label htmlFor={`${formId}-payee`} className="block text-sm font-medium mb-1">
+          <label htmlFor={`${formId}-payee`} className="block text-sm font-medium mb-1.5">
             {t('recurring.payee')} *
           </label>
           <input
@@ -243,7 +243,7 @@ export function ScheduleFormSheet({ isOpen, onClose, scheduleToEdit = null }: Sc
 
         {/* Wallet */}
         <div>
-          <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1">
+          <label htmlFor={`${formId}-wallet`} className="block text-sm font-medium mb-1.5">
             {t('Wallet')} *
           </label>
           <WalletSelect
@@ -257,7 +257,7 @@ export function ScheduleFormSheet({ isOpen, onClose, scheduleToEdit = null }: Sc
 
         {/* Category */}
         <div>
-          <label htmlFor={`${formId}-category`} className="block text-sm font-medium mb-1">
+          <label htmlFor={`${formId}-category`} className="block text-sm font-medium mb-1.5">
             {t('Category')}
           </label>
           <CategorySelect
@@ -308,7 +308,7 @@ export function ScheduleFormSheet({ isOpen, onClose, scheduleToEdit = null }: Sc
 
         {/* Notes */}
         <div>
-          <label htmlFor={`${formId}-notes`} className="block text-sm font-medium mb-1">
+          <label htmlFor={`${formId}-notes`} className="block text-sm font-medium mb-1.5">
             {t('Notes')}
           </label>
           <textarea

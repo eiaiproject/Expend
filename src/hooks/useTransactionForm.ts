@@ -9,7 +9,6 @@ import { toast } from '../components/Toaster';
 import { findPairedTransfer } from '../utils/transferUtils';
 import { getDefaultExpenseWallet, rememberLastUsedWallet } from '../services/walletPreferenceService';
 import { suggestCategoryForPayee } from '../services/categorySuggestionService';
-import { normalizePayeeKey, normalizePayeeName } from '../services/payeeService';
 import { getTemplates, resolveTemplate, saveTemplate, type TransactionTemplate } from '../services/templateService';
 
 const EMPTY_WALLETS: Wallet[] = [];
@@ -51,7 +50,6 @@ export interface TransactionFormActions {
   handleSubmit: () => Promise<boolean>;
   applyTemplate: (template: TransactionTemplate) => Promise<boolean>;
   saveCurrentAsTemplate: () => Promise<boolean>;
-  applyPayee: (payeeName: string) => void;
   /** True when any field changed since the form opened (master.md 8.4). */
   isDirty: () => boolean;
   isSubmitting: boolean;
@@ -203,25 +201,7 @@ async function submitExpense(
   }
 }
 
-/** Most frequently used category id among the given payee transactions. */
-function findMostCommonCategory(payeeTxs: readonly Transaction[]): number | null {
-  const counts = new Map<number, number>();
-  for (const t of payeeTxs) {
-    if (t.categoryId != null) counts.set(t.categoryId, (counts.get(t.categoryId) ?? 0) + 1);
-  }
-  let bestId: number | null = null;
-  let bestCount = 0;
-  for (const [id, count] of counts.entries()) {
-    if (count > bestCount) { bestId = id; bestCount = count; }
-  }
-  return bestId;
-}
 
-/** Most recent (by date) active wallet used for the given payee transactions. */
-function findLastUsedWallet(payeeTxs: readonly Transaction[], wallets: readonly Wallet[]): Wallet | undefined {
-  const sorted = [...payeeTxs].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
-  return wallets.find((w) => w.id === sorted[0]?.walletId && !w.archivedAt);
-}
 
 export function useTransactionForm({
   isOpen,
@@ -258,6 +238,7 @@ export function useTransactionForm({
       )
     );
   }, [transactions]);
+
 
   // Form state
   const [type, setType] = useState<TransactionType>('expense');
@@ -454,40 +435,6 @@ export function useTransactionForm({
     setCategoryName(name);
   }, []);
 
-  // Select a frequently used payee (master.md 6.3): fill the payee field,
-  // suggest its most recent/most common category, and suggest its last-used
-  // valid wallet. The amount stays empty unless a template defines it.
-  const applyPayee = useCallback((payeeName: string) => {
-    const name = normalizePayeeName(payeeName);
-    if (!name) return;
-    // Preserve a category the user picked manually (master.md 5.3 — never
-    // silently override a manual selection). Only allow suggestion prefill
-    // when no manual pick exists, so the description-suggestion effect also
-    // bails on the manual-pick path.
-    const manualCategoryPick = categoryTouchedRef.current;
-    setDescription(name);
-    if (!manualCategoryPick) categoryTouchedRef.current = false;
-
-    const key = normalizePayeeKey(name);
-    // Most recent matching expense → most common category + last-used wallet
-    const payeeTxs = transactions.filter(
-      (t) => t.type === 'expense' && normalizePayeeKey(t.description) === key
-    );
-    if (payeeTxs.length > 0) {
-      // Last-used valid wallet (most recent first, active wallet only)
-      const lastWallet = findLastUsedWallet(payeeTxs, wallets);
-      if (lastWallet?.id) setWalletId(lastWallet.id.toString());
-
-      // Most common category for the payee
-      const bestId = findMostCommonCategory(payeeTxs);
-      const cat = bestId != null ? categories.find((c) => c.id === bestId) : undefined;
-      if (cat && !manualCategoryPick) {
-        categoryTouchedRef.current = true;
-        setCategoryName(cat.name);
-      }
-    }
-  }, [transactions, wallets, categories]);
-
   const applyTemplate = useCallback(async (template: TransactionTemplate): Promise<boolean> => {
     const resolved = await resolveTemplate(template, { wallets, categories });
     if (!resolved) return false;
@@ -594,7 +541,7 @@ export function useTransactionForm({
       setWalletId: markDirty(setWalletId), setToWalletId: markDirty(setToWalletId),
       setCategoryName: markDirty(handleSetCategoryName), setNotes: markDirty(setNotes),
       handleAmountChange: markDirty(handleAmountChange),
-      applyTemplate: markDirty(applyTemplate), applyPayee: markDirty(applyPayee),
+      applyTemplate: markDirty(applyTemplate),
       setIsAmountFocused,
       setShowDescriptionSuggestions, handleSubmit,
       saveCurrentAsTemplate,

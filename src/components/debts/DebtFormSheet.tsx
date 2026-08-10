@@ -222,7 +222,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
       ) : undefined}
     >
       {step === 'type' && !isEdit ? (
-        <div className="px-3 py-4 space-y-4">
+        <div className="px-4 py-4 space-y-4">
           <p className="text-sm font-medium text-[var(--text-secondary)]">{t('debt.formWhat')}</p>
           <button
             type="button"
@@ -256,7 +256,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
           </button>
         </div>
       ) : (
-        <form id={formId} onSubmit={handleSubmit} className="px-3 py-4 space-y-5">
+        <form id={formId} onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
           {/* Person */}
           <PersonNameField
             id={`${formId}-person`}
@@ -267,7 +267,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
 
           {/* Title */}
           <div>
-            <label htmlFor={`${formId}-title`} className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-title`} className="block text-sm font-medium mb-1.5">
               {t('Title')}
             </label>
             <input
@@ -282,7 +282,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
 
           {/* Amount */}
           <div>
-            <label htmlFor={`${formId}-amount`} className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-amount`} className="block text-sm font-medium mb-1.5">
               {t('Amount')} *
             </label>
             <div className="relative">
@@ -349,7 +349,7 @@ export function DebtFormSheet({ isOpen, onClose, hideAmount = false, debtToEdit 
 
           {/* Notes */}
           <div>
-            <label htmlFor={`${formId}-notes`} className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-notes`} className="block text-sm font-medium mb-1.5">
               {t('Notes')}
             </label>
             <textarea

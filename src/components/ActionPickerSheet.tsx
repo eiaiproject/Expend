@@ -57,7 +57,7 @@ export function ActionPickerSheet({
       ariaLabel={t('Choose action type')}
       size="content"
     >
-      <div className="px-3 py-4 space-y-3">
+      <div className="px-4 py-4 space-y-3">
         {sorted.map(action => (
           <button
             key={action.key}
