@@ -1,7 +1,9 @@
 import { useId, useRef, useEffect, useState, type KeyboardEvent } from 'react';
+import { useOverflow } from '../hooks/useOverflow';
 import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
-import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Wallet } from 'reicon-react';
+import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Wallet, ShoppingBag } from 'reicon-react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { type Transaction } from '../db/db';
 import { cn } from '../utils/cn';
@@ -50,6 +52,8 @@ export function TransactionFormSheet({
     !initialFromWalletId &&
     !initialToWalletId;
   const [showDetails, setShowDetails] = useState(!isQuickAdd);
+  // Edge fade only when the template chips actually overflow the screen.
+  const { ref: templatesRef, overflows: templatesOverflows } = useOverflow<HTMLUListElement>();
 
   // master.md 8.4: closing the sheet (backdrop, Escape, X) with unsaved
   // changes requires explicit confirmation. Successful saves call onClose
@@ -214,7 +218,7 @@ export function TransactionFormSheet({
         </button>
       }
     >
-      <form id={formId} onSubmit={handleFormSubmit} className="px-3 py-4 space-y-5">
+      <form id={formId} onSubmit={handleFormSubmit} className="px-4 py-4 space-y-4">
         {/* Type Tabs */}
         <div className="flex p-1 bg-[var(--bg)] rounded-xl border border-[var(--border)]" role="radiogroup" aria-label={t('Transaction type')}>
           {[
@@ -246,7 +250,7 @@ export function TransactionFormSheet({
         {isQuickAdd && templates.length > 0 && (
           <div>
             <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{t('Templates')}</p>
-            <ul className="flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 scroll-fade-x pb-1 list-none" aria-label={t('Templates')}>
+            <ul ref={templatesRef} className={cn("flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 pb-1 list-none", templatesOverflows && "scroll-fade-x")} aria-label={t('Templates')}>
               {templates.slice(0, 4).map((template) => (
                 <li key={template.id} className="snap-start">
                   <button
@@ -270,7 +274,7 @@ export function TransactionFormSheet({
 
         {/* Amount */}
         <div>
-          <label htmlFor={amountInputId} className="block text-sm font-medium mb-1">{t('Nominal')} *</label>
+          <label htmlFor={amountInputId} className="block text-sm font-medium mb-1.5">{t('Nominal')} *</label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] font-mono font-bold">
               {t('Currency Symbol')}
@@ -322,7 +326,7 @@ export function TransactionFormSheet({
         {/* Category — always visible */}
         {state.type !== 'transfer' && (
           <div>
-            <label htmlFor={categoryInputId} className="block text-sm font-medium mb-1">{t('Category')}</label>
+            <label htmlFor={categoryInputId} className="block text-sm font-medium mb-1.5">{t('Category')}</label>
             <CategorySelect
               id={categoryInputId}
               categories={categories}
@@ -362,10 +366,10 @@ export function TransactionFormSheet({
 
         {/* Details section (hidden in Quick Add until expanded) */}
         {(!isQuickAdd || showDetails) && (
-          <div id={`${formId}-details`}>
+          <div id={`${formId}-details`} className="space-y-4">
             {/* Description */}
             <div className="relative">
-              <label htmlFor={descriptionInputId} className="block text-sm font-medium mb-1">{t('Description')} {!isQuickAdd && '*'}</label>
+              <label htmlFor={descriptionInputId} className="block text-sm font-medium mb-1.5">{t('Description')} {!isQuickAdd && '*'}</label>
               <input
                 id={descriptionInputId}
                 ref={descriptionRef}
@@ -384,13 +388,26 @@ export function TransactionFormSheet({
                 <button
                   type="button"
                   onClick={() => { actions.setDescription(''); actions.setShowDescriptionSuggestions(false); }}
-                  className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  className="absolute right-3 top-[40px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                   aria-label={t('Clear')}
                 >
                   <X size={16} aria-hidden="true" />
                 </button>
               )}
-              {state.showDescriptionSuggestions && state.filteredDescriptionSuggestions.length > 0 && (
+              {state.description.trim() === '' && (
+                /* preventDefault on mousedown keeps the input focused while
+                   the tap lands — avoids the iOS case where the first tap
+                   only dismisses the keyboard and the click is swallowed. */
+                <Link
+                  to="/payees"
+                  onMouseDown={(e) => e.preventDefault()}
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors min-h-[44px]"
+                >
+                  <ShoppingBag size={14} aria-hidden="true" />
+                  {t('form.choosePayee')}
+                </Link>
+              )}
+              {state.showDescriptionSuggestions && state.filteredDescriptionSuggestions.length > 0 && state.description.trim() !== '' && (
                 <div
                   className="absolute z-20 left-0 right-0 top-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden"
                 >
@@ -423,7 +440,7 @@ export function TransactionFormSheet({
             {/* Wallet(s) */}
             <div className="space-y-4">
               <div>
-                <label htmlFor={walletInputId} className="block text-sm font-medium mb-1">
+                <label htmlFor={walletInputId} className="block text-sm font-medium mb-1.5">
                   {state.type === 'transfer' ? t('From Wallet') : t('Wallet')} *
                 </label>
                 <WalletSelect
@@ -436,7 +453,7 @@ export function TransactionFormSheet({
               </div>
               {state.type === 'transfer' && (
                 <div>
-                  <label htmlFor={toWalletInputId} className="block text-sm font-medium mb-1">{t('To Wallet')} *</label>
+                  <label htmlFor={toWalletInputId} className="block text-sm font-medium mb-1.5">{t('To Wallet')} *</label>
                   <WalletSelect
                     id={toWalletInputId}
                     value={state.toWalletId}
@@ -450,7 +467,7 @@ export function TransactionFormSheet({
 
             {/* Notes */}
             <div>
-              <label htmlFor={notesInputId} className="block text-sm font-medium mb-1">{t('Notes')}</label>
+              <label htmlFor={notesInputId} className="block text-sm font-medium mb-1.5">{t('Notes')}</label>
               <input
                 id={notesInputId}
                 name="notes"

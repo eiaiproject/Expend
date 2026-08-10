@@ -52,7 +52,7 @@ export function PayeeSortSheet({ isOpen, onClose, sortConfig, onApply }: PayeeSo
       size="content"
     >
       <div className="flex flex-col h-full">
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
           {SORT_OPTIONS.map((opt) => {
             const isSelected = selected.field === opt.field && selected.order === opt.order;
             return (

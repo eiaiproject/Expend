@@ -535,7 +535,7 @@ export default function CategoriesView() {
   // ── Period display ─────────────────────────────────────────
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
       <PageHeader
         title={t('Categories & Budgets')}
@@ -655,7 +655,7 @@ export default function CategoriesView() {
         if (emptyState) return emptyState;
         return (
           <div className="space-y-3">
-            <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider px-1">
+            <h2 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider px-1 pt-2 pb-1">
               {t('Active Categories')}
             </h2>
             {activeCategories.map(renderCategoryCard)}

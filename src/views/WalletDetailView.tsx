@@ -183,7 +183,7 @@ export default function WalletDetailView() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-4" role="status" aria-label={t('Loading...')}> {/* NOSONAR: S6819 */}
+      <div className="space-y-6" role="status" aria-label={t('Loading...')}> {/* NOSONAR: S6819 */}
         <div className="flex items-center gap-3">
           <Skeleton className="h-10 w-10 rounded-lg" />
           <Skeleton className="h-6 w-32" />
@@ -201,7 +201,7 @@ export default function WalletDetailView() {
   // Not found
   if (!wallet) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <Link
           to="/wallets"
           className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"

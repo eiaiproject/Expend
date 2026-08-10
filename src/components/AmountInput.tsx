@@ -26,7 +26,7 @@ export function AmountInput({
 }: AmountInputProps) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium mb-1">
+      <label htmlFor={id} className="block text-sm font-medium mb-1.5">
         {label}
       </label>
       <div className="relative">

@@ -27,7 +27,7 @@ export function WalletNameField({
   const errorId = `${id}-error`;
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium mb-1">
+      <label htmlFor={id} className="block text-sm font-medium mb-1.5">
         {t('wallet.addNameLabel')} <span className="text-red-500" aria-hidden="true">*</span>
       </label>
       <input

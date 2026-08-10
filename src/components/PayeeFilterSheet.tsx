@@ -104,7 +104,7 @@ export function PayeeFilterSheet({ isOpen, onClose, draft: initialDraft, onApply
       size="medium"
     >
       <div className="flex flex-col h-full">
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
           <CategoryFilterList
             categories={categories}
             selectedIds={draft.categoryIds}
@@ -136,7 +136,7 @@ export function PayeeFilterSheet({ isOpen, onClose, draft: initialDraft, onApply
 
           <FilterSection title={t('Transaction Count Range')}>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-[10px] text-[var(--text-secondary)] font-bold uppercase ml-1" htmlFor="payee-filter-min-count">{t('Min')}</label>
                 <input
                   id="payee-filter-min-count"
@@ -149,7 +149,7 @@ export function PayeeFilterSheet({ isOpen, onClose, draft: initialDraft, onApply
                   className="w-full px-3 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow] font-mono"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-[10px] text-[var(--text-secondary)] font-bold uppercase ml-1" htmlFor="payee-filter-max-count">{t('Max')}</label>
                 <input
                   id="payee-filter-max-count"

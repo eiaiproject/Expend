@@ -121,7 +121,7 @@ export function WalletFormSheet({ isOpen, onClose, wallet = null }: WalletFormSh
         <SheetFormFooter onCancel={onClose} onSave={handleSave} isSaving={isSaving} canSave={!!name.trim()} />
       }
     >
-      <div className="p-4 space-y-5">
+      <div className="p-4 space-y-4">
         {/* Wallet name */}
         <WalletNameField
           id={wallet ? 'edit-wallet-name' : 'add-wallet-name'}
@@ -143,7 +143,7 @@ export function WalletFormSheet({ isOpen, onClose, wallet = null }: WalletFormSh
           </p>
         ) : (
           <div>
-            <label htmlFor="add-wallet-balance" className="block text-sm font-medium mb-1">
+            <label htmlFor="add-wallet-balance" className="block text-sm font-medium mb-1.5">
               {t('wallet.addBalanceLabel')}
             </label>
             <input

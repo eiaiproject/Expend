@@ -57,7 +57,7 @@ export function DatePicker({ id, value, onChange, label, required }: DatePickerP
   return (
     <div className="relative">
       {label && (
-        <label htmlFor={datePickerId} className="block text-sm font-medium mb-1">{label} {required && '*'}</label>
+        <label htmlFor={datePickerId} className="block text-sm font-medium mb-1.5">{label} {required && '*'}</label>
       )}
       <div className="flex gap-2">
         <div className="relative flex-1">

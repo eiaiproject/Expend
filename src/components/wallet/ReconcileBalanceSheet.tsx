@@ -83,7 +83,7 @@ export function ReconcileBalanceSheet({ isOpen, onClose, wallet }: ReconcileBala
         <SheetFormFooter onCancel={onClose} onSave={handleSave} isSaving={isSaving} canSave={!Number.isNaN(parsedActual)} />
       }
     >
-      <div className="p-4 space-y-5">
+      <div className="p-4 space-y-4">
         {/* Recorded balance */}
         <div className="flex justify-between items-center py-2">
           <span className="text-sm text-[var(--text-secondary)]">{t('wallet.reconcileRecorded')}</span>
@@ -94,7 +94,7 @@ export function ReconcileBalanceSheet({ isOpen, onClose, wallet }: ReconcileBala
 
         {/* Actual balance input */}
         <div>
-          <label htmlFor="reconcile-actual" className="block text-sm font-medium mb-1">
+          <label htmlFor="reconcile-actual" className="block text-sm font-medium mb-1.5">
             {t('wallet.reconcileActual')}
           </label>
           <input
@@ -139,7 +139,7 @@ export function ReconcileBalanceSheet({ isOpen, onClose, wallet }: ReconcileBala
 
         {/* Notes */}
         <div>
-          <label htmlFor="reconcile-notes" className="block text-sm font-medium mb-1">
+          <label htmlFor="reconcile-notes" className="block text-sm font-medium mb-1.5">
             {t('wallet.reconcileNotes')}
           </label>
           <input
