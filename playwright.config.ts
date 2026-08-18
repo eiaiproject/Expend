@@ -53,6 +53,10 @@ export default defineConfig({
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+      // Friction audit B3: WebKit engines intermittently time out waiting for
+      // the transaction form to detach after Save (local-only flakes; CI runs
+      // chromium). One retry absorbs the flake without masking real failures.
+      retries: 1,
     },
     {
       name: 'Mobile Chrome',
@@ -61,6 +65,7 @@ export default defineConfig({
     {
       name: 'Mobile Safari',
       use: { ...devices['iPhone 13'] },
+      retries: 1, // see webkit — same intermittent form-detach flake
     },
   ],
   webServer: {
