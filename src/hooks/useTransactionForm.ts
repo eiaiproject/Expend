@@ -106,11 +106,11 @@ async function resolveCategoryIdForSubmit(
   if (!confirmed) return null;
   const foundCat = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
   if (foundCat) return foundCat.id!;
+  // Friction audit B6: deterministic color — first unused palette entry
+  // (sequential), not random, so new categories stay consistent and predictable.
   const usedColors = new Set(categories.map((c) => c.color));
   const available = CURATED_PALETTE.filter((c) => !usedColors.has(c));
-  const color = available.length > 0
-    ? available[Math.floor(Math.random() * available.length)]!  // NOSONAR:S2245 — design color selection, not security
-    : CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!;  // NOSONAR:S2245 — design color selection, not security
+  const color = available.length > 0 ? available[0]! : CURATED_PALETTE[0]!;
   const newId = await db.categories.add({ name, icon: 'Tag', color });
   return newId ?? null;
 }

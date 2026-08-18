@@ -270,11 +270,12 @@ db.version(6).stores(V4_STORES).upgrade(async (tx) => {
     }
   }
 
-  // Assign colors
+  // Assign colors — friction audit B6: deterministic cycling through the
+  // palette instead of Math.random(), so re-migration is stable.
   const categoriesNeedingColor = (await catTable.toArray()).filter((c) => !c.color);
-  for (const cat of categoriesNeedingColor) {
-    const color = CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)]!; // NOSONAR
-    await catTable.update(cat.id!, { color });
+  for (let i = 0; i < categoriesNeedingColor.length; i++) {
+    const color = CURATED_PALETTE[i % CURATED_PALETTE.length]!;
+    await catTable.update(categoriesNeedingColor[i]!.id!, { color });
   }
 
   await settingsTable.put({ key: 'categories_deduplicated', value: true });
@@ -319,7 +320,7 @@ db.version(10).stores(V8_STORES).upgrade(async (tx) => {
 db.version(11).stores(V8_STORES).upgrade(async (tx) => {
   const wallets = await tx.table('wallets').toArray();
   for (const wallet of wallets) {
-    if (!wallet.color) await tx.table('wallets').update(wallet.id, { color: '#6366f1' });
+    if (!wallet.color) await tx.table('wallets').update(wallet.id, { color: '#7A9B6A' });
   }
   await tx.table('settings').put({ key: 'migration_completed_v11', value: true });
 });
