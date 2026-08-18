@@ -140,7 +140,7 @@ function MerchantDetailView({
               <span key={alias} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--bg)] border border-[var(--border)] text-xs">
                 {alias}
                 <button type="button" onClick={() => onRemoveAlias(merchant, alias)}
-                  className="text-[var(--text-secondary)] hover:text-red-500 ml-1" aria-label={t('payees.removeAlias', { alias })}>
+                  className="text-[var(--text-secondary)] hover:text-[var(--danger)] ml-1" aria-label={t('payees.removeAlias', { alias })}>
                   <X size={12} aria-hidden="true" />
                 </button>
               </span>
@@ -158,7 +158,7 @@ function MerchantDetailView({
 
       {/* Add Expense CTA */}
       <button type="button" onClick={() => onAddExpense(merchant.displayName)}
-        className="w-full flex items-center justify-center gap-2 h-12 bg-[var(--accent)] text-white rounded-xl font-medium hover:opacity-90 transition-colors">
+        className="w-full flex items-center justify-center gap-2 h-12 bg-[var(--accent-fill)] text-[var(--accent-ink)] rounded-xl font-medium hover:opacity-90 transition-colors">
         <Plus size={18} aria-hidden="true" />
         {t('payees.addExpenseFor', { name: merchant.displayName })}
       </button>
@@ -393,7 +393,7 @@ export default function PayeesView() {
         />
         <div className="flex gap-3">
           <button type="button" onClick={() => setRenamingMerchant(null)} className="flex-1 h-11 rounded-xl border border-[var(--border)] font-medium hover:bg-[var(--bg)]">{t('Cancel')}</button>
-          <button type="button" onClick={handleRename} disabled={!newMerchantName.trim()} className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-bold hover:opacity-90 disabled:opacity-50">{t('payees.renameConfirm')}</button>
+          <button type="button" onClick={handleRename} disabled={!newMerchantName.trim()} className="flex-1 h-11 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold hover:opacity-90 disabled:opacity-50">{t('payees.renameConfirm')}</button>
         </div>
       </dialog>
     </div>
@@ -485,7 +485,7 @@ export default function PayeesView() {
         <div className="flex gap-2">
           <button type="button" onClick={() => setIsFilterOpen(true)}
             className={cn("relative flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium min-h-[44px]",
-              activeFilterCount > 0 ? "bg-[var(--accent)] text-white border-[var(--accent)]" : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
+              activeFilterCount > 0 ? "bg-[var(--accent-fill)] text-[var(--accent-ink)] border-[var(--accent-fill)]" : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
             )}
             aria-label={activeFilterCount > 0 ? t('payees.filterActive', { count: activeFilterCount }) : t('payees.filterLabel')}
             aria-haspopup="dialog" aria-expanded={isFilterOpen}>

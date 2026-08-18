@@ -213,7 +213,7 @@ function DataTableToggle({ label, children }: { readonly label: string; readonly
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-controls={tableId}
-        className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bg)] min-h-[36px]"
+        className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bg)] min-h-[44px]"
       >
         {label}
         {open ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
@@ -869,7 +869,7 @@ export default function StatsView() {
               className={cn(
                 'flex-1 text-center py-2 text-sm font-bold rounded-md cursor-pointer min-h-[44px] flex items-center justify-center transition-colors',
                 period === value
-                  ? 'bg-[var(--accent)] text-white'
+                  ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg)]',
               )}
             >

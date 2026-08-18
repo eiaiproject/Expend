@@ -19,6 +19,8 @@ interface BottomSheetShellProps {
   readonly heightClass?: string;
   /** Optional sticky footer (e.g. form Save) rendered above the safe area */
   readonly footer?: ReactNode;
+  /** Skip the Escape-to-close handler — use when a stacked sheet above owns Escape. */
+  readonly disableEscape?: boolean;
 }
 
 const SIZE_CLASS: Record<NonNullable<BottomSheetShellProps['size']>, string> = {
@@ -46,6 +48,7 @@ export function BottomSheetShell({
   size,
   heightClass = size ? SIZE_CLASS[size] : 'sheet-height',
   footer,
+  disableEscape = false,
 }: BottomSheetShellProps) {
   const { t } = useTranslation();
   const dialogRef = useFocusTrap(isOpen) as unknown as React.RefObject<HTMLDialogElement>;
@@ -61,7 +64,7 @@ export function BottomSheetShell({
     };
   }, [isOpen]);
 
-  useEscapeKeyClose(isOpen, onClose);
+  useEscapeKeyClose(isOpen && !disableEscape, onClose);
 
   return (
     <>

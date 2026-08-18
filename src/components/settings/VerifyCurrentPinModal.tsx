@@ -78,12 +78,12 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
           {Array.from({ length: pinLength }, (_, i) => (
             <div
               key={`pin-${i}`}
-              className={`w-4 h-4 rounded-full transition-colors ${i < pin.length ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'} ${error ? 'bg-red-500' : ''}`}
+              className={`w-4 h-4 rounded-full transition-colors ${i < pin.length ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'} ${error ? 'bg-[var(--danger)]' : ''}`}
             />
           ))}
         </div>
 
-        {error && <p className="text-center text-sm text-red-500" aria-live="polite">{t('Incorrect PIN')}</p>}
+        {error && <p className="text-center text-sm text-[var(--danger)]" aria-live="polite">{t('Incorrect PIN')}</p>}
 
         <input
           ref={inputRef}
@@ -127,7 +127,7 @@ export function VerifyCurrentPinModal({ isOpen, onClose, onVerified }: VerifyCur
             type="button"
             onClick={handleVerify}
             disabled={pin.length < pinLength || loading}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-colors"
+            className="flex-1 h-11 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-colors"
           >
             {loading ? t('Verifying...') : t('Confirm')}
           </button>

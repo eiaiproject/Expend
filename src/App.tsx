@@ -2,6 +2,7 @@ import { useState, lazy, Suspense, useEffect, useCallback, useRef } from 'react'
 import { useKeyboardShortcutGuard } from './hooks/useKeyboardShortcut';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { initSvgClipDedupe } from './utils/svgIdDedupe';
 import { BottomNav } from './components/BottomNav';
 import { ErrorBoundary } from './components/ErrorBoundary';
 const HomeView = lazy(() => import('./views/HomeView'));
@@ -41,6 +42,14 @@ import type { TransactionType } from './hooks/useTransactionForm';
 
 function AppContent() {
   const { t } = useTranslation();
+
+  // Same icon rendered twice (e.g. two nav entries) embeds an identical static
+  // clipPath id — rename duplicates so the DOM never holds invalid duplicate ids.
+  // Uses a MutationObserver because lazy routes + async live queries render
+  // icons after mount, so a one-shot pass is not enough.
+  useEffect(() => {
+    initSvgClipDedupe();
+  }, []);
 
   // Dev-only seeders: /?seed=demo (master.md §12 demo data) or
   // /?seed=sample (50 example transactions across 10 payees).
@@ -196,7 +205,7 @@ function AppContent() {
             <button
               type="button"
               onClick={showInstallPrompt}
-              className="px-3 py-1.5 rounded-lg bg-[var(--accent-fill)] text-[var(--accent-ink)] text-xs font-semibold hover:opacity-90 transition-opacity min-h-[36px]"
+              className="px-3 py-1.5 rounded-lg bg-[var(--accent-fill)] text-[var(--accent-ink)] text-xs font-semibold hover:opacity-90 transition-opacity min-h-[44px]"
             >
               {t('Install')}
             </button>

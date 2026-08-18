@@ -100,7 +100,7 @@ export function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
           <button
             type="button"
             onClick={onClose}
-            className="w-full h-11 rounded-xl bg-[var(--accent)] text-white font-medium hover:opacity-90 transition-colors"
+            className="w-full h-11 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] font-medium hover:opacity-90 transition-colors"
           >
             {t('Close')}
           </button>

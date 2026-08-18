@@ -18,7 +18,7 @@ import { getUpcomingItems, type UpcomingItem } from '../services/recurringServic
 import { findPairedTransfer } from '../utils/transferUtils';
 
 import { Skeleton } from '../components/Skeleton';
-import { displayDateLong, getTodayStr, getYesterdayStr, getWeekStartStr, getMonthStartStr, normaliseDate } from '../utils/dateUtils';
+import { addDays, displayDateLong, getTodayStr, getYesterdayStr, getWeekStartStr, getMonthStartStr, normaliseDate } from '../utils/dateUtils';
 import type { TransactionType } from '../hooks/useTransactionForm';
 import { formatCurrency } from '../utils/formatUtils';
 import { useTransactionFilters } from '../hooks/useTransactionFilters';
@@ -81,7 +81,7 @@ function QuickFilterChips({ isSelectionMode, quickFilter, onSelect, t }: QuickFi
             className={cn(
               "shrink-0 snap-start px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors active:scale-95 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
               isActive
-                ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                ? "bg-[var(--accent-fill)] text-[var(--accent-ink)] border-[var(--accent-fill)]"
                 : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
             )}
           >
@@ -169,7 +169,7 @@ function TransactionListControls({
               className={cn(
                 "relative w-11 h-11 flex items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30",
                 isFilterOpen
-                  ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                  ? "bg-[var(--accent-fill)] text-[var(--accent-ink)] border-[var(--accent-fill)]"
                   : "bg-[var(--card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg)]"
               )}
               aria-label={activeFilterCount > 0 ? t('home.filterTransactions') + ', ' + t('home.filterActive', { count: activeFilterCount }) : t('home.filterTransactions')}
@@ -178,7 +178,7 @@ function TransactionListControls({
             >
               <Filter size={18} />
               {activeFilterCount > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[var(--accent)] text-white text-[9px] font-bold flex items-center justify-center pointer-events-none">
+                <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[var(--accent-fill)] text-[var(--accent-ink)] text-[9px] font-bold flex items-center justify-center pointer-events-none">
                   {activeFilterCount}
                 </span>
               )}
@@ -526,10 +526,15 @@ export default function HomeView() {
 
   // Actionable insights (master.md 10) — deterministic, dismissed items
   // excluded, shown at most three by priority.
+  // Friction audit B1: every insight builder only looks back up to 180 days
+  // (its own cutoff), so feed a bounded slice — cheaper per-change recompute.
+  // The full list stays unbounded for totals, search and filter dropdowns.
   const insights = useMemo(() => {
     if (transactions === undefined || categories === undefined || wallets === undefined) return [];
+    const cutoff = addDays(getTodayStr(), -180);
+    const recent = transactions.filter((tx) => normaliseDate(tx.date) >= cutoff);
     return generateInsights({
-      transactions,
+      transactions: recent,
       categories,
       wallets,
       debts: debtRecords ?? [],
@@ -676,7 +681,7 @@ export default function HomeView() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between gap-3">
               <span className="text-[var(--text-secondary)]">{t('Active Debts')}</span>
-              <span className="font-mono font-bold text-amber-500" style={{ fontVariantNumeric: 'tabular-nums' }}>
+              <span className="font-mono font-bold text-[var(--warning)]" style={{ fontVariantNumeric: 'tabular-nums' }}>
                 {hideAmount ? '•••••' : formatCurrency(debtSummary.payableTotal)}
               </span>
             </div>
@@ -687,7 +692,7 @@ export default function HomeView() {
               </span>
             </div>
             {debtSummary.attentionCount > 0 && (
-              <p className="text-xs font-bold text-red-500">{t('needs attention count', { count: debtSummary.attentionCount })}</p>
+              <p className="text-xs font-bold text-[var(--danger)]">{t('needs attention count', { count: debtSummary.attentionCount })}</p>
             )}
           </div>
         </Link>

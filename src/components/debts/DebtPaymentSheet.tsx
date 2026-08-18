@@ -94,7 +94,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
           type="submit"
           form={formId}
           disabled={isSubmitting || hasInsufficientBalance || rawAmount <= 0}
-          className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] py-3 font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-transform active:scale-95 disabled:opacity-50"
+          className="w-full min-h-[48px] rounded-xl bg-[var(--accent-fill)] py-3 font-bold text-[var(--accent-ink)] shadow-lg shadow-[var(--accent-fill)]/20 transition-transform active:scale-95 disabled:opacity-50"
         >
           {title}
         </button>
@@ -130,7 +130,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
                 key={option.label}
                 type="button"
                 onClick={() => setQuickAmount(option.ratio)}
-                className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-2 min-h-[36px] text-xs font-bold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-2 min-h-[44px] text-xs font-bold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
               >
                 {option.label}
               </button>
@@ -147,11 +147,11 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
             </div>
             <div className="flex items-center justify-between text-sm mt-1">
               <span className="text-[var(--text-secondary)]">{t('debt.payPayment')}</span>
-              <span className="font-mono font-bold text-amber-500">-{formatCurrency(rawAmount, hideAmount)}</span>
+              <span className="font-mono font-bold text-[var(--warning)]">-{formatCurrency(rawAmount, hideAmount)}</span>
             </div>
             <div className="border-t border-[var(--border)] mt-2 pt-2 flex items-center justify-between text-sm font-bold">
               <span>{t('debt.payRemaining')}</span>
-              <span className={cn('font-mono', remainingAfterPayment === 0 ? 'text-green-500' : 'text-[var(--text-primary)]')}>
+              <span className={cn('font-mono', remainingAfterPayment === 0 ? 'text-[var(--success)]' : 'text-[var(--text-primary)]')}>
                 {formatCurrency(remainingAfterPayment, hideAmount)}
               </span>
             </div>
@@ -171,7 +171,7 @@ export function DebtPaymentSheet({ debt, isOpen, onClose, hideAmount = false }: 
             onChange={setWalletId}
           />
           {hasInsufficientBalance && (
-            <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300">
+            <div className="mt-2 flex items-start gap-2 rounded-xl border border-[var(--warning)]/20 bg-[var(--warning-bg)] p-3 text-xs text-[var(--warning)]">
               <AlertTriangle size={14} className="mt-0.5 shrink-0" />
               <span>{t(INSUFFICIENT_WALLET_BALANCE_MESSAGE)}</span>
             </div>

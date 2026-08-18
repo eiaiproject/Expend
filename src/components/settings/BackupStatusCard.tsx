@@ -140,35 +140,29 @@ interface StatusConfig {
 
 function getCardTone(status: BackupStatusType): string {
   if (status === 'never' || status === 'many_changes') {
-    return 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20';
+    return 'border-[var(--warning)]/25 bg-[var(--warning-bg)]/50';
   }
   if (status === 'old' || status === 'changes') {
-    return 'border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20';
+    return 'border-[var(--warning)]/25 bg-[var(--warning-bg)]/50';
   }
   return 'border-[var(--border)] bg-[var(--card)]';
 }
 
 function getIconTone(status: BackupStatusType): string {
-  if (status === 'never' || status === 'many_changes') {
-    return 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400';
-  }
-  if (status === 'old' || status === 'changes') {
-    return 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400';
+  if (status === 'never' || status === 'many_changes' || status === 'old' || status === 'changes') {
+    return 'bg-[var(--warning-bg)] text-[var(--warning)]';
   }
   if (status === 'recent') {
-    return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400';
+    return 'bg-[var(--success-bg)] text-[var(--success)]';
   }
   return 'bg-[var(--accent)]/10 text-[var(--accent)]';
 }
 
 function getBadgeTone(status: BackupStatusType): string {
   if (status === 'recent') {
-    return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300';
+    return 'bg-[var(--success-bg)] text-[var(--success)]';
   }
-  if (status === 'never' || status === 'many_changes') {
-    return 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300';
-  }
-  return 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300';
+  return 'bg-[var(--warning-bg)] text-[var(--warning)]';
 }
 
 function getStatusIcon(status: BackupStatusType): React.ReactNode {

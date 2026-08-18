@@ -25,12 +25,12 @@ function paymentCopy(debt: Debt, payment: DebtPayment, t: (key: string) => strin
   if (payment.type === 'initial') {
     return debt.type === 'payable'
       ? { label: t('debt.detailLoanReceived'), sign: '+', className: 'text-[var(--accent)]' }
-      : { label: t('debt.detailLoanGiven'), sign: '-', className: 'text-amber-500' };
+      : { label: t('debt.detailLoanGiven'), sign: '-', className: 'text-[var(--warning)]' };
   }
 
   if (payment.type === 'repayment') {
     return debt.type === 'payable'
-      ? { label: t('debt.detailPayment'), sign: '-', className: 'text-amber-500' }
+      ? { label: t('debt.detailPayment'), sign: '-', className: 'text-[var(--warning)]' }
       : { label: t('debt.detailReceived'), sign: '+', className: 'text-[var(--accent)]' };
   }
 
@@ -161,7 +161,7 @@ export function DebtDetailSheet({
             </div>
             <span className={cn(
               'rounded-full px-2.5 py-1 text-xs font-bold',
-              status === 'overdue' ? 'bg-red-500/10 text-red-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]',
+              status === 'overdue' ? 'bg-[var(--danger-bg)] text-[var(--danger)]' : 'bg-[var(--accent)]/10 text-[var(--accent)]',
             )}>
               {{
                 open: t('debt.statusOpen'),
@@ -220,7 +220,7 @@ export function DebtDetailSheet({
           <button
             type="button"
             onClick={() => onPayment(debt)}
-            className="w-full min-h-[48px] rounded-xl bg-[var(--accent)] py-3 font-bold text-white shadow-lg shadow-[var(--accent)]/20 active:scale-95"
+            className="w-full min-h-[48px] rounded-xl bg-[var(--accent-fill)] py-3 font-bold text-[var(--accent-ink)] shadow-lg shadow-[var(--accent-fill)]/20 active:scale-95"
           >
             {isPayable ? t('Pay debt') : t('Receive payment')}
           </button>
@@ -299,7 +299,7 @@ export function DebtDetailSheet({
           <button
             type="button"
             onClick={handleArchive}
-            className="inline-flex min-h-[44px] items-center justify-center gap-1 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-3 text-sm font-bold text-red-500"
+            className="inline-flex min-h-[44px] items-center justify-center gap-1 rounded-xl border border-[var(--danger)]/30 bg-[var(--danger-bg)] px-3 py-3 text-sm font-bold text-[var(--danger)]"
           >
             <Trash2 size={15} /> {t('Delete')}
           </button>
@@ -327,7 +327,7 @@ export function DebtDetailSheet({
                 const copy = paymentCopy(debt, payment, t);
                 return (
                   <div key={payment.id} className="flex items-start gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-3">
-                    <div className={cn('mt-0.5 rounded-full p-2', isPayable ? 'bg-amber-500/10 text-amber-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]')}>
+                    <div className={cn('mt-0.5 rounded-full p-2', isPayable ? 'bg-[var(--warning-bg)] text-[var(--warning)]' : 'bg-[var(--accent)]/10 text-[var(--accent)]')}>
                       {copy.sign === '-' ? <ArrowUpRight size={15} aria-hidden="true" /> : <ArrowDownLeft size={15} aria-hidden="true" />}
                     </div>
                     <div className="min-w-0 flex-1">

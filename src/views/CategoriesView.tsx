@@ -334,13 +334,13 @@ export default function CategoriesView() {
     if (!cat.budget || cat.budget <= 0) return null;
 
     const barColorByStatus: Record<string, string> = {
-      over: 'bg-red-500',
-      near: 'bg-yellow-500',
-      ok: 'bg-[var(--accent)]',
+      over: 'var(--danger)',
+      near: 'var(--warning)',
+      ok: 'var(--accent)',
     };
     const textColorByStatus: Record<string, string> = {
-      over: 'text-red-500',
-      near: 'text-yellow-500',
+      over: 'text-[var(--danger)]',
+      near: 'text-[var(--warning)]',
       ok: 'text-[var(--text-secondary)]',
     };
 
@@ -505,7 +505,7 @@ export default function CategoriesView() {
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
-              className="flex h-11 items-center justify-center gap-2 px-4 text-sm bg-[var(--accent)] text-white rounded-xl font-medium hover:opacity-90 transition-colors"
+              className="flex h-11 items-center justify-center gap-2 px-4 text-sm bg-[var(--accent-fill)] text-[var(--accent-ink)] rounded-xl font-medium hover:opacity-90 transition-colors"
             >
               <Plus size={16} aria-hidden="true" />
               {t('categories.addLabel')}
@@ -554,7 +554,7 @@ export default function CategoriesView() {
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
-              className="flex h-11 items-center justify-center gap-2 px-3 bg-[var(--accent)] text-white rounded-xl shadow font-medium hover:opacity-90 transition-colors"
+              className="flex h-11 items-center justify-center gap-2 px-3 bg-[var(--accent-fill)] text-[var(--accent-ink)] rounded-xl shadow font-medium hover:opacity-90 transition-colors"
               aria-label={t('categories.addLabel')}
             >
               <Plus size={18} aria-hidden="true" />
@@ -572,7 +572,7 @@ export default function CategoriesView() {
             <span>· {t('categories.withBudgetCount', { count: summaryStats.withBudgetCount })}</span>
           )}
           {summaryStats.nearLimitCount > 0 && (
-            <span className="text-amber-600 dark:text-amber-400">
+            <span className="text-[var(--warning)]">
               · {t('categories.nearLimitCount', { count: summaryStats.nearLimitCount })}
             </span>
           )}

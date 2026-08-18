@@ -48,6 +48,62 @@ function txActionsLabel(tx: Transaction, hideAmount: boolean, t: (key: string, o
   return t('home.actionsFor', { name: `${tx.description} - ${formatCurrencyValue(tx.amount, false)}` });
 }
 
+/** Transaction type icon chip (extracted — friction audit B5). */
+function TypeIcon({ tx }: { readonly tx: Transaction }) {
+  return (
+    <div className={cn("w-8 h-8 rounded-full shrink-0 flex items-center justify-center",
+      tx.type === 'expense' && 'bg-[var(--danger-bg)] text-[var(--danger)]',
+      tx.type === 'transfer_out' && 'bg-[var(--warning-bg)] text-[var(--warning)]',
+      tx.type === 'transfer_in' && 'bg-[var(--success-bg)] text-[var(--success)]',
+      tx.type === 'balance_adjustment' && 'bg-[var(--info-bg)] text-[var(--info)]'
+    )} aria-hidden="true">
+      {tx.type === 'expense' && <ArrowDownCircle size={16} />}
+      {tx.type === 'transfer_out' && <ArrowUpRight size={16} />}
+      {tx.type === 'transfer_in' && <ArrowDownLeft size={16} />}
+      {tx.type === 'balance_adjustment' && <Refresh size={16} />}
+    </div>
+  );
+}
+
+/** Kebab-menu row (extracted — friction audit B5). */
+function TxMenuItem({
+  icon,
+  label,
+  tone = 'default',
+  disabled,
+  onAction,
+  onClose,
+}: {
+  readonly icon: React.ReactNode;
+  readonly label: string;
+  readonly tone?: 'default' | 'danger';
+  readonly disabled?: boolean;
+  readonly onAction: () => void;
+  readonly onClose: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose();
+        onAction();
+      }}
+      disabled={disabled}
+      className={cn(
+        "w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors text-left",
+        tone === 'danger'
+          ? "text-[var(--danger)] hover:bg-[var(--danger-bg)]"
+          : "text-[var(--text-primary)] hover:bg-[var(--bg)]",
+        disabled && "opacity-30 cursor-not-allowed"
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
 
 // NOSONAR S3776 — cognitive complexity is inherent to this business logic
 export function TransactionCard({
@@ -128,19 +184,7 @@ export function TransactionCard({
     return tx.description;
   })();
 
-  const typeIcon = !isSelectionMode ? (
-    <div className={cn("w-8 h-8 rounded-full shrink-0 flex items-center justify-center", 
-      tx.type === 'expense' && 'bg-red-500/10 text-red-500',
-      tx.type === 'transfer_out' && 'bg-orange-500/10 text-orange-500',
-      tx.type === 'transfer_in' && 'bg-green-500/10 text-green-500',
-      tx.type === 'balance_adjustment' && 'bg-gray-500/10 text-gray-500'
-    )} aria-hidden="true">
-      {tx.type === 'expense' && <ArrowDownCircle size={16} />}
-      {tx.type === 'transfer_out' && <ArrowUpRight size={16} />}
-      {tx.type === 'transfer_in' && <ArrowDownLeft size={16} />}
-      {tx.type === 'balance_adjustment' && <Refresh size={16} />}
-    </div>
-  ) : null;
+  const typeIcon = !isSelectionMode ? <TypeIcon tx={tx} /> : null;
 
   return (
     <article
@@ -158,7 +202,7 @@ export function TransactionCard({
           <div className={cn(
             "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
             isSelected
-              ? "bg-[var(--accent)] border-[var(--accent)] text-white" 
+              ? "bg-[var(--accent-fill)] border-[var(--accent-fill)] text-[var(--accent-ink)]" 
               : "border-[var(--border)] text-transparent"
           )} aria-hidden="true">
             <CheckCircle size={14} />
@@ -232,46 +276,26 @@ export function TransactionCard({
                 role="menu"
                 className="absolute right-0 top-full mt-1 w-44 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-50 py-1"
               >
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsMenuOpen(false);
-                    onViewDetail?.() ?? onClick();
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors text-left"
-                >
-                  <Eye size={14} />
-                  {t('View Detail')}
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsMenuOpen(false);
-                    onEdit();
-                  }}
+                <TxMenuItem
+                  icon={<Eye size={14} />}
+                  label={t('View Detail')}
+                  onAction={() => onViewDetail?.() ?? onClick()}
+                  onClose={() => setIsMenuOpen(false)}
+                />
+                <TxMenuItem
+                  icon={<Edit2 size={14} />}
+                  label={t('Edit')}
                   disabled={tx.type === 'transfer_in' || tx.type === 'transfer_out' || tx.type === 'balance_adjustment'}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors text-left disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <Edit2 size={14} />
-                  {t('Edit')}
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsMenuOpen(false);
-                    onDelete();
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors text-left"
-                >
-                  <Trash2 size={14} />
-                  {t('Delete')}
-                </button>
+                  onAction={onEdit}
+                  onClose={() => setIsMenuOpen(false)}
+                />
+                <TxMenuItem
+                  icon={<Trash2 size={14} />}
+                  label={t('Delete')}
+                  tone="danger"
+                  onAction={onDelete}
+                  onClose={() => setIsMenuOpen(false)}
+                />
               </div>
             )}
           </div>

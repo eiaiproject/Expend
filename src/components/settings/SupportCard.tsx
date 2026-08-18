@@ -33,7 +33,7 @@ export function SupportCard() {
         href={TRAKTEER_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="w-full flex items-center justify-center gap-2 h-12 rounded-xl bg-[var(--accent)] text-white font-bold hover:opacity-90 active:scale-95 transition-[opacity,transform] shadow-lg shadow-[var(--accent)]/20 min-h-[44px]"
+        className="w-full flex items-center justify-center gap-2 h-12 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold hover:opacity-90 active:scale-95 transition-[opacity,transform] shadow-lg shadow-[var(--accent-fill)]/20 min-h-[44px]"
       >
         {t('settings.supportCardAction')}
         <ExternalLink size={14} aria-hidden="true" />

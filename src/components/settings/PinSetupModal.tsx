@@ -102,7 +102,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
         {step === 1 && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-left dark:border-amber-800 dark:bg-amber-900/20">
             <div className="flex items-start gap-2">
-              <Information size={16} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <Information size={16} className="mt-0.5 shrink-0 text-[var(--warning)]" />
               <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
                 {t('Security Disclosure')}
               </p>
@@ -112,7 +112,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
 
         {renderPinDots(step === 1 ? pin : confirmPin)}
 
-        {error && <p className="text-center text-sm text-red-500" aria-live="polite">{error}</p>}
+        {error && <p className="text-center text-sm text-[var(--danger)]" aria-live="polite">{error}</p>}
         
         <input
           ref={inputRef}
@@ -203,7 +203,7 @@ export function PinSetupModal({ isOpen, onClose, onSuccess }: PinSetupModalProps
               }
             }}
             disabled={isSubmitting || (step === 1 ? pin.length < MIN_PIN_LENGTH : confirmPin.length < MIN_PIN_LENGTH)}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-colors"
+            className="flex-1 h-11 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-colors"
           >
             {step === 1 ? t('Next') : t('Confirm')}
           </button>

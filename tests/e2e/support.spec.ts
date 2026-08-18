@@ -59,10 +59,15 @@ test.describe('support (master.md 14.3 #10/#11)', () => {
 
 // master.md 14.3 #12: the PWA reloads and works offline.
 test.describe('offline reload (master.md 14.3 #12)', () => {
+  // Friction audit B3: WebKit fails `page.reload()` while offline with an
+  // engine error ("WebKit encountered an internal error") regardless of app
+  // code — reproduced on the pre-fix baseline too. Covered by chromium CI.
+  test.skip(({ browserName }) => browserName === 'webkit', 'WebKit engine cannot reload while offline (flaky engine error)');
+
   test('app renders from the service worker cache when offline', async ({ page }) => {
     await visitApp(page);
     await completeOnboarding(page, { walletName: 'Cash', walletBalance: '100000', categories: [] });
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     await page.context().setOffline(true);
     await page.reload();

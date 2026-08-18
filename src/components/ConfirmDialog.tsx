@@ -124,8 +124,8 @@ export function ConfirmDialogProvider() {
                 className={(
                   "flex-1 h-11 rounded-xl font-medium transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed " +
                   (currentDialog.variant === 'danger'
-                    ? "bg-red-500 text-white hover:bg-red-600"
-                    : "bg-[var(--accent)] text-white hover:opacity-90")
+                    ? "bg-[var(--danger)] text-white hover:opacity-90"
+                    : "bg-[var(--accent-fill)] text-[var(--accent-ink)] hover:opacity-90")
                 )}
               >
                 {currentDialog.confirmLabel || t('Confirm')}

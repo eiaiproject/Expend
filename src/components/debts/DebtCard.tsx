@@ -32,6 +32,53 @@ function getDueLabel(debt: Debt, t: (key: string, options?: Record<string, strin
   return displayDateShort(debt.dueDate, locale);
 }
 
+/** Status-based icon (extracted — friction audit B5). */
+function DebtStatusIcon({
+  status,
+  closed,
+  isPayable,
+}: {
+  readonly status: ReturnType<typeof calculateDebtStatus>;
+  readonly closed: boolean;
+  readonly isPayable: boolean;
+}) {
+  if (status === 'overdue') return <AlertTriangle size={18} aria-hidden="true" />;
+  if (closed) return <CheckCircle size={18} aria-hidden="true" />;
+  if (isPayable) return <ArrowDownLeft size={18} aria-hidden="true" />;
+  return <ArrowUpRight size={18} aria-hidden="true" />;
+}
+
+/** Overflow-menu row (extracted — friction audit B5). */
+function DebtMenuItem({
+  icon,
+  label,
+  tone = 'default',
+  itemRef,
+  onAction,
+  onClose,
+}: {
+  readonly icon: React.ReactNode;
+  readonly label: string;
+  readonly tone?: 'default' | 'warning';
+  readonly itemRef: (el: HTMLButtonElement | null) => void;
+  readonly onAction: () => void;
+  readonly onClose: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      ref={itemRef}
+      role="menuitem"
+      onClick={() => { onClose(); onAction(); }}
+      className={cn(
+        "flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]",
+        tone === 'warning' && "text-amber-600 dark:text-amber-300"
+      )}
+    >
+      {icon} {label}
+    </button>
+  );
+}
 
 // NOSONAR S3776 — cognitive complexity is inherent to this business logic
 export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, onPayment, onEdit }: DebtCardProps) {
@@ -152,12 +199,7 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
           aria-label={t('debt.viewDetail')}
         >
           <span className="sr-only">{t('debt.viewDetail')}</span>
-          {(function renderDebtIcon() {
-            if (status === 'overdue') return <AlertTriangle size={18} aria-hidden="true" />;
-            if (closed) return <CheckCircle size={18} aria-hidden="true" />;
-            if (isPayable) return <ArrowDownLeft size={18} aria-hidden="true" />;
-            return <ArrowUpRight size={18} aria-hidden="true" />;
-          })()}
+          <DebtStatusIcon status={status} closed={closed} isPayable={isPayable} />
         </button>
 
         <div className="min-w-0 flex-1">
@@ -204,53 +246,44 @@ export function DebtCard({ debt, payments, wallet, hideAmount = false, onClick, 
                       onKeyDown={handleMenuKeyDown}
                       className="absolute right-0 z-50 mt-1 w-48 rounded-xl border border-[var(--border)] bg-[var(--card)] py-1 shadow-lg animate-in fade-in zoom-in-95 duration-150"
                     >
-                      <button
-                        type="button"
-                        ref={(el) => { menuItemsRef.current[0] = el; }}
-                        role="menuitem"
-                        onClick={() => { closeMenu(); onClick(); }}
-                        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]"
-                      >
-                        <CheckCircle size={15} /> {t('debt.viewDetail')}
-                      </button>
-                      <button
-                        type="button"
-                        ref={(el) => { menuItemsRef.current[1] = el; }}
-                        role="menuitem"
-                        onClick={() => { closeMenu(); onPayment(); }}
-                        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]"
-                      >
-                        <HandDollar size={15} /> {t('debt.recordPayment')}
-                      </button>
-                      <button
-                        type="button"
-                        ref={(el) => { menuItemsRef.current[2] = el; }}
-                        role="menuitem"
-                        onClick={() => { closeMenu(); onEdit(); }}
-                        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]"
-                      >
-                        <Edit size={15} /> {t('debt.editRecord')}
-                      </button>
+                      <DebtMenuItem
+                        icon={<CheckCircle size={15} />}
+                        label={t('debt.viewDetail')}
+                        itemRef={(el) => { menuItemsRef.current[0] = el; }}
+                        onAction={onClick}
+                        onClose={closeMenu}
+                      />
+                      <DebtMenuItem
+                        icon={<HandDollar size={15} />}
+                        label={t('debt.recordPayment')}
+                        itemRef={(el) => { menuItemsRef.current[1] = el; }}
+                        onAction={onPayment}
+                        onClose={closeMenu}
+                      />
+                      <DebtMenuItem
+                        icon={<Edit size={15} />}
+                        label={t('debt.editRecord')}
+                        itemRef={(el) => { menuItemsRef.current[2] = el; }}
+                        onAction={onEdit}
+                        onClose={closeMenu}
+                      />
                       <hr className="my-1 border-[var(--border)]" />
-                      <button
-                        type="button"
-                        ref={(el) => { menuItemsRef.current[3] = el; }}
-                        role="menuitem"
-                        onClick={handleMarkPaid}
-                        className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-[var(--bg)]"
-                      >
-                        <CheckCircle size={15} /> {t('debt.markSettled')}
-                      </button>
+                      <DebtMenuItem
+                        icon={<CheckCircle size={15} />}
+                        label={t('debt.markSettled')}
+                        itemRef={(el) => { menuItemsRef.current[3] = el; }}
+                        onAction={handleMarkPaid}
+                        onClose={closeMenu}
+                      />
                       {debt.type === 'receivable' && (
-                        <button
-                          type="button"
-                          ref={(el) => { menuItemsRef.current[4] = el; }}
-                          role="menuitem"
-                          onClick={handleWriteOff}
-                          className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-left text-amber-600 dark:text-amber-300 hover:bg-[var(--bg)]"
-                        >
-                          <Trash2 size={15} /> {t('debt.writeOff')}
-                        </button>
+                        <DebtMenuItem
+                          icon={<Trash2 size={15} />}
+                          label={t('debt.writeOff')}
+                          tone="warning"
+                          itemRef={(el) => { menuItemsRef.current[4] = el; }}
+                          onAction={handleWriteOff}
+                          onClose={closeMenu}
+                        />
                       )}
                     </div>
                   )}

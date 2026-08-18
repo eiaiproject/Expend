@@ -100,13 +100,13 @@ export default function SchedulesView() {
         <article
           className={cn(
             'rounded-[16px] border bg-[var(--card)] p-4 shadow-sm transition-[border-color,box-shadow]',
-            isDue && schedule.mode === 'remind' ? 'border-amber-500/30' : 'border-[var(--border)]',
+            isDue && schedule.mode === 'remind' ? 'border-[var(--warning)]/30' : 'border-[var(--border)]',
           )}
         >
           <div className="flex items-start gap-3">
             <div className={cn(
               'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-              schedule.mode === 'create' ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-amber-500/10 text-amber-500',
+              schedule.mode === 'create' ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-[var(--warning-bg)] text-[var(--warning)]',
             )}>
               {schedule.mode === 'create' ? <Play size={16} aria-hidden="true" /> : <Bell size={16} aria-hidden="true" />}
             </div>
@@ -131,7 +131,7 @@ export default function SchedulesView() {
                   <span className={cn(
                     'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider',
                     schedule.active
-                      ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                      ? 'bg-[var(--success-bg)] text-[var(--success)]'
                       : 'bg-[var(--border)]/40 text-[var(--text-secondary)]',
                   )}>
                     {schedule.active ? t('recurring.active') : t('recurring.paused')}
@@ -141,7 +141,7 @@ export default function SchedulesView() {
 
               {/* Next occurrence + wallet */}
               <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--text-secondary)]">
-                <span className={cn('inline-flex items-center gap-1', isDue && 'font-bold text-amber-600 dark:text-amber-300')}>
+                <span className={cn('inline-flex items-center gap-1', isDue && 'font-bold text-[var(--warning)]')}>
                   <CalendarDays size={12} aria-hidden="true" />
                   {isDue ? t('recurring.dueNow') : `${t('recurring.next')}: ${displayDateMedium(schedule.nextOccurrence, i18n.language)}`}
                 </span>
@@ -161,7 +161,7 @@ export default function SchedulesView() {
               <button
                 type="button"
                 onClick={() => handleRecordNow(schedule)}
-                className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-3 py-2.5 text-sm font-bold text-white shadow-sm active:scale-95 transition-transform"
+                className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-[var(--accent-fill)] px-3 py-2.5 text-sm font-bold text-[var(--accent-ink)] shadow-sm active:scale-95 transition-transform"
               >
                 <ReceiptText size={15} aria-hidden="true" />
                 {t('recurring.recordNow')}
@@ -186,7 +186,7 @@ export default function SchedulesView() {
             <button
               type="button"
               onClick={() => handleDelete(schedule)}
-              className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm font-bold text-red-500"
+              className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-[var(--danger)]/30 bg-[var(--danger-bg)] px-3 py-2.5 text-sm font-bold text-[var(--danger)]"
             >
               <Trash2 size={15} aria-hidden="true" />
               {t('Delete')}
@@ -241,7 +241,7 @@ export default function SchedulesView() {
           <button
             type="button"
             onClick={() => { setScheduleToEdit(null); setIsFormOpen(true); }}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent-fill)] text-[var(--accent-ink)] shadow-lg shadow-[var(--accent-fill)]/20"
             aria-label={t('recurring.addLabel')}
           >
             <Plus size={20} />
@@ -251,7 +251,7 @@ export default function SchedulesView() {
 
       {/* Browser limitation note (master.md 7.2) */}
       <output
-        className="flex items-start gap-2 rounded-[16px] border border-amber-500/20 bg-amber-500/10 p-4 text-xs text-amber-600 dark:text-amber-300"
+        className="flex items-start gap-2 rounded-[16px] border border-[var(--warning)]/20 bg-[var(--warning-bg)] p-4 text-xs text-[var(--warning)]"
       >
         <Pause size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
         <span>{t('recurring.browserLimit')}</span>

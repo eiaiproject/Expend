@@ -113,7 +113,7 @@ export function CategoryForm({ mode, initialCategory, onSubmit, onCancel, existi
         <button
           type="button"
           onClick={handleSubmit}
-          className="flex h-11 items-center justify-center gap-2 px-5 text-sm bg-[var(--accent)] text-white rounded-xl font-medium hover:opacity-90 transition-colors"
+          className="flex h-11 items-center justify-center gap-2 px-5 text-sm bg-[var(--accent-fill)] text-[var(--accent-ink)] rounded-xl font-medium hover:opacity-90 transition-colors"
         >
           <Save size={16} aria-hidden="true" />
           {t('Save')}

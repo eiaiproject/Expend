@@ -53,9 +53,8 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
       const existingColors = await db.categories.toArray().then(cats => new Set(cats.map(c => c.color)));
       for (const categoryKey of selectedCategories) {
         const cat = DEFAULT_CATEGORIES.find(c => c.nameKey === categoryKey);
-        const availableColors = [...CURATED_PALETTE].filter(c => !existingColors.has(c));
-        const fallbackColor = (availableColors[Math.floor(Math.random() * availableColors.length)] // NOSONAR
-          ?? CURATED_PALETTE[Math.floor(Math.random() * CURATED_PALETTE.length)])!; // NOSONAR
+        // Friction audit B6: deterministic first-unused palette color.
+        const fallbackColor = CURATED_PALETTE.find(c => !existingColors.has(c)) ?? CURATED_PALETTE[0]!;
         const color: string = cat?.color ?? fallbackColor;
 
         existingColors.add(color);
@@ -260,7 +259,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
             <button
               type="button"
               onClick={() => setStep(s => s + 1)}
-              className="flex-1 h-12 rounded-xl bg-[var(--accent)] text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-colors active:scale-95"
+              className="flex-1 h-12 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-colors active:scale-95"
             >
               {t('Next')}
               <ArrowRight size={18} />
@@ -270,7 +269,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
             type="button"
             onClick={handleFinish}
             disabled={isSubmitting}
-            className="flex-1 h-12 rounded-xl bg-[var(--accent)] text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-colors active:scale-95 disabled:opacity-50"
+            className="flex-1 h-12 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-colors active:scale-95 disabled:opacity-50"
           >
             <Sparkles size={18} />
             {isSubmitting ? t('Setting up...') : t('Start Tracking')}

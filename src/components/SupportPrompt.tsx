@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Coffee, X, Link as ExternalLink } from 'reicon-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
@@ -27,7 +27,11 @@ import {
 export function SupportPrompt() {
   const { t } = useTranslation();
   const [decision, setDecision] = useState<SupportPromptEvaluation | null>(null);
-  const dialogRef = useFocusTrap(decision !== null);
+  // Revealed after a short delay so the prompt never blocks the user right
+  // after an import/restore/positive moment (friction audit A2).
+  const [revealed, setRevealed] = useState(false);
+  const revealTimerRef = useRef<number | null>(null);
+  const dialogRef = useFocusTrap(revealed);
 
   const evaluate = useCallback(async () => {
     if (decision) return; // already showing
@@ -37,6 +41,15 @@ export function SupportPrompt() {
       // Record immediately so the same milestone never re-prompts
       void recordSupportPromptShown(result.milestoneKey);
     }
+  }, [decision]);
+
+  // Delay the reveal — gentle nudge instead of an immediate blocker.
+  useEffect(() => {
+    if (!decision) return;
+    revealTimerRef.current = window.setTimeout(() => setRevealed(true), 3500);
+    return () => {
+      if (revealTimerRef.current !== null) window.clearTimeout(revealTimerRef.current);
+    };
   }, [decision]);
 
   // Evaluate on mount
@@ -54,6 +67,7 @@ export function SupportPrompt() {
   const handleDismiss = useCallback(async () => {
     await dismissSupportPrompt();
     setDecision(null);
+    setRevealed(false);
   }, []);
 
   // The anchor's default target="_blank" handles the single new tab;
@@ -65,15 +79,15 @@ export function SupportPrompt() {
 
   // Esc closes and dismisses
   useEffect(() => {
-    if (!decision) return;
+    if (!revealed) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') void handleDismiss();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [decision, handleDismiss]);
+  }, [revealed, handleDismiss]);
 
-  if (!decision) return null;
+  if (!decision || !revealed) return null;
 
   return (
     <div
