@@ -46,7 +46,7 @@ test.describe('wallet deletion safety', () => {
     });
 
     await page.goto('/wallets');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     await clickWalletMenuOption(page, walletName, /^delete$/i);
 
@@ -66,7 +66,7 @@ test.describe('wallet deletion safety', () => {
     await createWallet(page, extraWallet, '100000');
 
     await page.goto('/wallets');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     await clickWalletMenuOption(page, extraWallet, /^delete$/i);
 
@@ -119,7 +119,7 @@ test.describe('budget alerts', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Home view should show a budget alert
     const alert = page.getByText(/budget alert|exceeded budget/i);
@@ -134,7 +134,7 @@ test.describe('export and import', () => {
     await onboard(page, uniqueName('Export'));
 
     await page.goto('/settings');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Open Backup & Restore accordion
     await page.getByRole('button', { name: /backup & restore/i }).first().click();
@@ -164,7 +164,7 @@ test.describe('export and import', () => {
     });
 
     await page.goto('/settings');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     // Open Transaction Import & Export accordion
     await page.getByRole('button', { name: /transaction import & export/i }).first().click();
     const downloadPromise = page.waitForEvent('download', { timeout: 10_000 });
@@ -186,7 +186,7 @@ test.describe('export and import', () => {
 
     // Create the backup file.
     await page.goto('/settings');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.getByRole('button', { name: /backup & restore/i }).first().click();
     const downloadPromise = page.waitForEvent('download', { timeout: 10_000 });
     await page.getByRole('button', { name: /export full backup|export json/i }).first().click();
@@ -218,7 +218,7 @@ test.describe('language and theme', () => {
     await onboard(page, uniqueName('Lang'));
 
     await page.goto('/settings');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Find and click the language section/button
     const langButton = page.getByRole('button', { name: /language|bahasa/i }).first();
@@ -228,13 +228,13 @@ test.describe('language and theme', () => {
       const enOption = page.getByRole('button', { name: /^english$/i }).first();
       if (await enOption.isVisible({ timeout: 2_000 }).catch(() => false)) {
         await enOption.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
       }
     }
 
     // Reload and check language persisted
     await page.reload();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Main app should still render
     const main = page.locator('main#main-content');
@@ -245,7 +245,7 @@ test.describe('language and theme', () => {
     await onboard(page, uniqueName('Theme'));
 
     await page.goto('/settings');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const themeButton = page.getByRole('button', { name: /theme|appearance|tampilan/i }).first();
     if (await themeButton.isVisible({ timeout: 3_000 }).catch(() => false)) {
@@ -253,7 +253,7 @@ test.describe('language and theme', () => {
       const lightOption = page.getByRole('button', { name: /light|terang/i }).first();
       if (await lightOption.isVisible({ timeout: 2_000 }).catch(() => false)) {
         await lightOption.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
       }
     }
 
@@ -263,7 +263,7 @@ test.describe('language and theme', () => {
     );
 
     await page.reload();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const stillLight = await page.evaluate(() =>
       document.documentElement.getAttribute('data-theme') === 'light',
@@ -342,7 +342,7 @@ test.describe('debt write-off and mark-paid', () => {
 
     // Open debt detail and write off
     await page.goto('/debts');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.locator(`text=${personName}`).first().click();
 
     const detailDialog = page.getByRole('dialog');
@@ -382,7 +382,7 @@ test.describe('debt write-off and mark-paid', () => {
     await expectWalletBalance(page, walletName, BASE_BALANCE_NUM + 50_000);
 
     await page.goto('/debts');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.locator(`text=${personName}`).first().click();
 
     const detailDialog = page.getByRole('dialog');
@@ -432,7 +432,7 @@ test.describe('archive debt', () => {
 
     // Archive the debt (button labeled "Delete" in the UI)
     await page.goto('/debts');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.locator(`text=${personName}`).first().click();
 
     const detailDialog = page.getByRole('dialog');
@@ -463,7 +463,7 @@ test.describe('PIN security extended', () => {
 
     // Set up PIN
     await page.goto('/settings');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     // Security section is directly visible — find the Set up PIN button directly.
     await page.getByRole('button', { name: /set up app lock/i }).first().click();
 
@@ -507,7 +507,7 @@ test.describe('PIN security extended', () => {
     const walletName = await onboard(page, uniqueName('DisableSec'));
 
     await page.goto('/settings');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     // Security section is directly visible.
     await page.getByRole('button', { name: /set up app lock/i }).first().click();
 

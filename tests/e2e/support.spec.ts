@@ -67,7 +67,7 @@ test.describe('offline reload (master.md 14.3 #12)', () => {
   test('app renders from the service worker cache when offline', async ({ page }) => {
     await visitApp(page);
     await completeOnboarding(page, { walletName: 'Cash', walletBalance: '100000', categories: [] });
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     await page.context().setOffline(true);
     await page.reload();
