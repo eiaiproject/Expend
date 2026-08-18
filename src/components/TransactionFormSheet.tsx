@@ -3,7 +3,6 @@ import { useOverflow } from '../hooks/useOverflow';
 import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
 import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Wallet, ShoppingBag } from 'reicon-react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { type Transaction } from '../db/db';
 import { cn } from '../utils/cn';
@@ -16,6 +15,8 @@ import { WalletSelect } from './WalletSelect';
 import type { TransactionType } from '../hooks/useTransactionForm';
 import { deleteTemplate } from '../services/templateService';
 import type { TransactionTemplate } from '../services/templateService';
+import { PayeePickerSheet } from './PayeePickerSheet';
+import { useDismissOnOutsideTap } from '../hooks/useDismissOnOutsideTap';
 
 interface TransactionFormSheetProps {
   readonly isOpen: boolean;
@@ -52,6 +53,8 @@ export function TransactionFormSheet({
     !initialFromWalletId &&
     !initialToWalletId;
   const [showDetails, setShowDetails] = useState(!isQuickAdd);
+  // Payee picker popup — replaces the old link that navigated behind the form.
+  const [showPayeePicker, setShowPayeePicker] = useState(false);
   // Edge fade only when the template chips actually overflow the screen.
   const { ref: templatesRef, overflows: templatesOverflows } = useOverflow<HTMLUListElement>();
 
@@ -145,6 +148,20 @@ export function TransactionFormSheet({
     },
   });
 
+  // Friction audit B4: click-outside dismissal (replaces setTimeout-on-blur).
+  const amountAreaRef = useRef<HTMLDivElement>(null);
+  const descriptionAreaRef = useRef<HTMLDivElement>(null);
+  useDismissOnOutsideTap(
+    amountAreaRef,
+    state.isAmountFocused && !state.amount,
+    () => actions.setIsAmountFocused(false),
+  );
+  useDismissOnOutsideTap(
+    descriptionAreaRef,
+    state.showDescriptionSuggestions && state.filteredDescriptionSuggestions.length > 0 && state.description.trim() !== '',
+    () => actions.setShowDescriptionSuggestions(false),
+  );
+
   const selectedWalletName = wallets.find((w) => w.id === Number(state.walletId))?.name;
 
   const handleDescriptionChange = (val: string) => {
@@ -201,12 +218,14 @@ export function TransactionFormSheet({
   };
 
   return (
+    <>
     <BottomSheetShell
       isOpen={isOpen}
       onClose={handleCloseRequest}
       title={isEditingExistingTransaction ? t('Edit') : t('Add Transaction')}
       ariaLabel={isEditingExistingTransaction ? t('Edit') : t('Add Transaction')}
       size="full"
+      disableEscape={showPayeePicker}
       footer={
         <button
           type="submit"
@@ -273,7 +292,7 @@ export function TransactionFormSheet({
         )}
 
         {/* Amount */}
-        <div>
+        <div ref={amountAreaRef}>
           <label htmlFor={amountInputId} className="block text-sm font-medium mb-1.5">{t('Nominal')} *</label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] font-mono font-bold">
@@ -287,7 +306,6 @@ export function TransactionFormSheet({
               value={state.amount}
               onChange={actions.handleAmountChange}
               onFocus={() => actions.setIsAmountFocused(true)}
-              onBlur={() => setTimeout(() => actions.setIsAmountFocused(false), 200)}
               className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl py-3 pl-12 pr-4 font-mono text-xl font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               placeholder="0"
             />
@@ -350,25 +368,37 @@ export function TransactionFormSheet({
           </button>
         )}
 
-        {/* Progressive disclosure toggle (Quick Add) */}
+        {/* Quick Add shortcuts — pick a payee or expand the details section
+            (friction audit A1: payee selection no longer requires expanding
+            details first). */}
         {isQuickAdd && !showDetails && (
-          <button
-            type="button"
-            onClick={() => setShowDetails(true)}
-            aria-expanded={false}
-            aria-controls={`${formId}-details`}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px]"
-          >
-            <ChevronDown size={16} aria-hidden="true" />
-            {t('Add details')}
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => { setShowDetails(true); setShowPayeePicker(true); }}
+              className="flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)] text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px]"
+            >
+              <ShoppingBag size={16} aria-hidden="true" />
+              {t('form.choosePayee')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDetails(true)}
+              aria-expanded={false}
+              aria-controls={`${formId}-details`}
+              className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px]"
+            >
+              <ChevronDown size={16} aria-hidden="true" />
+              {t('Add details')}
+            </button>
+          </div>
         )}
 
         {/* Details section (hidden in Quick Add until expanded) */}
         {(!isQuickAdd || showDetails) && (
           <div id={`${formId}-details`} className="space-y-4">
             {/* Description */}
-            <div className="relative">
+            <div className="relative" ref={descriptionAreaRef}>
               <label htmlFor={descriptionInputId} className="block text-sm font-medium mb-1.5">{t('Description')} {!isQuickAdd && '*'}</label>
               <input
                 id={descriptionInputId}
@@ -380,7 +410,6 @@ export function TransactionFormSheet({
                 value={state.description}
                 onChange={(e) => handleDescriptionChange(e.target.value)}
                 onFocus={() => actions.setShowDescriptionSuggestions(true)}
-                onBlur={() => setTimeout(() => actions.setShowDescriptionSuggestions(false), 200)}
                 onKeyDown={handleDescriptionKeyDown}
                 className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 pr-10 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               />
@@ -398,14 +427,15 @@ export function TransactionFormSheet({
                 /* preventDefault on mousedown keeps the input focused while
                    the tap lands — avoids the iOS case where the first tap
                    only dismisses the keyboard and the click is swallowed. */
-                <Link
-                  to="/payees"
+                <button
+                  type="button"
                   onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setShowPayeePicker(true)}
                   className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors min-h-[44px]"
                 >
                   <ShoppingBag size={14} aria-hidden="true" />
                   {t('form.choosePayee')}
-                </Link>
+                </button>
               )}
               {state.showDescriptionSuggestions && state.filteredDescriptionSuggestions.length > 0 && state.description.trim() !== '' && (
                 <div
@@ -507,6 +537,19 @@ export function TransactionFormSheet({
 
         {/* Submit — sticky footer in BottomSheetShell (visible above keyboard) */}
       </form>
+
     </BottomSheetShell>
+
+    {/* Payee picker — pops up ABOVE this sheet (z-index 70 > 50) so the
+        payee list is never hidden behind the form (design audit fix). */}
+    <PayeePickerSheet
+      isOpen={showPayeePicker}
+      onClose={() => setShowPayeePicker(false)}
+      onSelect={(name) => {
+        actions.setDescription(name);
+        setShowPayeePicker(false);
+      }}
+    />
+    </>
   );
 }
