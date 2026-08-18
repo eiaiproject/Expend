@@ -175,6 +175,27 @@ export async function getPayeeStatsFromTransactions(options?: GetPayeeStatsOptio
   return filtered;
 }
 
+// ── Session cache (friction audit B2) ──────────────────────────────────────
+// getPayeeStatsFromTransactions() re-scans every expense transaction on each
+// call. Consumers that open repeatedly (e.g. the payee picker) use the cached
+// variant. The TTL is short so a freshly recorded payee still appears on the
+// next open; PayeesView intentionally keeps the live (uncached) query.
+let cachedPayeeStats: PayeeStats[] | null = null;
+let cachedPayeeStatsAt = 0;
+const PAYEE_STATS_CACHE_TTL_MS = 10_000;
+
+/** Payee stats for one-shot consumers — memoized for up to 10s. */
+export async function getPayeeStatsCached(): Promise<PayeeStats[]> {
+  const now = Date.now();
+  if (cachedPayeeStats && now - cachedPayeeStatsAt < PAYEE_STATS_CACHE_TTL_MS) {
+    return cachedPayeeStats;
+  }
+  const stats = await getPayeeStatsFromTransactions();
+  cachedPayeeStats = stats;
+  cachedPayeeStatsAt = now;
+  return stats;
+}
+
 /**
  * Apply aggregate-level filters to payee stats.
  */
