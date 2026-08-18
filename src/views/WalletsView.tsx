@@ -247,7 +247,7 @@ export default function WalletsView() {
       <button
         type="button"
         onClick={() => setIsAddOpen(true)}
-        className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-white px-4 shadow transition-colors hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
+        className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--accent-fill)] text-[var(--accent-ink)] px-4 shadow transition-colors hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30"
         aria-label={t('wallet.addLabel')}
       >
         <Plus size={18} aria-hidden="true" />

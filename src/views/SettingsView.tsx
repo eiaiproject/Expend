@@ -71,10 +71,10 @@ function NavRow({ icon: Icon, label, description, to, onClick, danger, badge }: 
   readonly badge?: React.ReactNode;
 }) {
   const content = (
-    <div className={`flex items-center gap-3 p-4 min-h-[56px] transition-colors ${danger ? 'text-red-500' : 'hover:bg-[var(--bg)]'}`}>
+    <div className={`flex items-center gap-3 p-4 min-h-[56px] transition-colors ${danger ? 'text-[var(--danger)]' : 'hover:bg-[var(--bg)]'}`}>
       <Icon size={20} className="shrink-0" aria-hidden="true" />
       <div className="flex-1 min-w-0">
-        <span className={`text-sm font-medium ${danger ? 'text-red-500' : 'text-[var(--text-primary)]'}`}>{label}</span>
+        <span className={`text-sm font-medium ${danger ? 'text-[var(--danger)]' : 'text-[var(--text-primary)]'}`}>{label}</span>
         {description && <p className="text-xs text-[var(--text-secondary)] mt-0.5 leading-relaxed">{description}</p>}
       </div>
       {badge}
@@ -198,9 +198,9 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, duplicates, skipDuplic
         </div>
 
         {errors.length > 0 && (
-          <div className="p-4 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
-            <p className="text-sm font-medium text-red-700 dark:text-red-300">{t('settings.csvPreviewErrors', { count: errors.length })}</p>
-            <ul className="mt-1 text-xs text-red-600 dark:text-red-400 space-y-0.5">
+          <div className="p-4 bg-[var(--danger-bg)] border-b border-[var(--danger)]/20">
+            <p className="text-sm font-medium text-[var(--danger)]">{t('settings.csvPreviewErrors', { count: errors.length })}</p>
+            <ul className="mt-1 text-xs text-[var(--danger)] space-y-0.5">
               {errors.slice(0, 5).map((err, i) => <li key={err}>{err}</li>)}
               {errors.length > 5 && <li>...{errors.length - 5} more</li>}
             </ul>
@@ -270,7 +270,7 @@ function CsvPreviewModal({ isOpen, onClose, rows, errors, duplicates, skipDuplic
             type="button"
             onClick={onConfirm}
             disabled={errors.length > 0 || rows.length === 0}
-            className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 h-11 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] font-medium hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {importableCount === 0
               ? t('settings.csvImportAnyway')
@@ -307,7 +307,7 @@ function CsvImportReportModal({ report, onClose }: {
           <p>{t('settings.csvReportFailed', { count: report.failed })}</p>
           {report.errors.length > 0 && (
             <div className="pt-2">
-              <ul className="mt-1 text-xs text-red-600 dark:text-red-400 space-y-0.5 max-h-32 overflow-auto">
+              <ul className="mt-1 text-xs text-[var(--danger)] space-y-0.5 max-h-32 overflow-auto">
                 {report.errors.map((err) => <li key={err}>{err}</li>)}
               </ul>
               <button
@@ -321,7 +321,7 @@ function CsvImportReportModal({ report, onClose }: {
           )}
         </div>
         <div className="p-4 border-t border-[var(--border)] flex gap-3">
-          <button type="button" onClick={onClose} className="flex-1 h-11 rounded-xl bg-[var(--accent)] text-white font-medium hover:opacity-90 transition-colors">
+          <button type="button" onClick={onClose} className="flex-1 h-11 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] font-medium hover:opacity-90 transition-colors">
             {t('Done')}
           </button>
         </div>
@@ -352,7 +352,7 @@ function RestorePreviewModal({ isOpen, onClose, data, onConfirm }: {
       >
         <div className="p-5 border-b border-[var(--border)]">
           <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle size={20} className="text-amber-500" aria-hidden="true" />
+            <AlertTriangle size={20} className="text-[var(--warning)]" aria-hidden="true" />
             <h2 className="text-lg font-bold">{t('settings.restorePreviewTitle')}</h2>
           </div>
           <p className="text-sm text-[var(--text-secondary)]">{t('settings.restoreWarning')}</p>
@@ -523,9 +523,10 @@ export default function SettingsView() {
       });
       setCsvResult(report);
       setCsvPreview(null);
-      if (report.imported === 0) return; // nothing changed — no reload needed
+      if (report.imported === 0) return; // nothing changed
       toast.add(t('settings.importCsvSuccess', { count: report.imported }));
-      window.setTimeout(() => window.location.reload(), 600);
+      // Friction audit A3: no full-page reload — Dexie live queries propagate
+      // the imported rows automatically (keeps scroll/state, no flash).
     } catch {
       toast.add(t('Import Error'));
       setCsvPreview(null);
@@ -588,7 +589,8 @@ export default function SettingsView() {
       // Positive moment → contextual support prompt eligibility (9.4).
       // Record AFTER importData since restore replaces the settings store.
       await recordSupportMilestone('restore');
-      window.setTimeout(() => window.location.reload(), 600);
+      // Friction audit A3: no full-page reload — Dexie live queries propagate
+      // the restored data automatically (keeps scroll/state, no flash).
     } catch {
       toast.add(t('settings.restoreError'));
       setRestoreData(null);
@@ -906,7 +908,7 @@ export default function SettingsView() {
               {isSecurityLoaded && (
                 <p className="text-xs text-[var(--text-secondary)] flex items-center gap-1 mt-0.5">
                   {securityEnabled ? (
-                    <><Check size={12} className="text-green-500" aria-hidden="true" /> {t('settings.pinStatusActive')}</>
+                    <><Check size={12} className="text-[var(--success)]" aria-hidden="true" /> {t('settings.pinStatusActive')}</>
                   ) : (
                     t('settings.pinStatusInactive')
                   )}
@@ -937,7 +939,7 @@ export default function SettingsView() {
             <button
               type="button"
               onClick={() => setShowPinSetup(true)}
-              className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-[var(--accent)] text-white font-medium hover:opacity-90 transition-colors min-h-[44px]"
+              className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] font-medium hover:opacity-90 transition-colors min-h-[44px]"
             >
               <Lock size={18} aria-hidden="true" />
               {t('Set up PIN')}

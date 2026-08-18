@@ -32,7 +32,7 @@ export function HeroSection({ onEnter }: { readonly onEnter?: () => void }) {
             <button
               type="button"
               onClick={onEnter}
-              className="w-full sm:w-auto px-8 py-3.5 bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto px-8 py-3.5 min-h-[48px] bg-[var(--accent)] text-[var(--bg)] rounded-full font-semibold text-base hover:opacity-90 transition-opacity active:scale-95 cursor-pointer"
             >
               {t('landing.heroCtaPrimary')}
             </button>
@@ -65,13 +65,15 @@ export function HeroSection({ onEnter }: { readonly onEnter?: () => void }) {
           className="relative mx-auto w-full max-w-[300px] sm:max-w-[340px] lg:max-w-[380px] lg:justify-self-center"
         >
           <div className="relative">
-            {/* Phone Frame */}
-            <div className="relative bg-[var(--surface)] rounded-[1.5rem] p-3 sm:p-4 shadow-2xl shadow-black/40 border border-[var(--border-subtle)]">
+            {/* Phone Frame — theme-locked dark on purpose (master.md design audit):
+                the mockup hardcodes white text, so the screen must stay dark in
+                BOTH themes or it becomes unreadable in light mode. */}
+            <div className="relative bg-[#252A20] rounded-[1.5rem] p-3 sm:p-4 shadow-2xl shadow-black/40 border border-[var(--border-subtle)]">
               {/* Notch */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-6 bg-[var(--surface)] rounded-b-2xl z-20" />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-6 bg-[#252A20] rounded-b-2xl z-20" />
 
               {/* Screen */}
-              <div className="bg-[var(--bg)] rounded-[1.15rem] overflow-hidden">
+              <div className="bg-[#1A1E16] rounded-[1.15rem] overflow-hidden">
                 {/* Status Bar */}
                 <div className="h-10 flex items-center justify-between px-6 pt-2">
                   <span className="text-[10px] text-white/50 font-medium">9:41</span>
@@ -92,7 +94,7 @@ export function HeroSection({ onEnter }: { readonly onEnter?: () => void }) {
                   </div>
 
                   {/* Balance Card */}
-                  <div className="bg-[var(--accent)] rounded-2xl p-4 mb-4">
+                  <div className="bg-[#4A7A3A] rounded-2xl p-4 mb-4">
                     <p className="text-white/70 text-[10px] font-medium mb-1">{t('Balance')}</p>
                     <p className="text-xl font-bold text-white font-mono">Rp 5.240.000</p>
                     <div className="flex gap-2 mt-3">
@@ -114,7 +116,7 @@ export function HeroSection({ onEnter }: { readonly onEnter?: () => void }) {
                       { name: t('landing.demoTransport'), amount: '25.000', time: '08:15', color: 'bg-orange-400' },
                       { name: t('landing.demoCoffee'), amount: '35.000', time: t('Yesterday'), color: 'bg-amber-400' },
                     ].map((tx, i) => (
-                      <div key={tx.name} className="bg-[var(--card)] rounded-xl p-3 flex items-center gap-3">
+                      <div key={tx.name} className="bg-[#252A20] rounded-xl p-3 flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full ${tx.color} flex items-center justify-center shrink-0`}>
                           <div className="w-2 h-2 bg-white/80 rounded-full" />
                         </div>

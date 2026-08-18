@@ -219,7 +219,7 @@ export default function DebtsView() {
           <button
             type="button"
             onClick={handleOpenForm}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent-fill)] text-[var(--accent-ink)] shadow-lg shadow-[var(--accent-fill)]/20"
             aria-label={t('debt.recordLabel')}
           >
             <Plus size={20} />
@@ -329,9 +329,9 @@ export default function DebtsView() {
               aria-checked={typeFilter === item.id}
               onClick={() => setTypeFilter(item.id)}
               className={cn(
-                'rounded-full border px-3 py-1.5 min-h-[36px] text-xs font-bold transition-colors',
+                'rounded-full border px-3 py-1.5 min-h-[44px] text-xs font-bold transition-colors',
                 typeFilter === item.id
-                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                  ? 'border-[var(--accent-fill)] bg-[var(--accent-fill)] text-[var(--accent-ink)]'
                   : 'border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] hover:bg-[var(--bg)]',
               )}
             >
@@ -353,9 +353,9 @@ export default function DebtsView() {
               aria-checked={statusFilter === item.id}
               onClick={() => setStatusFilter(statusFilter === item.id ? 'all' : item.id)}
               className={cn(
-                'rounded-full border px-3 py-1.5 min-h-[36px] text-xs font-bold transition-colors',
+                'rounded-full border px-3 py-1.5 min-h-[44px] text-xs font-bold transition-colors',
                 statusFilter === item.id
-                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                  ? 'border-[var(--accent-fill)] bg-[var(--accent-fill)] text-[var(--accent-ink)]'
                   : 'border-[var(--border)] bg-[var(--card)] text-[var(--text-secondary)] hover:bg-[var(--bg)]',
               )}
             >
@@ -373,7 +373,7 @@ export default function DebtsView() {
             id="debt-sort"
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value as DebtSort)}
-            className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-xs font-bold min-h-[36px]"
+            className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-xs font-bold min-h-[44px]"
           >
             <option value="due_soon">{t('debt.sortDueSoon')}</option>
             <option value="most_overdue">{t('debt.sortMostOverdue')}</option>

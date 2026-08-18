@@ -114,6 +114,20 @@ export function getYesterdayStr(now: Date = new Date()): string {
 }
 
 /**
+ * Add days to a YYYY-MM-DD string (TZ-safe string arithmetic).
+ *
+ * @param dateStr - Date string in YYYY-MM-DD format.
+ * @param days - Number of days to add (negative to go back).
+ */
+export function addDays(dateStr: string, days: number): string {
+  const [y = 0, m = 1, d = 1] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, (d ?? 1) + days);
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${mm}-${dd}`;
+}
+
+/**
  * Get the start of the current week (Monday) as YYYY-MM-DD.
  * Uses local timezone.
  *

@@ -35,7 +35,9 @@ export function PageHeader({ title, description, actions, onBack, backLabel }: P
           </button>
         )}
         <div className="min-w-0">
-          <h1 className="text-2xl tracking-tight truncate" style={{ fontFamily: 'var(--font-display)' }}>
+          {/* h1 wraps instead of truncating — a page title must never be cut
+              off with an ellipsis on narrow screens (design audit). */}
+          <h1 className="text-2xl tracking-tight text-balance" style={{ fontFamily: 'var(--font-display)' }}>
             {title}
           </h1>
           {description && <div className="text-xs text-[var(--text-secondary)] mt-1">{description}</div>}

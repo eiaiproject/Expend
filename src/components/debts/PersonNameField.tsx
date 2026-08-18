@@ -1,5 +1,6 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDismissOnOutsideTap } from '../../hooks/useDismissOnOutsideTap';
 
 interface PersonNameFieldProps {
   readonly id: string;
@@ -41,6 +42,9 @@ export function PersonNameField({ id, value, suggestions, onChange }: PersonName
   const { t } = useTranslation();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionIndexRef = useRef(-1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Friction audit B4: click-outside instead of the racy setTimeout-on-blur.
+  useDismissOnOutsideTap(containerRef, showSuggestions && suggestions.length > 0, () => setShowSuggestions(false));
 
   const selectSuggestion = (name: string) => {
     onChange(name);
@@ -48,7 +52,7 @@ export function PersonNameField({ id, value, suggestions, onChange }: PersonName
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <label htmlFor={id} className="block text-sm font-medium mb-1.5">
         {t('debt.formPerson')} *
       </label>
@@ -62,7 +66,6 @@ export function PersonNameField({ id, value, suggestions, onChange }: PersonName
           setShowSuggestions(true);
         }}
         onFocus={() => setShowSuggestions(true)}
-        onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
         onKeyDown={(e) => navigateSuggestions(
           e,
           suggestions,

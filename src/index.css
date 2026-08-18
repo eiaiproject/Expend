@@ -16,7 +16,8 @@
   --text-4xl: 2.25rem;
 
   --color-brand: #7A9B6A;
-  --color-expense: #C4705A;
+  /* Expense on dark backgrounds — tuned so amounts on --card reach ≥4.5:1 (AA). */
+  --color-expense: #CC7A60;
   --color-income: #7A9B6A;
 }
 
@@ -104,7 +105,7 @@
     --text-primary: #EDE8DC;
     --text-secondary: #9CA88E;
     --accent: #7A9B6A;
-    --accent-fill: #4A7A3A;
+    --accent-fill: #3F6B30; /* darker green so white labels on primary buttons pass ≥4.5:1 */
     --accent-ink: #FFFFFF;
     --accent-text: #A8C49A;
     --accent-on-dark: #5E8A4A;
@@ -137,13 +138,14 @@
     --card: #FAFAF7;
     --text-primary: #3D2E1F;
     --text-secondary: #5C4D3C;
-    --accent: #5E8A4A;
+    /* Light-mode accent/expense darkened so text on --bg/--card passes 4.5:1 (AA). */
+    --accent: #4A6E3C;
     --accent-fill: #3D6B2F;
     --accent-ink: #FFFFFF;
-    --accent-text: #5E8A4A;
+    --accent-text: #4A6E3C;
     --accent-on-dark: #7A9B6A;
-    --expense: #B86B5A;
-    --income: #5E8A4A;
+    --expense: #A8503C;
+    --income: #4A6E3C;
     --border: #D4D9CE;
 
     /* Semantic design tokens */

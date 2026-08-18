@@ -7,7 +7,7 @@ import { SheetFormFooter } from './SheetFormFooter';
 import { WalletColorPicker } from './WalletColorPicker';
 import { WalletNameField } from './WalletNameField';
 
-const DEFAULT_COLOR = '#6366f1';
+const DEFAULT_COLOR = '#7A9B6A'; // brand sage — wallets default to the app's accent (design audit)
 
 interface WalletFormSheetProps {
   readonly isOpen: boolean;

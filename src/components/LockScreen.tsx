@@ -54,7 +54,7 @@ export function LockScreen() {
       className="fixed inset-0 bg-[var(--bg)] z-50 flex flex-col items-center justify-center p-6"
     >
       <div className="w-full max-w-xs space-y-8">
-        <div className={`w-20 h-20 mx-auto rounded-full bg-[var(--accent)] flex items-center justify-center ${error ? 'animate-shake' : ''}`}>
+        <div className={`w-20 h-20 mx-auto rounded-full bg-[var(--accent-fill)] flex items-center justify-center ${error ? 'animate-shake' : ''}`}>
           <Lock size={32} className="text-white" />
         </div>
 
@@ -74,7 +74,7 @@ export function LockScreen() {
                 key={`pin-${i}`}
                 className={`w-4 h-4 rounded-full transition-colors ${
                   i < pin.length ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
-                } ${error ? 'bg-red-500' : ''}`}
+                } ${error ? 'bg-[var(--danger)]' : ''}`}
               />
             ))}
           </div>
@@ -123,7 +123,7 @@ export function LockScreen() {
         </div>
 
         {error && (
-          <p className="text-center text-sm text-red-500" aria-live="polite">{t('Incorrect PIN')}</p>
+          <p className="text-center text-sm text-[var(--danger)]" aria-live="polite">{t('Incorrect PIN')}</p>
         )}
       </div>
     </div>

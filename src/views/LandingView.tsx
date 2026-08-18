@@ -43,7 +43,7 @@ function LangSwitcher() {
     <button
       type="button"
       onClick={toggle}
-      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
+      className="inline-flex items-center gap-1.5 px-2.5 min-h-[44px] rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
       aria-label={isEn ? 'Switch to Indonesian' : 'Switch to English'}
     >
       <Globe size={14} aria-hidden="true" />
@@ -83,7 +83,7 @@ function StickyNav() {
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="text-lg font-bold tracking-tight text-[var(--text-primary)] cursor-pointer bg-transparent border-none p-0"
+            className="text-lg font-bold tracking-tight text-[var(--text-primary)] cursor-pointer bg-transparent border-none p-0 min-h-[44px] flex items-center"
             style={{ fontFamily: 'var(--font-display)' }}
             aria-label="Expend — home"
           >
@@ -121,7 +121,7 @@ function StickyNav() {
             <button
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="px-4 py-2 bg-[var(--accent)] text-[var(--bg)] rounded-full text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer"
+              className="px-4 py-2 min-h-[44px] bg-[var(--accent)] text-[var(--bg)] rounded-full text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer"
             >
               {t('landing.navCta', 'Start Tracking')}
             </button>

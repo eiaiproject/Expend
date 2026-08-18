@@ -49,6 +49,7 @@ export function TransactionDetailSheet({ tx, onClose, onEdit, onDelete, onRepeat
                {tx.description && (
                  <Link
                    to={`/payees?q=${encodeURIComponent(tx.description)}`}
+                   onClick={() => onClose()}
                    className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold text-[var(--accent)] hover:underline rounded-md px-1"
                  >
                    {t('payees.viewPayee')}

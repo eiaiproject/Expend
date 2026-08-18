@@ -15,11 +15,13 @@ function PreviewCard({ icon, title, description, mockup, index }: PreviewCardPro
       className="group h-full"
     >
       <div className="h-full min-h-[520px] bg-[var(--surface)]/50 border border-[var(--border-subtle)] rounded-xl sm:rounded-2xl overflow-hidden hover:border-[var(--accent)]/20 transition-colors duration-500 flex flex-col">
-        {/* Mockup Area */}
-        <div className="relative bg-[var(--bg)] p-4 sm:p-6 h-[360px] sm:h-[380px] flex items-center justify-center overflow-hidden">
+        {/* Mockup Area — theme-locked dark on purpose (design audit): the mockups
+            hardcode white text, so this area stays dark in BOTH themes or it
+            becomes unreadable in light mode. */}
+        <div className="relative bg-[#1A1E16] p-4 sm:p-6 h-[360px] sm:h-[380px] flex items-center justify-center overflow-hidden">
           {mockup}
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--card)]/80 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#252A20]/80 via-transparent to-transparent pointer-events-none" />
         </div>
 
         {/* Content */}
@@ -47,7 +49,7 @@ function DashboardMockup() {
   return (
     <div className="w-full max-w-[280px] space-y-3">
       {/* Balance Card */}
-      <div className="bg-[var(--accent)] rounded-2xl p-4">
+      <div className="bg-[#4A7A3A] rounded-2xl p-4">
         <p className="text-white/70 text-[10px] font-medium mb-1">{t('Balance')}</p>
         <p className="text-xl font-bold text-white font-mono">Rp 5.240.000</p>
         <div className="flex gap-2 mt-3">
@@ -74,7 +76,7 @@ function DashboardMockup() {
       {/* Quick Transactions */}
       <div className="space-y-2">
         {[t('landing.demoLunchShort'), 'Grab', t('landing.demoCoffeeShort')].map((name, i) => (
-          <div key={name} className="bg-[var(--card)] rounded-xl p-2.5 flex items-center gap-2">
+          <div key={name} className="bg-[#252A20] rounded-xl p-2.5 flex items-center gap-2">
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center ${
                 (() => {
@@ -105,10 +107,10 @@ function StatsMockup() {
   return (
     <div className="w-full max-w-[280px] space-y-3">
       {/* Pie Chart Mockup */}
-      <div className="bg-[var(--card)] rounded-2xl p-4">
+      <div className="bg-[#252A20] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-bold text-white">{t('Spending by Category')}</p>
-          <ChartPie size={14} className="text-[var(--accent)]" />
+          <ChartPie size={14} className="text-[#A8C49A]" />
         </div>
         <div className="flex items-center gap-4">
           <div className="relative w-20 h-20" role="img" aria-label={t('landing.previewCategoryAria')}>
@@ -147,7 +149,7 @@ function StatsMockup() {
                 cy="18"
                 r="15.915"
                 fill="none"
-                stroke="var(--accent)"
+                stroke="#7A9B6A"
                 strokeWidth="3"
                 strokeDasharray="15 85"
                 strokeDashoffset="-85"
@@ -159,7 +161,7 @@ function StatsMockup() {
               { name: t('Default Category Food & Drinks'), pct: '40%', color: 'bg-red-400' },
               { name: t('Default Category Transportation'), pct: '25%', color: 'bg-orange-400' },
               { name: t('Default Category Shopping'), pct: '20%', color: 'bg-amber-400' },
-              { name: t('Other'), pct: '15%', color: 'bg-[var(--accent)]' },
+              { name: t('Other'), pct: '15%', color: 'bg-[#7A9B6A]' },
             ].map((item, i) => (
               <div key={item.name} className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${item.color}`} />
@@ -171,16 +173,16 @@ function StatsMockup() {
         </div>
       </div>
       {/* Bar Chart Mockup */}
-      <div className="bg-[var(--card)] rounded-2xl p-4">
+      <div className="bg-[#252A20] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-bold text-white">{t('Monthly Comparison')}</p>
-          <ChartBar size={14} className="text-[var(--accent)]" />
+          <ChartBar size={14} className="text-[#A8C49A]" />
         </div>
         <div className="flex items-end gap-1.5 h-16">
           {[40, 55, 35, 70, 45, 80, 60, 50, 75, 65, 85, 45].map((h, i) => (
             <div key={`bar-${i}`} className="flex-1 flex flex-col items-center gap-1">
               <div
-                className={`w-full rounded-t ${i === 10 ? 'bg-[var(--accent)]' : 'bg-[var(--accent)]/30'}`}
+                className={`w-full rounded-t ${i === 10 ? 'bg-[#7A9B6A]' : 'bg-[#7A9B6A]/30'}`}
                 style={{ height: `${h}%` }}
               />
             </div>
@@ -213,9 +215,9 @@ function WalletMockup() {
       ].map((wallet, i) => (
         <div
           key={wallet.name}
-          className="bg-[var(--card)] rounded-2xl p-4 flex items-center gap-3 hover:border-[var(--accent)]/20 border border-transparent transition-colors"
+          className="bg-[#252A20] rounded-2xl p-4 flex items-center gap-3 hover:border-[#7A9B6A]/20 border border-transparent transition-colors"
         >
-          <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-sm font-bold text-[var(--accent)] shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-[#7A9B6A]/10 flex items-center justify-center text-sm font-bold text-[#A8C49A] shrink-0">
             {wallet.icon}
           </div>
           <div className="flex-1 min-w-0">

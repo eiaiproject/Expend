@@ -24,9 +24,9 @@ export function PrivacySection() {
         {/* Three columns */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {/* Protected */}
-          <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-6">
+          <div className="rounded-xl border border-[var(--success)]/20 bg-[var(--success-bg)]/50 p-6">
             <div className="flex items-center gap-2.5 mb-4">
-              <ShieldCheck size={20} className="text-green-400" />
+              <ShieldCheck size={20} className="text-[var(--success)]" />
               <h3 className="text-base font-semibold text-[var(--text-primary)]">
                 {t('landing.privacyProtectedTitle')}
               </h3>
@@ -34,7 +34,7 @@ export function PrivacySection() {
             <ul className="space-y-3">
               {protectedItems.map((item, i) => (
                 <li key={item} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)] leading-relaxed">
-                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" aria-hidden="true" />
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[var(--success)] shrink-0" aria-hidden="true" />
                   {item}
                 </li>
               ))}
@@ -42,9 +42,9 @@ export function PrivacySection() {
           </div>
 
           {/* Not Protected */}
-          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-6">
+          <div className="rounded-xl border border-[var(--warning)]/20 bg-[var(--warning-bg)]/50 p-6">
             <div className="flex items-center gap-2.5 mb-4">
-              <ShieldAlert size={20} className="text-amber-400" />
+              <ShieldAlert size={20} className="text-[var(--warning)]" />
               <h3 className="text-base font-semibold text-[var(--text-primary)]">
                 {t('landing.privacyNotProtectedTitle')}
               </h3>
@@ -52,7 +52,7 @@ export function PrivacySection() {
             <ul className="space-y-3">
               {notProtectedItems.map((item, i) => (
                 <li key={item} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)] leading-relaxed">
-                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" aria-hidden="true" />
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[var(--warning)] shrink-0" aria-hidden="true" />
                   {item}
                 </li>
               ))}
