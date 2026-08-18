@@ -81,3 +81,6 @@ PRODUCT.md
 CHANGELOG.md
 .zed/
 scripts/screenshots.mjs
+
+# UI audit tooling — track scripts + reports; ignore ephemeral screenshot output
+/ui-audit/out/
