@@ -52,59 +52,106 @@ export function PayeePickerSheet({ isOpen, onClose, onSelect }: PayeePickerSheet
       size="medium"
     >
       <div className="px-4 py-4 space-y-3">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} aria-hidden="true" />
-          <input
-            type="search"
-            enterKeyHint="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('payees.searchPlaceholder')}
-            aria-label={t('payees.searchLabel')}
-            className="w-full h-11 pl-9 pr-9 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md hover:bg-[var(--card)]"
-              aria-label={t('payees.clearSearch')}
-            >
-              <X size={14} aria-hidden="true" />
-            </button>
-          )}
-        </div>
-
-        {/* Payee list */}
-        {payees.length === 0 ? (
-          <div className="py-8 text-center space-y-1">
-            <p className="text-sm font-semibold text-[var(--text-primary)]">{t('payees.emptyTitle')}</p>
-            <p className="text-xs text-[var(--text-secondary)]">{t('payees.emptyDesc')}</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-sm text-[var(--text-secondary)]">{t('payees.searchEmpty')}</p>
-          </div>
-        ) : (
-          <ul className="space-y-1 max-h-[40vh] overflow-y-auto overscroll-contain">
-            {filtered.map((payee) => (
-              <li key={payee.key}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(payee.name)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors hover:bg-[var(--bg)] min-h-[44px]"
-                >
-                  <span className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
-                    <ShoppingBag size={15} className="text-[var(--accent)]" aria-hidden="true" />
-                  </span>
-                  <span className="text-sm font-medium text-[var(--text-primary)] truncate">{payee.name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <SearchInput
+          query={query}
+          onChange={setQuery}
+          placeholder={t('payees.searchPlaceholder')}
+          label={t('payees.searchLabel')}
+          clearLabel={t('payees.clearSearch')}
+        />
+        <PayeeList
+          payees={payees}
+          filtered={filtered}
+          onSelect={onSelect}
+          labels={{
+            emptyTitle: t('payees.emptyTitle'),
+            emptyDesc: t('payees.emptyDesc'),
+            searchEmpty: t('payees.searchEmpty'),
+          }}
+        />
       </div>
     </BottomSheetShell>
+  );
+}
+
+interface SearchInputProps {
+  readonly query: string;
+  readonly onChange: (v: string) => void;
+  readonly placeholder: string;
+  readonly label: string;
+  readonly clearLabel: string;
+}
+
+function SearchInput({ query, onChange, placeholder, label, clearLabel }: SearchInputProps) {
+  return (
+    <div className="relative">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={18} aria-hidden="true" />
+      <input
+        type="search"
+        enterKeyHint="search"
+        value={query}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        aria-label={label}
+        className="w-full h-11 pl-9 pr-9 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
+      />
+      {query && (
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md hover:bg-[var(--card)]"
+          aria-label={clearLabel}
+        >
+          <X size={14} aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+interface PayeeListProps {
+  readonly payees: readonly PayeeStats[];
+  readonly filtered: readonly PayeeStats[];
+  readonly onSelect: (payeeName: string) => void;
+  readonly labels: {
+    readonly emptyTitle: string;
+    readonly emptyDesc: string;
+    readonly searchEmpty: string;
+  };
+}
+
+function PayeeList({ payees, filtered, onSelect, labels }: PayeeListProps) {
+  if (payees.length === 0) {
+    return (
+      <div className="py-8 text-center space-y-1">
+        <p className="text-sm font-semibold text-[var(--text-primary)]">{labels.emptyTitle}</p>
+        <p className="text-xs text-[var(--text-secondary)]">{labels.emptyDesc}</p>
+      </div>
+    );
+  }
+  if (filtered.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-sm text-[var(--text-secondary)]">{labels.searchEmpty}</p>
+      </div>
+    );
+  }
+  return (
+    <ul className="space-y-1 max-h-[40vh] overflow-y-auto overscroll-contain">
+      {filtered.map((payee) => (
+        <li key={payee.key}>
+          <button
+            type="button"
+            onClick={() => onSelect(payee.name)}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors hover:bg-[var(--bg)] min-h-[44px]"
+          >
+            <span className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
+              <ShoppingBag size={15} className="text-[var(--accent)]" aria-hidden="true" />
+            </span>
+            <span className="text-sm font-medium text-[var(--text-primary)] truncate">{payee.name}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }

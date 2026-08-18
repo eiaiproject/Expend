@@ -192,58 +192,101 @@ export function CategorySelect({ id, categories, value, onChange, placeholder }:
       </div>
 
       {isOpen && (
-        <div 
+        <div
           id={listboxId}
           ref={listboxRef}
           className="absolute z-30 left-0 right-0 top-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg max-h-60 overflow-auto"
         >
-          {filteredCategories.length === 0 ? (
-            searchTerm.trim() ? (
-              /* Friction audit A4: the "create" hint is now an actual button —
-                 it commits the typed name and closes the list (creation itself
-                 is confirmed on Save, as before). */
-              <button
-                type="button"
-                onClick={() => { onChange(searchTerm); setIsOpen(false); setActiveIndex(-1); }}
-                className="w-full flex items-center gap-2 px-4 py-3 text-sm text-left transition-colors hover:bg-[var(--bg)] min-h-[44px]"
-              >
-                <Plus size={16} className="text-[var(--accent)] shrink-0" aria-hidden="true" />
-                <span>
-                  {t('Create')} "<strong>{searchTerm}</strong>" {t('as new category')}
-                </span>
-              </button>
-            ) : (
-              <div className="px-4 py-3 text-sm text-[var(--text-secondary)]">
-                {t('No categories found')}
-              </div>
-            )
-          ) : (
-            filteredCategories.map((category, index) => (
-              <button
-                key={category.id}
-                type="button"
-                id={`${listboxId}-option-${index}`}
-                onClick={() => handleSelect(category)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-[var(--bg)] transition-colors text-left",
-                  value.toLowerCase() === category.name.toLowerCase() && "bg-[var(--accent)]/10",
-                  index === activeIndex && "bg-[var(--bg)]"
-                )}
-              >
-                <div 
-                  className="w-3 h-3 rounded-full shrink-0"
-                  style={{ backgroundColor: category.color }}
-                  aria-hidden="true"
-                />
-                <span className="flex-1 truncate">{catName(category.name, t)}</span>
-                {value.toLowerCase() === category.name.toLowerCase() && (
-                  <Check size={16} className="text-[var(--accent)] shrink-0" aria-hidden="true" />
-                )}
-              </button>
-            ))
-          )}
+          <CategoryListboxContent
+            filteredCategories={filteredCategories}
+            searchTerm={searchTerm}
+            value={value}
+            activeIndex={activeIndex}
+            listboxId={listboxId}
+            onChange={onChange}
+            setIsOpen={setIsOpen}
+            setActiveIndex={setActiveIndex}
+            handleSelect={handleSelect}
+          />
         </div>
       )}
+    </div>
+  );
+}
+
+interface CategoryListboxContentProps {
+  readonly filteredCategories: readonly Category[];
+  readonly searchTerm: string;
+  readonly value: string;
+  readonly activeIndex: number;
+  readonly listboxId: string;
+  readonly onChange: (name: string) => void;
+  readonly setIsOpen: (open: boolean) => void;
+  readonly setActiveIndex: (n: number) => void;
+  readonly handleSelect: (c: Category) => void;
+}
+
+function CategoryListboxContent({
+  filteredCategories,
+  searchTerm,
+  value,
+  activeIndex,
+  listboxId,
+  onChange,
+  setIsOpen,
+  setActiveIndex,
+  handleSelect,
+}: CategoryListboxContentProps) {
+  const { t } = useTranslation();
+  if (filteredCategories.length > 0) {
+    return (
+      <>
+        {filteredCategories.map((category, index) => (
+          <button
+            key={category.id}
+            type="button"
+            id={`${listboxId}-option-${index}`}
+            onClick={() => handleSelect(category)}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-[var(--bg)] transition-colors text-left",
+              value.toLowerCase() === category.name.toLowerCase() && "bg-[var(--accent)]/10",
+              index === activeIndex && "bg-[var(--bg)]"
+            )}
+          >
+            <div
+              className="w-3 h-3 rounded-full shrink-0"
+              style={{ backgroundColor: category.color }}
+              aria-hidden="true"
+            />
+            <span className="flex-1 truncate">{catName(category.name, t)}</span>
+            {value.toLowerCase() === category.name.toLowerCase() && (
+              <Check size={16} className="text-[var(--accent)] shrink-0" aria-hidden="true" />
+            )}
+          </button>
+        ))}
+      </>
+    );
+  }
+  if (searchTerm.trim()) {
+    // Friction audit A4: the "create" hint is now an actual button —
+    // it commits the typed name and closes the list (creation itself
+    // is confirmed on Save, as before).
+    return (
+      <button
+        type="button"
+        onClick={() => { onChange(searchTerm); setIsOpen(false); setActiveIndex(-1); }}
+        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-left transition-colors hover:bg-[var(--bg)] min-h-[44px]"
+      >
+        <Plus size={16} className="text-[var(--accent)] shrink-0" aria-hidden="true" />
+        <span>
+          {t('Create')} "<strong>{searchTerm}</strong>" {t('as new category')}
+        </span>
+      </button>
+    );
+  }
+  return (
+    <div className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+      {t('No categories found')}
     </div>
   );
 }

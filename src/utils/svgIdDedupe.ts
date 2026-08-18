@@ -13,6 +13,41 @@
 // counter would collide when the same icon mounts again in a later mutation).
 let dedupeRenameCounter = 0;
 
+/**
+ * Rewrite `url(#oldId)` → `url(#newId)` inside `ref`'s clip-path attribute or
+ * inline style. Returns true if anything was rewritten.
+ */
+function rewriteClipAttr(ref: SVGElement, oldId: string, newId: string): boolean {
+  const attr = ref.getAttribute('clip-path');
+  if (attr?.includes(`url(#${oldId})`)) {
+    ref.setAttribute('clip-path', attr.replace(`url(#${oldId})`, `url(#${newId})`));
+    return true;
+  }
+  const style = ref.getAttribute('style');
+  if (style?.includes(`url(#${oldId})`)) {
+    ref.setAttribute('style', style.replace(`url(#${oldId})`, `url(#${newId})`));
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Rename `clip`'s id to a unique suffix and rewrite every reference inside
+ * its parent <svg>. Returns the new id, or null if `clip` has no <svg>
+ * ancestor (nothing to rewrite).
+ */
+function renameDuplicateClip(clip: Element, originalId: string): string | null {
+  dedupeRenameCounter += 1;
+  const newId = `${originalId}_dup${dedupeRenameCounter}`;
+  clip.id = newId;
+  const svg = clip.closest('svg');
+  if (!svg) return null;
+  for (const ref of svg.querySelectorAll<SVGElement>('[clip-path], [style*="clip-path"]')) {
+    rewriteClipAttr(ref, originalId, newId);
+  }
+  return newId;
+}
+
 export function dedupeSvgClipIds(root: ParentNode = document): void {
   const seen = new Set<string>();
 
@@ -22,32 +57,27 @@ export function dedupeSvgClipIds(root: ParentNode = document): void {
       seen.add(id);
       continue;
     }
-
-    // Duplicate → give it a unique id and rewrite references inside its own <svg>.
-    dedupeRenameCounter += 1;
-    const newId = `${id}_dup${dedupeRenameCounter}`;
-    clip.id = newId;
-    seen.add(newId);
-
-    const svg = clip.closest('svg');
-    if (!svg) continue;
-
-    for (const ref of svg.querySelectorAll<SVGElement>('[clip-path]')) {
-      const attr = ref.getAttribute('clip-path');
-      if (attr && attr.includes(`url(#${id})`)) {
-        ref.setAttribute('clip-path', attr.replace(`url(#${id})`, `url(#${newId})`));
-      }
-    }
-    for (const ref of svg.querySelectorAll<SVGElement>('[style*="clip-path"]')) {
-      const style = ref.getAttribute('style');
-      if (style && style.includes(`url(#${id})`)) {
-        ref.setAttribute('style', style.replace(`url(#${id})`, `url(#${newId})`));
-      }
-    }
+    const newId = renameDuplicateClip(clip, id);
+    if (newId) seen.add(newId);
   }
 }
 
 let observer: MutationObserver | null = null;
+
+/**
+ * True if `record`'s added nodes (recursively) include any <svg>, <clipPath>,
+ * or element that already has a clip-path attribute — i.e. could introduce a
+ * new clipPath id we'd need to dedupe.
+ */
+function recordTouchesSvg(record: MutationRecord): boolean {
+  if (record.target instanceof SVGElement) return true;
+  for (const node of record.addedNodes) {
+    if (!(node instanceof Element)) continue;
+    if (node instanceof SVGElement) return true;
+    if (node.querySelector('svg, clipPath, [clip-path]')) return true;
+  }
+  return false;
+}
 
 /**
  * Keep the document free of duplicate SVG clipPath ids for the app's whole
@@ -62,18 +92,7 @@ export function initSvgClipDedupe(root: ParentNode = document): void {
   observer = new MutationObserver((records) => {
     // Skip mutations that cannot introduce new clipPaths (e.g. typing in a
     // form field) so the dedupe scan adds no meaningful overhead at runtime.
-    // Check added nodes RECURSIVELY: icons are usually nested inside the
-    // added wrapper (e.g. a <li> row), not added as top-level <svg> nodes.
-    const touchesSvg = records.some((r) => {
-      if (r.target instanceof SVGElement) return true;
-      for (const node of r.addedNodes) {
-        if (!(node instanceof Element)) continue;
-        if (node instanceof SVGElement) return true;
-        if (node.querySelector('svg, clipPath, [clip-path]')) return true;
-      }
-      return false;
-    });
-    if (touchesSvg) dedupeSvgClipIds(root);
+    if (records.some(recordTouchesSvg)) dedupeSvgClipIds(root);
   });
   observer.observe(root, { childList: true, subtree: true });
 }

@@ -54,8 +54,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
       for (const categoryKey of selectedCategories) {
         const cat = DEFAULT_CATEGORIES.find(c => c.nameKey === categoryKey);
         // Friction audit B6: deterministic first-unused palette color.
-        const availableColors = CURATED_PALETTE.filter(c => !existingColors.has(c));
-        const fallbackColor = availableColors[0] ?? CURATED_PALETTE[0]!;
+        const fallbackColor = CURATED_PALETTE.find(c => !existingColors.has(c)) ?? CURATED_PALETTE[0]!;
         const color: string = cat?.color ?? fallbackColor;
 
         existingColors.add(color);
