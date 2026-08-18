@@ -38,7 +38,7 @@ export function SummaryCard({
     <div className="space-y-4">
       {/* Balance Card */}
       <div className="bg-[var(--accent-fill)] rounded-[16px] p-6 text-[var(--accent-ink)] shadow-lg">
-        <p className="text-[var(--accent-ink)]/70 text-sm font-medium">{t('home.totalBalance')}</p>
+        <p className="text-[var(--accent-ink)]/85 text-sm font-medium">{t('home.totalBalance')}</p>
         {isLoading ? (
           <Skeleton className="h-9 w-40 bg-[var(--accent-ink)]/20 mt-1" />
         ) : (
@@ -46,7 +46,7 @@ export function SummaryCard({
             {renderBalance(walletsTotal)}
           </p>
         )}
-        <p className="text-[var(--accent-ink)]/60 text-xs mt-1">{t('home.fromAllWallets')}</p>
+        <p className="text-[var(--accent-ink)]/75 text-xs mt-1">{t('home.fromAllWallets')}</p>
       </div>
 
       {/* Expense Summary */}
@@ -56,7 +56,7 @@ export function SummaryCard({
           <button
             type="button"
             onClick={onToggleExpensePeriod}
-            className="text-[10px] text-[var(--accent)] font-bold px-2 py-0.5 rounded-full bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 transition-colors"
+            className="min-h-[36px] inline-flex items-center text-[10px] text-[var(--accent)] font-bold px-2.5 py-1 rounded-full bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 transition-colors"
             aria-label={`${t('home.expensePeriodLabel')}: ${periodLabel}`}
           >
             {periodLabel}
@@ -96,12 +96,12 @@ export function SummaryCard({
       {!isLoading && smartInsight && (
         <div className={cn(
           "px-4 py-3 rounded-[16px] bg-[var(--card)] border border-[var(--border)] text-sm flex items-center gap-3",
-          smartInsight.type === 'warning' && "border-amber-500/30",
-          smartInsight.type === 'success' && "border-green-500/30",
+          smartInsight.type === 'warning' && "border-[var(--warning)]/30",
+          smartInsight.type === 'success' && "border-[var(--success)]/30",
         )}>
           {(() => {
-            if (smartInsight.type === 'warning') return <TrendUp size={16} className="text-amber-500 shrink-0" aria-hidden="true" />;
-            if (smartInsight.type === 'success') return <TrendDown size={16} className="text-green-500 shrink-0" aria-hidden="true" />;
+            if (smartInsight.type === 'warning') return <TrendUp size={16} className="text-[var(--warning)] shrink-0" aria-hidden="true" />;
+            if (smartInsight.type === 'success') return <TrendDown size={16} className="text-[var(--success)] shrink-0" aria-hidden="true" />;
             return <ChartBar size={16} className="text-[var(--accent)] shrink-0" aria-hidden="true" />;
           })()}
           <span className="text-[var(--text-secondary)]">{smartInsight.text}</span>
