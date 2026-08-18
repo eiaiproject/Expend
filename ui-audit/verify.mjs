@@ -5,7 +5,7 @@ import path from 'node:path';
 const BASE = 'http://localhost:3000';
 const OUT = path.resolve('ui-audit/out');
 
-const PROBE = `
+const PROBE = String.raw`
 () => {
   const lum = (c) => {
     const m = c.match(/rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/);
@@ -42,7 +42,11 @@ const PROBE = `
 
 async function probe(page, label) {
   const r = await page.evaluate(`(${PROBE})()`);
-  const ok = (v, need) => (v == null ? 'n/a' : (v >= need ? 'PASS' : `FAIL(${v})`));
+  const verdict = (v, need) => {
+    if (v == null) return 'n/a';
+    return v >= need ? 'PASS' : `FAIL(${v})`;
+  };
+  const ok = verdict;
   console.log(`══ ${label} (${r.theme})`);
   console.log('   h1:', r.h1 ? `${r.h1.text.slice(0, 26)} trunc=${r.h1.truncated}` : 'none');
   console.log('   dupClipIds:', r.dupClipIds.length === 0 ? 'PASS (0)' : `FAIL ${r.dupClipIds.join(',')}`);

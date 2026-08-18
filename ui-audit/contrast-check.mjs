@@ -5,7 +5,7 @@ import path from 'node:path';
 const BASE = 'http://localhost:3000';
 const OUT = path.resolve('ui-audit/out');
 
-const MEASURE = `
+const MEASURE = String.raw`
 () => {
   const lum = (c) => {
     const m = c.match(/rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/);

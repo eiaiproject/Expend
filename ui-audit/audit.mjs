@@ -22,7 +22,7 @@ const DEVICES = {
 const ROUTES = ['/', '/wallets', '/wallets/1', '/debts', '/stats', '/categories', '/payees', '/schedules', '/settings', '/more'];
 
 // ── Page-side audit: geometry, overflow, touch targets, contrast ──────
-const PAGE_AUDIT = `
+const PAGE_AUDIT = String.raw`
 () => {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
@@ -256,13 +256,13 @@ async function settle(page) {
 
 async function capture(device, route, page, tag) {
   const label = device.label;
-  const fileBase = route === '/' ? 'home' : route.slice(1).replace(/\//g, '-');
+  const fileBase = route === '/' ? 'home' : route.slice(1).replaceAll('/', '-');
   const dir = path.join(OUT, label);
   fs.mkdirSync(dir, { recursive: true });
 
   let audit = null;
   try {
-    audit = await page.evaluate(eval(`(${PAGE_AUDIT})`));
+    audit = await page.evaluate(new Function(`return (${PAGE_AUDIT})`)());
   } catch (e) {
     audit = { issues: [{ type: 'audit-error', detail: String(e).slice(0, 120) }], metrics: {} };
   }
@@ -281,7 +281,7 @@ async function main() {
   console.log('Audit start →', OUT);
 
   // ── Pass 1: landing + onboarding (fresh, no data) ──
-  for (const [key, dev] of Object.entries(DEVICES)) {
+  for (const [, dev] of Object.entries(DEVICES)) {
     const browser = await dev.browser.launch();
     const ctx = await browser.newContext({ ...dev.options });
     const page = await ctx.newPage();
@@ -300,7 +300,7 @@ async function main() {
   }
 
   // ── Pass 2: seeded data (demo + debts + schedules) ──
-  for (const [key, dev] of Object.entries(DEVICES)) {
+  for (const [, dev] of Object.entries(DEVICES)) {
     const browser = await dev.browser.launch();
     const ctx = await browser.newContext({ ...dev.options });
     const page = await ctx.newPage();
@@ -308,7 +308,7 @@ async function main() {
     // demo seed triggers a reload; wait for the app shell
     await page.waitForSelector('main#main-content', { timeout: 30000 });
     await page.waitForTimeout(600);
-    await page.evaluate(eval(`(${DEBT_SCHEDULE_SCRIPT})`));
+    await page.evaluate(new Function(`return (${DEBT_SCHEDULE_SCRIPT})`)());
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForSelector('main#main-content', { timeout: 30000 });
     await page.waitForTimeout(1500); // let schedules process + insights render
@@ -341,10 +341,10 @@ async function main() {
   }
 
   // ── Pass 3: empty states (bypassed onboarding, no data) ──
-  for (const [key, dev] of Object.entries(DEVICES)) {
+  for (const [, dev] of Object.entries(DEVICES)) {
     const browser = await dev.browser.launch();
     const ctx = await browser.newContext({ ...dev.options });
-    await ctx.addInitScript(eval(`(${SKIP_BOOTSTRAP})`));
+    await ctx.addInitScript(new Function(`return (${SKIP_BOOTSTRAP})`)());
     const page = await ctx.newPage();
     for (const route of ROUTES.slice(0, 6)) {
       await page.goto(`${BASE}${route}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
@@ -358,4 +358,9 @@ async function main() {
   console.log('Done. Screenshots + data in', OUT);
 }
 
-main().catch((err) => { console.error(err); process.exit(1); });
+try {
+  await main();
+} catch (err) {
+  console.error(err);
+  process.exit(1);
+}
