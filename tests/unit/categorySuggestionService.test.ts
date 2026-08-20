@@ -39,10 +39,10 @@ const categories = [makeCategory(1, 'Food'), makeCategory(2, 'Transport'), makeC
 // ── Suggestion precedence ──────────────────────────────────────
 
 describe('suggestCategoryForPayee', () => {
-  it('returns none for an empty payee', () => {
+  it('falls back to default category for an empty payee', () => {
     const result = suggestCategoryForPayee('', [], categories);
-    expect(result.source).toBe('none');
-    expect(result.categoryId).toBeNull();
+    expect(result.source).toBe('default');
+    expect(result.categoryId).toBe(3); // Other
   });
 
   it('matches exact normalized payee', () => {
