@@ -33,6 +33,16 @@ export default defineConfig(({mode}) => {
         display: 'standalone',
         orientation: 'portrait',
         categories: ['finance', 'productivity'],
+        // Web Share Target (Android Chrome): share text → prefilled form.
+        share_target: {
+          action: '/share-target',
+          method: 'GET',
+          params: {
+            title: 'title',
+            text: 'text',
+            url: 'url',
+          },
+        },
         shortcuts: [
           {
             name: 'Wallets',

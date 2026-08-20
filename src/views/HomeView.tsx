@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback, Suspense, lazy } from 'react
 import { useOverflow } from '../hooks/useOverflow';
 import { useKeyboardShortcutGuard } from '../hooks/useKeyboardShortcut';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
 import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, Trash2, Handshake, Repeat, ClipboardAdd } from 'reicon-react';
@@ -241,6 +241,23 @@ export default function HomeView() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isBatchOpen, setIsBatchOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Web Share Target prefill (automation B2): router state from ShareTargetView.
+  useEffect(() => {
+    const share = location.state?.share as { initialDescription?: string; initialAmount?: string } | undefined;
+    if (share) {
+      setEditTx(null);
+      setRepeatInitials({
+        initialType: 'expense',
+        initialDescription: share.initialDescription,
+        initialAmount: share.initialAmount,
+      });
+      setIsFormOpen(true);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const [expensePeriod, setExpensePeriod] = useState<'month' | 'all'>('month');
   const [visibleTransactionCount, setVisibleTransactionCount] = useState(TRANSACTION_RENDER_PAGE_SIZE);

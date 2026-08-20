@@ -15,6 +15,7 @@ const CategoriesView = lazy(() => import('./views/CategoriesView'));
 const PayeesView = lazy(() => import('./views/PayeesView'));
 const SchedulesView = lazy(() => import('./views/SchedulesView'));
 const MoreView = lazy(() => import('./views/MoreView'));
+const ShareTargetView = lazy(() => import('./views/ShareTargetView'));
 
 import { TransactionFormSheet } from './components/TransactionFormSheet';
 import { ActionPickerSheet } from './components/ActionPickerSheet';
@@ -341,6 +342,7 @@ function RoutesWithSuspense() {
           <Route path="/payees" element={<PayeesView />} />
           <Route path="/schedules" element={<SchedulesView />} />
           <Route path="/more" element={<MoreView />} />
+          <Route path="/share-target" element={<ShareTargetView />} />
           <Route path="*" element={<NotFoundView />} />
         </Routes>
       </Suspense>
