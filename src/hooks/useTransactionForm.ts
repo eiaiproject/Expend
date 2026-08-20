@@ -64,6 +64,7 @@ export interface UseTransactionFormResult {
   wallets: Wallet[];
   categories: Category[];
   templates: TransactionTemplate[];
+  transactions: Transaction[];
 }
 
 interface UseTransactionFormOptions {
@@ -561,5 +562,6 @@ export function useTransactionForm({
     wallets,
     categories,
     templates,
+    transactions,
   };
 }

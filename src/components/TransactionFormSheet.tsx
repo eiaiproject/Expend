@@ -9,6 +9,7 @@ import { db, type Transaction } from '../db/db';
 import { cn } from '../utils/cn';
 import { PRESET_AMOUNTS } from '../utils/constants';
 import { sanitizeAmountInput, formatAmountDisplay } from '../utils/amountUtils';
+import { suggestAmountsForPayee } from '../services/amountSuggestionService';
 import { useTransactionForm } from '../hooks/useTransactionForm';
 import { BottomSheetShell } from './BottomSheetShell';
 import { CategorySelect } from './CategorySelect';
@@ -136,7 +137,7 @@ export function TransactionFormSheet({
     [], true,
   );
 
-  const { state, actions, wallets, categories, templates } = useTransactionForm({
+  const { state, actions, wallets, categories, templates, transactions } = useTransactionForm({
     isOpen,
     txToEdit,
     initialType,
@@ -329,7 +330,11 @@ export function TransactionFormSheet({
             <div
               className="flex flex-wrap gap-2 mt-3"
             >
-              {PRESET_AMOUNTS.map((preset) => (
+              {(state.description.trim()
+                ? // Friction A5: payee-aware presets (most common amounts for this payee)
+                  suggestAmountsForPayee(transactions, state.description, PRESET_AMOUNTS, 6)
+                : PRESET_AMOUNTS
+              ).map((preset) => (
                 <button
                   key={preset}
                   type="button"
