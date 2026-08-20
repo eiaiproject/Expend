@@ -103,7 +103,7 @@ export default defineConfig(({mode}) => {
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        globIgnores: ['registerSW.js'],
+        globIgnores: ['registerSW.js', 'tessdata/**'],
         navigateFallback: '/index.html',
         clientsClaim: true,
         cleanupOutdatedCaches: true,

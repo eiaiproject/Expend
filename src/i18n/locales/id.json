@@ -1433,7 +1433,15 @@
     "Select a wallet first": "Pilih dompet terlebih dahulu",
     "recurring.everyDays": "Setiap {{count}} hari",
     "recurring.createSchedule": "Buat jadwal",
-    "recurring.createdToast": "Jadwal dibuat untuk {{name}}"
+    "recurring.createdToast": "Jadwal dibuat untuk {{name}}",
+    "scan.title": "Pindai Screenshot",
+    "scan.hint": "Tempel screenshot, atau pilih dari galeri",
+    "scan.extracting": "Membaca gambar…",
+    "scan.preview": "Teks mentah",
+    "scan.useInForm": "Gunakan di form",
+    "scan.noAmount": "Nominal tidak terdeteksi — isi manual",
+    "scan.gallery": "Galeri",
+    "scan.error": "Tidak bisa membaca gambar itu. Coba screenshot yang lebih jelas."
   },
   "Add details": "Tambah detail",
   "Hide details": "Sembunyikan detail",

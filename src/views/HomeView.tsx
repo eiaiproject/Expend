@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
-import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, Trash2, Handshake, Repeat, ClipboardAdd } from 'reicon-react';
+import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, Trash2, Handshake, Repeat, ClipboardAdd, Camera } from 'reicon-react';
 import { topRecentPayees, normalizePayeeKey } from '../services/payeeService';
 import { detectRecurringCandidates, type RecurringCandidate } from '../services/recurringDetectionService';
 import { createSchedule } from '../services/recurringService';
@@ -45,6 +45,7 @@ import {
 const TransactionFormSheet = lazy(() => import('../components/TransactionFormSheet').then(m => ({ default: m.TransactionFormSheet })));
 const FilterSheet = lazy(() => import('../components/FilterSheet').then(m => ({ default: m.FilterSheet })));
 const BatchEntrySheet = lazy(() => import('../components/BatchEntrySheet').then(m => ({ default: m.BatchEntrySheet })));
+const ScanSheet = lazy(() => import('../components/ScanSheet').then(m => ({ default: m.ScanSheet })));
 
 const TRANSACTION_RENDER_PAGE_SIZE = 100;
 
@@ -243,6 +244,7 @@ export default function HomeView() {
   } | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isBatchOpen, setIsBatchOpen] = useState(false);
+  const [isScanOpen, setIsScanOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -833,6 +835,14 @@ export default function HomeView() {
             <ClipboardAdd size={14} aria-hidden="true" />
             {t('batch.title')}
           </button>
+          <button
+            type="button"
+            onClick={() => setIsScanOpen(true)}
+            className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] active:scale-95 transition-colors min-h-[44px] flex items-center gap-1.5"
+          >
+            <Camera size={14} aria-hidden="true" />
+            {t('scan.title')}
+          </button>
         </div>
       )}
 
@@ -943,6 +953,23 @@ export default function HomeView() {
         <BatchEntrySheet
           isOpen={isBatchOpen}
           onClose={() => setIsBatchOpen(false)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <ScanSheet
+          isOpen={isScanOpen}
+          onClose={() => setIsScanOpen(false)}
+          onPrefill={({ description, amount, rawText }) => {
+            setEditTx(null);
+            setRepeatInitials({
+              initialType: 'expense',
+              initialDescription: description,
+              initialAmount: amount || undefined,
+              initialNotes: rawText,
+            });
+            setIsFormOpen(true);
+          }}
         />
       </Suspense>
     </div>

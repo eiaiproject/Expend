@@ -35,7 +35,8 @@
     "react-dom": "^19.0.1",
     "react-i18next": "^17.0.6",
     "react-router-dom": "^7.17.0",
-    "reicon-react": "^1.1.302"
+    "reicon-react": "^1.1.302",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

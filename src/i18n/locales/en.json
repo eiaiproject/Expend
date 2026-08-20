@@ -1433,7 +1433,15 @@
     "Select a wallet first": "Select a wallet first",
     "recurring.everyDays": "Every {{count}} days",
     "recurring.createSchedule": "Create schedule",
-    "recurring.createdToast": "Schedule created for {{name}}"
+    "recurring.createdToast": "Schedule created for {{name}}",
+    "scan.title": "Scan Screenshot",
+    "scan.hint": "Paste a screenshot, or pick one from your gallery",
+    "scan.extracting": "Reading image…",
+    "scan.preview": "Raw text",
+    "scan.useInForm": "Use in form",
+    "scan.noAmount": "No amount detected — fill it manually",
+    "scan.gallery": "Gallery",
+    "scan.error": "Could not read that image. Try a clearer screenshot."
   },
   "Add details": "Add details",
   "Hide details": "Hide details",
