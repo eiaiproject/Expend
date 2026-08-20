@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { type Transaction } from '../db/db';
 import { cn } from '../utils/cn';
 import { PRESET_AMOUNTS } from '../utils/constants';
+import { sanitizeAmountInput, formatAmountDisplay } from '../utils/amountUtils';
 import { useTransactionForm } from '../hooks/useTransactionForm';
 import { BottomSheetShell } from './BottomSheetShell';
 import { CategorySelect } from './CategorySelect';
@@ -199,6 +200,11 @@ export function TransactionFormSheet({
     }
   };
 
+  // Raw digits while focused (no separators to fight the caret); formatted on blur.
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    actions.setAmount(sanitizeAmountInput(e.target.value));
+  };
+
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -301,11 +307,12 @@ export function TransactionFormSheet({
             <input
               id={amountInputId}
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               required
-              value={state.amount}
-              onChange={actions.handleAmountChange}
+              value={state.isAmountFocused ? state.amount : formatAmountDisplay(state.amount)}
+              onChange={handleAmountChange}
               onFocus={() => actions.setIsAmountFocused(true)}
+              onBlur={() => actions.setIsAmountFocused(false)}
               className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl py-3 pl-12 pr-4 font-mono text-xl font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               placeholder="0"
             />
@@ -318,7 +325,7 @@ export function TransactionFormSheet({
                 <button
                   key={preset}
                   type="button"
-                  onClick={() => actions.setAmount(preset.toLocaleString('id-ID'))}
+                  onClick={() => actions.setAmount(String(preset))}
                   className="px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs font-mono font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95"
                 >
                   Rp {preset.toLocaleString('id-ID')}
@@ -330,7 +337,7 @@ export function TransactionFormSheet({
                   e.preventDefault();
                   actions.setIsAmountFocused(true);
                   const form = (e.currentTarget as HTMLElement).closest('form');
-                  const numericInput = form?.querySelector<HTMLInputElement>('input[inputMode="numeric"]');
+                  const numericInput = form?.querySelector<HTMLInputElement>('input[inputMode="decimal"]');
                   numericInput?.focus();
                 }}
                 className="px-3 py-1.5 bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 rounded-lg text-xs font-semibold flex items-center gap-1 hover:bg-[var(--accent)]/20 transition-colors active:scale-95"

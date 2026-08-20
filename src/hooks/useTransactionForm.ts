@@ -10,6 +10,7 @@ import { findPairedTransfer } from '../utils/transferUtils';
 import { getDefaultExpenseWallet, rememberLastUsedWallet } from '../services/walletPreferenceService';
 import { suggestCategoryForPayee } from '../services/categorySuggestionService';
 import { getTemplates, resolveTemplate, saveTemplate, type TransactionTemplate } from '../services/templateService';
+import { sanitizeAmountInput, parseAmountToNumber, numberToAmountInput } from '../utils/amountUtils';
 
 const EMPTY_WALLETS: Wallet[] = [];
 const EMPTY_CATEGORIES: Category[] = [];
@@ -317,7 +318,7 @@ export function useTransactionForm({
   // Initialize form when opened or txToEdit changes
   useEffect(() => {
     function initEditFields(editTx: NonNullable<typeof txToEdit>): void {
-      setAmount(editTx.amount.toString());
+      setAmount(numberToAmountInput(editTx.amount));
       setDescription(editTx.description.replace(/\s\((In|Out)\)$/, ''));
       setWalletId(editTx.walletId.toString());
       setDate(editTx.date.split('T')[0] ?? '');
@@ -421,12 +422,7 @@ export function useTransactionForm({
   }, [isOpen, txToEdit, categories, categoryName, type]);
 
   const handleAmountChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/\D/g, '');
-    if (!rawValue) {
-      setAmount('');
-      return;
-    }
-    setAmount(Number.parseInt(rawValue, 10).toLocaleString('id-ID'));
+    setAmount(sanitizeAmountInput(e.target.value));
   }, []);
 
   // Manual category selection is never overridden by suggestions
@@ -439,7 +435,7 @@ export function useTransactionForm({
     const resolved = await resolveTemplate(template, { wallets, categories });
     if (!resolved) return false;
     setType('expense');
-    if (resolved.amount != null) setAmount(resolved.amount.toLocaleString('id-ID'));
+    if (resolved.amount != null) setAmount(numberToAmountInput(resolved.amount));
     if (resolved.description) setDescription(resolved.description);
     if (resolved.notes) setNotes(resolved.notes);
     if (resolved.walletId != null) setWalletId(resolved.walletId.toString());
@@ -462,7 +458,7 @@ export function useTransactionForm({
     const matchedCat = categories.find(
       (c) => c.name.toLowerCase() === categoryName.trim().toLowerCase()
     );
-    const amountNum = amount ? Number.parseInt(amount.replace(/\D/g, ''), 10) : undefined;
+    const amountNum = amount ? parseAmountToNumber(amount) : undefined;
     const walletNum = walletId ? Number.parseInt(walletId, 10) : undefined;
     await saveTemplate({
       name: templateName,
@@ -480,7 +476,7 @@ export function useTransactionForm({
     if (!amount || !date || !walletId) return false;
     if (type === 'transfer' && !toWalletId) return false;
 
-    const rawAmount = Number.parseInt(amount.replace(/\D/g, ''), 10);
+    const rawAmount = parseAmountToNumber(amount);
     // Quick Add may omit the payee — fall back to the chosen category name.
     const trimmedDescription = description.trim() || categoryName.trim();
     if (!trimmedDescription) {
