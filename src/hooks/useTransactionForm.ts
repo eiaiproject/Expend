@@ -303,10 +303,9 @@ export function useTransactionForm({
   // category the user picked manually — see master.md 5.3).
   useEffect(() => {
     if (!isOpen || type !== 'expense' || txToEdit) return;
-    const trimmed = description.trim();
-    if (!trimmed || categoryTouchedRef.current) return;
+    if (categoryTouchedRef.current) return;
     const suggestion = suggestCategoryForPayee(
-      trimmed,
+      description,
       transactions,
       categories,
       merchants,

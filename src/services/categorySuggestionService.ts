@@ -81,11 +81,7 @@ export function suggestCategoryForPayee(
   const payeeName = normalizePayeeName(payee);
   const payeeKey = normalizePayeeKey(payeeName);
   if (!payeeKey) {
-    return {
-      categoryId: null,
-      categoryName: null,
-      source: 'none',
-    };
+    return resolveFallbackCategory(categories, lastSelectedCategoryId);
   }
 
   // 1. Exact normalized payee match from transaction history
@@ -138,6 +134,14 @@ export function suggestCategoryForPayee(
   }
 
   // 5. Last selected category (user-level preference, kept by the form)
+  return resolveFallbackCategory(categories, lastSelectedCategoryId);
+}
+
+/** Last-used category, then default "Other". */
+function resolveFallbackCategory(
+  categories: readonly Category[],
+  lastSelectedCategoryId?: number | null,
+): CategorySuggestion {
   if (lastSelectedCategoryId != null) {
     const lastCat = categories.find((c) => c.id === lastSelectedCategoryId);
     if (lastCat) {

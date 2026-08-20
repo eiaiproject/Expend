@@ -190,3 +190,14 @@ describe('rankPayees', () => {
     expect(ranked[0]?.frequency).toBe(2);
   });
 });
+
+describe('empty payee fallback', () => {
+  it('falls back to last-used category when payee is empty', () => {
+    const result = suggestCategoryForPayee('', [], categories, [], 1);
+    expect(result).toMatchObject({ categoryId: 1, categoryName: 'Food', source: 'last-used' });
+  });
+  it('falls back to default category when payee empty and no last-used', () => {
+    const result = suggestCategoryForPayee('', [], categories, [], null);
+    expect(result).toMatchObject({ categoryId: 3, categoryName: 'Other', source: 'default' });
+  });
+});
