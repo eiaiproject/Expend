@@ -1419,7 +1419,9 @@
     "form.duplicateTitle": "Transaksi serupa baru dicatat?",
     "form.duplicateMessage": "Transaksi dengan payee dan nominal yang sama tercatat dalam 30 menit terakhir. Tetap simpan?",
     "form.duplicateConfirm": "Tetap simpan",
-    "form.duplicateCancel": "Batal"
+    "form.duplicateCancel": "Batal",
+    "settings.confirmNewCategoryLabel": "Konfirmasi sebelum membuat kategori baru",
+    "settings.confirmNewCategoryHint": "Jika nonaktif, kategori baru langsung tersimpan tanpa konfirmasi."
   },
   "Add details": "Tambah detail",
   "Hide details": "Sembunyikan detail",

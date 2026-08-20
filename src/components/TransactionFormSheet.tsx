@@ -4,7 +4,8 @@ import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
 import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Wallet, ShoppingBag } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
-import { type Transaction } from '../db/db';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db, type Transaction } from '../db/db';
 import { cn } from '../utils/cn';
 import { PRESET_AMOUNTS } from '../utils/constants';
 import { sanitizeAmountInput, formatAmountDisplay } from '../utils/amountUtils';
@@ -129,6 +130,12 @@ export function TransactionFormSheet({
   const descriptionRef = useRef<HTMLInputElement>(null);
   const suggestionIndexRef = useRef(-1);
 
+  // Friction A4: silent category creation opt-out (default = confirm).
+  const confirmNewCategorySetting = useLiveQuery(
+    () => db.settings.get('confirmNewCategory').then((s) => (s?.value as boolean | undefined) ?? true),
+    [], true,
+  );
+
   const { state, actions, wallets, categories, templates } = useTransactionForm({
     isOpen,
     txToEdit,
@@ -140,6 +147,7 @@ export function TransactionFormSheet({
     initialNotes,
     onClose,
     onConfirmCreateCategory: async (name: string) => {
+      if (!confirmNewCategorySetting) return true; // silent create (opt-out)
       const confirmed = await confirm({
         title: t('Create New Category'),
         message: t('Category "{{name}}" does not exist. Create it?', { name }),

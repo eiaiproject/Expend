@@ -1419,7 +1419,9 @@
     "form.duplicateTitle": "Similar transaction recorded recently?",
     "form.duplicateMessage": "A transaction with the same payee and amount was recorded within the last 30 minutes. Save anyway?",
     "form.duplicateConfirm": "Save anyway",
-    "form.duplicateCancel": "Cancel"
+    "form.duplicateCancel": "Cancel",
+    "settings.confirmNewCategoryLabel": "Ask before creating new categories",
+    "settings.confirmNewCategoryHint": "When off, typing a new category saves it immediately."
   },
   "Add details": "Add details",
   "Hide details": "Hide details",
