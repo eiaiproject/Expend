@@ -499,7 +499,7 @@ export function useTransactionForm({
       } else {
         const duplicate = findRecentDuplicate(transactions, {
           amount: rawAmount, description: trimmedDescription, date,
-        });
+        }, 30, txToEdit?.id);
         if (duplicate) {
           const ok = await confirm({
             title: t('form.duplicateTitle'),

@@ -118,9 +118,9 @@ test.describe('wallet balance smoke', () => {
     await repeatBtn.click();
 
     // Form opens prefilled in transfer mode; save as-is.
-    await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+    await page.waitForSelector('form input[inputmode="decimal"]', { timeout: 10_000 });
     await page.getByRole('button', { name: /^save$/i }).first().click();
-    await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+    await page.waitForSelector('form input[inputmode="decimal"]', { state: 'detached', timeout: 10_000 });
     await page.waitForTimeout(500); // NOSONAR S2925
 
     const txs = (await readTransactions(page)).filter((t) => t.description?.startsWith(description));
@@ -205,7 +205,7 @@ test.describe('wallet balance smoke', () => {
     await openTransactionForEdit(page, description);
     await page.locator('form select').first().selectOption({ label: toWallet });
     await page.getByRole('button', { name: /^save$/i }).first().click();
-    await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+    await page.waitForSelector('form input[inputmode="decimal"]', { state: 'detached', timeout: 10_000 });
     await page.waitForTimeout(500) // NOSONAR S2925
 
     await expectWalletBalance(page, fromWallet, BASE_BALANCE_NUM);

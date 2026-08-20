@@ -11,6 +11,7 @@ export function findRecentDuplicate(
   transactions: readonly Transaction[],
   candidate: { amount: number; description: string; date: string },
   windowMinutes = DEFAULT_WINDOW_MINUTES,
+  excludeId?: number,
 ): Transaction | null {
   const payeeKey = normalizePayeeKey(candidate.description);
   if (!payeeKey) return null;
@@ -18,6 +19,7 @@ export function findRecentDuplicate(
   const candidateTime = new Date(candidate.date).getTime();
 
   for (const tx of transactions) {
+    if (tx.id === excludeId) continue;
     if (tx.type !== 'expense') continue;
     if (normalizePayeeKey(tx.description) !== payeeKey) continue;
     if (Math.abs(tx.amount - candidate.amount) > 1e-2) continue;

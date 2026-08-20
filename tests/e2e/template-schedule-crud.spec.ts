@@ -31,13 +31,13 @@ test.describe('template CRUD', () => {
     // CREATE — save the current Quick Add form as a template.
     await openActionPicker(page);
     await clickPickerAction(page, /add expense/i);
-    await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+    await page.waitForSelector('form input[inputmode="decimal"]', { timeout: 10_000 });
     await page.getByRole('button', { name: /add details/i }).first().click();
     await page
       .locator('form input[type="text"]:not([inputmode]):not([role="combobox"])')
       .first()
       .fill(tplName);
-    await page.locator('form input[inputmode="numeric"]').first().fill('15000');
+    await page.locator('form input[inputmode="decimal"]').first().fill('15000');
     await page.getByRole('button', { name: /save as template/i }).click();
     await expect(page.getByRole('status').filter({ visible: true }).getByText('Template saved')).toBeVisible({ timeout: 5_000 });
     await closeQuickAdd(page);
@@ -45,7 +45,7 @@ test.describe('template CRUD', () => {
     // READ — chip appears in the Templates row of a fresh Quick Add.
     await openActionPicker(page);
     await clickPickerAction(page, /add expense/i);
-    await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+    await page.waitForSelector('form input[inputmode="decimal"]', { timeout: 10_000 });
     const templatesList = page.getByRole('list', { name: /templates/i });
     await expect(templatesList).toBeVisible();
     const chip = templatesList.getByRole('button', { name: new RegExp(tplName, 'i') });
@@ -69,7 +69,7 @@ test.describe('template CRUD', () => {
     // DELETE — long-press (600ms) opens the danger confirm; chip disappears.
     await openActionPicker(page);
     await clickPickerAction(page, /add expense/i);
-    await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+    await page.waitForSelector('form input[inputmode="decimal"]', { timeout: 10_000 });
     const chip2 = page
       .getByRole('list', { name: /templates/i })
       .getByRole('button', { name: new RegExp(tplName, 'i') });
@@ -82,15 +82,10 @@ test.describe('template CRUD', () => {
       { timeout: 5_000 },
     );
 
-    const box = await chip2.boundingBox();
-    if (!box) throw new Error('template chip has no bounding box');
+    await templatesList.getByRole('button', { name: /delete template/i }).first().click();
+
     const confirmDialog = page.locator('dialog').filter({ hasText: /delete template/i });
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.down();
-    // The long-press fires 600ms after pointer-down: wait for the delete
-    // confirmation dialog while the pointer is still held (no fixed waits).
     await expect(confirmDialog).toBeVisible({ timeout: 5_000 });
-    await page.mouse.up();
 
     await confirmDialog.getByRole('button', { name: /^delete$/i }).click();
     await expect(page.getByRole('status').filter({ visible: true }).getByText('Template deleted')).toBeVisible({ timeout: 5_000 });

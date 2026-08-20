@@ -459,15 +459,15 @@ test.describe('Scenario I — quick-add expense from payee', () => {
     await page.getByRole('button', { name: /add expense/i }).first().click();
 
     // Wait for the form and verify description is pre-filled.
-    await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+    await page.waitForSelector('form input[inputmode="decimal"]', { timeout: 10_000 });
     const descInput = page.locator('form input[type="text"]:not([inputmode]):not([role="combobox"])').first();
     await expect(descInput).toHaveValue(new RegExp(payeeName, 'i'));
 
     // Complete the form — select the same wallet for deterministic balance.
     await pickWalletFromSelect(page, walletName);
-    await page.locator('form input[inputmode="numeric"]').first().fill('35000');
+    await page.locator('form input[inputmode="decimal"]').first().fill('35000');
     await page.getByRole('button', { name: /^save$/i }).first().click();
-    await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+    await page.waitForSelector('form input[inputmode="decimal"]', { state: 'detached', timeout: 10_000 });
     await page.waitForTimeout(500); // NOSONAR S2925
 
     // Assert the new expense appears in the payee's history.

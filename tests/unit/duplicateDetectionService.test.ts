@@ -24,4 +24,8 @@ describe('findRecentDuplicate', () => {
     const transfer = { ...base, type: 'transfer_out' as const };
     expect(findRecentDuplicate([transfer], { amount: 25000, description: 'Nasi Padang', date: '2026-08-20T08:05:00' })).toBeNull();
   });
+  it('ignores itself when an excludeId is given (edit flow)', () => {
+    const self = { ...base, id: 7 };
+    expect(findRecentDuplicate([self], { amount: 25000, description: 'Nasi Padang', date: '2026-08-20T08:05:00' }, 30, 7)).toBeNull();
+  });
 });

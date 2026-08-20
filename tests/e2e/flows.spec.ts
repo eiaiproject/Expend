@@ -280,10 +280,10 @@ test.describe('error states', () => {
 
     await openActionPicker(page);
     await clickPickerAction(page, /add expense/i);
-    await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+    await page.waitForSelector('form input[inputmode="decimal"]', { timeout: 10_000 });
 
     // Type an amount, then try to dismiss via Escape.
-    await page.locator('form input[inputmode="numeric"]').first().fill('5000');
+    await page.locator('form input[inputmode="decimal"]').first().fill('5000');
     await page.keyboard.press('Escape');
 
     const discardDialog = page.getByRole('dialog', { name: /discard changes/i });
@@ -291,13 +291,13 @@ test.describe('error states', () => {
 
     // Cancelling keeps the form open with the typed amount intact.
     await discardDialog.getByRole('button', { name: /cancel/i }).click();
-    await expect(page.locator('form input[inputmode="numeric"]').first()).toHaveValue(/5[.,]?000/);
+    await expect(page.locator('form input[inputmode="decimal"]').first()).toHaveValue(/5[.,]?000/);
 
     // Confirming discard closes the form without saving.
     await page.keyboard.press('Escape');
     await discardDialog.waitFor({ state: 'visible', timeout: 5_000 });
     await discardDialog.getByRole('button', { name: /discard/i }).click();
-    await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+    await page.waitForSelector('form input[inputmode="decimal"]', { state: 'detached', timeout: 10_000 });
 
     const txs = await readTransactions(page);
     expect(txs).toHaveLength(0);
@@ -308,9 +308,9 @@ test.describe('error states', () => {
 
     await openActionPicker(page);
     await clickPickerAction(page, /add expense/i);
-    await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+    await page.waitForSelector('form input[inputmode="decimal"]', { timeout: 10_000 });
 
-    await page.locator('form input[inputmode="numeric"]').first().fill('999999999');
+    await page.locator('form input[inputmode="decimal"]').first().fill('999999999');
     await page.locator('form input[type="text"]:not([inputmode])').first().fill(uniqueName('big'));
     await pickWalletFromSelect(page, walletName);
 

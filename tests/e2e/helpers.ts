@@ -319,7 +319,7 @@ export async function createExpense(
 ): Promise<void> {
   await openActionPicker(page);
   await clickPickerAction(page, /add expense/i);
-  await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+  await page.waitForSelector('form input[inputmode="decimal"]', { timeout: 10_000 });
 
   // Quick Add progressive disclosure (master.md 5.1): secondary fields live
   // behind the "Add details" toggle. Expand it so description/wallet are
@@ -329,9 +329,9 @@ export async function createExpense(
     await detailsToggle.first().click();
   }
 
-  // Amount input has BOTH `type="text"` and `inputmode="numeric"`; pin to
+  // Amount input has BOTH `type="text"` and `inputmode="decimal"`; pin to
   // the numeric one to avoid double-matching with the description input.
-  await page.locator('form input[inputmode="numeric"]').first().fill(opts.amount);
+  await page.locator('form input[inputmode="decimal"]').first().fill(opts.amount);
   // Description: `input[type="text"]:not([inputmode])` excluding the Category
   // combobox (which is `role="combobox"` and renders before Description).
   await page.locator('form input[type="text"]:not([inputmode]):not([role="combobox"])').first().fill(opts.description);
@@ -350,7 +350,7 @@ export async function createExpense(
   }
 
   await page.getByRole('button', { name: /^save$/i }).first().click();
-  await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+  await page.waitForSelector('form input[inputmode="decimal"]', { state: 'detached', timeout: 10_000 });
   // ponytail: see createDebt — let the IDB tx flush before caller reads.
   await page.waitForTimeout(500);
 }
@@ -361,16 +361,16 @@ export async function createTransfer(
 ): Promise<void> {
   await openActionPicker(page);
   await clickPickerAction(page, /^transfer$/i);
-  await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+  await page.waitForSelector('form input[inputmode="decimal"]', { timeout: 10_000 });
 
-  await page.locator('form input[inputmode="numeric"]').first().fill(opts.amount);
+  await page.locator('form input[inputmode="decimal"]').first().fill(opts.amount);
   await page.locator('form input[type="text"]:not([inputmode])').first().fill(opts.description);
 
   await pickTransferWalletFromSelect(page, 0, opts.fromWallet);
   await pickTransferWalletFromSelect(page, 1, opts.toWallet);
 
   await page.getByRole('button', { name: /^save$/i }).first().click();
-  await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+  await page.waitForSelector('form input[inputmode="decimal"]', { state: 'detached', timeout: 10_000 });
   // ponytail: see createDebt — let the IDB tx flush before caller reads.
   await page.waitForTimeout(500);
 }
@@ -470,7 +470,7 @@ export async function recordDebtPayment(
   // Wait for payment sheet to close.
   await page.waitForFunction(
     () => document.querySelectorAll('[role="dialog"]').length === 0
-      || !document.querySelector('form input[inputmode="numeric"]'),
+      || !document.querySelector('form input[inputmode="decimal"]'),
     undefined,
     { timeout: 10_000 },
   );
@@ -559,7 +559,7 @@ export async function openTransactionForEdit(
   } else {
     await row.getByRole('button', { name: /^edit$/i }).first().click();
   }
-  await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+  await page.waitForSelector('form input[inputmode="decimal"]', { timeout: 10_000 });
 }
 
 /**
@@ -662,7 +662,7 @@ export async function createExpenseFromPayee(
   await plusBtn.click();
 
   // Wait for the TransactionFormSheet to open.
-  await page.waitForSelector('form input[inputmode="numeric"]', { timeout: 10_000 });
+  await page.waitForSelector('form input[inputmode="decimal"]', { timeout: 10_000 });
 
   // Description should be pre-filled with the payee name.
   // Wait for React to commit the initialDescription via useEffect.
@@ -677,7 +677,7 @@ export async function createExpenseFromPayee(
   );
 
   // Fill amount.
-  await page.locator('form input[inputmode="numeric"]').first().fill(opts.amount);
+  await page.locator('form input[inputmode="decimal"]').first().fill(opts.amount);
 
   if (opts.categoryName) {
     const categoryInput = page.locator('form input[placeholder*="category" i], form input[placeholder*="select" i]').first();
@@ -693,7 +693,7 @@ export async function createExpenseFromPayee(
   }
 
   await page.getByRole('button', { name: /^save$/i }).first().click();
-  await page.waitForSelector('form input[inputmode="numeric"]', { state: 'detached', timeout: 10_000 });
+  await page.waitForSelector('form input[inputmode="decimal"]', { state: 'detached', timeout: 10_000 });
   await page.waitForTimeout(500);
 }
 
