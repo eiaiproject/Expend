@@ -1430,7 +1430,10 @@
     "batch.save": "Save {{count}} transactions",
     "batch.savedToast": "{{count}} transactions saved",
     "batch.noneSaved": "Nothing could be saved",
-    "Select a wallet first": "Select a wallet first"
+    "Select a wallet first": "Select a wallet first",
+    "recurring.everyDays": "Every {{count}} days",
+    "recurring.createSchedule": "Create schedule",
+    "recurring.createdToast": "Schedule created for {{name}}"
   },
   "Add details": "Add details",
   "Hide details": "Hide details",

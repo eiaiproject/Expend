@@ -1430,7 +1430,10 @@
     "batch.save": "Simpan {{count}} transaksi",
     "batch.savedToast": "{{count}} transaksi disimpan",
     "batch.noneSaved": "Tidak ada yang bisa disimpan",
-    "Select a wallet first": "Pilih dompet terlebih dahulu"
+    "Select a wallet first": "Pilih dompet terlebih dahulu",
+    "recurring.everyDays": "Setiap {{count}} hari",
+    "recurring.createSchedule": "Buat jadwal",
+    "recurring.createdToast": "Jadwal dibuat untuk {{name}}"
   },
   "Add details": "Tambah detail",
   "Hide details": "Sembunyikan detail",

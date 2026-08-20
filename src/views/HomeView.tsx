@@ -6,7 +6,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
 import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, Trash2, Handshake, Repeat, ClipboardAdd } from 'reicon-react';
-import { topRecentPayees } from '../services/payeeService';
+import { topRecentPayees, normalizePayeeKey } from '../services/payeeService';
+import { detectRecurringCandidates, type RecurringCandidate } from '../services/recurringDetectionService';
+import { createSchedule } from '../services/recurringService';
+import { getDefaultExpenseWallet } from '../services/walletPreferenceService';
 import { cn } from '../utils/cn';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
@@ -290,6 +293,37 @@ export default function HomeView() {
   const debtPayments = useLiveQuery(() => db.debtPayments.toArray(), [], undefined);
   const schedules = useLiveQuery(() => db.schedules.toArray(), [], undefined);
   const dismissedInsightIds = useLiveQuery(() => getDismissedInsightIds(), [], new Set<string>());
+
+  // Auto-detected recurring candidates (automation B4)
+  const recurringCandidates = useMemo(() => {
+    if (!transactions) return [];
+    const scheduledKeys = (schedules ?? [])
+      .map(s => (s.payee ? normalizePayeeKey(s.payee) : null))
+      .filter((k): k is string => !!k);
+    return detectRecurringCandidates(transactions, getTodayStr(), scheduledKeys);
+  }, [transactions, schedules]);
+  const [dismissedRecurringKeys, setDismissedRecurringKeys] = useState<string[]>([]);
+  const visibleRecurring = recurringCandidates.filter(c => !dismissedRecurringKeys.includes(c.payeeKey));
+
+  const handleCreateRecurring = useCallback(async (c: RecurringCandidate) => {
+    const wallet = await getDefaultExpenseWallet(wallets ?? []);
+    if (!wallet?.id) {
+      toast.add(t('Select a wallet first'));
+      return;
+    }
+    await createSchedule({
+      frequency: c.frequency,
+      startDate: getTodayStr(),
+      amount: c.amount,
+      categoryId: null,
+      walletId: wallet.id,
+      payee: c.payeeName,
+      mode: 'remind',
+      active: true,
+    });
+    setDismissedRecurringKeys(prev => [...prev, c.payeeKey]);
+    toast.add(t('recurring.createdToast', { name: c.payeeName }));
+  }, [wallets, t]);
 
   // Filter hook
   const {
@@ -802,7 +836,39 @@ export default function HomeView() {
         </div>
       )}
 
-      {/* Transaction List Header + Controls */}
+      {/* Detected recurring expenses (automation B4) */}
+      {!isSelectionMode && visibleRecurring.length > 0 && (
+        <div className="space-y-2">
+          {visibleRecurring.map(c => (
+            <div
+              key={c.payeeKey}
+              className="flex items-center justify-between gap-3 bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-3"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{c.payeeName}</p>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  {formatCurrency(c.amount)} · {t('recurring.everyDays', { count: c.intervalDays })} · {c.occurrenceCount}×
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleCreateRecurring(c)}
+                className="shrink-0 px-3 py-2 bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold rounded-lg active:scale-95 transition-transform"
+              >
+                {t('recurring.createSchedule')}
+              </button>
+              <button
+                type="button"
+                aria-label={t('Dismiss')}
+                onClick={() => setDismissedRecurringKeys(prev => [...prev, c.payeeKey])}
+                className="shrink-0 p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors"
+              >
+                <XCircle size={16} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <TransactionListControls
         isSelectionMode={isSelectionMode}
         selectedIds={selectedIds}
