@@ -1423,7 +1423,14 @@
     "settings.confirmNewCategoryLabel": "Konfirmasi sebelum membuat kategori baru",
     "settings.confirmNewCategoryHint": "Jika nonaktif, kategori baru langsung tersimpan tanpa konfirmasi.",
     "form.saveAndAddAnother": "Simpan & Tambah Lagi",
-    "home.recentPayees": "Terbaru"
+    "home.recentPayees": "Terbaru",
+    "batch.title": "Entri Massal",
+    "batch.placeholder": "Tempel baris seperti:\nNasi Padang 25000\nBakso 15000",
+    "batch.preview": "Pratinjau",
+    "batch.save": "Simpan {{count}} transaksi",
+    "batch.savedToast": "{{count}} transaksi disimpan",
+    "batch.noneSaved": "Tidak ada yang bisa disimpan",
+    "Select a wallet first": "Pilih dompet terlebih dahulu"
   },
   "Add details": "Tambah detail",
   "Hide details": "Sembunyikan detail",

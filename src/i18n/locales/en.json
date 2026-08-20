@@ -1423,7 +1423,14 @@
     "settings.confirmNewCategoryLabel": "Ask before creating new categories",
     "settings.confirmNewCategoryHint": "When off, typing a new category saves it immediately.",
     "form.saveAndAddAnother": "Save & Add Another",
-    "home.recentPayees": "Recent"
+    "home.recentPayees": "Recent",
+    "batch.title": "Batch Entry",
+    "batch.placeholder": "Paste lines like:\nNasi Padang 25000\nBakso 15000",
+    "batch.preview": "Preview",
+    "batch.save": "Save {{count}} transactions",
+    "batch.savedToast": "{{count}} transactions saved",
+    "batch.noneSaved": "Nothing could be saved",
+    "Select a wallet first": "Select a wallet first"
   },
   "Add details": "Add details",
   "Hide details": "Hide details",
