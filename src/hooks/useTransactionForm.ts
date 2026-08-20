@@ -6,6 +6,8 @@ import { INSUFFICIENT_WALLET_BALANCE_MESSAGE, saveTransaction, saveTransfer, upd
 import { CURATED_PALETTE } from '../utils/constants';
 import { getTodayStr } from '../utils/dateUtils';
 import { toast } from '../components/Toaster';
+import { confirm } from '../components/ConfirmDialog';
+import { findRecentDuplicate } from '../services/duplicateDetectionService';
 import { findPairedTransfer } from '../utils/transferUtils';
 import { getDefaultExpenseWallet, rememberLastUsedWallet } from '../services/walletPreferenceService';
 import { suggestCategoryForPayee } from '../services/categorySuggestionService';
@@ -494,6 +496,19 @@ export function useTransactionForm({
           trimmedDescription,
         );
       } else {
+        const duplicate = findRecentDuplicate(transactions, {
+          amount: rawAmount, description: trimmedDescription, date,
+        });
+        if (duplicate) {
+          const ok = await confirm({
+            title: t('form.duplicateTitle'),
+            message: t('form.duplicateMessage'),
+            confirmLabel: t('form.duplicateConfirm'),
+            cancelLabel: t('form.duplicateCancel'),
+            variant: 'danger',
+          });
+          if (!ok) return false;
+        }
         await submitExpense(
           { categoryName, date, walletId, notes, txToEdit, categories, onConfirmCreateCategory },
           rawAmount,
@@ -519,7 +534,7 @@ export function useTransactionForm({
     }
   }, [
     amount, description, date, walletId, toWalletId, type,
-    categoryName, notes, txToEdit, categories, onClose,
+    categoryName, notes, txToEdit, categories, transactions, onClose,
     onConfirmCreateCategory, t,
   ]);
 

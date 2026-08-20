@@ -1276,7 +1276,6 @@
     "payees.unfavorited": "{{name}} removed from favorites.",
     "payees.addFavorite": "Add to favorites",
     "payees.removeFavorite": "Remove from favorites",
-    "payees.sortLabel": "Sort",
     "settings.supportCardTitle": "Help Expend keep growing",
     "settings.supportCardBody": "Expend is free, ad-free, and does not sell user data. If it helps you, you can support its continued development.",
     "settings.supportCardAction": "Treat the developer",
@@ -1416,7 +1415,11 @@
     "templates.deleteMessage": "Delete \"{name}\"? This cannot be undone.",
     "templates.deleteConfirm": "Delete",
     "templates.deleteCancel": "Cancel",
-    "templates.deletedToast": "Template deleted"
+    "templates.deletedToast": "Template deleted",
+    "form.duplicateTitle": "Similar transaction recorded recently?",
+    "form.duplicateMessage": "A transaction with the same payee and amount was recorded within the last 30 minutes. Save anyway?",
+    "form.duplicateConfirm": "Save anyway",
+    "form.duplicateCancel": "Cancel"
   },
   "Add details": "Add details",
   "Hide details": "Hide details",
