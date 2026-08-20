@@ -51,6 +51,7 @@ export interface TransactionFormActions {
   setShowDescriptionSuggestions: (val: boolean) => void;
   handleAmountChange: (e: ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: () => Promise<boolean>;
+  submitAndResetForNext: () => Promise<boolean>;
   applyTemplate: (template: TransactionTemplate) => Promise<boolean>;
   saveCurrentAsTemplate: () => Promise<boolean>;
   /** True when any field changed since the form opened (master.md 8.4). */
@@ -474,7 +475,7 @@ export function useTransactionForm({
     return true;
   }, [description, categoryName, categories, amount, walletId, notes, t]);
 
-  const handleSubmit = useCallback(async (): Promise<boolean> => {
+  const performSubmit = useCallback(async (): Promise<boolean> => {
     if (!amount || !date || !walletId) return false;
     if (type === 'transfer' && !toWalletId) return false;
 
@@ -520,7 +521,6 @@ export function useTransactionForm({
       if (!success) return false;
 
       if (navigator.vibrate) navigator.vibrate(50);
-      onClose();
       return true;
     } catch (err) {
       if (err instanceof Error && err.message === INSUFFICIENT_WALLET_BALANCE_MESSAGE) {
@@ -534,9 +534,29 @@ export function useTransactionForm({
     }
   }, [
     amount, description, date, walletId, toWalletId, type,
-    categoryName, notes, txToEdit, categories, transactions, onClose,
+    categoryName, notes, txToEdit, categories, transactions,
     onConfirmCreateCategory, t,
   ]);
+
+  // Friction A8: save + close (default), or save + stay open for the next entry.
+  const handleSubmit = useCallback(async (): Promise<boolean> => {
+    const ok = await performSubmit();
+    if (ok) onClose();
+    return ok;
+  }, [performSubmit, onClose]);
+
+  const resetForNextEntry = useCallback((): void => {
+    setAmount('');
+    setDescription('');
+    setNotes('');
+    dirtyRef.current = false;
+  }, []);
+
+  const submitAndResetForNext = useCallback(async (): Promise<boolean> => {
+    const ok = await performSubmit();
+    if (ok) resetForNextEntry();
+    return ok;
+  }, [performSubmit, resetForNextEntry]);
 
   return {
     state: {
@@ -555,6 +575,7 @@ export function useTransactionForm({
       applyTemplate: markDirty(applyTemplate),
       setIsAmountFocused,
       setShowDescriptionSuggestions, handleSubmit,
+      submitAndResetForNext,
       saveCurrentAsTemplate,
       isDirty: () => dirtyRef.current,
       isSubmitting,

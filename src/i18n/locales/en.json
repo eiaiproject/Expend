@@ -1421,7 +1421,8 @@
     "form.duplicateConfirm": "Save anyway",
     "form.duplicateCancel": "Cancel",
     "settings.confirmNewCategoryLabel": "Ask before creating new categories",
-    "settings.confirmNewCategoryHint": "When off, typing a new category saves it immediately."
+    "settings.confirmNewCategoryHint": "When off, typing a new category saves it immediately.",
+    "form.saveAndAddAnother": "Save & Add Another"
   },
   "Add details": "Add details",
   "Hide details": "Hide details",

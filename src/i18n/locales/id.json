@@ -1421,7 +1421,8 @@
     "form.duplicateConfirm": "Tetap simpan",
     "form.duplicateCancel": "Batal",
     "settings.confirmNewCategoryLabel": "Konfirmasi sebelum membuat kategori baru",
-    "settings.confirmNewCategoryHint": "Jika nonaktif, kategori baru langsung tersimpan tanpa konfirmasi."
+    "settings.confirmNewCategoryHint": "Jika nonaktif, kategori baru langsung tersimpan tanpa konfirmasi.",
+    "form.saveAndAddAnother": "Simpan & Tambah Lagi"
   },
   "Add details": "Tambah detail",
   "Hide details": "Sembunyikan detail",

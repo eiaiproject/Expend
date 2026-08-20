@@ -222,14 +222,31 @@ export function TransactionFormSheet({
       size="full"
       disableEscape={showPayeePicker}
       footer={
-        <button
-          type="submit"
-          form={formId}
-          disabled={actions.isSubmitting}
-          className="w-full bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-[var(--accent-fill)]/20 disabled:opacity-50 min-h-[52px]"
-        >
-          {t('Save')}
-        </button>
+        <div className="space-y-2 pb-[env(safe-area-inset-bottom)]">
+          <button
+            type="submit"
+            form={formId}
+            disabled={actions.isSubmitting}
+            className="w-full bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-[var(--accent-fill)]/20 disabled:opacity-50 min-h-[52px]"
+          >
+            {t('Save')}
+          </button>
+          {isQuickAdd && (
+            <button
+              type="button"
+              onClick={async () => {
+                const saved = await actions.submitAndResetForNext();
+                if (saved) {
+                  requestAnimationFrame(() => document.getElementById(amountInputId)?.focus());
+                }
+              }}
+              disabled={actions.isSubmitting}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-[var(--accent)] border border-[var(--accent)]/30 bg-[var(--card)] active:scale-95 transition-transform min-h-[44px]"
+            >
+              {t('form.saveAndAddAnother')}
+            </button>
+          )}
+        </div>
       }
     >
       <form id={formId} onSubmit={handleFormSubmit} className="px-4 py-4 space-y-4">
