@@ -248,3 +248,26 @@ export async function filterTransactionsByPayee(
   transactions = transactions.filter(tx => normalizePayeeKey(tx.description) === payeeKey);
   return applyTransactionFilters(transactions, transactionFilters);
 }
+
+/**
+ * Most recently used distinct expense payees, newest first.
+ * Uses the latest casing/amount/date seen for each payee key.
+ */
+export function topRecentPayees(
+  transactions: readonly Transaction[],
+  limit = 5,
+): { key: string; name: string; amount: number; date: string }[] {
+  const seen = new Map<string, { name: string; amount: number; date: string }>();
+  for (const t of transactions) {
+    if (t.type !== 'expense' || !t.description) continue;
+    const key = normalizePayeeKey(t.description);
+    const existing = seen.get(key);
+    if (!existing || (t.date ?? '') > existing.date) {
+      seen.set(key, { name: normalizePayeeName(t.description), amount: t.amount, date: t.date ?? '' });
+    }
+  }
+  return [...seen.entries()]
+    .sort((a, b) => b[1].date.localeCompare(a[1].date))
+    .slice(0, limit)
+    .map(([key, v]) => ({ key, ...v }));
+}

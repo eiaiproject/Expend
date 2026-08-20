@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
-import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, Trash2, Handshake } from 'reicon-react';
+import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, Trash2, Handshake, Repeat } from 'reicon-react';
+import { topRecentPayees } from '../services/payeeService';
 import { cn } from '../utils/cn';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
@@ -748,6 +749,31 @@ export default function HomeView() {
         onSelect={filterActions.setQuickFilter}
         t={t}
       />
+
+      {/* Recent payees — one-tap re-entry (automation B1) */}
+      {!isSelectionMode && transactions && transactions.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4" aria-label={t('home.recentPayees')}>
+          {topRecentPayees(transactions, 5).map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => {
+                setEditTx(null);
+                setRepeatInitials({
+                  initialType: 'expense',
+                  initialDescription: p.name,
+                  initialAmount: String(p.amount),
+                });
+                setIsFormOpen(true);
+              }}
+              className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] active:scale-95 transition-colors min-h-[44px] flex items-center gap-1.5"
+            >
+              <Repeat size={14} aria-hidden="true" />
+              {p.name} · {formatCurrency(p.amount)}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Transaction List Header + Controls */}
       <TransactionListControls
