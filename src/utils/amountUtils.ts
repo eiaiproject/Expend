@@ -24,7 +24,11 @@ export function sanitizeAmountInput(value: string): string {
 export function formatAmountDisplay(value: string): string {
   if (!value) return '';
   const [intPart = '', dec] = value.split(',');
-  const grouped = intPart.replace(/\B(?=(?:\d{3})+(?!\d))/g, '.');
+  let grouped = '';
+  for (let i = 0; i < intPart.length; i++) {
+    if (i !== 0 && (intPart.length - i) % 3 === 0) grouped += '.';
+    grouped += intPart[i];
+  }
   return dec ? `${grouped},${dec}` : grouped;
 }
 

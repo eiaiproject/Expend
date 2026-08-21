@@ -4,6 +4,13 @@ All notable changes to Expend are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and this project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.18.2 - 2026-08-21
+### Fixed
+
+- Resolve all 70 SonarCloud code smells on main
+- Resolve super-linear regex performance in amountUtils to eliminate ReDoS risk (S8786)
+
+
 ## 1.18.1 - 2026-08-21
 
 ## 1.18.0 - 2026-08-20
