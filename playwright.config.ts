@@ -32,6 +32,10 @@ export default defineConfig({
   timeout: 60_000,
   expect: {
     timeout: 10_000,
+    toHaveScreenshot: {
+      // Remove platform suffix so snapshots work cross-platform (macOS ↔ Linux CI).
+      snapshotPathTemplate: '{snapshotDir}/{arg}-{projectName}{ext}',
+    },
   },
   use: {
     baseURL: e2eBaseUrl,
