@@ -75,7 +75,7 @@ export async function clearAppStorage(page: Page): Promise<void> {
 export async function visitApp(page: Page): Promise<void> {
   await clearAppStorage(page);
   await page.goto('/');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   // The Security bootstrap shows a spinner first. Wait for it to clear.
   await page.waitForFunction(() => document.body.innerText.length > 0);
 }
@@ -201,7 +201,7 @@ export async function expectVisibleWalletBalance(
   }
   // Fallback: search for "<wallet name>" near the formatted amount.
   await page.goto('/wallets');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   const card2 = page.locator(`[data-wallet-card="${walletName}"]`);
   await card2.first().getByText(expected).first().waitFor({ state: 'visible', timeout: 5_000 });
 }
@@ -291,7 +291,7 @@ export async function createWallet(
 ): Promise<void> {
   if (!page.url().includes('/wallets')) {
     await page.goto('/wallets');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   }
 
   await page.getByRole('button', { name: /add wallet/i }).first().click();
@@ -329,30 +329,9 @@ export async function createExpense(
     await detailsToggle.first().click();
   }
 
-  // Amount input has BOTH `type="text"` and `inputmode="decimal"`; pin to
-  // the numeric one to avoid double-matching with the description input.
-  await page.locator('form input[inputmode="decimal"]').first().fill(opts.amount);
-  // Description: `input[type="text"]:not([inputmode])` excluding the Category
-  // combobox (which is `role="combobox"` and renders before Description).
   await page.locator('form input[type="text"]:not([inputmode]):not([role="combobox"])').first().fill(opts.description);
 
-  if (opts.categoryName) {
-    const categoryInput = page.locator('form input[placeholder*="category" i], form input[placeholder*="select" i]').first();
-    if (await categoryInput.count() > 0) {
-      await categoryInput.fill(opts.categoryName);
-      await page.waitForTimeout(150);
-      await page.keyboard.press('Tab');
-    }
-  }
-
-  if (opts.walletName) {
-    await pickWalletFromSelect(page, opts.walletName);
-  }
-
-  await page.getByRole('button', { name: /^save$/i }).first().click();
-  await page.waitForSelector('form input[inputmode="decimal"]', { state: 'detached', timeout: 10_000 });
-  // ponytail: see createDebt — let the IDB tx flush before caller reads.
-  await page.waitForTimeout(500);
+  await fillAndSaveExpense(page, { amount: opts.amount, categoryName: opts.categoryName, walletName: opts.walletName });
 }
 
 export async function createTransfer(
@@ -385,7 +364,7 @@ export async function createDebt(
 ): Promise<void> {
   if (!page.url().includes('/debts')) {
     await page.goto('/debts');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   }
   await page.getByRole('button', { name: /add debt or receivable/i }).first().click();
   // Wait for the debt-type dialog step (h3 says "I owe someone" per debt.formIOwe).
@@ -432,7 +411,7 @@ export async function recordDebtPayment(
 ): Promise<void> {
   if (!page.url().includes('/debts')) {
     await page.goto('/debts');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   }
 
   // Locate the debt card by its person name and click it.
@@ -487,7 +466,7 @@ export async function adjustWalletBalance(
 ): Promise<void> {
   if (!page.url().includes('/wallets')) {
     await page.goto('/wallets');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   }
   // Open overflow menu and click Reconcile Balance
   await clickWalletMenuOption(page, opts.walletName, /reconcile balance/i);
@@ -595,6 +574,32 @@ export async function assertAllButtonsAccessible(page: Page): Promise<void> {
 
 // --- Internal helpers ---
 
+/**
+ * Shared form-fill + save + flush for expense creation.
+ * Called by both `createExpense` (UI picker) and `createExpenseFromPayee`.
+ */
+async function fillAndSaveExpense(
+  page: Page,
+  opts: { amount: string; categoryName?: string; walletName?: string },
+): Promise<void> {
+  await page.locator('form input[inputmode="decimal"]').first().fill(opts.amount);
+  if (opts.categoryName) {
+    const categoryInput = page.locator('form input[placeholder*="category" i], form input[placeholder*="select" i]').first();
+    if (await categoryInput.count() > 0) {
+      await categoryInput.fill(opts.categoryName);
+      await page.waitForTimeout(150);
+      await page.keyboard.press('Tab');
+    }
+  }
+  if (opts.walletName) {
+    await pickWalletFromSelect(page, opts.walletName);
+  }
+  await page.getByRole('button', { name: /^save$/i }).first().click();
+  await page.waitForSelector('form input[inputmode="decimal"]', { state: 'detached', timeout: 10_000 });
+  // ponytail: see createDebt — let the IDB tx flush before caller reads.
+  await page.waitForTimeout(500);
+}
+
 export async function openActionPicker(page: Page): Promise<void> {
   // Persistent Add control: desktop sidebar button or mobile bottom-nav Add
   // (aria-label "Add Transaction"). Scoped to nav/aside so a Home empty-state
@@ -651,7 +656,7 @@ export async function createExpenseFromPayee(
 ): Promise<void> {
   if (!page.url().includes('/payees')) {
     await page.goto('/payees');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   }
 
   // The + button has an aria-label like "Add expense for <payeeName>".
@@ -676,25 +681,8 @@ export async function createExpenseFromPayee(
     { timeout: 5_000 },
   );
 
-  // Fill amount.
-  await page.locator('form input[inputmode="decimal"]').first().fill(opts.amount);
-
-  if (opts.categoryName) {
-    const categoryInput = page.locator('form input[placeholder*="category" i], form input[placeholder*="select" i]').first();
-    if (await categoryInput.count() > 0) {
-      await categoryInput.fill(opts.categoryName);
-      await page.waitForTimeout(150);
-      await page.keyboard.press('Tab');
-    }
-  }
-
-  if (opts.walletName) {
-    await pickWalletFromSelect(page, opts.walletName);
-  }
-
-  await page.getByRole('button', { name: /^save$/i }).first().click();
-  await page.waitForSelector('form input[inputmode="decimal"]', { state: 'detached', timeout: 10_000 });
-  await page.waitForTimeout(500);
+  // Fill amount and submit.
+  await fillAndSaveExpense(page, { amount: opts.amount, categoryName: opts.categoryName, walletName: opts.walletName });
 }
 
 /**
