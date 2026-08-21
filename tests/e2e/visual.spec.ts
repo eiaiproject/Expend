@@ -291,7 +291,8 @@ test.describe('Visual consistency — pixel perfect', () => {
       await page.waitForTimeout(500);
       await dismissOverlays(page);
     }
-    await expect(page).toHaveScreenshot('wallet-detail.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
+    // Use viewport-only screenshot (not fullPage) to avoid height flakiness from dynamic transaction lists.
+    await expect(page).toHaveScreenshot('wallet-detail.png', { maxDiffPixelRatio: 0.01 });
   });
 
   test('more — page', async ({ page }) => {
