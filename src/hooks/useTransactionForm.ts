@@ -475,6 +475,28 @@ export function useTransactionForm({
     return true;
   }, [description, categoryName, categories, amount, walletId, notes, t]);
 
+  const submitExpenseWithDuplicateCheck = useCallback(async (rawAmount: number, trimmedDescription: string): Promise<boolean> => {
+    const duplicate = findRecentDuplicate(transactions, {
+      amount: rawAmount, description: trimmedDescription, date,
+    }, 30, txToEdit?.id);
+    if (duplicate) {
+      const ok = await confirm({
+        title: t('form.duplicateTitle'),
+        message: t('form.duplicateMessage'),
+        confirmLabel: t('form.duplicateConfirm'),
+        cancelLabel: t('form.duplicateCancel'),
+        variant: 'danger',
+      });
+      if (!ok) return false;
+    }
+    await submitExpense(
+      { categoryName, date, walletId, notes, txToEdit, categories, onConfirmCreateCategory },
+      rawAmount,
+      trimmedDescription,
+    );
+    return true;
+  }, [transactions, date, txToEdit, t, categoryName, walletId, notes, categories, onConfirmCreateCategory]);
+
   const performSubmit = useCallback(async (): Promise<boolean> => {
     if (!amount || !date || !walletId) return false;
     if (type === 'transfer' && !toWalletId) return false;
@@ -497,25 +519,7 @@ export function useTransactionForm({
           trimmedDescription,
         );
       } else {
-        const duplicate = findRecentDuplicate(transactions, {
-          amount: rawAmount, description: trimmedDescription, date,
-        }, 30, txToEdit?.id);
-        if (duplicate) {
-          const ok = await confirm({
-            title: t('form.duplicateTitle'),
-            message: t('form.duplicateMessage'),
-            confirmLabel: t('form.duplicateConfirm'),
-            cancelLabel: t('form.duplicateCancel'),
-            variant: 'danger',
-          });
-          if (!ok) return false;
-        }
-        await submitExpense(
-          { categoryName, date, walletId, notes, txToEdit, categories, onConfirmCreateCategory },
-          rawAmount,
-          trimmedDescription,
-        );
-        success = true;
+        success = await submitExpenseWithDuplicateCheck(rawAmount, trimmedDescription);
       }
 
       if (!success) return false;
@@ -534,8 +538,7 @@ export function useTransactionForm({
     }
   }, [
     amount, description, date, walletId, toWalletId, type,
-    categoryName, notes, txToEdit, categories, transactions,
-    onConfirmCreateCategory, t,
+    categoryName, notes, txToEdit, t, submitExpenseWithDuplicateCheck,
   ]);
 
   // Friction A8: save + close (default), or save + stay open for the next entry.

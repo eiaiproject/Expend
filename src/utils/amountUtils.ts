@@ -24,13 +24,13 @@ export function sanitizeAmountInput(value: string): string {
 export function formatAmountDisplay(value: string): string {
   if (!value) return '';
   const [intPart = '', dec] = value.split(',');
-  const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const grouped = intPart.replace(/\B(?=(?:\d{3})+(?!\d))/g, '.');
   return dec ? `${grouped},${dec}` : grouped;
 }
 
 /** "25.000,50" | "25000" → 25000.5 ; invalid/empty → 0 */
 export function parseAmountToNumber(value: string): number {
-  const cleaned = value.replace(/\./g, '').replace(',', '.');
+  const cleaned = value.replaceAll('.', '').replaceAll(',', '.');
   const n = Number.parseFloat(cleaned);
   return Number.isFinite(n) ? n : 0;
 }

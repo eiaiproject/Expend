@@ -4,7 +4,7 @@ const AMOUNT_RE = /(?:Rp\.?\s?)?([\d.,]+)/i;
 
 /** First amount-like token in a line, or null. */
 export function parseAmountToken(text: string): number | null {
-  const m = text.match(AMOUNT_RE);
+  const m = AMOUNT_RE.exec(text);
   if (!m) return null;
   return parseAmountToNumber(sanitizeAmountInput(m[1]!));
 }
@@ -12,7 +12,7 @@ export function parseAmountToken(text: string): number | null {
 /** Best-effort single-entry parse: amount + rest of the first line as description. */
 export function parseRecordingText(text: string): { description: string; amount: string } {
   const line = text.trim().split('\n')[0] ?? '';
-  const m = line.match(AMOUNT_RE);
+  const m = AMOUNT_RE.exec(line);
   if (!m) return { description: line, amount: '' };
   const amountNum = parseAmountToken(m[1]!);
   const description = line

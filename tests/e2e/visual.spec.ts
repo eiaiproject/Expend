@@ -14,7 +14,6 @@ import { test, expect, type Page } from '@playwright/test';
 
 async function seedRealisticData(page: Page): Promise<void> {
   await page.goto('/');
-  await page.waitForLoadState('domcontentloaded');
 
   // Seed data directly into IndexedDB via raw API (works in production build).
   await page.evaluate(async () => {
@@ -130,8 +129,7 @@ async function seedRealisticData(page: Page): Promise<void> {
   });
 
   await page.reload();
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(800);
+  await page.waitForLoadState('load');
 }
 
 async function dismissOverlays(page: Page): Promise<void> {
@@ -142,7 +140,7 @@ async function dismissOverlays(page: Page): Promise<void> {
     const closeBtn = dialogs.nth(i).getByRole('button', { name: /close|dismiss|skip|maybe later|not now/i });
     if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
       await closeBtn.click();
-      await page.waitForTimeout(300);
+      await page.waitForLoadState('load');
     }
   }
 }
@@ -157,109 +155,96 @@ test.describe('Visual consistency — pixel perfect', () => {
 
   test('home — full page', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     await expect(page).toHaveScreenshot('home-full.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
   });
 
   test('home — viewport mobile', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     await expect(page).toHaveScreenshot('home-viewport.png', { maxDiffPixelRatio: 0.01 });
   });
 
   test('wallets — list', async ({ page }) => {
     await page.goto('/wallets');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     await expect(page).toHaveScreenshot('wallets-list.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
   });
 
   test('debts — list', async ({ page }) => {
     await page.goto('/debts');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     await expect(page).toHaveScreenshot('debts-list.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
   });
 
   test('stats — charts', async ({ page }) => {
     await page.goto('/stats');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     await expect(page).toHaveScreenshot('stats-charts.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
   });
 
   test('settings — sections', async ({ page }) => {
     await page.goto('/settings');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     await expect(page).toHaveScreenshot('settings-sections.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
   });
 
   test('categories — list', async ({ page }) => {
     await page.goto('/categories');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     await expect(page).toHaveScreenshot('categories-list.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
   });
 
   test('payees — list', async ({ page }) => {
     await page.goto('/payees');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     await expect(page).toHaveScreenshot('payees-list.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
   });
 
   test('schedules — list', async ({ page }) => {
     await page.goto('/schedules');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     await expect(page).toHaveScreenshot('schedules-list.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
   });
 
   test('quick-add — open form', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     // Open the action picker and click Add Expense.
     await page.getByRole('button', { name: /add|new|create/i }).first().click();
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('load');
     const addBtn = page.getByRole('button', { name: /add expense|expense/i });
     if (await addBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
       await addBtn.click();
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('load');
     }
     await expect(page).toHaveScreenshot('quick-add-form.png', { maxDiffPixelRatio: 0.01 });
   });
 
   test('home — dark mode', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     // Toggle dark mode via settings.
     await page.goto('/settings');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('load');
     const themeToggle = page.getByRole('button', { name: /dark|theme|mode/i });
     if (await themeToggle.isVisible({ timeout: 1000 }).catch(() => false)) {
       await themeToggle.click();
-      await page.waitForTimeout(300);
+      await page.waitForLoadState('load');
     }
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     await expect(page).toHaveScreenshot('home-dark-mode.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
   });
@@ -267,8 +252,7 @@ test.describe('Visual consistency — pixel perfect', () => {
   test('landing — first visit', async ({ page }) => {
     // Fresh visit without onboarding completed.
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     // If redirected to onboarding, screenshot that instead.
     const url = page.url();
     if (url.includes('onboarding') || await page.locator('h1:has-text("Welcome")').isVisible({ timeout: 1000 }).catch(() => false)) {
@@ -280,15 +264,13 @@ test.describe('Visual consistency — pixel perfect', () => {
 
   test('wallets — detail page', async ({ page }) => {
     await page.goto('/wallets');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     // Click first wallet to open detail.
     const walletLink = page.getByRole('link', { name: /BCA|GoPay|Cash/i }).first();
     if (await walletLink.isVisible({ timeout: 1000 }).catch(() => false)) {
       await walletLink.click();
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('load');
       await dismissOverlays(page);
     }
     // Use viewport-only screenshot (not fullPage) to avoid height flakiness from dynamic transaction lists.
@@ -297,31 +279,27 @@ test.describe('Visual consistency — pixel perfect', () => {
 
   test('more — page', async ({ page }) => {
     await page.goto('/more');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     await expect(page).toHaveScreenshot('more-page.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
   });
 
   test('404 — not found', async ({ page }) => {
     await page.goto('/nonexistent-page');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     await expect(page).toHaveScreenshot('not-found.png', { maxDiffPixelRatio: 0.01 });
   });
 
   test('debts — detail page', async ({ page }) => {
     await page.goto('/debts');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     // Click first debt to open detail.
     const debtLink = page.getByRole('button', { name: /Budi|payable|receivable/i }).first();
     if (await debtLink.isVisible({ timeout: 1000 }).catch(() => false)) {
       await debtLink.click();
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('load');
       await dismissOverlays(page);
     }
     await expect(page).toHaveScreenshot('debt-detail.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
@@ -329,15 +307,13 @@ test.describe('Visual consistency — pixel perfect', () => {
 
   test('payees — detail page', async ({ page }) => {
     await page.goto('/payees');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await dismissOverlays(page);
     // Click first payee to open detail.
     const payeeLink = page.getByRole('button', { name: /Warung|Kopi|Gojek|Grab|Tokopedia/i }).first();
     if (await payeeLink.isVisible({ timeout: 1000 }).catch(() => false)) {
       await payeeLink.click();
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('load');
       await dismissOverlays(page);
     }
     await expect(page).toHaveScreenshot('payee-detail.png', { fullPage: true, maxDiffPixelRatio: 0.01 });
@@ -346,7 +322,6 @@ test.describe('Visual consistency — pixel perfect', () => {
   test('onboarding — welcome step', async ({ page }) => {
     // Clear onboarding flag to see onboarding flow.
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
     await page.evaluate(() => {
       const openDB = (): Promise<IDBDatabase> =>
         new Promise((resolve, reject) => {
@@ -361,8 +336,7 @@ test.describe('Visual consistency — pixel perfect', () => {
       });
     });
     await page.reload();
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     await expect(page).toHaveScreenshot('onboarding-step1.png', { maxDiffPixelRatio: 0.01 });
   });
 });
