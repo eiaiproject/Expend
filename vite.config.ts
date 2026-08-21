@@ -33,6 +33,16 @@ export default defineConfig(({mode}) => {
         display: 'standalone',
         orientation: 'portrait',
         categories: ['finance', 'productivity'],
+        // Web Share Target (Android Chrome): share text → prefilled form.
+        share_target: {
+          action: '/share-target',
+          method: 'GET',
+          params: {
+            title: 'title',
+            text: 'text',
+            url: 'url',
+          },
+        },
         shortcuts: [
           {
             name: 'Wallets',
@@ -93,7 +103,7 @@ export default defineConfig(({mode}) => {
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        globIgnores: ['registerSW.js'],
+        globIgnores: ['registerSW.js', 'tessdata/**'],
         navigateFallback: '/index.html',
         clientsClaim: true,
         cleanupOutdatedCaches: true,

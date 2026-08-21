@@ -5,6 +5,7 @@ import {
   getPayeeStatsFromTransactions,
   normalizePayeeKey,
   normalizePayeeName,
+  topRecentPayees,
 } from '@/services/payeeService';
 
 beforeEach(async () => {
@@ -81,5 +82,27 @@ describe('payeeService', () => {
       name: 'iBox',
       transactionCount: 2,
     });
+  });
+});
+
+describe('topRecentPayees', () => {
+  it('dedupes by key, keeps latest casing, sorted newest first', () => {
+    const txs = [
+      { id: 1, type: 'expense' as const, description: 'Gojek', amount: 15000, date: '2026-08-18T08:00', walletId: 1, categoryId: 1 },
+      { id: 2, type: 'expense' as const, description: 'gojek', amount: 24000, date: '2026-08-20T08:00', walletId: 1, categoryId: 1 },
+      { id: 3, type: 'expense' as const, description: 'Bakso', amount: 12000, date: '2026-08-19T08:00', walletId: 1, categoryId: 1 },
+    ];
+    const result = topRecentPayees(txs, 5);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({ key: 'gojek', name: 'gojek', amount: 24000 });
+    expect(result[1].name).toBe('Bakso');
+  });
+  it('respects the limit and ignores non-expense transactions', () => {
+    const txs = [
+      { id: 1, type: 'expense' as const, description: 'A', amount: 1, date: '2026-08-01T08:00', walletId: 1, categoryId: 1 },
+      { id: 2, type: 'expense' as const, description: 'B', amount: 2, date: '2026-08-02T08:00', walletId: 1, categoryId: 1 },
+      { id: 3, type: 'transfer_out' as const, description: 'C', amount: 3, date: '2026-08-03T08:00', walletId: 1, categoryId: null },
+    ];
+    expect(topRecentPayees(txs, 1)).toHaveLength(1);
   });
 });

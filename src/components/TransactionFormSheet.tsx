@@ -4,9 +4,12 @@ import { toast } from './Toaster';
 import { confirm } from './ConfirmDialog';
 import { X, ArrowDownCircle, Repeat, Plus, ChevronDown, ChevronUp, Bookmark, Wallet, ShoppingBag } from 'reicon-react';
 import { useTranslation } from 'react-i18next';
-import { type Transaction } from '../db/db';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db, type Transaction } from '../db/db';
 import { cn } from '../utils/cn';
 import { PRESET_AMOUNTS } from '../utils/constants';
+import { sanitizeAmountInput, formatAmountDisplay } from '../utils/amountUtils';
+import { suggestAmountsForPayee } from '../services/amountSuggestionService';
 import { useTransactionForm } from '../hooks/useTransactionForm';
 import { BottomSheetShell } from './BottomSheetShell';
 import { CategorySelect } from './CategorySelect';
@@ -79,16 +82,6 @@ export function TransactionFormSheet({
     if (isOpen) setShowDetails(!isQuickAdd);
   }, [isOpen, isQuickAdd]);
 
-  // Long-press (600ms) or right-click on a template chip → delete (master.md 5.4)
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const didLongPress = useRef(false);
-
-  useEffect(() => () => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }, []);
-
-  const cancelLongPress = () => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-  };
-
   const handleDeleteTemplate = async (id: string) => {
     const template = templates.find(t => t.id === id);
     const ok = await confirm({
@@ -103,17 +96,7 @@ export function TransactionFormSheet({
     toast.add(t('templates.deletedToast'));
   };
 
-  const startLongPress = (id: string) => {
-    cancelLongPress();
-    longPressTimer.current = setTimeout(() => {
-      didLongPress.current = true;
-      if (navigator.vibrate) navigator.vibrate(50); // NOSONAR:S6819 — haptic cue, not an interactive role
-      void handleDeleteTemplate(id);
-    }, 600);
-  };
-
   const handleTemplateClick = (template: TransactionTemplate) => {
-    if (didLongPress.current) { didLongPress.current = false; return; } // suppress apply after delete long-press
     void actions.applyTemplate(template);
   };
 
@@ -128,7 +111,13 @@ export function TransactionFormSheet({
   const descriptionRef = useRef<HTMLInputElement>(null);
   const suggestionIndexRef = useRef(-1);
 
-  const { state, actions, wallets, categories, templates } = useTransactionForm({
+  // Friction A4: silent category creation opt-out (default = confirm).
+  const confirmNewCategorySetting = useLiveQuery(
+    () => db.settings.get('confirmNewCategory').then((s) => (s?.value as boolean | undefined) ?? true),
+    [], true,
+  );
+
+  const { state, actions, wallets, categories, templates, transactions } = useTransactionForm({
     isOpen,
     txToEdit,
     initialType,
@@ -139,6 +128,7 @@ export function TransactionFormSheet({
     initialNotes,
     onClose,
     onConfirmCreateCategory: async (name: string) => {
+      if (!confirmNewCategorySetting) return true; // silent create (opt-out)
       const confirmed = await confirm({
         title: t('Create New Category'),
         message: t('Category "{{name}}" does not exist. Create it?', { name }),
@@ -199,6 +189,11 @@ export function TransactionFormSheet({
     }
   };
 
+  // Raw digits while focused (no separators to fight the caret); formatted on blur.
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    actions.setAmount(sanitizeAmountInput(e.target.value));
+  };
+
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -227,14 +222,31 @@ export function TransactionFormSheet({
       size="full"
       disableEscape={showPayeePicker}
       footer={
-        <button
-          type="submit"
-          form={formId}
-          disabled={actions.isSubmitting}
-          className="w-full bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-[var(--accent-fill)]/20 disabled:opacity-50 min-h-[52px]"
-        >
-          {t('Save')}
-        </button>
+        <div className="space-y-2 pb-[env(safe-area-inset-bottom)]">
+          <button
+            type="submit"
+            form={formId}
+            disabled={actions.isSubmitting}
+            className="w-full bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-[var(--accent-fill)]/20 disabled:opacity-50 min-h-[52px]"
+          >
+            {t('Save')}
+          </button>
+          {isQuickAdd && (
+            <button
+              type="button"
+              onClick={async () => {
+                const saved = await actions.submitAndResetForNext();
+                if (saved) {
+                  requestAnimationFrame(() => document.getElementById(amountInputId)?.focus());
+                }
+              }}
+              disabled={actions.isSubmitting}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-[var(--accent)] border border-[var(--accent)]/30 bg-[var(--card)] active:scale-95 transition-transform min-h-[44px]"
+            >
+              {t('form.saveAndAddAnother')}
+            </button>
+          )}
+        </div>
       }
     >
       <form id={formId} onSubmit={handleFormSubmit} className="px-4 py-4 space-y-4">
@@ -272,19 +284,26 @@ export function TransactionFormSheet({
             <ul ref={templatesRef} className={cn("flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-1 pb-1 list-none", templatesOverflows && "scroll-fade-x")} aria-label={t('Templates')}>
               {templates.slice(0, 4).map((template) => (
                 <li key={template.id} className="snap-start">
-                  <button
-                    type="button"
-                    onClick={() => handleTemplateClick(template)}
-                    onPointerDown={() => startLongPress(template.id)}
-                    onPointerUp={cancelLongPress}
-                    onPointerLeave={cancelLongPress}
-                    onPointerCancel={cancelLongPress}
-                    onContextMenu={(e) => { e.preventDefault(); void handleDeleteTemplate(template.id); }}
-                    className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5 select-none"
-                  >
-                    <Bookmark size={14} aria-hidden="true" />
-                    {template.name}
-                  </button>
+                  <div className="flex items-center gap-1 pr-1 shrink-0 bg-[var(--card)] border border-[var(--border)] rounded-xl transition-colors hover:border-[var(--accent)]">
+                    <button
+                      type="button"
+                      onClick={() => handleTemplateClick(template)}
+                      onContextMenu={(e) => { e.preventDefault(); void handleDeleteTemplate(template.id); }}
+                      className="px-2 py-2 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors active:scale-95 min-h-[44px] flex items-center gap-1.5 select-none"
+                    >
+                      <Bookmark size={14} aria-hidden="true" />
+                      {template.name}
+                    </button>
+                    {/* Friction A7: visible delete — no more hidden long-press */}
+                    <button
+                      type="button"
+                      aria-label={t('templates.deleteTitle')}
+                      onClick={() => void handleDeleteTemplate(template.id)}
+                      className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-colors"
+                    >
+                      <X size={14} aria-hidden="true" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -301,11 +320,12 @@ export function TransactionFormSheet({
             <input
               id={amountInputId}
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               required
-              value={state.amount}
-              onChange={actions.handleAmountChange}
+              value={state.isAmountFocused ? state.amount : formatAmountDisplay(state.amount)}
+              onChange={handleAmountChange}
               onFocus={() => actions.setIsAmountFocused(true)}
+              onBlur={() => actions.setIsAmountFocused(false)}
               className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl py-3 pl-12 pr-4 font-mono text-xl font-bold focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
               placeholder="0"
             />
@@ -314,11 +334,15 @@ export function TransactionFormSheet({
             <div
               className="flex flex-wrap gap-2 mt-3"
             >
-              {PRESET_AMOUNTS.map((preset) => (
+              {(state.description.trim()
+                ? // Friction A5: payee-aware presets (most common amounts for this payee)
+                  suggestAmountsForPayee(transactions, state.description, PRESET_AMOUNTS, 6)
+                : PRESET_AMOUNTS
+              ).map((preset) => (
                 <button
                   key={preset}
                   type="button"
-                  onClick={() => actions.setAmount(preset.toLocaleString('id-ID'))}
+                  onClick={() => actions.setAmount(String(preset))}
                   className="px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs font-mono font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors active:scale-95"
                 >
                   Rp {preset.toLocaleString('id-ID')}
@@ -330,7 +354,7 @@ export function TransactionFormSheet({
                   e.preventDefault();
                   actions.setIsAmountFocused(true);
                   const form = (e.currentTarget as HTMLElement).closest('form');
-                  const numericInput = form?.querySelector<HTMLInputElement>('input[inputMode="numeric"]');
+                  const numericInput = form?.querySelector<HTMLInputElement>('input[inputMode="decimal"]');
                   numericInput?.focus();
                 }}
                 className="px-3 py-1.5 bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 rounded-lg text-xs font-semibold flex items-center gap-1 hover:bg-[var(--accent)]/20 transition-colors active:scale-95"

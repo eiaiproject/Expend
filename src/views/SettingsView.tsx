@@ -6,7 +6,8 @@ import { useSecurity } from '../contexts/SecurityContext';  import {
     Moon, Sun, Monitor, Download, Upload, Lock, Trash2, Check,
     Information, Database, HardDrive,
     Link as ExternalLinkIcon, ChevronRight, Eye, EyeOff, Mobile,
-    Clock, AlertTriangle, Coffee, Heart, ShieldCheck, Bug, Wallet as WalletIcon
+    Clock, AlertTriangle, Coffee, Heart, ShieldCheck, Bug, Wallet as WalletIcon,
+    Tag
   } from 'reicon-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
@@ -456,6 +457,17 @@ export default function SettingsView() {
   const allWallets = useLiveQuery(() => db.wallets.toArray(), [], undefined) ?? [];
   const activeWallets = allWallets.filter(w => !w.archivedAt);
 
+  // ── New-category confirmation toggle (friction A4) ────────
+
+  const confirmNewCategorySetting = useLiveQuery(
+    () => db.settings.get('confirmNewCategory').then((s) => (s?.value as boolean | undefined) ?? true),
+    [], true,
+  );
+
+  const toggleConfirmNewCategory = async (v: boolean) => {
+    await db.settings.put({ key: 'confirmNewCategory', value: v });
+  };
+
   const handleDefaultWalletChange = async (value: string) => {
     try {
       if (value) {
@@ -875,6 +887,29 @@ export default function SettingsView() {
         </label>
       </div>
 
+
+      {/* Ask before new category — native switch */}
+      <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4">
+        <label className="flex items-center justify-between gap-4 min-h-[44px] cursor-pointer">
+          <div className="flex items-center gap-3">
+            <Tag size={20} className="text-[var(--text-secondary)]" aria-hidden="true" />
+            <div>
+              <span className="text-sm font-medium text-[var(--text-primary)]">{t('settings.confirmNewCategoryLabel')}</span>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.confirmNewCategoryHint')}</p>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={confirmNewCategorySetting}
+            onChange={(e) => void toggleConfirmNewCategory(e.target.checked)}
+            className="sr-only peer"
+            aria-label={t('settings.confirmNewCategoryLabel')}
+          />
+          <div className="w-11 h-6 rounded-full bg-[var(--border)] peer-checked:bg-[var(--accent)] transition-colors relative shrink-0" aria-hidden="true">
+            <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${confirmNewCategorySetting ? 'translate-x-5' : ''}`} />
+          </div>
+        </label>
+      </div>
 
       {/* Default wallet — native select (master.md 3.15) */}
       <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4">

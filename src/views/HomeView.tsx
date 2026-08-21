@@ -2,10 +2,14 @@ import { useEffect, useState, useMemo, useCallback, Suspense, lazy } from 'react
 import { useOverflow } from '../hooks/useOverflow';
 import { useKeyboardShortcutGuard } from '../hooks/useKeyboardShortcut';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
-import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, Trash2, Handshake } from 'reicon-react';
+import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, Trash2, Handshake, Repeat, ClipboardAdd, Camera } from 'reicon-react';
+import { topRecentPayees, normalizePayeeKey } from '../services/payeeService';
+import { detectRecurringCandidates, type RecurringCandidate } from '../services/recurringDetectionService';
+import { createSchedule } from '../services/recurringService';
+import { getDefaultExpenseWallet } from '../services/walletPreferenceService';
 import { cn } from '../utils/cn';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
@@ -40,6 +44,8 @@ import {
 
 const TransactionFormSheet = lazy(() => import('../components/TransactionFormSheet').then(m => ({ default: m.TransactionFormSheet })));
 const FilterSheet = lazy(() => import('../components/FilterSheet').then(m => ({ default: m.FilterSheet })));
+const BatchEntrySheet = lazy(() => import('../components/BatchEntrySheet').then(m => ({ default: m.BatchEntrySheet })));
+const ScanSheet = lazy(() => import('../components/ScanSheet').then(m => ({ default: m.ScanSheet })));
 
 const TRANSACTION_RENDER_PAGE_SIZE = 100;
 
@@ -237,7 +243,26 @@ export default function HomeView() {
     initialNotes?: string;
   } | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isBatchOpen, setIsBatchOpen] = useState(false);
+  const [isScanOpen, setIsScanOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Web Share Target prefill (automation B2): router state from ShareTargetView.
+  useEffect(() => {
+    const share = location.state?.share as { initialDescription?: string; initialAmount?: string } | undefined;
+    if (share) {
+      setEditTx(null);
+      setRepeatInitials({
+        initialType: 'expense',
+        initialDescription: share.initialDescription,
+        initialAmount: share.initialAmount,
+      });
+      setIsFormOpen(true);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const [expensePeriod, setExpensePeriod] = useState<'month' | 'all'>('month');
   const [visibleTransactionCount, setVisibleTransactionCount] = useState(TRANSACTION_RENDER_PAGE_SIZE);
@@ -270,6 +295,37 @@ export default function HomeView() {
   const debtPayments = useLiveQuery(() => db.debtPayments.toArray(), [], undefined);
   const schedules = useLiveQuery(() => db.schedules.toArray(), [], undefined);
   const dismissedInsightIds = useLiveQuery(() => getDismissedInsightIds(), [], new Set<string>());
+
+  // Auto-detected recurring candidates (automation B4)
+  const recurringCandidates = useMemo(() => {
+    if (!transactions) return [];
+    const scheduledKeys = (schedules ?? [])
+      .map(s => (s.payee ? normalizePayeeKey(s.payee) : null))
+      .filter((k): k is string => !!k);
+    return detectRecurringCandidates(transactions, getTodayStr(), scheduledKeys);
+  }, [transactions, schedules]);
+  const [dismissedRecurringKeys, setDismissedRecurringKeys] = useState<string[]>([]);
+  const visibleRecurring = recurringCandidates.filter(c => !dismissedRecurringKeys.includes(c.payeeKey));
+
+  const handleCreateRecurring = useCallback(async (c: RecurringCandidate) => {
+    const wallet = await getDefaultExpenseWallet(wallets ?? []);
+    if (!wallet?.id) {
+      toast.add(t('Select a wallet first'));
+      return;
+    }
+    await createSchedule({
+      frequency: c.frequency,
+      startDate: getTodayStr(),
+      amount: c.amount,
+      categoryId: null,
+      walletId: wallet.id,
+      payee: c.payeeName,
+      mode: 'remind',
+      active: true,
+    });
+    setDismissedRecurringKeys(prev => [...prev, c.payeeKey]);
+    toast.add(t('recurring.createdToast', { name: c.payeeName }));
+  }, [wallets, t]);
 
   // Filter hook
   const {
@@ -749,7 +805,80 @@ export default function HomeView() {
         t={t}
       />
 
-      {/* Transaction List Header + Controls */}
+      {/* Recent payees — one-tap re-entry (automation B1) */}
+      {!isSelectionMode && transactions && transactions.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4" aria-label={t('home.recentPayees')}>
+          {topRecentPayees(transactions, 5).map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => {
+                setEditTx(null);
+                setRepeatInitials({
+                  initialType: 'expense',
+                  initialDescription: p.name,
+                  initialAmount: String(p.amount),
+                });
+                setIsFormOpen(true);
+              }}
+              className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] active:scale-95 transition-colors min-h-[44px] flex items-center gap-1.5"
+            >
+              <Repeat size={14} aria-hidden="true" />
+              {p.name} · {formatCurrency(p.amount)}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setIsBatchOpen(true)}
+            className="shrink-0 px-3 py-2 bg-[var(--card)] border border-dashed border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] active:scale-95 transition-colors min-h-[44px] flex items-center gap-1.5"
+          >
+            <ClipboardAdd size={14} aria-hidden="true" />
+            {t('batch.title')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsScanOpen(true)}
+            className="shrink-0 px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)] active:scale-95 transition-colors min-h-[44px] flex items-center gap-1.5"
+          >
+            <Camera size={14} aria-hidden="true" />
+            {t('scan.title')}
+          </button>
+        </div>
+      )}
+
+      {/* Detected recurring expenses (automation B4) */}
+      {!isSelectionMode && visibleRecurring.length > 0 && (
+        <div className="space-y-2">
+          {visibleRecurring.map(c => (
+            <div
+              key={c.payeeKey}
+              className="flex items-center justify-between gap-3 bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-3"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{c.payeeName}</p>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  {formatCurrency(c.amount)} · {t('recurring.everyDays', { count: c.intervalDays })} · {c.occurrenceCount}×
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleCreateRecurring(c)}
+                className="shrink-0 px-3 py-2 bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold rounded-lg active:scale-95 transition-transform"
+              >
+                {t('recurring.createSchedule')}
+              </button>
+              <button
+                type="button"
+                aria-label={t('Dismiss')}
+                onClick={() => setDismissedRecurringKeys(prev => [...prev, c.payeeKey])}
+                className="shrink-0 p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors"
+              >
+                <XCircle size={16} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <TransactionListControls
         isSelectionMode={isSelectionMode}
         selectedIds={selectedIds}
@@ -817,6 +946,30 @@ export default function HomeView() {
           initialToWalletId={repeatInitials?.initialToWalletId}
           initialAmount={repeatInitials?.initialAmount}
           initialNotes={repeatInitials?.initialNotes}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <BatchEntrySheet
+          isOpen={isBatchOpen}
+          onClose={() => setIsBatchOpen(false)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <ScanSheet
+          isOpen={isScanOpen}
+          onClose={() => setIsScanOpen(false)}
+          onPrefill={({ description, amount, rawText }) => {
+            setEditTx(null);
+            setRepeatInitials({
+              initialType: 'expense',
+              initialDescription: description,
+              initialAmount: amount || undefined,
+              initialNotes: rawText,
+            });
+            setIsFormOpen(true);
+          }}
         />
       </Suspense>
     </div>

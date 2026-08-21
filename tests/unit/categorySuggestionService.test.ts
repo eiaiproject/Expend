@@ -39,10 +39,10 @@ const categories = [makeCategory(1, 'Food'), makeCategory(2, 'Transport'), makeC
 // ── Suggestion precedence ──────────────────────────────────────
 
 describe('suggestCategoryForPayee', () => {
-  it('returns none for an empty payee', () => {
+  it('falls back to default category for an empty payee', () => {
     const result = suggestCategoryForPayee('', [], categories);
-    expect(result.source).toBe('none');
-    expect(result.categoryId).toBeNull();
+    expect(result.source).toBe('default');
+    expect(result.categoryId).toBe(3); // Other
   });
 
   it('matches exact normalized payee', () => {
@@ -188,5 +188,16 @@ describe('rankPayees', () => {
     const ranked = rankPayees(txs, new Set(), today);
     expect(ranked).toHaveLength(1);
     expect(ranked[0]?.frequency).toBe(2);
+  });
+});
+
+describe('empty payee fallback', () => {
+  it('falls back to last-used category when payee is empty', () => {
+    const result = suggestCategoryForPayee('', [], categories, [], 1);
+    expect(result).toMatchObject({ categoryId: 1, categoryName: 'Food', source: 'last-used' });
+  });
+  it('falls back to default category when payee empty and no last-used', () => {
+    const result = suggestCategoryForPayee('', [], categories, [], null);
+    expect(result).toMatchObject({ categoryId: 3, categoryName: 'Other', source: 'default' });
   });
 });

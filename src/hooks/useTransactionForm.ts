@@ -6,10 +6,13 @@ import { INSUFFICIENT_WALLET_BALANCE_MESSAGE, saveTransaction, saveTransfer, upd
 import { CURATED_PALETTE } from '../utils/constants';
 import { getTodayStr } from '../utils/dateUtils';
 import { toast } from '../components/Toaster';
+import { confirm } from '../components/ConfirmDialog';
+import { findRecentDuplicate } from '../services/duplicateDetectionService';
 import { findPairedTransfer } from '../utils/transferUtils';
 import { getDefaultExpenseWallet, rememberLastUsedWallet } from '../services/walletPreferenceService';
 import { suggestCategoryForPayee } from '../services/categorySuggestionService';
 import { getTemplates, resolveTemplate, saveTemplate, type TransactionTemplate } from '../services/templateService';
+import { sanitizeAmountInput, parseAmountToNumber, numberToAmountInput } from '../utils/amountUtils';
 
 const EMPTY_WALLETS: Wallet[] = [];
 const EMPTY_CATEGORIES: Category[] = [];
@@ -48,6 +51,7 @@ export interface TransactionFormActions {
   setShowDescriptionSuggestions: (val: boolean) => void;
   handleAmountChange: (e: ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: () => Promise<boolean>;
+  submitAndResetForNext: () => Promise<boolean>;
   applyTemplate: (template: TransactionTemplate) => Promise<boolean>;
   saveCurrentAsTemplate: () => Promise<boolean>;
   /** True when any field changed since the form opened (master.md 8.4). */
@@ -61,6 +65,7 @@ export interface UseTransactionFormResult {
   wallets: Wallet[];
   categories: Category[];
   templates: TransactionTemplate[];
+  transactions: Transaction[];
 }
 
 interface UseTransactionFormOptions {
@@ -300,10 +305,9 @@ export function useTransactionForm({
   // category the user picked manually — see master.md 5.3).
   useEffect(() => {
     if (!isOpen || type !== 'expense' || txToEdit) return;
-    const trimmed = description.trim();
-    if (!trimmed || categoryTouchedRef.current) return;
+    if (categoryTouchedRef.current) return;
     const suggestion = suggestCategoryForPayee(
-      trimmed,
+      description,
       transactions,
       categories,
       merchants,
@@ -317,7 +321,7 @@ export function useTransactionForm({
   // Initialize form when opened or txToEdit changes
   useEffect(() => {
     function initEditFields(editTx: NonNullable<typeof txToEdit>): void {
-      setAmount(editTx.amount.toString());
+      setAmount(numberToAmountInput(editTx.amount));
       setDescription(editTx.description.replace(/\s\((In|Out)\)$/, ''));
       setWalletId(editTx.walletId.toString());
       setDate(editTx.date.split('T')[0] ?? '');
@@ -421,12 +425,7 @@ export function useTransactionForm({
   }, [isOpen, txToEdit, categories, categoryName, type]);
 
   const handleAmountChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/\D/g, '');
-    if (!rawValue) {
-      setAmount('');
-      return;
-    }
-    setAmount(Number.parseInt(rawValue, 10).toLocaleString('id-ID'));
+    setAmount(sanitizeAmountInput(e.target.value));
   }, []);
 
   // Manual category selection is never overridden by suggestions
@@ -439,7 +438,7 @@ export function useTransactionForm({
     const resolved = await resolveTemplate(template, { wallets, categories });
     if (!resolved) return false;
     setType('expense');
-    if (resolved.amount != null) setAmount(resolved.amount.toLocaleString('id-ID'));
+    if (resolved.amount != null) setAmount(numberToAmountInput(resolved.amount));
     if (resolved.description) setDescription(resolved.description);
     if (resolved.notes) setNotes(resolved.notes);
     if (resolved.walletId != null) setWalletId(resolved.walletId.toString());
@@ -462,7 +461,7 @@ export function useTransactionForm({
     const matchedCat = categories.find(
       (c) => c.name.toLowerCase() === categoryName.trim().toLowerCase()
     );
-    const amountNum = amount ? Number.parseInt(amount.replace(/\D/g, ''), 10) : undefined;
+    const amountNum = amount ? parseAmountToNumber(amount) : undefined;
     const walletNum = walletId ? Number.parseInt(walletId, 10) : undefined;
     await saveTemplate({
       name: templateName,
@@ -476,11 +475,11 @@ export function useTransactionForm({
     return true;
   }, [description, categoryName, categories, amount, walletId, notes, t]);
 
-  const handleSubmit = useCallback(async (): Promise<boolean> => {
+  const performSubmit = useCallback(async (): Promise<boolean> => {
     if (!amount || !date || !walletId) return false;
     if (type === 'transfer' && !toWalletId) return false;
 
-    const rawAmount = Number.parseInt(amount.replace(/\D/g, ''), 10);
+    const rawAmount = parseAmountToNumber(amount);
     // Quick Add may omit the payee — fall back to the chosen category name.
     const trimmedDescription = description.trim() || categoryName.trim();
     if (!trimmedDescription) {
@@ -498,6 +497,19 @@ export function useTransactionForm({
           trimmedDescription,
         );
       } else {
+        const duplicate = findRecentDuplicate(transactions, {
+          amount: rawAmount, description: trimmedDescription, date,
+        }, 30, txToEdit?.id);
+        if (duplicate) {
+          const ok = await confirm({
+            title: t('form.duplicateTitle'),
+            message: t('form.duplicateMessage'),
+            confirmLabel: t('form.duplicateConfirm'),
+            cancelLabel: t('form.duplicateCancel'),
+            variant: 'danger',
+          });
+          if (!ok) return false;
+        }
         await submitExpense(
           { categoryName, date, walletId, notes, txToEdit, categories, onConfirmCreateCategory },
           rawAmount,
@@ -509,7 +521,6 @@ export function useTransactionForm({
       if (!success) return false;
 
       if (navigator.vibrate) navigator.vibrate(50);
-      onClose();
       return true;
     } catch (err) {
       if (err instanceof Error && err.message === INSUFFICIENT_WALLET_BALANCE_MESSAGE) {
@@ -523,9 +534,29 @@ export function useTransactionForm({
     }
   }, [
     amount, description, date, walletId, toWalletId, type,
-    categoryName, notes, txToEdit, categories, onClose,
+    categoryName, notes, txToEdit, categories, transactions,
     onConfirmCreateCategory, t,
   ]);
+
+  // Friction A8: save + close (default), or save + stay open for the next entry.
+  const handleSubmit = useCallback(async (): Promise<boolean> => {
+    const ok = await performSubmit();
+    if (ok) onClose();
+    return ok;
+  }, [performSubmit, onClose]);
+
+  const resetForNextEntry = useCallback((): void => {
+    setAmount('');
+    setDescription('');
+    setNotes('');
+    dirtyRef.current = false;
+  }, []);
+
+  const submitAndResetForNext = useCallback(async (): Promise<boolean> => {
+    const ok = await performSubmit();
+    if (ok) resetForNextEntry();
+    return ok;
+  }, [performSubmit, resetForNextEntry]);
 
   return {
     state: {
@@ -544,6 +575,7 @@ export function useTransactionForm({
       applyTemplate: markDirty(applyTemplate),
       setIsAmountFocused,
       setShowDescriptionSuggestions, handleSubmit,
+      submitAndResetForNext,
       saveCurrentAsTemplate,
       isDirty: () => dirtyRef.current,
       isSubmitting,
@@ -551,5 +583,6 @@ export function useTransactionForm({
     wallets,
     categories,
     templates,
+    transactions,
   };
 }

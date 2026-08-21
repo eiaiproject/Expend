@@ -38,7 +38,6 @@ test.describe('upcoming section', () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }]);
-    await page.waitForLoadState('networkidle');
 
     // Upcoming section shows the due item (master.md 7.4).
     const section = page.locator('section[aria-label]').filter({ hasText: payee });

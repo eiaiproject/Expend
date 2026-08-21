@@ -15,6 +15,7 @@ const CategoriesView = lazy(() => import('./views/CategoriesView'));
 const PayeesView = lazy(() => import('./views/PayeesView'));
 const SchedulesView = lazy(() => import('./views/SchedulesView'));
 const MoreView = lazy(() => import('./views/MoreView'));
+const ShareTargetView = lazy(() => import('./views/ShareTargetView'));
 
 import { TransactionFormSheet } from './components/TransactionFormSheet';
 import { ActionPickerSheet } from './components/ActionPickerSheet';
@@ -29,6 +30,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { Skeleton } from './components/Skeleton';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
 import { processDueSchedules } from './services/recurringService';
+import { getTodayStr } from './utils/dateUtils';
 import './i18n/init';
 
 import LandingView from './views/LandingView';
@@ -131,6 +133,29 @@ function AppContent() {
         schedulesProcessedRef.current = false;
       });
   }, [isSecurityLoaded, isLocked, hasOnboarded, onboardingCompleted, t]);
+
+  // Friction A6: re-process due schedules when the date rolls over while the
+  // app stays open. The one-shot effect above handles session start; this
+  // catches midnight rollover. processDueSchedules is idempotent (occurrence
+  // identity: scheduleId:YYYY-MM-DD), so re-runs can never duplicate.
+  const todayRef = useRef(getTodayStr());
+  useEffect(() => {
+    const checkDateRollover = () => {
+      const today = getTodayStr();
+      if (todayRef.current !== today) {
+        todayRef.current = today;
+        processDueSchedules(today).catch(() => {
+          // Leave the ref advanced — the one-shot guard retries on next unlock.
+        });
+      }
+    };
+    const interval = window.setInterval(checkDateRollover, 60_000);
+    document.addEventListener('visibilitychange', checkDateRollover);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', checkDateRollover);
+    };
+  }, []);
 
   // Keyboard shortcut: N to open Add Transaction
   const isShortcutIgnored = useKeyboardShortcutGuard();
@@ -317,6 +342,7 @@ function RoutesWithSuspense() {
           <Route path="/payees" element={<PayeesView />} />
           <Route path="/schedules" element={<SchedulesView />} />
           <Route path="/more" element={<MoreView />} />
+          <Route path="/share-target" element={<ShareTargetView />} />
           <Route path="*" element={<NotFoundView />} />
         </Routes>
       </Suspense>

@@ -102,3 +102,24 @@ Test transfer/quick-add di WebKit & Mobile Safari sesekali timeout `waitForSelec
 | B6 ✅ | Warna baru deterministik: indeks palet pertama yang belum terpakai (bukan `Math.random()`) di 3 tempat | `useTransactionForm.ts`, `db.ts`, `OnboardingWizard.tsx` |
 
 **Verifikasi:** typecheck ✅ · ESLint `--max-warnings=0` ✅ · i18n (984 keys) ✅ · unit 299/299 ✅ · e2e chromium **69/69** ✅ · webkit+Mobile Safari **132 passed / 4 flaky / 2 skipped, exit 0** ✅
+
+---
+
+## Status 2026-08-20 — Fase A (A1–A8) selesai di v1.18.0
+
+Inspeksi 8 friksi aktif (F1–F8) pada alur pencatatan → semua difix, satu commit per task:
+
+| ID | Friksi | Fix | Commit |
+|----|--------|-----|--------|
+| A1 | Input nominal tidak bisa desimal, caret loncat | `src/utils/amountUtils.ts` (sanitize/format/parse), raw-digits saat fokus, format saat blur (GoPay pattern) | `0afb3a2` |
+| A2 | Duplikat tersimpan diam-diam | `src/services/duplicateDetectionService.ts` + konfirmasi (payee+amount 30 menit, expense saja) | `55e319d` |
+| A3 | Quick-add tanpa payee → kategori asal | `resolveFallbackCategory` (last-used → Other) di `categorySuggestionService.ts` | `2139c0a` |
+| A4 | Konfirmasi kategori baru memaksa tiap simpan | Toggle `confirmNewCategory` (default ON) di Settings | `4e19b5d` |
+| A5 | Preset nominal statis | `suggestAmountsForPayee` (frekuensi → terbaru) di `amountSuggestionService.ts` | `af2c409` |
+| A6 | Jadwal berulang tak diproses saat app terbuka melewati tengah malam | Timer 60s + `visibilitychange` di `App.tsx` | `6c69404` |
+| A7 | Hapus template tersembunyi di long-press | Tombol ✕ terlihat di chip template | `56a7334` |
+| A8 | Quick-add hanya satu transaksi per buka | Tombol "Save & Add Another" | `0982e2a` |
+
+Otomasi (Fase B): B1 recent-payees chips `e1346a1` · B2 web share target `7cf4e7f` · B3 paste batch `79115fb` · B4 deteksi recurring `32cd04d` · B5 OCR scan-to-form `6441d4f`.
+
+Deferred (terdokumentasi di plan): OCR non-screenshot, template per-app, image share_target, auto-save tanpa konfirmasi, self-host tesseract core (offline OCR), precache tessdata (>2MB workbox limit).
