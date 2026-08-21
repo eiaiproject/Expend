@@ -61,13 +61,11 @@ export function ScanSheet({ isOpen, onClose, onPrefill }: ScanSheetProps) {
             if (file) void runOcr(file);
           }}
         />
-        <div
+        <button
+          type="button"
           onPaste={handlePaste}
-          role="button"
-          tabIndex={0}
           onClick={() => fileInputRef.current?.click()}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
-          className="border-2 border-dashed border-[var(--border)] rounded-xl p-8 text-center cursor-pointer focus-visible:border-[var(--accent)] min-h-[200px] flex flex-col items-center justify-center gap-3"
+          className="border-2 border-dashed border-[var(--border)] rounded-xl p-8 text-center cursor-pointer focus-visible:border-[var(--accent)] min-h-[200px] flex flex-col items-center justify-center gap-3 w-full"
         >
           {previewUrl ? (
             <img src={previewUrl} alt={t('scan.title')} className="max-h-[240px] rounded-lg object-contain" />
@@ -77,7 +75,7 @@ export function ScanSheet({ isOpen, onClose, onPrefill }: ScanSheetProps) {
               <p className="text-sm text-[var(--text-secondary)]">{t('scan.hint')}</p>
             </>
           )}
-        </div>
+        </button>
 
         <div className="flex gap-2">
           <button

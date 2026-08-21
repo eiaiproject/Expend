@@ -1,5 +1,4 @@
-import type { Transaction } from '../db/db';
-import type { ScheduleFrequency } from '../db/db';
+import type { Transaction, ScheduleFrequency } from '../db/db';
 import { normalizePayeeKey, normalizePayeeName } from './payeeService';
 import { computeNextOccurrence } from './recurringService';
 import { addDays, getTodayStr } from '../utils/dateUtils';
@@ -23,6 +22,38 @@ const INTERVALS: { days: number; frequency: ScheduleFrequency }[] = [
 const TOLERANCE_DAYS = 2;
 const MIN_OCCURRENCES = 3;
 
+function groupByPayee(transactions: readonly Transaction[]): Map<string, Transaction[]> {
+  const byPayee = new Map<string, Transaction[]>();
+  for (const t of transactions) {
+    if (t.type !== 'expense' || !t.description) continue;
+    const key = normalizePayeeKey(t.description);
+    const arr = byPayee.get(key);
+    if (arr) arr.push(t);
+    else byPayee.set(key, [t]);
+  }
+  return byPayee;
+}
+
+function groupByAmount(txs: Transaction[]): Map<number, Transaction[]> {
+  const byAmount = new Map<number, Transaction[]>();
+  for (const t of txs) {
+    const arr = byAmount.get(t.amount);
+    if (arr) arr.push(t);
+    else byAmount.set(t.amount, [t]);
+  }
+  return byAmount;
+}
+
+function fitsInterval(group: Transaction[], targetDays: number): boolean {
+  for (let i = 1; i < group.length; i++) {
+    const diff = Math.abs(
+      (Date.parse(group[i]!.date ?? '') - Date.parse(group[i - 1]!.date ?? '')) / 86_400_000,
+    );
+    if (Math.abs(diff - targetDays) > TOLERANCE_DAYS) return false;
+  }
+  return true;
+}
+
 /**
  * Conservative recurring detector (automation B4): same payee, same amount,
  * ≥3 occurrences at a stable 7/14/30/365-day rhythm. `existingPayeeKeys`
@@ -33,51 +64,27 @@ export function detectRecurringCandidates(
   today = getTodayStr(),
   existingPayeeKeys: readonly string[] = [],
 ): RecurringCandidate[] {
-  const byPayee = new Map<string, Transaction[]>();
-  for (const t of transactions) {
-    if (t.type !== 'expense' || !t.description) continue;
-    const key = normalizePayeeKey(t.description);
-    const arr = byPayee.get(key);
-    if (arr) arr.push(t);
-    else byPayee.set(key, [t]);
-  }
-
+  const byPayee = groupByPayee(transactions);
   const candidates: RecurringCandidate[] = [];
+
   for (const [key, txs] of byPayee) {
     if (existingPayeeKeys.includes(key)) continue;
     txs.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''));
 
-    // Group by amount — only stable amounts are candidates.
-    const byAmount = new Map<number, Transaction[]>();
-    for (const t of txs) {
-      const arr = byAmount.get(t.amount);
-      if (arr) arr.push(t);
-      else byAmount.set(t.amount, [t]);
-    }
-
-    for (const [amount, group] of byAmount) {
+    for (const [amount, group] of groupByAmount(txs)) {
       if (group.length < MIN_OCCURRENCES) continue;
-      for (const { days, frequency } of INTERVALS) {
-        let fits = true;
-        for (let i = 1; i < group.length; i++) {
-          const diff = Math.abs(
-            (Date.parse(group[i]!.date ?? '') - Date.parse(group[i - 1]!.date ?? '')) / 86_400_000,
-          );
-          if (Math.abs(diff - days) > TOLERANCE_DAYS) { fits = false; break; }
-        }
-        if (fits) {
-          const last = group[group.length - 1]!;
-          candidates.push({
-            payeeKey: key,
-            payeeName: normalizePayeeName(last.description),
-            amount,
-            intervalDays: days,
-            frequency,
-            nextDate: computeNextOccurrence((last.date ?? today).slice(0, 10), frequency, 1),
-            occurrenceCount: group.length,
-          });
-          break; // one rhythm per payee+amount
-        }
+      const matched = INTERVALS.find(({ days }) => fitsInterval(group, days));
+      if (matched) {
+        const last = group.at(-1)!;
+        candidates.push({
+          payeeKey: key,
+          payeeName: normalizePayeeName(last.description),
+          amount,
+          intervalDays: matched.days,
+          frequency: matched.frequency,
+          nextDate: computeNextOccurrence((last.date ?? today).slice(0, 10), matched.frequency, 1),
+          occurrenceCount: group.length,
+        });
       }
     }
   }

@@ -38,7 +38,7 @@ export function BatchEntrySheet({ isOpen, onClose }: BatchEntrySheetProps) {
       for (const entry of entries) {
         try {
           await saveTransaction({
-            amount: parseFloat(entry.amount.replace(/\./g, '').replace(',', '.')),
+            amount: Number.parseFloat(entry.amount.replaceAll('.', '').replaceAll(',', '.')),
             description: entry.description || 'Unknown',
             date: getTodayStr(),
             walletId: defaultWallet.id,
@@ -80,10 +80,10 @@ export function BatchEntrySheet({ isOpen, onClose }: BatchEntrySheetProps) {
             </p>
             <ul className="space-y-1.5">
               {entries.map((e, i) => (
-                <li key={i} className="flex items-center justify-between gap-3 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm">
+                <li key={`${e.description}-${e.amount}-${i}`} className="flex items-center justify-between gap-3 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm">
                   <span className="truncate text-[var(--text-primary)]">{e.description || 'Unknown'}</span>
                   <span className="font-mono font-semibold text-[var(--text-secondary)] shrink-0">
-                    Rp {parseFloat(e.amount.replace(/\./g, '').replace(',', '.')).toLocaleString('id-ID')}
+                    Rp {Number.parseFloat(e.amount.replaceAll('.', '').replaceAll(',', '.')).toLocaleString('id-ID')}
                   </span>
                 </li>
               ))}
