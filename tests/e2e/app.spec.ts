@@ -289,7 +289,6 @@ test.describe('Scenario F — accessibility invariants', () => {
     const routes = ['/', '/wallets', '/debts', '/stats', '/settings'];
     for (const path of routes) {
       await page.goto(path);
-      await page.waitForLoadState('domcontentloaded');
       await assertAllButtonsAccessible(page);
     }
 

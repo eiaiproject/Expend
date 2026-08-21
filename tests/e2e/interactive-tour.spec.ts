@@ -359,7 +359,6 @@ test.describe('Interactive tour — every page exercised end-to-end', () => {
     const routes = ['/', '/wallets', '/debts', '/payees', '/categories', '/stats', '/settings'];
     for (const path of routes) {
       await page.goto(path);
-      await page.waitForLoadState('domcontentloaded');
       await assertAllButtonsAccessible(page);
     }
   });
