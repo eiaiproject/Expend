@@ -4,6 +4,29 @@ All notable changes to Expend are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and this project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.0 - 2026-08-26
+### Added
+
+- Allow using a new payee name from picker (QA M3)
+- Type-aware transaction amount formatting (QA M1)
+- Offer balance reconciliation on insufficient funds (QA H3)
+- Expose insufficient-balance state from save flow (QA H3)
+- Idempotent ensureDefaultWallet service (QA H2)
+- Pure step validator for wallet-name requirement
+
+### Changed
+
+- Use String#replaceAll per SonarCloud S7781
+
+### Fixed
+
+- Keep description field always visible in quick-add (QA M2)
+- Show correct sign on transaction cards (QA M1)
+- Route default-wallet init through idempotent service (QA H2)
+- Never preview a wallet that will not be created (QA H1)
+- Require wallet name before proceeding (QA H1)
+
+
 ## 1.18.2 - 2026-08-21
 ### Fixed
 
