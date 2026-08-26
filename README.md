@@ -104,7 +104,8 @@ Expend is free and open source. If it helps you, you can support its development
 - Vite 6
 - Tailwind CSS 4
 - Dexie.js and IndexedDB
-- Recharts
+- Tesseract.js (on-device receipt OCR)
+- PapaParse (CSV import/export)
 - i18next and react-i18next
 - Workbox and vite-plugin-pwa
 - Vitest and Playwright
