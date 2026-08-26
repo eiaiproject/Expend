@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AlertTriangle, Handshake, HelpCircle, Plus, Search, X } from 'reicon-react';
 import { db, type Debt, type DebtPayment, type Wallet } from '../db/db';
+import { ensureDefaultWallet } from '../services/walletService';
 import { DebtCard } from '../components/debts/DebtCard';
 import { DebtDetailSheet } from '../components/debts/DebtDetailSheet';
 import { DebtFormSheet } from '../components/debts/DebtFormSheet';
@@ -127,21 +128,13 @@ export default function DebtsView() {
   const payments = useLiveQuery(() => db.debtPayments.toArray(), [], undefined);
   const wallets = useLiveQuery(() => db.wallets.toArray(), [], undefined);
 
+  // Default-wallet init via the idempotent service — replaces the racing
+  // inline effect and its hardcoded untranslated name (QA H2).
   useEffect(() => {
-    const initDefaultWallet = async () => {
-      const walletCount = await db.wallets.count();
-      if (walletCount === 0) {
-        await db.wallets.add({
-          name: 'Main Wallet',
-          currency: 'IDR',
-          initialBalance: 0,
-          currentBalance: 0,
-          lastUpdated: new Date().toISOString(),
-        });
-      }
-    };
-    initDefaultWallet();
-  }, []);
+    void ensureDefaultWallet(t('Main Wallet')).catch((err) =>
+      console.error('default wallet init failed:', err),
+    );
+  }, [t]);
 
   const isLoading = debts === undefined || payments === undefined || wallets === undefined;
   const safeDebts = debts ?? EMPTY_DEBTS;

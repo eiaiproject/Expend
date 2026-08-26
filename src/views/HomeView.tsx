@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Transaction } from '../db/db';
+import { ensureDefaultWallet } from '../services/walletService';
 import { Eye, EyeOff, Moon, Sun, Filter, SortV, Search, XCircle, Trash2, Handshake, Repeat, ClipboardAdd, Camera } from 'reicon-react';
 import { topRecentPayees, normalizePayeeKey } from '../services/payeeService';
 import { detectRecurringCandidates, type RecurringCandidate } from '../services/recurringDetectionService';
@@ -455,21 +456,12 @@ export default function HomeView() {
     }, {} as Record<number, import('../db/db').Wallet>);
   }, [wallets]);
 
-  // Initialize defaults if empty
+  // Initialize defaults if empty — routed through the idempotent service so
+  // concurrent mounts can never create duplicate wallets (QA H2).
   useEffect(() => {
-    const initDefaults = async () => {
-      const walletCount = await db.wallets.count();
-      if (walletCount === 0) {
-        await db.wallets.add({
-          name: t('Main Wallet'),
-          currency: 'IDR',
-          initialBalance: 0,
-          currentBalance: 0,
-          lastUpdated: new Date().toISOString()
-        });
-      }
-    };
-    initDefaults();
+    void ensureDefaultWallet(t('Main Wallet')).catch((err) =>
+      console.error('default wallet init failed:', err),
+    );
   }, [t]);
 
   // Keyboard shortcuts — disabled when typing or in modal
