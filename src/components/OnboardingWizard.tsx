@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Wallet, Tag, Check, ArrowRight, ArrowLeft, Sparkles, Information } from 'reicon-react';
 import { db } from '../db/db';
 import { cn } from '../utils/cn';
+import { canGoToStep } from '../utils/onboardingUtils';
 import { CURATED_PALETTE, DEFAULT_CATEGORIES, STORAGE_KEYS } from '../utils/constants';
 
 interface OnboardingWizardProps {
@@ -122,6 +123,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                     placeholder={t('e.g. Main Wallet')}
                     className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-3 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
                   />
+                  {!walletName.trim() && (
+                    <p className="text-xs text-[var(--text-secondary)] mt-1.5">{t('onboarding.walletNameRequired')}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1.5">{t('Initial Balance')}</label>
@@ -259,7 +263,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
             <button
               type="button"
               onClick={() => setStep(s => s + 1)}
-              className="flex-1 h-12 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-colors active:scale-95"
+              disabled={!canGoToStep(step, { walletName })}
+              aria-disabled={!canGoToStep(step, { walletName })}
+              className="flex-1 h-12 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-colors active:scale-95 disabled:opacity-50"
             >
               {t('Next')}
               <ArrowRight size={18} />

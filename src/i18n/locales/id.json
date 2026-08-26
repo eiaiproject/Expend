@@ -220,6 +220,7 @@
     "No transactions in this view": "Tidak ada transaksi di tampilan ini",
     "Welcome to Expend": "Selamat Datang di Expend",
     "Let's set up your first wallet to get started.": "Siapkan dompet pertama Anda untuk memulai.",
+    "onboarding.walletNameRequired": "Isi nama dompet dulu untuk lanjut",
     "e.g. Main Wallet": "Mis. Dompet Utama",
     "Choose Categories": "Pilih Kategori",
     "Default Category Food & Drinks": "Makanan & Minuman",
