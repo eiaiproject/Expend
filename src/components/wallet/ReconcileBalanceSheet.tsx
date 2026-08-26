@@ -12,6 +12,8 @@ interface ReconcileBalanceSheetProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly wallet: Wallet;
+  /** Raise above a host form sheet when embedded in the transaction flow (QA H3). */
+  readonly zIndex?: number;
 }
 
 /**
@@ -27,7 +29,7 @@ interface ReconcileBalanceSheetProps {
  *
  * On save: creates a balance_adjustment transaction via adjustWalletBalance.
  */
-export function ReconcileBalanceSheet({ isOpen, onClose, wallet }: ReconcileBalanceSheetProps) {
+export function ReconcileBalanceSheet({ isOpen, onClose, wallet, zIndex }: ReconcileBalanceSheetProps) {
   const { t } = useTranslation();
   const { hideAmount } = usePrivacy();
 
@@ -79,6 +81,7 @@ export function ReconcileBalanceSheet({ isOpen, onClose, wallet }: ReconcileBala
       title={t('wallet.reconcileTitle')}
       ariaLabel={t('wallet.reconcileTitle')}
       size="content"
+      {...(zIndex !== undefined ? { zIndex } : {})}
       footer={
         <SheetFormFooter onCancel={onClose} onSave={handleSave} isSaving={isSaving} canSave={!Number.isNaN(parsedActual)} />
       }

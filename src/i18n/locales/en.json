@@ -221,6 +221,7 @@
     "Welcome to Expend": "Welcome to Expend",
     "Let's set up your first wallet to get started.": "Let's set up your first wallet to get started.",
     "onboarding.walletNameRequired": "Enter a wallet name to continue",
+    "form.setInitialBalance": "Set Initial Balance",
     "e.g. Main Wallet": "e.g. Main Wallet",
     "Choose Categories": "Choose Categories",
     "Default Category Food & Drinks": "Food & Drinks",

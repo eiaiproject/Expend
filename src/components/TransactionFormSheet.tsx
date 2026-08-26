@@ -17,6 +17,8 @@ import { DatePicker } from './DatePicker';
 import { WalletSelect } from './WalletSelect';
 import type { TransactionType } from '../hooks/useTransactionForm';
 import { deleteTemplate } from '../services/templateService';
+import { INSUFFICIENT_WALLET_BALANCE_MESSAGE } from '../services/errors';
+import { ReconcileBalanceSheet } from './wallet/ReconcileBalanceSheet';
 import type { TransactionTemplate } from '../services/templateService';
 import { PayeePickerSheet } from './PayeePickerSheet';
 import { useDismissOnOutsideTap } from '../hooks/useDismissOnOutsideTap';
@@ -117,7 +119,7 @@ export function TransactionFormSheet({
     [], true,
   );
 
-  const { state, actions, wallets, categories, templates, transactions } = useTransactionForm({
+  const { state, actions, wallets, categories, templates, transactions, insufficientBalance, clearInsufficientBalance } = useTransactionForm({
     isOpen,
     txToEdit,
     initialType,
@@ -152,7 +154,10 @@ export function TransactionFormSheet({
     () => actions.setShowDescriptionSuggestions(false),
   );
 
-  const selectedWalletName = wallets.find((w) => w.id === Number(state.walletId))?.name;
+  const selectedWallet = wallets.find((w) => w.id === Number(state.walletId));
+  const selectedWalletName = selectedWallet?.name;
+  // QA H3: opens the reconciliation sheet from the insufficient-balance banner.
+  const [isReconcileOpen, setIsReconcileOpen] = useState(false);
 
   const handleDescriptionChange = (val: string) => {
     actions.setDescription(val);
@@ -250,6 +255,23 @@ export function TransactionFormSheet({
       }
     >
       <form id={formId} onSubmit={handleFormSubmit} className="px-4 py-4 space-y-4">
+        {/* QA H3: actionable recovery when the save was rejected for insufficient balance. */}
+        {insufficientBalance && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 dark:border-amber-800 dark:bg-amber-900/20" role="alert">
+            <span className="text-xs font-medium text-amber-800 dark:text-amber-200 leading-snug">
+              {t(INSUFFICIENT_WALLET_BALANCE_MESSAGE)}
+            </span>
+            {state.type === 'expense' && selectedWallet && (
+              <button
+                type="button"
+                onClick={() => setIsReconcileOpen(true)}
+                className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white active:scale-95 transition-transform min-h-[36px]"
+              >
+                {t('form.setInitialBalance')}
+              </button>
+            )}
+          </div>
+        )}
         {/* Type Tabs */}
         <div className="flex p-1 bg-[var(--bg)] rounded-xl border border-[var(--border)]" role="radiogroup" aria-label={t('Transaction type')}>
           {[
@@ -574,6 +596,20 @@ export function TransactionFormSheet({
         setShowPayeePicker(false);
       }}
     />
+
+    {/* QA H3: reconcile the selected wallet's balance from the inline banner. */}
+    {selectedWallet && (
+      <ReconcileBalanceSheet
+        isOpen={isReconcileOpen}
+        zIndex={70}
+        onClose={() => {
+          setIsReconcileOpen(false);
+          // Balance was likely corrected — let the user retry the save directly.
+          clearInsufficientBalance();
+        }}
+        wallet={selectedWallet}
+      />
+    )}
     </>
   );
 }
