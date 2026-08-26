@@ -414,6 +414,68 @@ export function TransactionFormSheet({
           </button>
         )}
 
+        {/* Description — always visible, also in Quick Add (QA M2): it is the
+            transaction identity / payee field and hiding it confused new users. */}
+        <div className="relative" ref={descriptionAreaRef}>
+          <label htmlFor={descriptionInputId} className="block text-sm font-medium mb-1.5">{t('Description')} {!isQuickAdd && '*'}</label>
+          <input
+            id={descriptionInputId}
+            ref={descriptionRef}
+            type="text"
+            autoComplete="off"
+            required={!isQuickAdd}
+            aria-required={!isQuickAdd}
+            value={state.description}
+            onChange={(e) => handleDescriptionChange(e.target.value)}
+            onFocus={() => actions.setShowDescriptionSuggestions(true)}
+            onKeyDown={handleDescriptionKeyDown}
+            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 pr-10 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
+          />
+          {state.description && (
+            <button
+              type="button"
+              onClick={() => { actions.setDescription(''); actions.setShowDescriptionSuggestions(false); }}
+              className="absolute right-3 top-[40px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              aria-label={t('Clear')}
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          )}
+          {state.description.trim() === '' && (
+            /* preventDefault on mousedown keeps the input focused while
+               the tap lands — avoids the iOS case where the first tap
+               only dismisses the keyboard and the click is swallowed. */
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setShowPayeePicker(true)}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors min-h-[44px]"
+            >
+              <ShoppingBag size={14} aria-hidden="true" />
+              {t('form.choosePayee')}
+            </button>
+          )}
+          {state.showDescriptionSuggestions && state.filteredDescriptionSuggestions.length > 0 && state.description.trim() !== '' && (
+            <div
+              className="absolute z-20 left-0 right-0 top-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden"
+            >
+              {state.filteredDescriptionSuggestions.map((desc, idx) => (
+                <button
+                  key={desc}
+                  type="button"
+                  onClick={() => selectSuggestion(desc)}
+                  className={cn(
+                    'w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--bg)] transition-colors',
+                    idx === suggestionIndexRef.current ? 'bg-[var(--bg)]' : ''
+                  )}
+                >
+                  {desc}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Quick Add shortcuts — pick a payee or expand the details section
             (friction audit A1: payee selection no longer requires expanding
             details first). */}
@@ -443,67 +505,6 @@ export function TransactionFormSheet({
         {/* Details section (hidden in Quick Add until expanded) */}
         {(!isQuickAdd || showDetails) && (
           <div id={`${formId}-details`} className="space-y-4">
-            {/* Description */}
-            <div className="relative" ref={descriptionAreaRef}>
-              <label htmlFor={descriptionInputId} className="block text-sm font-medium mb-1.5">{t('Description')} {!isQuickAdd && '*'}</label>
-              <input
-                id={descriptionInputId}
-                ref={descriptionRef}
-                type="text"
-                autoComplete="off"
-                required={!isQuickAdd}
-                aria-required={!isQuickAdd}
-                value={state.description}
-                onChange={(e) => handleDescriptionChange(e.target.value)}
-                onFocus={() => actions.setShowDescriptionSuggestions(true)}
-                onKeyDown={handleDescriptionKeyDown}
-                className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-xl px-4 py-3 pr-10 focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
-              />
-              {state.description && (
-                <button
-                  type="button"
-                  onClick={() => { actions.setDescription(''); actions.setShowDescriptionSuggestions(false); }}
-                  className="absolute right-3 top-[40px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                  aria-label={t('Clear')}
-                >
-                  <X size={16} aria-hidden="true" />
-                </button>
-              )}
-              {state.description.trim() === '' && (
-                /* preventDefault on mousedown keeps the input focused while
-                   the tap lands — avoids the iOS case where the first tap
-                   only dismisses the keyboard and the click is swallowed. */
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setShowPayeePicker(true)}
-                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors min-h-[44px]"
-                >
-                  <ShoppingBag size={14} aria-hidden="true" />
-                  {t('form.choosePayee')}
-                </button>
-              )}
-              {state.showDescriptionSuggestions && state.filteredDescriptionSuggestions.length > 0 && state.description.trim() !== '' && (
-                <div
-                  className="absolute z-20 left-0 right-0 top-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden"
-                >
-                  {state.filteredDescriptionSuggestions.map((desc, idx) => (
-                    <button
-                      key={desc}
-                      type="button"
-                      onClick={() => selectSuggestion(desc)}
-                      className={cn(
-                        'w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--bg)] transition-colors',
-                        idx === suggestionIndexRef.current ? 'bg-[var(--bg)]' : ''
-                      )}
-                    >
-                      {desc}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* Date */}
             <DatePicker
               id={dateInputId}
