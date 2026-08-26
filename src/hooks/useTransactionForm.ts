@@ -66,6 +66,10 @@ export interface UseTransactionFormResult {
   categories: Category[];
   templates: TransactionTemplate[];
   transactions: Transaction[];
+  /** QA H3: true after a save was rejected for insufficient wallet balance. */
+  insufficientBalance: boolean;
+  /** Clears the insufficient-balance flag (e.g. after reconciling the balance). */
+  clearInsufficientBalance: () => void;
 }
 
 interface UseTransactionFormOptions {
@@ -257,6 +261,9 @@ export function useTransactionForm({
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [showDescriptionSuggestions, setShowDescriptionSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // QA H3: true after a save was rejected because the wallet balance would go
+  // negative — lets the form offer an inline "set initial balance" action.
+  const [insufficientBalance, setInsufficientBalance] = useState(false);
 
   const initializedKeyRef = useRef<string | null>(null);
   const categoryTouchedRef = useRef(false);
@@ -501,6 +508,7 @@ export function useTransactionForm({
     if (!amount || !date || !walletId) return false;
     if (type === 'transfer' && !toWalletId) return false;
 
+    setInsufficientBalance(false); // QA H3: clear stale rejection banner on retry
     const rawAmount = parseAmountToNumber(amount);
     // Quick Add may omit the payee — fall back to the chosen category name.
     const trimmedDescription = description.trim() || categoryName.trim();
@@ -528,6 +536,7 @@ export function useTransactionForm({
       return true;
     } catch (err) {
       if (err instanceof Error && err.message === INSUFFICIENT_WALLET_BALANCE_MESSAGE) {
+        setInsufficientBalance(true);
         toast.add(t(INSUFFICIENT_WALLET_BALANCE_MESSAGE));
       } else {
         toast.add(t('Action failed'));
@@ -587,5 +596,7 @@ export function useTransactionForm({
     categories,
     templates,
     transactions,
+    insufficientBalance,
+    clearInsufficientBalance: () => setInsufficientBalance(false),
   };
 }
