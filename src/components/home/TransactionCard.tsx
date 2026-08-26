@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowDownCircle, ArrowUpRight, ArrowDownLeft, Refresh, Edit2, Trash2, More, Eye, CheckCircle } from 'reicon-react';
 import { cn } from '../../utils/cn';
 import { FALLBACK_CATEGORY_NAME } from '../../utils/constants';
-import { formatCurrencyValue, formatSignedCurrency } from '../../utils/formatUtils';
+import { formatCurrencyValue, formatTransactionAmount } from '../../utils/formatUtils';
 import { displayDateShort } from '../../utils/dateUtils';
 import { SearchHighlight } from '../SearchHighlight';
 import type { Transaction, Category, Wallet } from '../../db/db';
@@ -249,7 +249,7 @@ export function TransactionCard({
             "font-mono font-semibold text-[15px]",
             isExpenseOrTransferOut ? "text-[var(--expense)]" : "text-[var(--accent)]"
           )}>
-            {formatSignedCurrency(tx.amount, hideAmount)}
+            {formatTransactionAmount(tx.type, tx.amount, hideAmount)}
           </p>
         </div>
 
