@@ -217,18 +217,20 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
               <div className="bg-[var(--card)] rounded-xl p-4 border border-[var(--border)] w-full space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-[var(--text-secondary)]">{t('Wallet')}</span>
-                  <span className="font-semibold">{walletName || t('Wallet')}</span>
+                  <span className="font-semibold">{walletName.trim() || t('Wallet')}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-[var(--text-secondary)]">{t('Categories')}</span>
                   <span className="font-semibold">{selectedCategories.length}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--text-secondary)]">{t('Balance')}</span>
-                  <span className="font-mono font-semibold">
-                    Rp {walletBalance || '0'}
-                  </span>
-                </div>
+                {walletName.trim() && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[var(--text-secondary)]">{t('Balance')}</span>
+                    <span className="font-mono font-semibold">
+                      Rp {walletBalance || '0'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="w-full rounded-xl border border-amber-200 bg-amber-50 p-4 text-left dark:border-amber-800 dark:bg-amber-900/20">
