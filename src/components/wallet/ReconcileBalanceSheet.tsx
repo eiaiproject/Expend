@@ -110,7 +110,7 @@ export function ReconcileBalanceSheet({ isOpen, onClose, wallet, zIndex }: Recon
               const val = e.target.value.replace(/[^0-9-]/g, '');
               setActualBalanceInput(val ? Number.parseInt(val, 10).toLocaleString('id-ID') : '');
             }}
-            placeholder={formatCurrency(recordedBalance).replace(/\u00A0/g, ' ')}
+            placeholder={formatCurrency(recordedBalance).replaceAll('\u00A0', ' ')}
             className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2.5 font-mono focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 transition-[border-color,box-shadow]"
           />
         </div>
