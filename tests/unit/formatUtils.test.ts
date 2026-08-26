@@ -3,6 +3,7 @@ import {
   formatCurrency,
   formatBalance,
   formatCurrencyValue,
+  formatTransactionAmount,
 } from '@/utils/formatUtils';
 
 describe('formatUtils', () => {
@@ -48,6 +49,25 @@ describe('formatUtils', () => {
       const result = formatCurrencyValue(100000);
       expect(result).not.toContain('Rp');
       expect(result).toContain('100');
+    });
+  });
+  describe('formatTransactionAmount (QA M1)', () => {
+    const NBSP = '\u00A0';
+    const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+
+    it('expense selalu minus walau amount positif', () => {
+      expect(formatTransactionAmount('expense', 25000)).toBe(`-${fmt(25000)}`);
+    });
+    it('transfer_out minus / transfer_in plus', () => {
+      expect(formatTransactionAmount('transfer_out', 150000)).toBe(`-${fmt(150000)}`);
+      expect(formatTransactionAmount('transfer_in', 150000)).toBe(`+${fmt(150000)}`);
+    });
+    it('balance_adjustment mengikuti tanda nilai', () => {
+      expect(formatTransactionAmount('balance_adjustment', 500000)).toBe(`+${fmt(500000)}`);
+      expect(formatTransactionAmount('balance_adjustment', -50000)).toBe(`-${fmt(50000)}`);
+    });
+    it('hideAmount menyamarkan', () => {
+      expect(formatTransactionAmount('expense', 25000, true)).toBe('\u2022\u2022\u2022\u2022\u2022');
     });
   });
 });
