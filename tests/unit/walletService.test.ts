@@ -12,8 +12,42 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '@/db/db';
-import { deleteWalletSafely, adjustWalletBalance } from '@/services/walletService';
+import { deleteWalletSafely, adjustWalletBalance, ensureDefaultWallet } from '@/services/walletService';
 import { getBalanceDelta } from '@/utils/balanceUtils';
+
+describe('ensureDefaultWallet', () => {
+  beforeEach(async () => {
+    await db.transactions.clear();
+    await db.wallets.clear();
+    await db.categories.clear();
+    await db.debts.clear();
+    await db.debtPayments.clear();
+    await db.schedules.clear();
+    await db.settings.clear();
+  });
+
+  it('membuat dompet default saat DB kosong', async () => {
+    await ensureDefaultWallet('Main Wallet');
+    const wallets = await db.wallets.toArray();
+    expect(wallets).toHaveLength(1);
+    expect(wallets[0]!.name).toBe('Main Wallet');
+    expect(wallets[0]!.currentBalance).toBe(0);
+  });
+
+  it('idempoten: panggilan ulang TIDAK menambah dompet', async () => {
+    await ensureDefaultWallet('Main Wallet');
+    await ensureDefaultWallet('Main Wallet');
+    await ensureDefaultWallet('Main Wallet');
+    expect(await db.wallets.count()).toBe(1);
+  });
+
+  it('tidak melakukan apa pun saat sudah ada dompet (mis. dari onboarding)', async () => {
+    await db.wallets.add({ name: 'BCA', currency: 'IDR', initialBalance: 1000, currentBalance: 1000, lastUpdated: new Date().toISOString() });
+    await ensureDefaultWallet('Main Wallet');
+    const names = (await db.wallets.toArray()).map(w => w.name);
+    expect(names).toEqual(['BCA']);
+  });
+});
 
 // Each test gets a fresh DB via fake-indexeddb
 beforeEach(async () => {

@@ -240,3 +240,34 @@ export async function reactivateWallet(walletId: number): Promise<void> {
   // Track the wallet reactivation for backup metadata
   await incrementChangeCount(1);
 }
+
+const DEFAULT_WALLET_ENSURED_KEY = 'default_wallet_ensured_v1';
+
+/**
+ * Single source of truth for creating the implicit default wallet.
+ *
+ * Idempotent: guarded by a settings flag AND a live count check, both evaluated
+ * inside one rw transaction, so concurrent callers (e.g. HomeView and DebtsView
+ * mounting together) can never both pass the empty check and create duplicates.
+ * Replaces the racing per-view `count() === 0 -> add()` effects (QA H2).
+ */
+export async function ensureDefaultWallet(displayName: string): Promise<void> {
+  await db.transaction('rw', db.wallets, db.settings, async () => {
+    const done = await db.settings.get(DEFAULT_WALLET_ENSURED_KEY);
+    if (done?.value === true) return;
+    if ((await db.wallets.count()) > 0) {
+      // Wallets already exist (e.g. created by onboarding) — mark as ensured
+      // without adding anything.
+      await db.settings.put({ key: DEFAULT_WALLET_ENSURED_KEY, value: true });
+      return;
+    }
+    await db.wallets.add({
+      name: displayName,
+      currency: 'IDR',
+      initialBalance: 0,
+      currentBalance: 0,
+      lastUpdated: new Date().toISOString(),
+    });
+    await db.settings.put({ key: DEFAULT_WALLET_ENSURED_KEY, value: true });
+  });
+}
