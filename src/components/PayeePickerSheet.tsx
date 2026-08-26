@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, ShoppingBag, X } from 'reicon-react';
+import { Search, ShoppingBag, X, Plus } from 'reicon-react';
 import { BottomSheetShell } from './BottomSheetShell';
 import { getPayeeStatsCached, type PayeeStats } from '../services/payeeService';
 
@@ -69,6 +69,23 @@ export function PayeePickerSheet({ isOpen, onClose, onSelect }: PayeePickerSheet
             searchEmpty: t('payees.searchEmpty'),
           }}
         />
+        {/* QA M3: typing a name that is not in the list must not be a dead end —
+            offer to use it directly (fills the form description; payee stats
+            are derived from transactions, so no write is needed here). */}
+        {query.trim() && !filtered.some((p) => p.name.toLowerCase() === query.trim().toLowerCase()) && (
+          <button
+            type="button"
+            onClick={() => onSelect(query.trim())}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors hover:bg-[var(--bg)] min-h-[44px] border border-dashed border-[var(--border)]"
+          >
+            <span className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
+              <Plus size={15} className="text-[var(--accent)]" aria-hidden="true" />
+            </span>
+            <span className="text-sm font-medium text-[var(--accent)]">
+              {t('payees.useThisName', { name: query.trim() })}
+            </span>
+          </button>
+        )}
       </div>
     </BottomSheetShell>
   );

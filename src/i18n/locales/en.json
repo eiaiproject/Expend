@@ -222,6 +222,7 @@
     "Let's set up your first wallet to get started.": "Let's set up your first wallet to get started.",
     "onboarding.walletNameRequired": "Enter a wallet name to continue",
     "form.setInitialBalance": "Set Initial Balance",
+    "payees.useThisName": "Use \"{{name}}\"",
     "e.g. Main Wallet": "e.g. Main Wallet",
     "Choose Categories": "Choose Categories",
     "Default Category Food & Drinks": "Food & Drinks",
