@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.4 - 2026-09-01
+### Added
+
+- Polish chat pixel-perfect - header, bubbles, drag overlay, composer
+
+
 ## 0.2.3 - 2026-09-01
 ### Fixed
 
