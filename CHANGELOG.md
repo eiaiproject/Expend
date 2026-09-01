@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.12 - 2026-09-01
+### Fixed
+
+- Sonar S3776+S8786 - pecah extractAmount, re \d+(?:[.,]\d+)*
+
+
 ## 0.2.11 - 2026-09-01
 ### Fixed
 

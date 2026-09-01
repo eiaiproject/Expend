@@ -48,6 +48,43 @@ function scoreHit(val: number, hasRp: boolean, hasKeyword: boolean): number {
   return val * (hasRp ? 1.9 : 1) * (hasKeyword ? 2.2 : 1);
 }
 
+function collectHits(text: string): { val: number; hasRp: boolean; hasKeyword: boolean }[] {
+  const lines = text.split('\n');
+  const hits: { val: number; hasRp: boolean; hasKeyword: boolean }[] = [];
+  const kw = /tota|juml|nomi|transf|bayar|jumlah/i;
+  const rpLineRe = /R\s*P\s*\.?:?|IDR/i;
+  const re = /\d+(?:[.,]\d+)*\s*(?:jt|juta|rb|ribu|k)?/gi;
+  for (let idx = 0; idx < lines.length; idx++) {
+    const line = lines[idx]!;
+    const prevLine = idx > 0 ? lines[idx - 1]! : '';
+    re.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(line))) {
+      const raw = normalizeAmountRaw(m[0]!.trim());
+      const v = parseAmt(raw);
+      if (!v || v <= 0) continue;
+      if (shouldSkip(v, raw, line, prevLine, rpLineRe)) continue;
+      const hasRp = rpLineRe.test(line) || rpLineRe.test(prevLine);
+      const hasKeyword = kw.test(line) || kw.test(prevLine);
+      hits.push({ val: v, hasRp, hasKeyword });
+    }
+  }
+  return hits;
+}
+
+function extractAmount(text: string): number | null {
+  const hits = collectHits(text);
+  if (!hits.length) return null;
+  const rpHits = hits.filter((h) => h.hasRp);
+  const best = pickBest(hits);
+  if (!best.hasRp && !best.hasKeyword && rpHits.length) {
+    let bestRp = rpHits[0]!;
+    for (let i = 1; i < rpHits.length; i++) if (rpHits[i]!.val > bestRp.val) bestRp = rpHits[i]!;
+    if (bestRp.val >= best.val * 0.8) return bestRp.val;
+  }
+  return best.val;
+}
+
 function pickBest(hits: { val: number; hasRp: boolean; hasKeyword: boolean }[]): { val: number; hasRp: boolean; hasKeyword: boolean } {
   let best = hits[0]!;
   let bestScore = scoreHit(best.val, best.hasRp, best.hasKeyword);
@@ -62,41 +99,8 @@ function pickBest(hits: { val: number; hasRp: boolean; hasKeyword: boolean }[]):
   return best;
 }
 
-function extractAmount(text: string): number | null {
-  const lines = text.split('\n');
-  type Hit = { val: number; hasRp: boolean; hasKeyword: boolean };
-  const hits: Hit[] = [];
-  const kw = /tota|juml|nomi|transf|bayar|jumlah/i;
-  const rpLineRe = /R\s*P\s*\.?:?|IDR/i;
-  const re = /(\d[\d.,]*\s*(?:jt|juta|rb|ribu|k)?)/gi; // NOSONAR
-  for (let idx = 0; idx < lines.length; idx++) {
-    const line = lines[idx]!;
-    const prevLine = idx > 0 ? lines[idx - 1]! : '';
-    re.lastIndex = 0;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(line))) {
-      const raw = normalizeAmountRaw(m[1]!.trim());
-      const v = parseAmt(raw);
-      if (!v || v <= 0) continue;
-      if (shouldSkip(v, raw, line, prevLine, rpLineRe)) continue;
-      const hasRp = rpLineRe.test(line) || rpLineRe.test(prevLine);
-      const hasKeyword = kw.test(line) || kw.test(prevLine);
-      hits.push({ val: v, hasRp, hasKeyword });
-    }
-  }
-  if (!hits.length) return null;
-  const best = pickBest(hits);
-  const rpHits = hits.filter((h) => h.hasRp);
-  if (!best.hasRp && !best.hasKeyword && rpHits.length) {
-    let bestRp = rpHits[0]!;
-    for (let i = 1; i < rpHits.length; i++) if (rpHits[i]!.val > bestRp.val) bestRp = rpHits[i]!;
-    if (bestRp.val >= best.val * 0.8) return bestRp.val;
-  }
-  return best.val;
-}
-
 function extractDate(text: string): string {
-  let ddmmyyyy = new RegExp('(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{2,4})').exec(text); // NOSONAR
+  let ddmmyyyy = new RegExp('(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{2,4})').exec(text);
   if (ddmmyyyy) {
     let d = ddmmyyyy[1]!.padStart(2, '0');
     let m = ddmmyyyy[2]!.padStart(2, '0');
@@ -151,7 +155,7 @@ function extractDescription(text: string, hits: { idx: number }[]): string {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ')
     .slice(0, 80);
-  const cut = desc.search(/\s+(?:dari|pakai|pake|via)\b/i);
+  const cut = desc.toLowerCase().search(/\s+(?:dari|pakai|pake|via)\b/);
   return (cut === -1 ? desc : desc.slice(0, cut)).trim();
 }
 
@@ -162,13 +166,13 @@ export function parseReceiptText(text: string): { description: string; amount: n
 
   const lines = text.split('\n');
   const hits: { idx: number }[] = [];
-  const re = /(\d[\d.,]*\s*(?:jt|juta|rb|ribu|k)?)/gi; // NOSONAR
+  const re = /\d+(?:[.,]\d+)*\s*(?:jt|juta|rb|ribu|k)?/gi;
   for (let idx = 0; idx < lines.length; idx++) {
     const line = lines[idx]!;
     re.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = re.exec(line))) {
-      const v = parseAmt(normalizeAmountRaw(m[1]!.trim()));
+      const v = parseAmt(normalizeAmountRaw(m[0]!.trim()));
       if (v && v > 0) hits.push({ idx });
     }
   }
