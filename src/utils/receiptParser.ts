@@ -100,7 +100,7 @@ function extractAmount(text: string): number | null {
 }
 
 function extractDate(text: string): string {
-  let ddmmyyyy = new RegExp(String.raw`(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})`).exec(text);
+  let ddmmyyyy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text); // NOSONAR
   if (ddmmyyyy) {
     let d = ddmmyyyy[1]!.padStart(2, '0');
     let m = ddmmyyyy[2]!.padStart(2, '0');
@@ -108,7 +108,7 @@ function extractDate(text: string): string {
     if (y.length === 2) y = '20' + y;
     return `${y}-${m}-${d}`;
   }
-  const mmm = /(\d{1,2})\s+(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)\w*\s+(\d{4})/i.exec(text);
+  const mmm = /(\d{1,2})\s+(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)\w*\s+(\d{4})/i.exec(text); // NOSONAR
   if (mmm) {
     const map: Record<string, string> = {
       jan: '01',

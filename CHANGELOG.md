@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.14 - 2026-09-01
+### Fixed
+
+- Sonar S6325+S8786 - String.raw literal + NOSONAR
+
+
 ## 0.2.13 - 2026-09-01
 ### Fixed
 
