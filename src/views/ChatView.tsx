@@ -161,8 +161,8 @@ export default function ChatView() {
             <p className="text-xs text-[var(--text-secondary)] leading-none mt-1">Ketik atau upload bukti • offline</p>
           </div>
           <div className="ml-auto hidden md:flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 motion-safe:animate-pulse" />
-            Offline-ready
+            <span className="w-2 h-2 rounded-full bg-emerald-500 motion-safe:animate-pulse" aria-hidden />
+            <span>Offline-ready</span>
           </div>
         </div>
       </div>
@@ -390,7 +390,7 @@ export default function ChatView() {
         <p className="text-[11px] text-[var(--text-muted)] text-center mt-2 hidden md:block">Enter untuk kirim • drag bukti ke chat</p>
       </form>
 
-      <style>{`@keyframes in { from { opacity:0; transform: translateY(4px)} to { opacity:1; transform: translateY(0)} } @media (prefers-reduced-motion: reduce) { .motion-safe\\:animate-pulse, .motion-safe\\:animate-\\[in_0\\.2s_ease-out\\] { animation: none !important; } }`}</style>
+      <style>{String.raw`@keyframes in { from { opacity:0; transform: translateY(4px)} to { opacity:1; transform: translateY(0)} } @media (prefers-reduced-motion: reduce) { .motion-safe\:animate-pulse, .motion-safe\:animate-\[in_0\.2s_ease-out\] { animation: none !important; } }`}</style>
     </div>
   );
 }

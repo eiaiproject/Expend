@@ -56,9 +56,9 @@ export default function HomeView() {
 
       <section aria-label="Daftar transaksi">
         <h2 className="sr-only">Daftar transaksi</h2>
-        <div role="list" className="space-y-2">
+        <ul className="space-y-2">
           {txs.map((t) => (
-            <div key={t.id} role="listitem" className="list-item flex items-center gap-3 p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]/30 transition-colors">
+            <li key={t.id} className="list-item flex items-center gap-3 p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]/30 transition-colors">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold truncate text-wrap-pretty">{t.description}</p>
                 <p className="text-xs text-[var(--text-secondary)] tabular-nums">{fmtDate(t.date)}</p>
@@ -74,9 +74,9 @@ export default function HomeView() {
               >
                 <Trash2 size={18} />
               </button>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </section>
     </div>
   );

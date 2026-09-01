@@ -13,11 +13,7 @@ function parseAmt(s: string): number | null {
   }
   m = /^[\d.,]+$/.exec(c);
   if (m) {
-    // plain amount: treat both . and , as thousand separators, remove all
-    // but keep decimal for 1,5jt already handled above, so safe to strip
-    const raw = m[0]!;
-    // if contains both . and , use last separator as decimal? For transfer, assume integer
-    const cleaned = raw.replaceAll(/[.,]/g, '');
+    const cleaned = m[0]!.replaceAll(/[.,]/g, '');
     const n = Number(cleaned);
     return Number.isFinite(n) ? n : null;
   }
@@ -25,20 +21,36 @@ function parseAmt(s: string): number | null {
 }
 
 function normalizeAmountRaw(raw: string): string {
-  // OCR common misread: O->0, o->0, l/I->1 in numeric context, S->5, B->8
-  // only replace when surrounded by digits or separators
-  return raw
-    .replaceAll(/[O]/g, '0')
-    .replaceAll(/[o]/g, '0')
-    .replaceAll(/[lI]/g, '1')
-    .trim();
+  return raw.replaceAll('O', '0').replaceAll('o', '0').replaceAll(/[lI]/g, '1').trim();
+}
+
+function isRefLine(line: string): boolean {
+  return /ref|resi|trace|\bID\b/i.test(line);
+}
+
+function isDateFragment(line: string, raw: string): boolean {
+  if (!/\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/.test(line)) return false;
+  if (!/^\d{1,4}$/.test(raw.replaceAll(/[.,]/g, ''))) return false;
+  const datePart = /(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})/.exec(line)?.[0] ?? '';
+  return datePart.replaceAll(/\s/g, '').includes(raw.replaceAll(/\s/g, ''));
+}
+
+function shouldSkip(val: number, raw: string, line: string, prevLine: string, rpRe: RegExp): boolean {
+  const digitsOnly = raw.replaceAll(/\D/g, '');
+  if (/^\d{6,}$/.test(digitsOnly) && !rpRe.test(line) && (isRefLine(line) || !/[.,]/.test(raw))) return true;
+  if (isDateFragment(line, raw)) return true;
+  if (val < 1000 && !/rb|ribu|k|jt|juta/i.test(raw)) {
+    if (!rpRe.test(line) && !rpRe.test(prevLine)) return true;
+  }
+  if (val > 999_999_999 && !rpRe.test(line)) return true;
+  return false;
 }
 
 function extractAmount(text: string): number | null {
   const lines = text.split('\n');
-  type Hit = { val: number; lineIdx: number; hasRp: boolean; hasKeyword: boolean; raw: string };
+  type Hit = { val: number; hasRp: boolean; hasKeyword: boolean };
   const hits: Hit[] = [];
-  const kw = /tota|juml|nomi|transf|bayar|jumlah/i; // fuzzy
+  const kw = /tota|juml|nomi|transf|bayar|jumlah/i;
   const rpLineRe = /R\s*P\s*\.?:?|IDR/i;
   const re = /(\d[\d.,]*\s*(?:jt|juta|rb|ribu|k)?)/gi; // NOSONAR - small input
   for (let idx = 0; idx < lines.length; idx++) {
@@ -47,37 +59,17 @@ function extractAmount(text: string): number | null {
     re.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = re.exec(line))) {
-      let raw = normalizeAmountRaw(m[1]!.trim());
-      // skip pure reference-like numbers without Rp (e.g., No. Ref, Trace ID, 6+ digits)
-      const digitsOnly = raw.replaceAll(/\D/g, '');
-      const isRefLine = /ref|resi|trace|\bID\b/i.test(line);
-      if (/^\d{6,}$/.test(digitsOnly) && !rpLineRe.test(line) && (isRefLine || !/[,\.]/.test(raw))) continue;
-      // skip date fragments
-      if (/\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/.test(line) && /^\d{1,4}$/.test(raw.replaceAll(/[.,]/g, ''))) {
-        const datePart = line.match(/(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})/)?.[0] ?? '';
-        if (datePart.replaceAll(/\s/g, '').includes(raw.replaceAll(/\s/g, ''))) continue;
-      }
+      const raw = normalizeAmountRaw(m[1]!.trim());
       const v = parseAmt(raw);
       if (!v || v <= 0) continue;
-      if (v < 1000 && !/rb|ribu|k|jt|juta/i.test(raw)) {
-        const hasRpNearby = rpLineRe.test(line) || rpLineRe.test(prevLine);
-        if (!hasRpNearby) continue;
-      }
-      if (v > 999_999_999 && !rpLineRe.test(line)) continue;
-      // if huge and no keyword, skip unless Rp
-      if (v > 1_000_000 && !rpLineRe.test(line) && !kw.test(line) && !kw.test(prevLine)) {
-        // still allow if it's the only candidate, but deprioritize
-        // we push but with low score, filter later via scoring
-      }
-      const hasRp = rpLineRe.test(line) || rpLineRe.test(prevLine) || /Rp/i.test(line.slice(Math.max(0, m.index - 8), m.index + raw.length + 4));
+      if (shouldSkip(v, raw, line, prevLine, rpLineRe)) continue;
+      const hasRp = rpLineRe.test(line) || rpLineRe.test(prevLine);
       const hasKeyword = kw.test(line) || kw.test(prevLine);
-      hits.push({ val: v, lineIdx: idx, hasRp, hasKeyword, raw });
+      hits.push({ val: v, hasRp, hasKeyword });
     }
   }
   if (!hits.length) return null;
-  // also try to find explicit Rp amounts via second pass for confidence
   const rpHits = hits.filter((h) => h.hasRp);
-  // score
   let best = hits[0]!;
   let bestScore = best.val * (best.hasRp ? 1.9 : 1) * (best.hasKeyword ? 2.2 : 1);
   for (let i = 1; i < hits.length; i++) {
@@ -88,9 +80,9 @@ function extractAmount(text: string): number | null {
       bestScore = score;
     }
   }
-  // if best has no Rp and no keyword, but there is a Rp candidate within 80% of best, prefer Rp
   if (!best.hasRp && !best.hasKeyword && rpHits.length) {
-    const bestRp = rpHits.reduce((a, b) => (a.val > b.val ? a : b));
+    let bestRp = rpHits[0]!;
+    for (let i = 1; i < rpHits.length; i++) if (rpHits[i]!.val > bestRp.val) bestRp = rpHits[i]!;
     if (bestRp.val >= best.val * 0.8) return bestRp.val;
   }
   return best.val;
