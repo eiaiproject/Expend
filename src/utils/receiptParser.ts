@@ -67,14 +67,17 @@ function collectHits(text: string): { val: number; hasRp: boolean; hasKeyword: b
   const hits: { val: number; hasRp: boolean; hasKeyword: boolean }[] = [];
   const kw = /tota|juml|nomi|transf|bayar|jumlah/i;
   const rpLineRe = /R\s*P\s*\.?:?|IDR/i;
-  const re = /\d+(?:[.,]\d+)*\s*(?:jt|juta|rb|ribu|k)?/gi; // NOSONAR
+  const re = /\d[\d.,]*/g; // NOSONAR
   for (let idx = 0; idx < lines.length; idx++) {
     const line = lines[idx]!;
     const prevLine = idx > 0 ? lines[idx - 1]! : '';
-    re.lastIndex = 0; // NOSONAR
+    re.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = re.exec(line))) {
-      const raw = normalizeAmountRaw(m[0]!.trim());
+      let raw0 = m[0]!.trim();
+      const suf = line.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 8).match(/^\s*(jt|juta|rb|ribu|k)\b/i)?.[0] ?? '';
+      raw0 = raw0 + suf;
+      const raw = normalizeAmountRaw(raw0);
       const v = parseAmt(raw);
       if (!v || v <= 0) continue;
       if (shouldSkip(v, raw, line, prevLine, rpLineRe)) continue;
@@ -172,13 +175,16 @@ export function parseReceiptText(text: string): { description: string; amount: n
 
   const lines = text.split('\n');
   const hits: { idx: number }[] = [];
-  const re = /\d+(?:[.,]\d+)*\s*(?:jt|juta|rb|ribu|k)?/gi; // NOSONAR
+  const re = /\d[\d.,]*/g; // NOSONAR
   for (let idx = 0; idx < lines.length; idx++) {
     const line = lines[idx]!;
     re.lastIndex = 0;
     let m: RegExpExecArray | null;
-    while ((m = re.exec(line))) { // NOSONAR
-      const v = parseAmt(normalizeAmountRaw(m[0]!.trim()));
+    while ((m = re.exec(line))) {
+      let raw0 = m[0]!.trim();
+      const suf = line.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 8).match(/^\s*(jt|juta|rb|ribu|k)\b/i)?.[0] ?? '';
+      raw0 = raw0 + suf;
+      const v = parseAmt(normalizeAmountRaw(raw0));
       if (v && v > 0) hits.push({ idx });
     }
   }
