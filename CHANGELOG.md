@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.9 - 2026-09-01
+### Fixed
+
+- Rp deteksi R P/IDR + filter ref 6+ & tanggal, tambah tombol Kamera mobile
+
+
 ## 0.2.8 - 2026-09-01
 ### Fixed
 

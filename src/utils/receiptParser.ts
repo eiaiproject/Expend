@@ -48,9 +48,10 @@ function extractAmount(text: string): number | null {
     let m: RegExpExecArray | null;
     while ((m = re.exec(line))) {
       let raw = normalizeAmountRaw(m[1]!.trim());
-      // skip pure long reference numbers without Rp (e.g., No. Ref: 123456789012)
-      const digitsOnly = raw.replaceAll(/[.,\s]/g, '');
-      if (/^\d{10,}$/.test(digitsOnly) && !rpLineRe.test(line)) continue;
+      // skip pure reference-like numbers without Rp (e.g., No. Ref, Trace ID, 6+ digits)
+      const digitsOnly = raw.replaceAll(/\D/g, '');
+      const isRefLine = /ref|resi|trace|\bID\b/i.test(line);
+      if (/^\d{6,}$/.test(digitsOnly) && !rpLineRe.test(line) && (isRefLine || !/[,\.]/.test(raw))) continue;
       // skip date fragments
       if (/\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/.test(line) && /^\d{1,4}$/.test(raw.replaceAll(/[.,]/g, ''))) {
         const datePart = line.match(/(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})/)?.[0] ?? '';

@@ -13,7 +13,7 @@ test('receipt upload → preview editable → Simpan → Home', async ({ page })
   );
   await page.reload();
   await page.goto('/chat');
-  const input = page.locator('input[type="file"]');
+  const input = page.locator('input[type="file"]').first();
   await input.setInputFiles('public/test-receipt.png');
   await expect(page.getByRole('progressbar')).toBeVisible({ timeout: 5000 });
   await expect(page.getByText('Preview')).toBeVisible({ timeout: 20000 });

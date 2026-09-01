@@ -5,7 +5,7 @@ import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
 import { recognizeImage } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
-import { Send, Check, Edit2, Gallery, ChatRoundDots, Receipt } from 'reicon-react';
+import { Send, Check, Edit2, Gallery, ChatRoundDots, Receipt, Camera } from 'reicon-react';
 
 type Pending = { description: string; amount: number; date: string };
 
@@ -24,6 +24,7 @@ export default function ChatView() {
   const [ocrError, setOcrError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const messages = useLiveQuery(() => db.chatMessages.orderBy('createdAt').toArray(), []) ?? [];
   const endRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -110,6 +111,7 @@ export default function ChatView() {
     } finally {
       setOcrProgress(null);
       if (fileRef.current) fileRef.current.value = '';
+      if (cameraRef.current) cameraRef.current.value = '';
     }
   }
 
@@ -342,6 +344,17 @@ export default function ChatView() {
               if (f) handleFile(f);
             }}
           />
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+            }}
+          />
           <button
             type="button"
             aria-label="upload bukti"
@@ -349,6 +362,14 @@ export default function ChatView() {
             className="w-12 h-12 rounded-full bg-[var(--bg)] border border-[var(--border)] grid place-items-center shrink-0 hover:bg-[var(--border)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <Gallery size={18} aria-hidden />
+          </button>
+          <button
+            type="button"
+            aria-label="ambil foto"
+            onClick={() => cameraRef.current?.click()}
+            className="w-12 h-12 rounded-full bg-[var(--bg)] border border-[var(--border)] grid place-items-center shrink-0 hover:bg-[var(--border)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)] md:hidden"
+          >
+            <Camera size={18} aria-hidden />
           </button>
           <input
             value={input}
