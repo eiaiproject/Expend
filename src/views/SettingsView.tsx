@@ -6,7 +6,7 @@ export default function SettingsView() {
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <p className="text-xs font-bold tracking-widest uppercase text-[var(--text-secondary)]">Tentang Aplikasi</p>
         <p className="mt-2 font-semibold text-lg">Expend</p>
-        <p className="text-sm text-[var(--text-secondary)]">Chat pencatatan pengeluaran — offline-first, privacy-first. Data tersimpan lokal di perangkat.</p>
+        <p className="text-sm text-[var(--text-secondary)]">Chat pencatatan pengeluaran - offline-first, privacy-first. Data tersimpan lokal di perangkat.</p>
         <div className="mt-4 flex items-center gap-2">
           <span className="inline-flex items-center rounded-full bg-[var(--bg)] border border-[var(--border)] px-3 py-1 text-xs font-mono font-bold">v{version}</span>
           <span className="text-xs text-[var(--text-secondary)]">Versi terpasang</span>

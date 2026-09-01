@@ -51,12 +51,12 @@ const date = new Date().toISOString().slice(0, 10);
 const fromTag = process.argv[2] || (() => {
   try {
     // Last commit that updated CHANGELOG.md = the previous documented release.
-    return execSync('git log --format=%H -1 -- CHANGELOG.md', { cwd: root }).toString().trim(); // NOSONAR — S4036: no user input
+    return execSync('git log --format=%H -1 -- CHANGELOG.md', { cwd: root }).toString().trim(); // NOSONAR - S4036: no user input
   } catch {
     /* fall through to tag lookup */
   }
   try {
-    return execSync('git describe --tags --abbrev=0', { cwd: root }).toString().trim(); // NOSONAR — S4036: no user input
+    return execSync('git describe --tags --abbrev=0', { cwd: root }).toString().trim(); // NOSONAR - S4036: no user input
   } catch {
     return '';
   }

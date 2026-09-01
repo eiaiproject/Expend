@@ -13,7 +13,7 @@ export default function HomeView() {
       <div className="py-10 text-center">
         <div className="mx-auto w-14 h-14 rounded-2xl bg-[var(--border)] flex items-center justify-center mb-3"><Receipt size={24} className="text-[var(--text-secondary)]" /></div>
         <p className="font-semibold">Belum ada transaksi</p>
-        <p className="text-sm text-[var(--text-secondary)] mt-1">Catat lewat Chat — contoh: &quot;beli kopi di Indomaret 50000&quot;</p>
+        <p className="text-sm text-[var(--text-secondary)] mt-1">Catat lewat Chat - contoh: &quot;beli kopi di Indomaret 50000&quot;</p>
         <Link to="/chat" className="inline-flex mt-4 px-5 py-2.5 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold">Buka Chat</Link>
       </div>
     );

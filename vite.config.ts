@@ -19,7 +19,7 @@ export default defineConfig({
       manifest: {
         name: 'Expend',
         short_name: 'Expend',
-        description: 'Chat pencatatan pengeluaran — offline-first.',
+        description: 'Chat pencatatan pengeluaran - offline-first.',
         theme_color: BRAND,
         background_color: BRAND,
         display: 'standalone',
@@ -28,7 +28,17 @@ export default defineConfig({
           { src: '/icons/app-icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
         ],
       },
-      workbox: { globPatterns: ['**/*.{js,css,html,ico,png,svg}'], navigateFallback: '/index.html' },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        navigateFallback: '/index.html',
+        runtimeCaching: [
+          {
+            urlPattern: /tesseract|traineddata/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'ocr-cache', expiration: { maxEntries: 20, maxAgeSeconds: 2592000 } },
+          },
+        ],
+      },
     }),
   ],
 });

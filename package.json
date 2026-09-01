@@ -1,7 +1,7 @@
 {
   "name": "expend",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "engines": {
     "node": ">=22"
   },
@@ -24,7 +24,8 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-router-dom": "^7.17.0",
-    "reicon-react": "^1.1.302"
+    "reicon-react": "^1.1.302",
+    "tesseract.js": "^5.1.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

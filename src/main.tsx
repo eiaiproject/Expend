@@ -12,7 +12,7 @@ root.render(
 );
 
 // Dismiss splash screen after React has mounted.
-// pointer-events:none immediately — the overlay must never swallow the
+// pointer-events:none immediately - the overlay must never swallow the
 // user's first tap while it fades out (master.md 3.19).
 const splashScreen = document.getElementById('splash-screen');
 if (splashScreen) {

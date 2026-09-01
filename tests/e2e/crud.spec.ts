@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('CRUD: Chat → Home → delete', async ({ page }) => {
-  // fresh DB per test – worker isolation or leftover from previous run
+  // fresh DB per test - worker isolation or leftover from previous run
   await page.goto('/');
   await page.evaluate(() => new Promise<void>((res, rej) => {
     const r = indexedDB.deleteDatabase('ExpendDB'); r.onsuccess = () => res(); r.onerror = () => rej(r.error); r.onblocked = () => res();
@@ -14,7 +14,7 @@ test('CRUD: Chat → Home → delete', async ({ page }) => {
   await page.getByPlaceholder(/Tulis/).fill('beli kopi di Indomaret 50000');
   await page.getByRole('button', { name: 'kirim' }).click();
   await expect(page.getByText('Siap dicatat').first()).toBeVisible();
-  await expect(page.getByText('Kopi Di Indomaret', { exact: true })).toBeVisible();
+  await expect(page.locator('input[value="Kopi Di Indomaret"]')).toBeVisible();
   await page.getByRole('button', { name: 'Simpan' }).click();
   await expect(page.getByText(/Tercatat/).first()).toBeVisible();
 

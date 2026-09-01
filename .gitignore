@@ -12,3 +12,4 @@ coverage/
 .wrangler
 test-results/
 playwright-report/
+*.traineddata
