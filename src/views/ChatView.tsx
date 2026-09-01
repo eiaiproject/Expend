@@ -48,6 +48,40 @@ export default function ChatView() {
     };
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('share')) return;
+    (async () => {
+      try {
+        const cache = await caches.open('share-cache');
+        const fileRes = await cache.match('shared-file');
+        if (fileRes) {
+          const blob = await fileRes.blob();
+          const name = decodeURIComponent(fileRes.headers.get('x-file-name') || 'receipt.png');
+          const type = fileRes.headers.get('content-type') || 'image/png';
+          const file = new File([blob], name, { type });
+          await handleFile(file);
+          await cache.delete('shared-file');
+        }
+        const metaRes = await cache.match('shared-meta');
+        if (metaRes) {
+          const meta = await metaRes.json();
+          const sharedText = [meta.title, meta.text, meta.url].filter(Boolean).join(' ').trim();
+          if (sharedText) {
+            const parsed = parseChatInput(sharedText);
+            if (parsed) {
+              setPending({ description: parsed.description, amount: parsed.amount, date: new Date().toISOString().slice(0, 10) });
+            } else if (!fileRes) {
+              setInput(sharedText.slice(0, 80));
+            }
+          }
+          await cache.delete('shared-meta');
+        }
+        window.history.replaceState({}, '', '/chat');
+      } catch {}
+    })();
+  }, []);
+
   async function handleSend(e?: React.FormEvent) {
     e?.preventDefault();
     const text = input.trim();

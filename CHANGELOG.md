@@ -1,4 +1,10 @@
 # Changelog
+## 0.3.0 - 2026-09-01
+### Added
+
+- Share target POST /share + SEO og-image/robots/sitemap
+
+
 ## 0.2.17 - 2026-09-01
 ### Fixed
 
