@@ -1,4 +1,6 @@
 # Changelog
+## 0.2.2 - 2026-09-01
+
 ## 0.2.1 - 2026-09-01
 ### Fixed
 
@@ -20,8 +22,8 @@
 ### Fixed
 
 - Sonar sinceLeak 26 - replaceAll/exec/optional-chain, em-dash
-- Upload jangan force kamera — hapus capture biar picker galeri
-- Sonar gate — ci sha + reduce + progress a11y
+- Upload jangan force kamera - hapus capture biar picker galeri
+- Sonar gate - ci sha + reduce + progress a11y
 - Remove invalid jsx live-chat lint
 
 
