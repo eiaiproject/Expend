@@ -37,13 +37,29 @@ function isDateFragment(line: string, raw: string): boolean {
 
 function shouldSkip(val: number, raw: string, line: string, prevLine: string, rpRe: RegExp): boolean {
   const digitsOnly = raw.replaceAll(/\D/g, '');
-  if (/^\d{6,}$/.test(digitsOnly) && !rpRe.test(line) && (isRefLine(line) || !/[.,]/.test(raw))) return true;
+  if (/^\d{6,}$/.test(digitsOnly) && !rpRe.test(line) && (isRefLine(line) || !/[,.]/.test(raw))) return true;
   if (isDateFragment(line, raw)) return true;
-  if (val < 1000 && !/rb|ribu|k|jt|juta/i.test(raw)) {
-    if (!rpRe.test(line) && !rpRe.test(prevLine)) return true;
-  }
+  if (val < 1000 && !/rb|ribu|k|jt|juta/i.test(raw) && !rpRe.test(line) && !rpRe.test(prevLine)) return true;
   if (val > 999_999_999 && !rpRe.test(line)) return true;
   return false;
+}
+
+function scoreHit(val: number, hasRp: boolean, hasKeyword: boolean): number {
+  return val * (hasRp ? 1.9 : 1) * (hasKeyword ? 2.2 : 1);
+}
+
+function pickBest(hits: { val: number; hasRp: boolean; hasKeyword: boolean }[]): { val: number; hasRp: boolean; hasKeyword: boolean } {
+  let best = hits[0]!;
+  let bestScore = scoreHit(best.val, best.hasRp, best.hasKeyword);
+  for (let i = 1; i < hits.length; i++) {
+    const h = hits[i]!;
+    const s = scoreHit(h.val, h.hasRp, h.hasKeyword);
+    if (s > bestScore || (s === bestScore && h.val > best.val)) {
+      best = h;
+      bestScore = s;
+    }
+  }
+  return best;
 }
 
 function extractAmount(text: string): number | null {
@@ -52,7 +68,7 @@ function extractAmount(text: string): number | null {
   const hits: Hit[] = [];
   const kw = /tota|juml|nomi|transf|bayar|jumlah/i;
   const rpLineRe = /R\s*P\s*\.?:?|IDR/i;
-  const re = /(\d[\d.,]*\s*(?:jt|juta|rb|ribu|k)?)/gi; // NOSONAR - small input
+  const re = /(\d[\d.,]*\s*(?:jt|juta|rb|ribu|k)?)/gi; // NOSONAR
   for (let idx = 0; idx < lines.length; idx++) {
     const line = lines[idx]!;
     const prevLine = idx > 0 ? lines[idx - 1]! : '';
@@ -69,17 +85,8 @@ function extractAmount(text: string): number | null {
     }
   }
   if (!hits.length) return null;
+  const best = pickBest(hits);
   const rpHits = hits.filter((h) => h.hasRp);
-  let best = hits[0]!;
-  let bestScore = best.val * (best.hasRp ? 1.9 : 1) * (best.hasKeyword ? 2.2 : 1);
-  for (let i = 1; i < hits.length; i++) {
-    const h = hits[i]!;
-    const score = h.val * (h.hasRp ? 1.9 : 1) * (h.hasKeyword ? 2.2 : 1);
-    if (score > bestScore || (score === bestScore && h.val > best.val)) {
-      best = h;
-      bestScore = score;
-    }
-  }
   if (!best.hasRp && !best.hasKeyword && rpHits.length) {
     let bestRp = rpHits[0]!;
     for (let i = 1; i < rpHits.length; i++) if (rpHits[i]!.val > bestRp.val) bestRp = rpHits[i]!;
@@ -144,7 +151,8 @@ function extractDescription(text: string, hits: { idx: number }[]): string {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ')
     .slice(0, 80);
-  return desc.replace(/\s+(?:dari|pakai|pake|via)\s+.*$/i, '').trim(); // NOSONAR
+  const cut = desc.search(/\s+(?:dari|pakai|pake|via)\b/i);
+  return (cut === -1 ? desc : desc.slice(0, cut)).trim();
 }
 
 export function parseReceiptText(text: string): { description: string; amount: number; date: string; rawText: string } | null {

@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.11 - 2026-09-01
+### Fixed
+
+- Sonar 2 sisa - S3776 extractAmount pecah helper, S8786 search slice
+
+
 ## 0.2.10 - 2026-09-01
 ### Fixed
 
