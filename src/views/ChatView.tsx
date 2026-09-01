@@ -27,9 +27,25 @@ export default function ChatView() {
   const messages = useLiveQuery(() => db.chatMessages.orderBy('createdAt').toArray(), []) ?? [];
   const endRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, pending, ocrProgress]);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty('--kb-offset', `${kb}px`);
+    };
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, []);
 
   async function handleSend(e?: React.FormEvent) {
     e?.preventDefault();
@@ -132,30 +148,31 @@ export default function ChatView() {
         if (f) handleFile(f);
       }}
     >
-      {/* Header */}
+      {/* Header - Large Title on Home, compact on Chat */}
       <div className="sticky top-0 z-10 -mt-5 md:mt-0 -mx-4 md:mx-0 px-4 md:px-0 py-3 bg-[var(--bg)]/80 backdrop-blur-md border-b border-transparent">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-white grid place-items-center">
-            <ChatRoundDots size={16} />
+            <ChatRoundDots size={16} aria-hidden />
           </div>
           <div>
             <h1 className="text-[13px] font-bold leading-none">Chat Expend</h1>
             <p className="text-xs text-[var(--text-secondary)] leading-none mt-1">Ketik atau upload bukti • offline</p>
           </div>
           <div className="ml-auto hidden md:flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-emerald-500 motion-safe:animate-pulse" />
             Offline-ready
           </div>
         </div>
       </div>
 
       {/* Messages */}
-      <div ref={listRef} className="flex-1 overflow-y-auto px-4 md:px-0 py-4 space-y-3 pr-1">
+      <div ref={listRef} role="log" aria-live="polite" aria-label="Percakapan" className="flex-1 overflow-y-auto px-4 md:px-0 py-4 space-y-3 pr-1">
+        <h2 className="sr-only">Percakapan</h2>
         {messages.length === 0 && (
           <div className="rounded-[16px] border border-dashed border-[var(--border)] bg-[var(--card)] p-5">
             <div className="flex items-start gap-3">
               <div className="w-9 h-9 rounded-xl bg-[var(--bg)] border border-[var(--border)] grid place-items-center shrink-0">
-                <Receipt size={18} className="text-[var(--text-secondary)]" />
+                <Receipt size={18} className="text-[var(--text-secondary)]" aria-hidden />
               </div>
               <div>
                 <p className="text-sm font-semibold text-wrap-balance">Mulai catat</p>
@@ -175,7 +192,7 @@ export default function ChatView() {
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="w-full py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-sm font-medium inline-flex items-center justify-center gap-2 hover:bg-[var(--card)] transition-colors"
+                className="w-full min-h-12 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-sm font-medium inline-flex items-center justify-center gap-2 hover:bg-[var(--card)] active:scale-[0.98] transition-colors"
               >
                 <Gallery size={16} /> Upload bukti transfer
               </button>
@@ -184,29 +201,31 @@ export default function ChatView() {
         )}
 
         {messages.map((m) => (
-          <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-[in_0.2s_ease-out]`}>
-            <div className="max-w-[76%]">
-              <div
-                className={`px-4 py-3 text-sm leading-[22px] shadow-sm ${
-                  m.role === 'user'
-                    ? 'bg-[var(--accent)] text-white rounded-[18px] rounded-br-[6px]'
-                    : 'bg-[var(--card)] border border-[var(--border)] rounded-[18px] rounded-bl-[6px]'
-                }`}
-              >
-                <p className="whitespace-pre-wrap break-words text-wrap-pretty">{m.text}</p>
+          <div key={m.id} className="list-item flex motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none" style={{ contentVisibility: 'auto' } as any}>
+            <div className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className="max-w-[76%]">
+                <div
+                  className={`px-4 py-3 text-sm leading-[22px] shadow-sm ${
+                    m.role === 'user'
+                      ? 'bg-[var(--accent)] text-white rounded-[18px] rounded-br-[6px]'
+                      : 'bg-[var(--card)] border border-[var(--border)] rounded-[18px] rounded-bl-[6px]'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap break-words text-wrap-pretty">{m.text}</p>
+                </div>
+                <p className={`mt-1 text-[11px] tabular-nums ${m.role === 'user' ? 'text-right text-[var(--text-muted)]' : 'text-[var(--text-muted)]'}`}>
+                  {fmtTime(m.createdAt)}
+                </p>
               </div>
-              <p className={`mt-1 text-[11px] tabular-nums ${m.role === 'user' ? 'text-right text-[var(--text-muted)]' : 'text-[var(--text-muted)]'}`}>
-                {fmtTime(m.createdAt)}
-              </p>
             </div>
           </div>
         ))}
 
         {ocrProgress !== null && (
-          <div className="rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
+          <div className="list-item rounded-[16px] border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-[var(--bg)] border border-[var(--border)] grid place-items-center">
-                <Gallery size={14} className="text-[var(--text-secondary)]" />
+                <Gallery size={14} className="text-[var(--text-secondary)]" aria-hidden />
               </div>
               <p className="text-xs font-semibold" aria-live="polite">
                 Membaca bukti… {ocrProgress}%
@@ -225,10 +244,10 @@ export default function ChatView() {
         )}
 
         {pending && (
-          <div className="rounded-[20px] border border-[var(--accent)] bg-[var(--card)] shadow-md p-5 animate-[in_0.2s_ease-out]">
+          <div className="list-item rounded-[20px] border border-[var(--accent)] bg-[var(--card)] shadow-md p-5 motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-white grid place-items-center">
-                <Check size={14} />
+                <Check size={14} aria-hidden />
               </div>
               <p className="text-xs font-bold tracking-wide uppercase text-[var(--accent)]">Preview</p>
               <span className="ml-auto text-[11px] px-2 py-1 rounded-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)]">bisa diedit</span>
@@ -242,7 +261,7 @@ export default function ChatView() {
                   onChange={(e) => setPending({ ...pending, description: e.target.value })}
                   autoComplete="off"
                   placeholder="Misal: Toko Kopi"
-                  className="mt-1 w-full h-10 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
+                  className="mt-1 w-full h-12 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
                 />
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -255,7 +274,7 @@ export default function ChatView() {
                     value={pending.amount || ''}
                     onChange={(e) => setPending({ ...pending, amount: Number(e.target.value) || 0 })}
                     placeholder="50000"
-                    className="mt-1 w-full h-10 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-sm tabular-nums outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
+                    className="mt-1 w-full h-12 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-sm tabular-nums outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
                   />
                 </label>
                 <label htmlFor="pending-date" className="block">
@@ -265,7 +284,7 @@ export default function ChatView() {
                     type="date"
                     value={pending.date}
                     onChange={(e) => setPending({ ...pending, date: e.target.value })}
-                    className="mt-1 w-full h-10 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
+                    className="mt-1 w-full h-12 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
                   />
                 </label>
               </div>
@@ -280,7 +299,7 @@ export default function ChatView() {
                 type="button"
                 onClick={confirmSave}
                 disabled={!pending.amount}
-                className="flex-1 py-3 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 transition-all shadow-sm"
+                className="flex-1 min-h-12 py-3 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 transition-all shadow-sm"
               >
                 <Check size={16} /> Simpan
               </button>
@@ -290,7 +309,7 @@ export default function ChatView() {
                   setPending(null);
                   setOcrError(null);
                 }}
-                className="px-5 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm font-semibold inline-flex items-center gap-2 hover:bg-[var(--card)] active:scale-[0.98] transition-all"
+                className="px-5 min-h-12 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm font-semibold inline-flex items-center gap-2 hover:bg-[var(--card)] active:scale-[0.98] transition-all"
               >
                 <Edit2 size={16} /> Batal
               </button>
@@ -301,51 +320,56 @@ export default function ChatView() {
         <div ref={endRef} />
       </div>
 
-      {/* Drag overlay */}
       {isDragging && (
         <div className="pointer-events-none fixed inset-0 z-40 bg-[var(--accent)]/5 backdrop-blur-[1px] grid place-items-center p-6">
           <div className="rounded-[16px] bg-[var(--card)] border-2 border-dashed border-[var(--accent)] p-6 text-center shadow-lg">
-            <Gallery size={20} className="mx-auto text-[var(--accent)]" />
+            <Gallery size={20} className="mx-auto text-[var(--accent)]" aria-hidden />
             <p className="text-sm font-bold mt-2">Lepas bukti di sini</p>
             <p className="text-xs text-[var(--text-secondary)]">JPG/PNG/WebP - max 5MB</p>
           </div>
         </div>
       )}
 
-      {/* Composer */}
-      <form onSubmit={handleSend} className="sticky bottom-0 bg-[var(--bg)] pt-3 pb-[calc(10px+env(safe-area-inset-bottom))] mt-2">
+      <form onSubmit={handleSend} className="sticky bottom-0 bg-[var(--bg)] pt-3 pb-[calc(10px+env(safe-area-inset-bottom)+var(--kb-offset,0px))] mt-2" style={{ paddingBottom: 'calc(10px + env(safe-area-inset-bottom) + var(--kb-offset, 0px))' } as any}>
         <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-[20px] p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[var(--accent)]/20 focus-within:border-[var(--accent)] transition-all">
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) handleFile(f);
-            }} />
+            }}
+          />
           <button
             type="button"
             aria-label="upload bukti"
             onClick={() => fileRef.current?.click()}
-            className="w-10 h-10 rounded-full bg-[var(--bg)] border border-[var(--border)] grid place-items-center shrink-0 hover:bg-[var(--border)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="w-12 h-12 rounded-full bg-[var(--bg)] border border-[var(--border)] grid place-items-center shrink-0 hover:bg-[var(--border)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
-            <Gallery size={18} />
+            <Gallery size={18} aria-hidden />
           </button>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Tulis pengeluaran, mis: kopi 25rb"
-            className="flex-1 h-10 bg-transparent px-2 text-sm outline-none placeholder:text-[var(--text-muted)]"
+            aria-label="Tulis pengeluaran"
+            className="flex-1 h-12 bg-transparent px-2 text-sm outline-none placeholder:text-[var(--text-muted)]"
           />
           <button
             type="submit"
             aria-label="kirim"
             disabled={!input.trim()}
-            className="w-10 h-10 rounded-full bg-[var(--accent-fill)] text-[var(--accent-ink)] grid place-items-center shrink-0 hover:opacity-90 active:scale-95 disabled:opacity-40 disabled:active:scale-100 transition-all shadow-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="w-12 h-12 rounded-full bg-[var(--accent-fill)] text-[var(--accent-ink)] grid place-items-center shrink-0 hover:opacity-90 active:scale-95 disabled:opacity-40 disabled:active:scale-100 transition-all shadow-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
-            <Send size={18} />
+            <Send size={18} aria-hidden />
           </button>
         </div>
         <p className="text-[11px] text-[var(--text-muted)] text-center mt-2 hidden md:block">Enter untuk kirim • drag bukti ke chat</p>
       </form>
 
-      <style>{`@keyframes in { from { opacity:0; transform: translateY(4px)} to { opacity:1; transform: translateY(0)} }`}</style>
+      <style>{`@keyframes in { from { opacity:0; transform: translateY(4px)} to { opacity:1; transform: translateY(0)} } @media (prefers-reduced-motion: reduce) { .motion-safe\\:animate-pulse, .motion-safe\\:animate-\\[in_0\\.2s_ease-out\\] { animation: none !important; } }`}</style>
     </div>
   );
 }

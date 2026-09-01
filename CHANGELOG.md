@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.6 - 2026-09-01
+### Added
+
+- Adaptive web+android+iOS - 48dp, IME inset, Large Title, virtualize, reduce-motion
+
+
 ## 0.2.5 - 2026-09-01
 ### Fixed
 
