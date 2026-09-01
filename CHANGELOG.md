@@ -1,5 +1,14 @@
 # Changelog
+## 0.2.3 - 2026-09-01
+### Fixed
+
+- Audit P0-P3 - a11y contrast/focus, responsive dvh, theming tokens, anti-hero, empty, tabular
+
+
 ## 0.2.2 - 2026-09-01
+### Fixed
+
+- Hapus em-dash di CHANGELOG 0.2.0
 
 ## 0.2.1 - 2026-09-01
 ### Fixed

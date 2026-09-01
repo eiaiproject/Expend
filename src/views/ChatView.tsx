@@ -114,70 +114,85 @@ export default function ChatView() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-56px)] md:h-[calc(100dvh-32px)]" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+    <div className="flex flex-col flex-1 min-h-0" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       <div className="flex-1 overflow-y-auto space-y-3 py-4 pr-1">
         {messages.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--text-secondary)]">
-            <p className="font-semibold text-[var(--text-primary)]">Coba ketik:</p>
-            <p className="mt-2 font-mono text-xs bg-[var(--bg)] rounded-lg px-3 py-2">beli kopi di Indomaret 50000</p>
-            <p className="mt-2 text-xs">Akan tercatat → Kopi Di Indomaret · Rp50.000</p>
+          <div className="rounded-xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--text-secondary)]">
+            <p className="font-semibold text-[var(--text-primary)] text-wrap-balance">Coba ketik:</p>
+            <p className="mt-2 font-mono text-xs bg-[var(--bg)] rounded-lg px-3 py-2 border border-[var(--border)]">beli kopi di Indomaret 50000</p>
+            <p className="mt-2 text-xs text-wrap-pretty">Akan tercatat - Kopi Di Indomaret · Rp50.000</p>
+            <p className="mt-3 text-xs text-[var(--text-muted)] text-wrap-pretty">Atau upload bukti transfer via tombol galeri.</p>
           </div>
         )}
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm ${m.role === 'user' ? 'bg-[var(--accent)] text-white rounded-br-md' : 'bg-[var(--card)] border border-[var(--border)] rounded-bl-md'}`}
+              className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm leading-5 ${m.role === 'user' ? 'bg-[var(--accent)] text-white rounded-br-md' : 'bg-[var(--card)] border border-[var(--border)] rounded-bl-md'}`}
             >
-              <p className="whitespace-pre-wrap break-words">{m.text}</p>
+              <p className="whitespace-pre-wrap break-words text-wrap-pretty">{m.text}</p>
             </div>
           </div>
         ))}
         {ocrProgress !== null && (
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3">
-            <p className="text-xs font-medium">Membaca bukti… {ocrProgress}%</p>
-            <progress value={ocrProgress} max={100} className="mt-2 h-1.5 w-full rounded-full overflow-hidden" />
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
+            <p className="text-xs font-medium text-wrap-balance" aria-live="polite">
+              Membaca bukti… {ocrProgress}%
+            </p>
+            <progress value={ocrProgress} max={100} aria-label="Memindai bukti" className="mt-2 h-1.5 w-full rounded-full overflow-hidden" />
           </div>
         )}
-        {ocrError && <p className="text-xs text-red-600 px-1">{ocrError}</p>}
+        {ocrError && (
+          <p role="alert" aria-live="polite" className="text-xs px-2 py-2 rounded-lg bg-[var(--danger-bg)] border border-[var(--danger-border)] text-[var(--danger)]">
+            {ocrError}
+          </p>
+        )}
         {pending && (
-          <div className="rounded-2xl border border-[var(--accent)] bg-[var(--card)] p-4">
-            <p className="text-xs font-bold tracking-widest uppercase text-[var(--accent)]">Preview</p>
-            <div className="mt-3 space-y-2">
-              <label className="block">
-                <span className="text-xs text-[var(--text-secondary)]">Deskripsi</span>
+          <div className="rounded-xl border border-[var(--accent)] bg-[var(--card)] p-4">
+            <p className="text-xs font-bold tracking-wide uppercase text-[var(--accent)]">Preview</p>
+            <div className="mt-3 space-y-3">
+              <label htmlFor="pending-desc" className="block">
+                <span className="text-xs font-medium text-[var(--text-secondary)]">Deskripsi</span>
                 <input
+                  id="pending-desc"
                   value={pending.description}
                   onChange={(e) => setPending({ ...pending, description: e.target.value })}
-                  className="mt-1 w-full h-9 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
+                  autoComplete="off"
+                  className="mt-1 w-full h-10 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
                 />
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="block">
-                  <span className="text-xs text-[var(--text-secondary)]">Nominal</span>
+              <div className="grid grid-cols-2 gap-3">
+                <label htmlFor="pending-amount" className="block">
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">Nominal</span>
                   <input
+                    id="pending-amount"
                     type="number"
+                    inputMode="numeric"
                     value={pending.amount || ''}
                     onChange={(e) => setPending({ ...pending, amount: Number(e.target.value) || 0 })}
-                    className="mt-1 w-full h-9 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
+                    className="mt-1 w-full h-10 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-sm tabular-nums outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
                   />
                 </label>
-                <label className="block">
-                  <span className="text-xs text-[var(--text-secondary)]">Tanggal</span>
+                <label htmlFor="pending-date" className="block">
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">Tanggal</span>
                   <input
+                    id="pending-date"
                     type="date"
                     value={pending.date}
                     onChange={(e) => setPending({ ...pending, date: e.target.value })}
-                    className="mt-1 w-full h-9 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
+                    className="mt-1 w-full h-10 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
                   />
                 </label>
               </div>
-              <p className="text-xs text-[var(--text-secondary)]">{fmtIDR(pending.amount || 0)} · {pending.date}</p>
+              <p className="text-xs text-[var(--text-secondary)] tabular-nums">
+                {fmtIDR(pending.amount || 0)} · {pending.date}
+              </p>
             </div>
-            <div className="flex gap-2 mt-3">
+            <div className="flex gap-2 mt-4">
               <button
                 type="button"
                 onClick={confirmSave}
-                className="flex-1 py-2.5 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2"
+                disabled={!pending.amount}
+                className="flex-1 py-2.5 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 transition-all"
               >
                 <Check size={16} /> Simpan
               </button>
@@ -187,7 +202,7 @@ export default function ChatView() {
                   setPending(null);
                   setOcrError(null);
                 }}
-                className="px-4 py-2.5 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm font-medium inline-flex items-center gap-2"
+                className="px-4 py-2.5 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm font-medium inline-flex items-center gap-2 hover:bg-[var(--card)] active:scale-[0.98] transition-all"
               >
                 <Edit2 size={16} /> Batal
               </button>
@@ -197,25 +212,16 @@ export default function ChatView() {
         <div ref={endRef} />
       </div>
 
-      <form
-        onSubmit={handleSend}
-        className="sticky bottom-0 bg-[var(--bg)] pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] flex gap-2"
-      >
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
+      <form onSubmit={handleSend} className="sticky bottom-0 bg-[var(--bg)] pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] flex gap-2">
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) handleFile(f);
-          }}
-        />
+          }} />
         <button
           type="button"
           aria-label="upload bukti"
           onClick={() => fileRef.current?.click()}
-          className="w-11 h-11 rounded-xl border border-[var(--border)] bg-[var(--card)] grid place-items-center shrink-0"
+          className="w-11 h-11 rounded-xl border border-[var(--border)] bg-[var(--card)] grid place-items-center shrink-0 hover:bg-[var(--bg)] active:scale-95 disabled:opacity-40 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <Gallery size={18} />
         </button>
@@ -225,7 +231,11 @@ export default function ChatView() {
           placeholder="Tulis pengeluaran, mis: kopi 25rb"
           className="flex-1 h-11 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
         />
-        <button type="submit" aria-label="kirim" className="w-11 h-11 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] grid place-items-center shrink-0">
+        <button
+          type="submit"
+          aria-label="kirim"
+          className="w-11 h-11 rounded-xl bg-[var(--accent-fill)] text-[var(--accent-ink)] grid place-items-center shrink-0 hover:opacity-90 active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        >
           <Send size={18} />
         </button>
       </form>

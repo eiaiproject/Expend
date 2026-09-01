@@ -23,5 +23,5 @@ test('receipt upload → preview editable → Simpan → Home', async ({ page })
   await expect(page.getByText(/Tercatat/)).toBeVisible();
   await page.goto('/');
   await expect(page.getByText('Toko Kopi')).toBeVisible();
-  await expect(page.locator('.text-2xl').first()).toContainText('52.500');
+  await expect(page.locator('.tabular-nums').first()).toContainText('52.500');
 });

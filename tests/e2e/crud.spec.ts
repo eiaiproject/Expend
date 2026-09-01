@@ -21,7 +21,7 @@ test('CRUD: Chat → Home → delete', async ({ page }) => {
   // Read Home
   await page.goto('/');
   await expect(page.getByText('Total pengeluaran')).toBeVisible();
-  await expect(page.locator('.text-2xl').first()).toContainText('50.000');
+  await expect(page.locator('.tabular-nums').first()).toContainText('50.000');
   await expect(page.getByText('Kopi Di Indomaret')).toBeVisible();
 
   // Create second 1,5jt
@@ -33,7 +33,7 @@ test('CRUD: Chat → Home → delete', async ({ page }) => {
   await expect(page.getByText(/Tercatat/).nth(1)).toBeVisible();
 
   await page.goto('/');
-  await expect.poll(async () => (await page.locator('.text-2xl').first().textContent())?.replace(/\D/g, ''), { timeout: 10000 }).toBe('1550000');
+  await expect.poll(async () => (await page.locator('.tabular-nums').first().textContent())?.replace(/\D/g, ''), { timeout: 10000 }).toBe('1550000');
 
   // Delete first
   const before = await page.getByRole('button', { name: 'hapus' }).count();
