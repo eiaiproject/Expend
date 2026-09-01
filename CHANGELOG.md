@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.8 - 2026-09-01
+### Fixed
+
+- Nominal Rp robust - R P/IDR, filter ref/date, reuse worker fast-path
+
+
 ## 0.2.7 - 2026-09-01
 ### Fixed
 
