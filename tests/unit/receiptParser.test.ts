@@ -34,4 +34,16 @@ describe('parseReceiptText', () => {
     const t = `TotaI: Rp 52.500\nNominal Rp 50.000`;
     expect(parseReceiptText(t)!.amount).toBe(52500);
   });
+  it('penerima dengan ekor dash dan rekening', () => {
+    const t = `Penerima: Toko Kopi - BCA Digital - 1234567890\nTotal: Rp 52.500`;
+    expect(parseReceiptText(t)!.description).toBe('Toko Kopi');
+  });
+  it('penerima tanpa colon', () => {
+    const t = `Penerima John Doe\nTotal Rp 10.000`;
+    expect(parseReceiptText(t)!.description).toBe('John Doe');
+  });
+  it('penerima dengan kurung dan caps', () => {
+    const t = `Penerima: BUDI SANTOSO (BCA 1234567890)\nTotal Rp 20.000`;
+    expect(parseReceiptText(t)!.description).toBe('Budi Santoso');
+  });
 });

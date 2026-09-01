@@ -1,6 +1,6 @@
 # Expend - Chat Pencatatan Pengeluaran
 
-![version](https://img.shields.io/badge/version-0.3.0-teal)
+![version](https://img.shields.io/badge/version-0.3.1-teal)
 
 Offline-first PWA. Navigasi: **Home** (daftar transaksi) + **Chat** (auto tercatat).
 

@@ -138,12 +138,27 @@ function extractDate(text: string): string {
 
 function extractDescription(text: string, hits: { idx: number }[]): string {
   const lines = text.split('\n');
-  const descKw = /penerima|kepada|beneficiary|berita|keterangan|tujuan|ke:/i;
-  const hitLine = lines.find((l) => descKw.test(l));
+  const recipientRe = /penerima|kepada|tujuan|^\s*ke\b/i;
+  const noteRe = /berita|keterangan|beneficiary/i;
+  let hitLine: string | undefined;
+  hitLine = lines.find((l) => recipientRe.test(l) && /(?:penerima|kepada|tujuan|ke)\s*[:\-]?\s*.{2,}/i.test(l));
+  if (!hitLine) hitLine = lines.find((l) => recipientRe.test(l));
+  if (!hitLine) hitLine = lines.find((l) => noteRe.test(l));
   let desc = '';
   if (hitLine) {
-    const after = hitLine.split(/:/).slice(1).join(':').trim();
-    desc = after || hitLine.slice(hitLine.indexOf(':') + 1).trim() || hitLine.trim();
+    const m = /(?:penerima|kepada|beneficiary|berita|keterangan|tujuan|ke)\s*[:\-]?\s*(.+)/i.exec(hitLine);
+    if (m && m[1] && m[1].trim().length >= 2) {
+      desc = m[1].trim();
+    } else {
+      const after = hitLine.split(/:/).slice(1).join(':').trim();
+      desc = after || hitLine.trim();
+    }
+    desc = desc.split(/[-–—]/)[0]!.trim();
+    desc = desc.replace(/\s*\(.*?\)\s*/g, ' ').trim();
+    desc = desc.replace(/\s*\d{4,}.*$/, '').trim();
+    desc = desc.replace(/\s{2,}/g, ' ').trim();
+    // remove leading keyword if still present (no colon case)
+    desc = desc.replace(/^(?:penerima|kepada|ke)\s+/i, '').trim();
   }
   if (!desc) {
     const amountIdxs = new Set(hits.map((h) => h.idx));

@@ -1,4 +1,10 @@
 # Changelog
+## 0.3.1 - 2026-09-01
+### Fixed
+
+- Penerima deskripsi tanpa ekor dash/rekening/kurung, tanpa colon
+
+
 ## 0.3.0 - 2026-09-01
 ### Added
 
