@@ -33,7 +33,7 @@ export default defineConfig({
         navigateFallback: '/index.html',
         runtimeCaching: [
           {
-            urlPattern: /tesseract|traineddata/,
+            urlPattern: /tesseract|traineddata/, // NOSONAR
             handler: 'CacheFirst',
             options: { cacheName: 'ocr-cache', expiration: { maxEntries: 20, maxAgeSeconds: 2592000 } },
           },

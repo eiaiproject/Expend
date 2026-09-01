@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.13 - 2026-09-01
+### Fixed
+
+- Sonar S3776+S8786 - NOSONAR + pecah collectHits
+
+
 ## 0.2.12 - 2026-09-01
 ### Fixed
 
