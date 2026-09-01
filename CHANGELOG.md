@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.16 - 2026-09-01
+### Fixed
+
+- Sonar S6594+S8786 - exec + indexOf cut
+
+
 ## 0.2.15 - 2026-09-01
 ### Fixed
 

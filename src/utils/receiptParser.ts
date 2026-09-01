@@ -75,7 +75,7 @@ function collectHits(text: string): { val: number; hasRp: boolean; hasKeyword: b
     let m: RegExpExecArray | null;
     while ((m = re.exec(line))) {
       let raw0 = m[0]!.trim();
-      const suf = line.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 8).match(/^\s*(jt|juta|rb|ribu|k)\b/i)?.[0] ?? '';
+      const suf = /^\s*(jt|juta|rb|ribu|k)\b/i.exec(line.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 8))?.[0] ?? '';
       raw0 = raw0 + suf;
       const raw = normalizeAmountRaw(raw0);
       const v = parseAmt(raw);
@@ -143,7 +143,7 @@ function extractDescription(text: string, hits: { idx: number }[]): string {
   let desc = '';
   if (hitLine) {
     const after = hitLine.split(/:/).slice(1).join(':').trim();
-    desc = after || hitLine.replace(/.*?:\s*/, '').trim() || hitLine.trim();
+    desc = after || hitLine.slice(hitLine.indexOf(':') + 1).trim() || hitLine.trim();
   }
   if (!desc) {
     const amountIdxs = new Set(hits.map((h) => h.idx));
@@ -182,7 +182,7 @@ export function parseReceiptText(text: string): { description: string; amount: n
     let m: RegExpExecArray | null;
     while ((m = re.exec(line))) {
       let raw0 = m[0]!.trim();
-      const suf = line.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 8).match(/^\s*(jt|juta|rb|ribu|k)\b/i)?.[0] ?? '';
+      const suf = /^\s*(jt|juta|rb|ribu|k)\b/i.exec(line.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 8))?.[0] ?? '';
       raw0 = raw0 + suf;
       const v = parseAmt(normalizeAmountRaw(raw0));
       if (v && v > 0) hits.push({ idx });
