@@ -22,4 +22,16 @@ describe('parseReceiptText', () => {
     const t = `Kepada: Siti\nJumlah Transfer Rp 1.500.000\nTanggal 31-08-2026`;
     expect(parseReceiptText(t)).toMatchObject({ amount: 1500000, date: '2026-08-31' });
   });
+  it('abaikan no ref panjang', () => {
+    const t = `Total: Rp 52.500\nNo. Ref: 123456789012\nPenerima: Budi`;
+    expect(parseReceiptText(t)!.amount).toBe(52500);
+  });
+  it('abaikan tahun dari tanggal', () => {
+    const t = `Tanggal: 31/08/2026\nTotal Rp 10.000\nKe: Ani`;
+    expect(parseReceiptText(t)!.amount).toBe(10000);
+  });
+  it('fuzzy TotaI tetap prioritas total', () => {
+    const t = `TotaI: Rp 52.500\nNominal Rp 50.000`;
+    expect(parseReceiptText(t)!.amount).toBe(52500);
+  });
 });

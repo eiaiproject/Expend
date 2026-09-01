@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.7 - 2026-09-01
+### Fixed
+
+- Ocr cepat + nominal akurat - reuse worker, Rp prioritas, filter ref/tanggal
+
+
 ## 0.2.6 - 2026-09-01
 ### Added
 
