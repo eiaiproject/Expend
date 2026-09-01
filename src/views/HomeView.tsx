@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { fmtIDR, fmtDate } from '../utils/format';
@@ -6,7 +7,7 @@ import { Link } from 'react-router-dom';
 
 export default function HomeView() {
   const txs = useLiveQuery(() => db.transactions.orderBy('createdAt').reverse().toArray(), []) ?? [];
-  const total = txs.reduce((a, t) => a + t.amount, 0);
+  const total = useMemo(() => txs.reduce((a, t) => a + t.amount, 0), [txs]);
 
   if (!txs.length) {
     return (

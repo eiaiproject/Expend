@@ -35,3 +35,7 @@
 h1, h2, h3 { text-wrap: balance; }
 p, li { text-wrap: pretty; }
 html { scrollbar-gutter: stable; }
+progress { appearance: none; -webkit-appearance: none; }
+progress::-webkit-progress-bar { background: var(--bg); border-radius: 9999px; }
+progress::-webkit-progress-value { background: var(--accent); border-radius: 9999px; transition: width 0.2s ease-out; }
+progress::-moz-progress-bar { background: var(--accent); border-radius: 9999px; }

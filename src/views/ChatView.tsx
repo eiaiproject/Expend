@@ -213,13 +213,13 @@ export default function ChatView() {
               </p>
               <span className="ml-auto text-[11px] text-[var(--text-muted)]">offline</span>
             </div>
-            <progress value={ocrProgress} max={100} aria-label="Memindai bukti" className="mt-3 h-1.5 w-full rounded-full overflow-hidden" />
+            <progress value={ocrProgress} max={100} aria-label="Memindai bukti" aria-valuetext={`${ocrProgress}%`} className="mt-3 h-1.5 w-full rounded-full overflow-hidden" />
             <p className="text-[11px] text-[var(--text-muted)] mt-2">Tetap di halaman ini, jangan tutup.</p>
           </div>
         )}
 
         {ocrError && (
-          <p role="alert" aria-live="polite" className="text-xs px-3 py-2.5 rounded-xl bg-[var(--danger-bg)] border border-[var(--danger-border)] text-[var(--danger)]">
+          <p id="ocr-error" role="alert" aria-live="polite" className="text-xs px-3 py-2.5 rounded-xl bg-[var(--danger-bg)] border border-[var(--danger-border)] text-[var(--danger)]">
             {ocrError}
           </p>
         )}

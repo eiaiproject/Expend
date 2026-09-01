@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.5 - 2026-09-01
+### Fixed
+
+- Audit polish final - progress aria-valuetext, memo fmtDate/total, progress tint
+
+
 ## 0.2.4 - 2026-09-01
 ### Added
 
