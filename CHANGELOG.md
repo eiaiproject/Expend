@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.17 - 2026-09-01
+### Fixed
+
+- Chevron inset 16px - Home row + Settings version row, 48dp hit
+
+
 ## 0.2.16 - 2026-09-01
 ### Fixed
 

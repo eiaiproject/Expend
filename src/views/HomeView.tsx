@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { fmtIDR, fmtDate } from '../utils/format';
-import { Receipt, Trash2, ChatRoundDots, Gallery } from 'reicon-react';
+import { Receipt, Trash2, ChatRoundDots, Gallery, ChevronRight } from 'reicon-react';
 import { Link } from 'react-router-dom';
 
 export default function HomeView() {
@@ -58,19 +58,20 @@ export default function HomeView() {
         <h2 className="sr-only">Daftar transaksi</h2>
         <ul className="space-y-2">
           {txs.map((t) => (
-            <li key={t.id} className="list-item flex items-center gap-3 p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]/30 transition-colors">
+            <li key={t.id} className="list-item flex items-center gap-2 p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]/30 transition-colors">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold truncate text-wrap-pretty">{t.description}</p>
                 <p className="text-xs text-[var(--text-secondary)] tabular-nums">{fmtDate(t.date)}</p>
               </div>
-              <p className="text-sm font-bold whitespace-nowrap tabular-nums">{fmtIDR(t.amount)}</p>
+              <p className="text-sm font-bold whitespace-nowrap tabular-nums shrink-0">{fmtIDR(t.amount)}</p>
+              <ChevronRight size={16} className="text-[var(--text-muted)] shrink-0" aria-hidden />
               <button
                 type="button"
                 aria-label="hapus"
                 onClick={() => {
                   if (t.id) void db.transactions.delete(t.id);
                 }}
-                className="w-12 h-12 grid place-items-center rounded-xl hover:bg-[var(--bg)] active:scale-95 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                className="w-12 h-12 grid place-items-center rounded-xl hover:bg-[var(--bg)] active:scale-95 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-[var(--accent)] -mr-1"
               >
                 <Trash2 size={18} />
               </button>
