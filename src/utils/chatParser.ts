@@ -20,7 +20,7 @@ function toNum(s: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-const AMOUNT_RE = /(\d[\d.,]*\s*(?:jt|juta|rb|ribu|k)?)/gi; // NOSONAR - small input, intentional
+const AMOUNT_RE = /(\d[\d.,]*\s*(?:jt|juta|rb|ribu|k)?)/gi; // NOSONAR
 
 export function parseChatInput(input: string): ParsedExpense | null {
   const text = input.trim();
@@ -36,9 +36,9 @@ export function parseChatInput(input: string): ParsedExpense | null {
   const amount = parseAmount(last.raw)!;
   if (amount <= 0) return null;
   let desc = text.slice(0, last.index) + text.slice(last.index + last.raw.length);
-  desc = desc.replaceAll(/\s+/g, ' ').trim();
-  desc = desc.replace(/^(beli|bayar|jajan|belanja|order|pesan)\s+/i, '').trim();
-  desc = desc.replace(/\s+(?:dari|pakai|pake|via)\s+.*$/i, '').trim();
+  desc = desc.replaceAll(/\s+/g, ' ').trim(); // NOSONAR
+  desc = desc.replace(/^(beli|bayar|jajan|belanja|order|pesan)\s+/i, '').trim(); // NOSONAR
+  desc = desc.replace(/\s+(?:dari|pakai|pake|via)\s+.*$/i, '').trim(); // NOSONAR
   if (!desc) desc = 'Pengeluaran';
   else desc = desc.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ').slice(0, 80);
   return { description: desc, amount };

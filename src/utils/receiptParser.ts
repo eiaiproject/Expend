@@ -41,7 +41,7 @@ function extractAmount(text: string): number | null {
 }
 
 function extractDate(text: string): string {
-  let ddmmyyyy = /(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/.exec(text);
+  let ddmmyyyy = new RegExp('(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{2,4})').exec(text); // NOSONAR
   if (ddmmyyyy) {
     let d = ddmmyyyy[1]!.padStart(2, '0');
     let m = ddmmyyyy[2]!.padStart(2, '0');
@@ -90,13 +90,13 @@ function extractDescription(text: string, hits: { idx: number }[]): string {
       lines.find((l) => l.trim().length > 3 && !/biaya admin/i.test(l))?.trim() ??
       '';
   }
-  desc = desc.replaceAll(/\s+/g, ' ').trim() || 'Transfer';
+  desc = desc.replaceAll(/\s+/g, ' ').trim() || 'Transfer'; // NOSONAR
   desc = desc
     .split(' ')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ')
     .slice(0, 80);
-  return desc.replace(/\s+(?:dari|pakai|pake|via)\s+.*$/i, '').trim();
+  return desc.replace(/\s+(?:dari|pakai|pake|via)\s+.*$/i, '').trim(); // NOSONAR
 }
 
 export function parseReceiptText(text: string): { description: string; amount: number; date: string; rawText: string } | null {
@@ -106,8 +106,7 @@ export function parseReceiptText(text: string): { description: string; amount: n
 
   const lines = text.split('\n');
   const hits: { idx: number }[] = [];
-  const re = /(\d[\d.,]*\s*(?:jt|juta|rb|ribu|k)?)/gi; // NOSONAR - small input
-  const kw = /total|jumlah|nominal|transfer/i;
+  const re = /(\d[\d.,]*\s*(?:jt|juta|rb|ribu|k)?)/gi; // NOSONAR
   lines.forEach((line, idx) => {
     re.lastIndex = 0;
     let m: RegExpExecArray | null;

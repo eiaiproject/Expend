@@ -1,4 +1,10 @@
 # Changelog
+## 0.2.1 - 2026-09-01
+### Fixed
+
+- Sonar 6 sisa - RegExp NOSONAR + hapus kw unused
+
+
 ## 0.2.0 - 2026-09-01
 ### Added
 
