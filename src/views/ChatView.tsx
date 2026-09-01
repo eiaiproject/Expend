@@ -66,7 +66,7 @@ export default function ChatView() {
         const metaRes = await cache.match('shared-meta');
         if (metaRes) {
           const meta = await metaRes.json();
-          const sharedText = [meta.title, meta.text, meta.url].filter(Boolean).join(' ').trim();
+          const sharedText = [meta.text, meta.url].filter(Boolean).join(' ').trim();
           if (sharedText) {
             const parsed = parseChatInput(sharedText);
             if (parsed) {

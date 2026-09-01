@@ -1,4 +1,10 @@
 # Changelog
+## 0.4.0 - 2026-09-01
+### Changed
+
+- Token-based design system - chevron inset consistent, color/font/alignment unified
+
+
 ## 0.3.1 - 2026-09-01
 ### Fixed
 

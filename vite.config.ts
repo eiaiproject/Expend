@@ -28,7 +28,7 @@ export default defineConfig({
           { src: '/icons/app-icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
         ],
         share_target: {
-          action: '/share',
+          action: '/share-handler',
           method: 'POST',
           enctype: 'multipart/form-data',
           params: {
