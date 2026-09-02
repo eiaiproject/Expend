@@ -151,27 +151,30 @@ function extractDate(text: string): string {
 
 // ─── Description extraction ───────────────────────────────────────────────────
 
-// Detect conversational share messages: "halo aku sudah kirim Rpxxx ke YYY lewat ZZZ"
-function isShareMessage(text: string): boolean { // NOSONAR
-  const markers = /(?:halo|hai|aku\s+sudah|sudah\s+(?:kirim|transfer)|jangan\s+lupa|tolong|terima\s+kasih|coba\s+cek|sudah\s+diterima|sudah\s+kamu)/i;
+// Share message markers (conversational: "halo aku sudah kirim Rpxxx...")
+const SHARE_MARKERS = /halo|hai|aku\s+sudah|sudah\s+(?:kirim|transfer)|jangan\s+lupa|tolong|terima\s+kasih|coba\s+cek|sudah\s+diterima|sudah\s+kamu/i;
+const KIRIM_TRANSFER_RE = /kirim|transfer/i;
+const KE_RECIPIENT_RE = /(?:ke|kepada)\s+(.+)/i;
+const SOURCE_BOUNDARY_RE = /\s+(?:lewat|via|pakai|pake|dari)\s/i;
+const PRONOUN_RE = /^(?:akun|aku|kamu|saya|dia|itu|sini|situ|mana)$/i;
+
+// Detect conversational share messages
+function isShareMessage(text: string): boolean {
   const lines = text.split('\n');
-  return lines.length <= 3 && markers.test(text);
+  return lines.length <= 3 && SHARE_MARKERS.test(text);
 }
 
 // Extract recipient from "kirim/transfer RpXXX ke/kepada YYY (lewat/via ZZZ)"
 function extractShareRecipient(text: string): string | undefined {
-  // Find the position of 'ke' or 'kepada' after 'kirim'/'transfer'
-  const kirimIdx = text.search(/kirim|transfer/i);
+  const kirimIdx = text.search(KIRIM_TRANSFER_RE);
   if (kirimIdx === -1) return undefined;
   const afterKirim = text.slice(kirimIdx);
-  const keMatch = /(?:ke|kepada)\s+(.+)/i.exec(afterKirim); // NOSONAR
+  const keMatch = KE_RECIPIENT_RE.exec(afterKirim);
   if (!keMatch?.[1]) return undefined;
-  // Cut at source keyword or sentence end
-  let name = keMatch[1].split(/\s+(?:lewat|via|pakai|pake|dari)\s/i)[0]!.trim();
+  let name = keMatch[1].split(SOURCE_BOUNDARY_RE)[0]!.trim();
   name = name.replace(/[.,!]+$/g, '').trim();
-  // Reject if too short or common pronouns
   if (name.length < 2) return undefined;
-  if (/^(?:akun|aku|kamu|saya|dia|itu|sini|situ|mana)$/i.test(name)) return undefined;
+  if (PRONOUN_RE.test(name)) return undefined;
   return name;
 }
 
