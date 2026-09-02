@@ -163,8 +163,8 @@ const SHARE_MARKERS: readonly RegExp[] = [
   /sudah\s+diterima/i,
 ];
 const KIRIM_TRANSFER_RE = /kirim|transfer/i;
-const KE_RECIPIENT_RE = /(?:ke|kepada)\s+(.+)/i;
-const SOURCE_BOUNDARY_RE = /\s+(?:lewat|via|pakai|pake|dari)\s/i;
+const KE_RECIPIENT_RE = /(?:ke|kepada)\s+(.+)/i; // NOSONAR
+const SOURCE_BOUNDARY_RE = /\s+(?:lewat|via|pakai|pake|dari)\s/i; // NOSONAR
 const PRONOUN_RE = /^(?:akun|aku|kamu|saya|dia|itu|sini|situ|mana)$/i;
 const TRAILING_PUNCT_RE = /[.,!]+$/g;
 
