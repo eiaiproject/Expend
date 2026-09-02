@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.13 - 2026-09-02
+### Fixed
+
+- Sort txs by date, auto-scroll chat bottom, unify chevrons
+
+
 ## 0.6.12 - 2026-09-02
 ### Fixed
 
