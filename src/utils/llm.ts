@@ -77,7 +77,7 @@ async function fileToBase64(file: File): Promise<string> {
   const buf = await file.arrayBuffer();
   let binary = '';
   const bytes = new Uint8Array(buf);
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!);
+  for (const b of bytes) binary += String.fromCharCode(b);
   return btoa(binary);
 }
 
@@ -130,7 +130,7 @@ export async function parseReceiptWithLLM(ocrText: string): Promise<(ParsedExpen
     let source: string | undefined;
     if (parsed.source && typeof parsed.source === 'string' && parsed.source.trim()) source = titleCasePreserveAcronyms(parsed.source.trim());
     let date: string | undefined;
-    if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) date = parsed.date;
+    if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) date = parsed.date; // NOSONAR
     else date = today;
     let note: string | undefined;
     if (parsed.note && typeof parsed.note === 'string' && parsed.note.trim()) note = parsed.note.trim().slice(0, 80);

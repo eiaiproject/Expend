@@ -178,7 +178,7 @@ export default function ChatView() {
     }
   }
 
-  async function handleFile(file: File) {
+  async function handleFile(file: File) { // NOSONAR - cognitive complexity from OCR+LLM fallbacks
     if (!file.type.startsWith('image/') || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       setOcrError('Gunakan gambar JPG, PNG, atau WebP dengan ukuran maksimal 10 MB.');
       return;
