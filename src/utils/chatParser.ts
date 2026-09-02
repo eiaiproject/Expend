@@ -20,52 +20,48 @@ export interface ParsedExpense {
  *  - `1.500.000` → 1500000 (dot = thousand separator)
  *  - `1.5jt`   → handled by suffix logic, not here
  */
+function tryInternational(s: string): number | null {
+  if (!s.includes(',') || !s.includes('.')) return null;
+  const commaIdx = s.lastIndexOf(',');
+  const dotIdx = s.lastIndexOf('.');
+  const afterDot = s.slice(dotIdx + 1).length;
+  const between = s.slice(commaIdx + 1, dotIdx).length;
+  if (dotIdx > commaIdx && afterDot <= 2 && between === 3) {
+    const n = Number(s.replaceAll(',', ''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  return null;
+}
+
+function parseCommaDecimal(s: string): number {
+  const cleaned = s.replaceAll('.', '').replaceAll(',', '.');
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function parseDotVariant(s: string): number {
+  const parts = s.split('.');
+  if (parts.length === 1) {
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  }
+  const lastPart = parts.at(-1)!;
+  if (lastPart.length === 2) {
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  }
+  const cleaned = s.replaceAll('.', '');
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export function normalizeNumber(s: string): number {
   const raw = s.trim();
   if (!raw) return 0;
-
-  // Detect international format: comma as thousands + dot as decimal
-  // e.g. "1,000.00" → 1000
-  if (raw.includes(',') && raw.includes('.')) {
-    // If comma is followed by exactly 3 digits and dot has 2 digits after → international
-    const commaIdx = raw.lastIndexOf(',');
-    const dotIdx = raw.lastIndexOf('.');
-    if (dotIdx > commaIdx && raw.slice(dotIdx + 1).length <= 2 && raw.slice(commaIdx + 1, dotIdx).length === 3) {
-      const cleaned = raw.replaceAll(',', '');
-      const n = Number(cleaned);
-      return Number.isFinite(n) ? n : 0;
-    }
-  }
-
-  // Indonesian format: comma as decimal separator
-  if (raw.includes(',')) {
-    // Remove thousand-separator dots, then swap comma to dot
-    const cleaned = raw.replaceAll('.', '').replaceAll(',', '.');
-    const n = Number(cleaned);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  // No comma — determine if dot is thousand separator or decimal
-  const parts = raw.split('.');
-  if (parts.length === 1) {
-    // No dots at all: "50000"
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  // Has dots. Check the last segment:
-  //  - If last segment has exactly 2 digits → decimal (e.g. "15.50")
-  //  - Otherwise → thousand separator (e.g. "15.000", "1.500.000")
-  const lastPart = parts.at(-1)!;
-  if (lastPart.length === 2) {
-    // Decimal: "15.50" → 15.5
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : 0;
-  }
-  // Thousand separator: strip all dots
-  const cleaned = raw.replaceAll('.', '');
-  const n = Number(cleaned);
-  return Number.isFinite(n) ? n : 0;
+  const intl = tryInternational(raw);
+  if (intl !== null) return intl;
+  if (raw.includes(',')) return parseCommaDecimal(raw);
+  return parseDotVariant(raw);
 }
 
 // ─── Amount parsing with suffixes ─────────────────────────────────────────────

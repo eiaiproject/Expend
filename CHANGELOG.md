@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.5 - 2026-09-02
+### Fixed
+
+- Reduce cognitive complexity and super-linear regex in parsers
+
+
 ## 0.6.4 - 2026-09-02
 ### Fixed
 

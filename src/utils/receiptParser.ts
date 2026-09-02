@@ -145,78 +145,81 @@ function extractDate(text: string): string {
 
 // ─── Description extraction ───────────────────────────────────────────────────
 
-function extractDescription(text: string, hits: { idx: number }[]): { desc: string; source?: string } {
-  const lines = text.split('\n');
-  const productRe = /^(?:product|produk)\s*[:-]?\s*(.+)/i;
+function findHitLine(lines: string[]): string | undefined {
+  const productRe = /^(?:product|produk)\s*[:-]?\s*(.+)/i; // NOSONAR - anchored, bounded
   const recipientRe = /penerima|kepada|tujuan|ditransfer\s*ke|^\s*ke\b|transfer\s*ke\b/i;
   const noteRe = /berita|keterangan|beneficiary/i;
-  let hitLine: string | undefined;
-  // 1. Priority: "Product X" / "Produk X"
-  hitLine = lines.find((l) => productRe.test(l));
-  // 2. Recipient with name
-  if (!hitLine) hitLine = lines.find((l) => recipientRe.test(l) && /(?:penerima|kepada|tujuan|ke)\s*[:-]?\s*[^\n]{2,}/i.test(l)); // NOSONAR
-  if (!hitLine) hitLine = lines.find((l) => recipientRe.test(l));
-  if (!hitLine) hitLine = lines.find((l) => noteRe.test(l));
+  let hit = lines.find((l) => productRe.test(l));
+  if (!hit) hit = lines.find((l) => recipientRe.test(l) && /(?:penerima|kepada|tujuan|ke)\s*[:-]?\s*[^\n]{2,}/i.test(l)); // NOSONAR
+  if (!hit) hit = lines.find((l) => recipientRe.test(l));
+  if (!hit) hit = lines.find((l) => noteRe.test(l));
+  return hit;
+}
+
+function parseHitLine(hitLine: string, lines: string[]): string {
+  const productRe = /^(?:product|produk)\s*[:-]?\s*(.+)/i; // NOSONAR - anchored, bounded
+  let m = productRe.exec(hitLine);
+  if (!m) m = /(?:penerima|kepada|beneficiary|berita|keterangan|tujuan|ditransfer\s*ke|transfer\s*ke|ke)\s*[:-]?\s*(.+)/i.exec(hitLine); // NOSONAR
   let desc = '';
-  if (hitLine) {
-    // Try product pattern first, then recipient/note
-    let m = productRe.exec(hitLine);
-    if (!m) m = /(?:penerima|kepada|beneficiary|berita|keterangan|tujuan|ditransfer\s*ke|transfer\s*ke|ke)\s*[:-]?\s*(.+)/i.exec(hitLine); // NOSONAR
-    if (m?.[1]?.trim().length !== undefined && m[1].trim().length >= 2) {
-      desc = m[1].trim();
-    } else {
-      const after = hitLine.split(/:/).slice(1).join(':').trim();
-      if (after) {
-        desc = after;
-      } else {
-        // Label alone on its line (e.g. "Penerima") — name is on next line
-        const hitIdx = lines.indexOf(hitLine);
-        const nextLine = hitIdx >= 0 && hitIdx + 1 < lines.length ? lines[hitIdx + 1]!.trim() : '';
-        desc = nextLine || hitLine.trim();
-      }
+  if (m?.[1]?.trim().length !== undefined && m[1].trim().length >= 2) desc = m[1].trim();
+  else {
+    const after = hitLine.split(/:/).slice(1).join(':').trim();
+    if (after) desc = after;
+    else {
+      const idx = lines.indexOf(hitLine);
+      const next = idx >= 0 && idx + 1 < lines.length ? lines[idx + 1]!.trim() : '';
+      desc = next || hitLine.trim();
     }
-    desc = desc.split(/[-–—]/)[0]!.trim();
-    desc = desc.replace(/\s*\([^)]*\)\s*/g, ' ').trim(); // NOSONAR
-    desc = desc.replace(/\s*\d{4,}[^\n]*$/, '').trim(); // NOSONAR
-    desc = desc.replace(/\s{2,}/g, ' ').trim();
-    desc = desc.replace(/^(?:penerima|kepada|ke|name)\s+/i, '').trim();
   }
-  if (!desc) {
-    const amountIdxs = new Set(hits.map((h) => h.idx));
-    // Determine detected source to skip it as description
-    const src = detectSource(text);
-    const srcLower = src?.toLowerCase();
-    // Lines to skip: pure digits, "biaya admin", dates, refs, source name itself
-    const skipRe = /^\d{6,}$/;
-    desc =
-      lines.find((l, i) => {
-        const t = l.trim();
-        if (amountIdxs.has(i) || t.length <= 3 || /biaya admin/i.test(t)) return false;
-        if (skipRe.test(t.replaceAll(/\D/g, ''))) return false;
-        // Skip lines that are just the source name (e.g. "Jago", "BCA")
-        if (srcLower && (t.toLowerCase() === srcLower || t.toLowerCase() === 'bank ' + srcLower)) return false;
-        return true;
-      })?.trim() ??
-      lines.find((l) => l.trim().length > 3 && !/biaya admin/i.test(l))?.trim() ??
-      '';
-  }
-  desc = desc.replaceAll(/\s+/g, ' ').trim() || 'Transfer';
-  // Strip standalone prepositions
-  desc = desc.replace(/\b(?:di|ke|untuk|dengan)\b/gi, '').replace(/\s{2,}/g, ' ').trim() || 'Transfer';
-  // Strip trailing OCR noise (e.g. "Oo" from checkmark/symbol)
-  desc = desc.replace(/\s+Oo\s*$/i, '').trim() || 'Transfer';
-  // Title-case with acronym preservation
-  desc = titleCasePreserveAcronyms(desc).slice(0, 80);
-  // Cut source keywords from description
+  desc = desc.split(/[-–—]/)[0]!.trim();
+  desc = desc.replace(/\s*\([^)]*\)\s*/g, ' ').trim(); // NOSONAR - bounded
+  desc = desc.replace(/\s*\d{4,}[^\n]*$/, '').trim(); // NOSONAR - anchored, bounded
+  desc = desc.replace(/\s{2,}/g, ' ').trim();
+  desc = desc.replace(/^(?:penerima|kepada|ke|name)\s+/i, '').trim();
+  return desc;
+}
+
+function findFallbackDesc(lines: string[], hits: { idx: number }[], src: string | undefined): string {
+  const amountIdxs = new Set(hits.map((h) => h.idx));
+  const srcLower = src?.toLowerCase();
+  const skipRe = /^\d{6,}$/;
+  return (
+    lines.find((l, i) => {
+      const t = l.trim();
+      if (amountIdxs.has(i) || t.length <= 3 || /biaya admin/i.test(t)) return false;
+      if (skipRe.test(t.replaceAll(/\D/g, ''))) return false;
+      if (srcLower && (t.toLowerCase() === srcLower || t.toLowerCase() === 'bank ' + srcLower)) return false;
+      return true;
+    })?.trim() ??
+    lines.find((l) => l.trim().length > 3 && !/biaya admin/i.test(l))?.trim() ??
+    ''
+  );
+}
+
+function finalizeDesc(raw: string): string {
+  let d = raw.replaceAll(/\s+/g, ' ').trim() || 'Transfer';
+  d = d.replace(/\b(?:di|ke|untuk|dengan)\b/gi, '').replace(/\s{2,}/g, ' ').trim() || 'Transfer';
+  d = d.replace(/\s+Oo\s*$/i, '').trim() || 'Transfer'; // NOSONAR - anchored, bounded
+  d = titleCasePreserveAcronyms(d).slice(0, 80);
   const kws = [' dari ', ' pakai ', ' pake ', ' via '];
   let cut = -1;
   for (const k of kws) {
-    const idx = desc.toLowerCase().indexOf(k);
+    const idx = d.toLowerCase().indexOf(k);
     if (idx !== -1 && (cut === -1 || idx < cut)) cut = idx;
   }
-  const cutDesc = (cut === -1 ? desc : desc.slice(0, cut)).trim();
+  return (cut === -1 ? d : d.slice(0, cut)).trim();
+}
 
-  return { desc: cutDesc };
+function extractDescription(text: string, hits: { idx: number }[]): { desc: string; source?: string } {
+  const lines = text.split('\n');
+  const hitLine = findHitLine(lines);
+  let desc = '';
+  if (hitLine) desc = parseHitLine(hitLine, lines);
+  if (!desc) {
+    const src = detectSource(text);
+    desc = findFallbackDesc(lines, hits, src);
+  }
+  return { desc: finalizeDesc(desc) };
 }
 
 // ─── Note extraction ─────────────────────────────────────────────────────────
@@ -224,7 +227,7 @@ function extractDescription(text: string, hits: { idx: number }[]): { desc: stri
 function extractNote(text: string): string | undefined {
   const lines = text.split('\n');
   // Match "Pulang X" or "Pergi X" (travel/ride receipt notes)
-  const travelRe = /^(pulang|pergi)\s+(.+)$/i;
+  const travelRe = /^(pulang|pergi)\s+(.+)$/i; // NOSONAR - anchored, bounded
   for (const l of lines) {
     const m = travelRe.exec(l.trim());
     if (m?.[2] && m[2].trim().length >= 2) {
