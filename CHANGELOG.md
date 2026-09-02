@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.18 - 2026-09-02
+### Fixed
+
+- List-item display flex — delete button was stacking below on mobile
+
+
 ## 0.6.17 - 2026-09-02
 ### Fixed
 
