@@ -273,20 +273,25 @@ export default function ChatView() {
       {messages.length === 0 && !pending && (
         <div className="flex-1 min-h-0 flex items-start pt-6">
           <div className="w-full rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--bg)] border border-[var(--border)] grid place-items-center shrink-0">
-                <Receipt size={18} className="text-[var(--text-secondary)]" aria-hidden />
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] border border-[var(--border)]/60 grid place-items-center shrink-0 shadow-sm">
+                <Receipt size={18} className="text-[var(--accent)]" aria-hidden />
               </div>
-              <div>
-                <p className="text-sm font-semibold leading-snug">Mulai mencatat</p>
-                <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
-                  Ketik deskripsi, nominal, dan sumber dana. Contoh:
-                </p>
-                <p className="text-xs font-mono text-[var(--text-muted)] mt-1.5 bg-[var(--bg)] rounded-[var(--radius-md)] px-2.5 py-1.5 border border-[var(--border)]">
-                  kopi 25rb dari BSI<br />
-                  bayar listrik 200rb via GoPay<br />
-                  belanja indomaret 50000
-                </p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-bold tracking-tight leading-none">Mulai mencatat</p>
+                <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">Ketik deskripsi, nominal, dan sumber dana.</p>
+                <div className="mt-3 rounded-[10px] border border-[var(--border)] bg-[var(--bg)] overflow-hidden">
+                  <div className="px-3 py-1.5 border-b border-[var(--border)]/60 bg-[var(--card)] flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" aria-hidden />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" aria-hidden />
+                    <span className="text-[10px] font-mono tracking-wide text-[var(--text-muted)] uppercase">Contoh</span>
+                  </div>
+                  <div className="px-3 py-2.5 space-y-1 font-mono text-[12px] leading-5 text-[var(--text-secondary)]">
+                    <p>kopi <span className="text-[var(--accent)] font-medium">25rb</span> <span className="text-[var(--text-muted)]">dari BSI</span></p>
+                    <p>bayar listrik <span className="text-[var(--accent)] font-medium">200rb</span> <span className="text-[var(--text-muted)]">via GoPay</span></p>
+                    <p>belanja indomaret <span className="text-[var(--accent)] font-medium">50000</span></p>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="mt-5">
@@ -549,10 +554,9 @@ export default function ChatView() {
             )}
           </button>
         </form>
-        <p className="text-[12px] text-[var(--text-muted)] text-center mt-2">
-          <span className="hidden md:inline">Enter kirim &middot; Shift+Enter baris baru &middot; </span>
-          <span className="font-medium">[ nama ] [ nominal ] [ dari sumber ]</span>
-          <span className="hidden md:inline"> &middot; Tarik bukti ke area chat</span>
+        <p className="text-[11px] tracking-wide text-[var(--text-muted)]/80 text-center mt-2.5">
+          <span className="hidden md:inline">Enter kirim · Shift+Enter baris baru · Tarik bukti ke area chat</span>
+          <span className="md:hidden">Tarik bukti ke area chat untuk unggah</span>
         </p>
       </div>
 

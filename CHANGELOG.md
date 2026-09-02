@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.7 - 2026-09-02
+### Added
+
+- Optimize empty state and remove syntax hint
+
+
 ## 0.6.6 - 2026-09-02
 ### Added
 
