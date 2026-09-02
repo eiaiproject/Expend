@@ -1,4 +1,10 @@
 # Changelog
+## 0.7.0 - 2026-09-02
+### Added
+
+- Add English language option
+
+
 ## 0.6.34 - 2026-09-02
 ### Changed
 
