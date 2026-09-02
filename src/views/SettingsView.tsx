@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
-import { ChevronDown, Lock, CloudCross, Information, Download } from 'reicon-react';
+import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar } from 'reicon-react';
 import { db } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { PageHeader } from '../components/PageHeader';
 import { SectionCard } from '../components/SectionCard';
 import { Toast } from '../components/Toast';
 import { csvBlob, xlsxBlob, filterByDate, exportFilename, downloadBlob } from '../utils/export';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 type Theme = 'system' | 'light' | 'dark';
 type ToastState = { message: string; type: 'success' | 'error' } | null;
@@ -100,6 +101,7 @@ export default function SettingsView() {
   });
   const [exportFrom, setExportFrom] = useState('');
   const [exportTo, setExportTo] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Persist confirmSave
   useEffect(() => {
@@ -153,6 +155,17 @@ export default function SettingsView() {
       showToast('Gagal mengekspor Excel.', 'error');
     }
   }, [exportFrom, exportTo, showToast]);
+
+  const handleDeleteAll = useCallback(async () => {
+    try {
+      await db.transactions.clear();
+      showToast('Semua data transaksi berhasil dihapus.');
+    } catch {
+      showToast('Gagal menghapus data. Coba lagi.', 'error');
+    } finally {
+      setConfirmDelete(false);
+    }
+  }, [showToast]);
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 pt-4 md:pt-0 pb-[calc(60px+env(safe-area-inset-bottom))] space-y-6">
@@ -213,11 +226,17 @@ export default function SettingsView() {
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
                 <span className="text-xs font-medium text-[var(--text-secondary)]">Dari</span>
-                <input id="export-from" type="date" value={exportFrom} onChange={(e) => setExportFrom(e.target.value)} className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                <div className="relative mt-1">
+                  <input id="export-from" type="date" value={exportFrom} onChange={(e) => setExportFrom(e.target.value)} className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                  <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" aria-hidden />
+                </div>
               </label>
               <label className="block">
                 <span className="text-xs font-medium text-[var(--text-secondary)]">Sampai</span>
-                <input id="export-to" type="date" value={exportTo} onChange={(e) => setExportTo(e.target.value)} className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                <div className="relative mt-1">
+                  <input id="export-to" type="date" value={exportTo} onChange={(e) => setExportTo(e.target.value)} className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                  <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" aria-hidden />
+                </div>
               </label>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -277,6 +296,30 @@ export default function SettingsView() {
         </SectionCard>
       </SettingsSection>
 
+      {/* Danger Zone */}
+      <SettingsSection title="Zona Berbahaya">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--danger-border)] bg-[var(--danger-bg)]/30">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--danger-soft)] grid place-items-center shrink-0">
+              <Trash2 size={18} className="text-[var(--danger)]" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[var(--danger-deep)]">Hapus semua data</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{txs.length} transaksi akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <button
+              type="button"
+              aria-label="Hapus semua data transaksi"
+              disabled={txs.length === 0}
+              onClick={() => setConfirmDelete(true)}
+              className="shrink-0 min-h-12 px-4 rounded-[var(--radius-md)] bg-[var(--danger)] text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--danger)]/50 disabled:opacity-40 disabled:active:scale-100"
+            >
+              Hapus
+            </button>
+          </div>
+        </div>
+      </SettingsSection>
+
       {/* Footer */}
       <div className="text-center pt-2 pb-4">
         <p className="text-[11px] text-[var(--text-muted)] font-mono">expend.pages.dev</p>
@@ -290,6 +333,18 @@ export default function SettingsView() {
           onDismiss={() => setToast(null)}
         />
       )}
+
+      {/* Confirm Delete All */}
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Hapus semua data?"
+        description={`Seluruh ${txs.length} transaksi akan dihapus permanen dari perangkat ini. Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="Hapus semua"
+        cancelLabel="Batal"
+        destructive
+        onConfirm={handleDeleteAll}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }

@@ -53,3 +53,43 @@ test('CRUD: Chat → Home → delete', async ({ page }) => {
   await page.getByRole('button', { name: 'Batalkan' }).click();
   await expect(page.getByText('Periksa transaksi')).toHaveCount(0);
 });
+
+test('Danger zone: delete all data', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => new Promise<void>((res, rej) => {
+    const r = indexedDB.deleteDatabase('ExpendDB'); r.onsuccess = () => res(); r.onerror = () => rej(r.error); r.onblocked = () => res();
+  }));
+  await page.reload();
+
+  // Add transactions via chat
+  await page.goto('/chat');
+  await page.reload();
+  for (const input of ['kopi 25rb', 'makan 50rb', 'bensin 75k']) {
+    await page.getByPlaceholder(/Contoh/).fill(input);
+    await page.getByRole('button', { name: 'Kirim transaksi' }).click();
+    await expect(page.locator('#pending-desc')).toBeVisible({ timeout: 8000 });
+    await page.getByRole('button', { name: 'Simpan transaksi' }).click();
+    await expect(page.getByText(/Tercatat/).last()).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#pending-desc')).toHaveCount(0, { timeout: 5000 });
+  }
+
+  // Verify 3 transactions on Home
+  await page.goto('/');
+  await expect(page.getByText('3 transaksi')).toBeVisible();
+
+  // Go to Settings → Danger Zone
+  await page.goto('/settings');
+  await expect(page.getByText('Zona Berbahaya')).toBeVisible();
+  await expect(page.getByText('3 transaksi akan dihapus permanen')).toBeVisible();
+
+  // Click Hapus → confirm dialog
+  await page.getByRole('button', { name: 'Hapus semua data transaksi' }).click();
+  await expect(page.getByText('Hapus semua data?')).toBeVisible();
+  // Use exact name match to avoid collision with 'Hapus' button
+  await page.getByRole('button', { name: 'Hapus semua', exact: true }).click();
+
+  // Verify toast and empty state
+  await expect(page.getByText('Semua data transaksi berhasil dihapus')).toBeVisible({ timeout: 5000 });
+  await page.goto('/');
+  await expect(page.getByText('Belum ada transaksi')).toBeVisible();
+});
