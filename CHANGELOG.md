@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.30 - 2026-09-02
+### Fixed
+
+- LLM fallback untuk bukti Mandiri yang OCR-nya berantakan
+
+
 ## 0.6.29 - 2026-09-02
 ### Fixed
 
