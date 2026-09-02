@@ -264,7 +264,7 @@ function formatDescription(raw: string, hasGenericSource: boolean): string {
   // Remove generic source words (tunai/cash/kas) if detected as source
   if (hasGenericSource) desc = desc.replace(GENERIC_SOURCE_RE, '').replace(/\s{2,}/g, ' ').trim();
   // Remove mid-sentence verb before generic source (e.g. "kopi bayar kas" → "kopi")
-  if (hasGenericSource) desc = desc.replace(/\s+(?:bayar|pakai|pake|dari|via)\s*$/i, '').replace(/\s{2,}/g, ' ').trim();
+  if (hasGenericSource) desc = desc.replace(/\s+(?:bayar|pakai|pake|dari|via)\s*$/i, '').replace(/\s{2,}/g, ' ').trim(); // NOSONAR
   // Remove trailing words + number (e.g. "lantai 2", "lantai 3", "lantai 5")
   desc = desc.replace(/\s+\w+\s+\d{1,2}\s*$/ , '').trim(); // NOSONAR
   // Remove trailing standalone numbers
