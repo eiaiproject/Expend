@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.17 - 2026-09-02
+### Fixed
+
+- Add NOSONAR for S8786 regex in chatParser
+
+
 ## 0.6.16 - 2026-09-02
 ### Fixed
 
