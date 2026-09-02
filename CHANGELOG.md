@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.33 - 2026-09-02
+### Added
+
+- Full LLM mode — LLM dulu, regex jadi fallback + strip amount dari desc
+
+
 ## 0.6.32 - 2026-09-02
 ### Fixed
 
