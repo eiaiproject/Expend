@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.8 - 2026-09-02
+### Changed
+
+- Streamline Data section to CSV/XLSX only
+
+
 ## 0.6.7 - 2026-09-02
 ### Added
 

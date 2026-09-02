@@ -1,23 +1,14 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { ChevronRight, ChevronDown, Lock, CloudCross, Information, Download, Upload, Trash2 } from 'reicon-react';
+import { useState, useCallback, useEffect } from 'react';
+import { ChevronRight, ChevronDown, Lock, CloudCross, Information, Download } from 'reicon-react';
 import { db } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { PageHeader } from '../components/PageHeader';
 import { SectionCard } from '../components/SectionCard';
-import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Toast } from '../components/Toast';
 import { csvBlob, xlsxBlob, filterByDate, exportFilename, downloadBlob } from '../utils/export';
 
 type Theme = 'system' | 'light' | 'dark';
 type ToastState = { message: string; type: 'success' | 'error' } | null;
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-}
 
 function SettingsSection({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
   return (
@@ -102,25 +93,13 @@ export default function SettingsView() {
   const version: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
   const txs = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
   const [confirmSave, setConfirmSave] = useState(() => {
     const v = localStorage.getItem('confirmSave');
     return v === null ? true : v === 'true';
   });
-  const [storageInfo, setStorageInfo] = useState<{ usage: number; quota: number } | null>(null);
   const [exportFrom, setExportFrom] = useState('');
   const [exportTo, setExportTo] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Load storage info
-  useEffect(() => {
-    if ('storage' in navigator && 'estimate' in navigator.storage) {
-      navigator.storage.estimate().then((est) => {
-        setStorageInfo({ usage: est.usage ?? 0, quota: est.quota ?? 0 });
-      }).catch(() => {});
-    }
-  }, []);
 
   // Persist confirmSave
   useEffect(() => {
@@ -142,64 +121,6 @@ export default function SettingsView() {
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
   }, []);
-
-  const handleExport = useCallback(async () => {
-    try {
-      const transactions = await db.transactions.toArray();
-      const chatMessages = await db.chatMessages.toArray();
-      const data = { version: '1.0', exportedAt: new Date().toISOString(), transactions, chatMessages };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const date = new Date().toISOString().slice(0, 10);
-      a.href = url;
-      a.download = `expend-${date}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast(`Berhasil mengekspor ${transactions.length} transaksi.`);
-    } catch {
-      showToast('Gagal mengekspor data. Coba lagi.', 'error');
-    }
-  }, [showToast]);
-
-  const handleImport = useCallback(async (file: File) => {
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (!data.transactions || !Array.isArray(data.transactions)) {
-        showToast('Format file tidak valid. Gunakan file JSON dari Expend.', 'error');
-        return;
-      }
-      const validTxs = data.transactions.filter(
-        (t: any) => typeof t.description === 'string' && typeof t.amount === 'number' && typeof t.date === 'string'
-      );
-      if (validTxs.length === 0) {
-        showToast('Tidak ada transaksi valid ditemukan dalam file.', 'error');
-        return;
-      }
-      await db.transactions.bulkAdd(validTxs.map((t: any) => ({
-        description: t.description,
-        amount: t.amount,
-        date: t.date,
-        createdAt: t.createdAt || new Date().toISOString(),
-        rawText: t.rawText,
-      })));
-      showToast(`Berhasil mengimpor ${validTxs.length} transaksi.`);
-    } catch {
-      showToast('Gagal membaca file. Pastikan format file benar.', 'error');
-    }
-  }, [showToast]);
-
-  const handleDeleteAll = useCallback(async () => {
-    try {
-      await db.transactions.clear();
-      await db.chatMessages.clear();
-      setConfirmDelete(false);
-      showToast('Semua data berhasil dihapus.');
-    } catch {
-      showToast('Gagal menghapus data. Coba lagi.', 'error');
-    }
-  }, [showToast]);
 
   const handleExportCSV = useCallback(async () => {
     try {
@@ -284,56 +205,6 @@ export default function SettingsView() {
       {/* Data */}
       <SettingsSection title="Data">
         <SectionCard padding="sm">
-          <div className="divide-y divide-[var(--border)]">
-            <SettingsRow
-              icon={<Download size={18} />}
-              title="Ekspor data"
-              description={`${txs.length} transaksi &middot; format JSON`}
-              action={handleExport}
-            />
-            <SettingsRow
-              icon={<Upload size={18} />}
-              iconBg="bg-[var(--bg)] border border-[var(--border)]"
-              iconColor="text-[var(--text-secondary)]"
-              title="Impor data"
-              description="Dari file JSON Expend"
-              action={() => fileInputRef.current?.click()}
-            />
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleImport(f);
-                e.target.value = '';
-              }}
-            />
-            <SettingsRow
-              icon={<Trash2 size={18} />}
-              iconBg="bg-[var(--danger-bg)]"
-              iconColor="text-[var(--danger)]"
-              title="Hapus semua data"
-              description="Tindakan ini tidak dapat dibatalkan"
-              action={() => setConfirmDelete(true)}
-            />
-            {storageInfo && (
-              <div className="px-4 py-3">
-                <p className="text-xs text-[var(--text-muted)]">
-                  Penggunaan penyimpanan: {formatBytes(storageInfo.usage)} dari {formatBytes(storageInfo.quota)}
-                </p>
-                <div className="mt-1.5 h-1.5 rounded-full bg-[var(--border)] overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[var(--accent)] transition-all"
-                    style={{ width: `${Math.min((storageInfo.usage / storageInfo.quota) * 100, 100)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </SectionCard>
-        <SectionCard padding="sm">
           <div className="px-4 py-3 space-y-3">
             <div>
               <p className="text-sm font-semibold">Ekspor rentang tanggal</p>
@@ -410,18 +281,6 @@ export default function SettingsView() {
       <div className="text-center pt-2 pb-4">
         <p className="text-[11px] text-[var(--text-muted)] font-mono">expend.pages.dev</p>
       </div>
-
-      {/* Delete confirmation dialog */}
-      <ConfirmDialog
-        open={confirmDelete}
-        title="Hapus semua data?"
-        description="Semua transaksi dan riwayat chat akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan."
-        confirmLabel="Hapus semua"
-        cancelLabel="Batal"
-        destructive
-        onConfirm={handleDeleteAll}
-        onCancel={() => setConfirmDelete(false)}
-      />
 
       {/* Toast */}
       {toast && (
