@@ -1,4 +1,16 @@
 # Changelog
+## 0.6.6 - 2026-09-02
+### Added
+
+- Add CSV/XLSX export UI with date range
+- Add XLSX via xlsx and date-range filter
+- Add CSV pure utility with RFC4180 escaping
+
+### Fixed
+
+- Handle edge CSV escaping, a11y disabled state, docs
+
+
 ## 0.6.5 - 2026-09-02
 ### Fixed
 

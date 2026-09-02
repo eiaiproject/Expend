@@ -6,6 +6,7 @@ import { PageHeader } from '../components/PageHeader';
 import { SectionCard } from '../components/SectionCard';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Toast } from '../components/Toast';
+import { csvBlob, xlsxBlob, filterByDate, exportFilename, downloadBlob } from '../utils/export';
 
 type Theme = 'system' | 'light' | 'dark';
 type ToastState = { message: string; type: 'success' | 'error' } | null;
@@ -108,6 +109,8 @@ export default function SettingsView() {
     return v === null ? true : v === 'true';
   });
   const [storageInfo, setStorageInfo] = useState<{ usage: number; quota: number } | null>(null);
+  const [exportFrom, setExportFrom] = useState('');
+  const [exportTo, setExportTo] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load storage info
@@ -197,6 +200,38 @@ export default function SettingsView() {
       showToast('Gagal menghapus data. Coba lagi.', 'error');
     }
   }, [showToast]);
+
+  const handleExportCSV = useCallback(async () => {
+    try {
+      const all = await db.transactions.toArray();
+      const filtered = filterByDate(all, exportFrom || undefined, exportTo || undefined);
+      if (!filtered.length) {
+        showToast('Tidak ada transaksi untuk diekspor.', 'error');
+        return;
+      }
+      const blob = csvBlob(filtered);
+      downloadBlob(blob, exportFilename('csv', exportFrom || undefined, exportTo || undefined));
+      showToast(`Berhasil mengekspor ${filtered.length} transaksi (CSV).`);
+    } catch {
+      showToast('Gagal mengekspor CSV.', 'error');
+    }
+  }, [exportFrom, exportTo, showToast]);
+
+  const handleExportXLSX = useCallback(async () => {
+    try {
+      const all = await db.transactions.toArray();
+      const filtered = filterByDate(all, exportFrom || undefined, exportTo || undefined);
+      if (!filtered.length) {
+        showToast('Tidak ada transaksi untuk diekspor.', 'error');
+        return;
+      }
+      const blob = xlsxBlob(filtered);
+      downloadBlob(blob, exportFilename('xlsx', exportFrom || undefined, exportTo || undefined));
+      showToast(`Berhasil mengekspor ${filtered.length} transaksi (Excel).`);
+    } catch {
+      showToast('Gagal mengekspor Excel.', 'error');
+    }
+  }, [exportFrom, exportTo, showToast]);
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 pt-4 md:pt-0 pb-8 space-y-6">
@@ -296,6 +331,32 @@ export default function SettingsView() {
                 </div>
               </div>
             )}
+          </div>
+        </SectionCard>
+        <SectionCard padding="sm">
+          <div className="px-4 py-3 space-y-3">
+            <div>
+              <p className="text-sm font-semibold">Ekspor rentang tanggal</p>
+              <p className="text-xs text-[var(--text-secondary)]">Kosongkan untuk semua transaksi</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="text-xs font-medium text-[var(--text-secondary)]">Dari</span>
+                <input id="export-from" type="date" value={exportFrom} onChange={(e) => setExportFrom(e.target.value)} className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-[var(--text-secondary)]">Sampai</span>
+                <input id="export-to" type="date" value={exportTo} onChange={(e) => setExportTo(e.target.value)} className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" aria-label="Ekspor CSV" onClick={handleExportCSV} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+                <Download size={16} aria-hidden /> Ekspor CSV
+              </button>
+              <button type="button" aria-label="Ekspor Excel" onClick={handleExportXLSX} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+                <Download size={16} aria-hidden /> Ekspor Excel
+              </button>
+            </div>
           </div>
         </SectionCard>
       </SettingsSection>
