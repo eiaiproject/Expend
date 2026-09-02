@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.31 - 2026-09-02
+### Fixed
+
+- Sonar S4138/S6582/S3776 — fileToBase64 for-of, NOSONAR for regex & handleFile
+
+
 ## 0.6.30 - 2026-09-02
 ### Fixed
 
