@@ -1,12 +1,15 @@
+import { useTranslation } from '../i18n';
+
 interface SkeletonCardProps {
   readonly lines?: number;
   readonly className?: string;
 }
 
 export function SkeletonCard({ lines = 2, className = '' }: SkeletonCardProps) {
+  const { t } = useTranslation();
   return (
-    <output className={`rounded-[var(--radius-lg)] bg-[var(--card)] border border-[var(--border)] p-4 space-y-3 animate-pulse ${className}`} aria-live="polite" aria-label="Memuat data">
-      <span className="sr-only">Memuat...</span>
+    <output className={`rounded-[var(--radius-lg)] bg-[var(--card)] border border-[var(--border)] p-4 space-y-3 animate-pulse ${className}`} aria-live="polite" aria-label={t('common.loadingData')}>
+      <span className="sr-only">{t('common.loading')}</span>
       <div className="flex items-center gap-4">
         <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--border)]" />
         <div className="flex-1 space-y-2">

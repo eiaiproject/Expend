@@ -1,5 +1,6 @@
 import type * as XLSXTypes from 'xlsx';
 import type { Transaction } from '../db/db';
+import { t } from '../i18n/standalone';
 
 const XLSXLoader = () => import('xlsx');
 
@@ -7,16 +8,16 @@ async function getXLSX(): Promise<typeof XLSXTypes> {
   return (await XLSXLoader()).default ?? (await XLSXLoader() as unknown as typeof XLSXTypes);
 }
 
-export type ExportRow = { Tanggal: string; Deskripsi: string; Jumlah: number; Sumber: string; Catatan: string; Dibuat: string };
+export type ExportRow = { [key: string]: string | number };
 
 export function toExportRows(txs: Transaction[]): ExportRow[] {
-  return txs.map((t) => ({
-    Tanggal: t.date,
-    Deskripsi: t.description,
-    Jumlah: t.amount,
-    Sumber: t.source ?? '',
-    Catatan: t.note ?? '',
-    Dibuat: t.createdAt,
+  return txs.map((tx) => ({
+    [t('export.date')]: tx.date,
+    [t('export.description')]: tx.description,
+    [t('export.amount')]: tx.amount,
+    [t('export.source')]: tx.source ?? '',
+    [t('export.note')]: tx.note ?? '',
+    [t('export.createdAt')]: tx.createdAt,
   }));
 }
 
@@ -27,9 +28,9 @@ function escapeCSV(v: string | number): string {
 }
 
 export function toCSV(rows: ExportRow[]): string {
-  const header = ['Tanggal', 'Deskripsi', 'Jumlah', 'Sumber', 'Catatan', 'Dibuat'];
-  const lines = [header.map(escapeCSV).join(',')];
-  for (const r of rows) lines.push([r.Tanggal, r.Deskripsi, r.Jumlah, r.Sumber, r.Catatan, r.Dibuat].map(escapeCSV).join(','));
+  const headers = [t('export.date'), t('export.description'), t('export.amount'), t('export.source'), t('export.note'), t('export.createdAt')];
+  const lines = [headers.map(escapeCSV).join(',')];
+  for (const r of rows) lines.push(headers.map((h) => escapeCSV(r[h] ?? '')).join(','));
   return lines.join('\r\n') + '\r\n';
 }
 
@@ -49,10 +50,11 @@ export function filterByDate(txs: Transaction[], from?: string, to?: string): Tr
 export async function xlsxBlob(txs: Transaction[]): Promise<Blob> {
   const XLSX = await getXLSX();
   const rows = toExportRows(txs);
-  const ws = XLSX.utils.json_to_sheet(rows, { header: ['Tanggal', 'Deskripsi', 'Jumlah', 'Sumber', 'Catatan', 'Dibuat'] });
+  const headers = [t('export.date'), t('export.description'), t('export.amount'), t('export.source'), t('export.note'), t('export.createdAt')];
+  const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
   ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 30 }, { wch: 22 }];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Transaksi');
+  XLSX.utils.book_append_sheet(wb, ws, t('export.sheetName'));
   const ab = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
   return new Blob([ab], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }

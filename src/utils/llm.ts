@@ -1,5 +1,6 @@
 import type { ParsedExpense } from './chatParser';
 import { titleCasePreserveAcronyms } from './textFormat';
+import { t } from '../i18n/standalone';
 
 export interface LLMConfig {
   enabled: boolean;
@@ -213,11 +214,11 @@ export async function parseWithLLM(text: string): Promise<ParsedExpense | null> 
 
 export async function testLLMConnection(): Promise<{ ok: boolean; message: string }> {
   const cfg = getLLMConfig();
-  if (!cfg.enabled) return { ok: false, message: 'Aktifkan dulu parsing pintar.' };
-  if (!cfg.apiKey.trim()) return { ok: false, message: 'API key kosong.' };
-  if (!cfg.model.trim()) return { ok: false, message: 'Model kosong.' };
+  if (!cfg.enabled) return { ok: false, message: t('llm.activateFirst') };
+  if (!cfg.apiKey.trim()) return { ok: false, message: t('llm.apiKeyEmpty') };
+  if (!cfg.model.trim()) return { ok: false, message: t('llm.modelEmpty') };
   const r = await parseWithLLM('kopi 25rb'); // NOSONAR
-  if (r && r.amount === 25000) return { ok: true, message: `OK — ${r.description} Rp${r.amount}` }; // NOSONAR
-  if (r) return { ok: true, message: `Terhubung — ${r.description} (Rp${r.amount})` };
-  return { ok: false, message: 'Gagal parse. Periksa base URL / key / model.' };
+  if (r && r.amount === 25000) return { ok: true, message: t('llm.testSuccess', { desc: r.description, amount: r.amount }) };
+  if (r) return { ok: true, message: t('llm.testConnected', { desc: r.description, amount: r.amount }) };
+  return { ok: false, message: t('llm.testFailed') };
 }

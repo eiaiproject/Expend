@@ -1,7 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import { navigationItems } from '../config/navigation';
+import { useTranslation } from '../i18n';
 
 export function BottomNav({ hidden = false }: { readonly hidden?: boolean }) {
+  const { t } = useTranslation();
   if (hidden) return null;
 
   return (
@@ -25,7 +27,7 @@ export function BottomNav({ hidden = false }: { readonly hidden?: boolean }) {
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-full bg-[var(--accent)]" aria-hidden="true" />
               )}
               <item.icon size={20} aria-hidden />
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
             </>
           )}
         </NavLink>

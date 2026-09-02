@@ -1,7 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import { navigationItems } from '../config/navigation';
+import { useTranslation } from '../i18n';
 
 export function SidebarNav() {
+  const { t } = useTranslation();
   return (
     <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-[var(--border)] bg-[var(--card)] p-4 gap-1">
       <div className="px-4 py-2.5">
@@ -22,7 +24,7 @@ export function SidebarNav() {
             }
           >
             <item.icon size={18} aria-hidden />
-            {item.label}
+            {t(item.labelKey)}
           </NavLink>
         ))}
       </nav>

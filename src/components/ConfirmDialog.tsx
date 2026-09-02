@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { RefObject } from 'react';
+import { useTranslation } from '../i18n';
 
 interface ConfirmDialogProps {
   readonly open: boolean;
@@ -17,13 +18,14 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = 'Konfirmasi',
-  cancelLabel = 'Batal',
+  confirmLabel,
+  cancelLabel,
   destructive = false,
   onConfirm,
   onCancel,
   returnFocusRef,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement & HTMLDialogElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
@@ -86,7 +88,7 @@ export function ConfirmDialog({
             onClick={onCancel}
             className="min-h-11 px-4 rounded-[var(--radius-md)] bg-[var(--bg)] border border-[var(--border)] text-sm font-semibold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
           >
-            {cancelLabel}
+            {cancelLabel ?? t('common.cancel')}
           </button>
           <button
             type="button"
@@ -97,7 +99,7 @@ export function ConfirmDialog({
                 : 'bg-[var(--accent-fill)] text-[var(--accent-ink)] hover:opacity-90'
             }`}
           >
-            {confirmLabel}
+            {confirmLabel ?? t('common.confirm')}
           </button>
         </div>
       </dialog>

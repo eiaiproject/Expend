@@ -9,6 +9,7 @@ import { fmtIDR } from '../utils/format';
 import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ChevronDown, X } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { InlineAlert } from '../components/InlineAlert';
+import { useTranslation } from '../i18n';
 
 type Pending = { description: string; amount: number; date: string; note?: string; source?: string };
 
@@ -40,6 +41,7 @@ async function parseWithFallback<T>(
 }
 
 export default function ChatView() {
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [pending, setPending] = useState<Pending | null>(null);
   const [ocrProgress, setOcrProgress] = useState<number | null>(null);
@@ -158,7 +160,7 @@ export default function ChatView() {
     if (!parsed) {
       await db.chatMessages.add({
         role: 'assistant',
-        text: 'Nominal tidak terbaca. Contoh: "kopi 20rb" atau "50000 indomaret".',
+        text: t('chat.noAmount'),
         createdAt: new Date().toISOString(),
       });
       setIsSending(false);
@@ -169,7 +171,7 @@ export default function ChatView() {
     setPending(p);
     await db.chatMessages.add({
       role: 'assistant',
-      text: `Siap dicatat: ${p.description} - ${fmtIDR(p.amount)}`,
+      text: t('chat.recorded', { desc: p.description, amount: fmtIDR(p.amount) }),
       createdAt: new Date().toISOString(),
       parsed: p,
     });
@@ -185,11 +187,11 @@ export default function ChatView() {
 
   async function handleFile(file: File) { // NOSONAR - cognitive complexity from OCR+LLM fallbacks
     if (!file.type.startsWith('image/') || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setOcrError('Gunakan gambar JPG, PNG, atau WebP dengan ukuran maksimal 10 MB.');
+      setOcrError(t('chat.ocrFormatError'));
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      setOcrError('Ukuran gambar maksimal 10 MB. Coba kompres atau potong gambar.');
+      setOcrError(t('chat.ocrSizeError'));
       return;
     }
     setOcrError(null);
@@ -218,10 +220,10 @@ export default function ChatView() {
       parsed ??= parseReceiptText(text);
       if (!parsed) {
         setPending({ description: 'Transfer', amount: 0, date: new Date().toISOString().slice(0, 10) });
-        setOcrError('Bukti tidak dapat dibaca. Coba gunakan foto yang lebih jelas atau masukkan transaksi secara manual.');
+        setOcrError(t('chat.ocrReadError'));
         await db.chatMessages.add({
           role: 'assistant',
-          text: 'Foto kurang jelas. Silakan edit detail di bawah atau masukkan ulang.',
+          text: t('chat.ocrClearPhoto'),
           createdAt: new Date().toISOString(),
         });
         return;
@@ -229,12 +231,12 @@ export default function ChatView() {
       setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date, note: parsed.note, source: parsed.source });
       await db.chatMessages.add({
         role: 'assistant',
-        text: `Siap dicatat: ${parsed.description} - ${fmtIDR(parsed.amount)}`,
+        text: t('chat.recorded', { desc: parsed.description, amount: fmtIDR(parsed.amount) }),
         createdAt: new Date().toISOString(),
         parsed: { description: parsed.description, amount: parsed.amount },
       });
     } catch {
-      setOcrError('Gagal membaca bukti. Sambungkan internet sekali untuk mengunduh model OCR.');
+      setOcrError(t('chat.ocrNetworkError'));
     } finally {
       setOcrProgress(null);
       setOcrAvailable(isOcrReady());
@@ -260,7 +262,7 @@ export default function ChatView() {
       })) as number;
       await db.chatMessages.add({
         role: 'assistant',
-        text: `Tercatat. ${p.description} - ${fmtIDR(p.amount)}`,
+        text: t('chat.saved', { desc: p.description, amount: fmtIDR(p.amount) }),
         createdAt: new Date().toISOString(),
         txId,
       });
@@ -272,7 +274,7 @@ export default function ChatView() {
       setPending(null);
       setOcrError(null);
     } catch {
-      setOcrError('Gagal menyimpan transaksi. Coba lagi.');
+      setOcrError(t('chat.saveError') ?? 'Gagal menyimpan transaksi. Coba lagi.');
     }
   }
 
@@ -300,12 +302,12 @@ export default function ChatView() {
             <ChatRoundDots size={18} aria-hidden />
           </div>
           <div className="min-w-0">
-            <h1 className="text-base font-bold tracking-tight leading-tight">Catat pengeluaran</h1>
-            <p className="text-xs text-[var(--text-secondary)] leading-tight mt-0.5">Ketik transaksi atau unggah bukti</p>
+            <h1 className="text-base font-bold tracking-tight leading-tight">{t('chat.title')}</h1>
+            <p className="text-xs text-[var(--text-secondary)] leading-tight mt-0.5">{t('chat.subtitle')}</p>
           </div>
           <div className="ml-auto hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bone)] text-[var(--text-secondary)] text-[12px] font-semibold border border-[var(--border)]">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
-            <span>{ocrAvailable ? 'Siap diproses' : 'Memuat pemroses...'}</span>
+            <span>{ocrAvailable ? t('common.ready') : t('common.loadingProcessor')}</span>
           </div>
         </div>
       </div>
@@ -319,13 +321,13 @@ export default function ChatView() {
                 <Receipt size={18} className="text-[var(--accent)]" aria-hidden />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-bold tracking-tight leading-none">Mulai mencatat</p>
-                <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">Ketik deskripsi, nominal, dan sumber dana.</p>
+                <p className="text-[14px] font-bold tracking-tight leading-none">{t('chat.startRecording')}</p>
+                <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">{t('chat.startDesc')}</p>
                 <div className="mt-3 rounded-[10px] border border-[var(--border)] bg-[var(--bg)] overflow-hidden">
                   <div className="px-3 py-1.5 border-b border-[var(--border)]/60 bg-[var(--card)] flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" aria-hidden />
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" aria-hidden />
-                    <span className="text-[11px] font-mono tracking-wide text-[var(--text-muted)] uppercase">Contoh</span>
+                    <span className="text-[11px] font-mono tracking-wide text-[var(--text-muted)] uppercase">{t('chat.example')}</span>
                   </div>
                   <div className="px-3 py-2.5 space-y-1 font-mono text-[12px] leading-5 text-[var(--text-secondary)]">
                     <p>kopi <span className="text-[var(--accent)] font-medium">25rb</span> <span className="text-[var(--text-muted)]">dari BSI</span></p>
@@ -342,7 +344,7 @@ export default function ChatView() {
                 className="w-full min-h-12 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
               >
                 <Gallery size={16} aria-hidden />
-                Unggah bukti transaksi
+                {t('chat.uploadReceipt')}
               </button>
             </div>
           </div>
@@ -356,11 +358,11 @@ export default function ChatView() {
           role="log"
           aria-live="polite"
           aria-relevant="additions"
-          aria-label="Percakapan"
+          aria-label={t('chat.conversation')}
           onScroll={handleScroll}
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 py-4 pb-8 space-y-3"
         >
-          <h2 className="sr-only">Percakapan</h2>
+          <h2 className="sr-only">{t('chat.conversation')}</h2>
           {messages.map((m) => (
             <div key={m.id} className="flex motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none" style={{ contentVisibility: 'auto' } as any}>
               <div className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -374,7 +376,7 @@ export default function ChatView() {
                   >
                     {m.text === '__LINK_RINGKASAN__' ? (
                       <Link to="/" className="text-sm font-semibold text-[var(--accent)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded">
-                        Lihat di Ringkasan
+                        {t('chat.viewSummary')}
                       </Link>
                     ) : (
                       <p className="whitespace-pre-wrap break-words">{m.text}</p>
@@ -392,7 +394,7 @@ export default function ChatView() {
             <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4">
               {previewUrl && (
                 <div className="mb-3 rounded-[var(--radius-md)] overflow-hidden border border-[var(--border)]">
-                  <img src={previewUrl} alt="Bukti yang diunggah" className="w-full max-h-48 object-cover" />
+                  <img src={previewUrl} alt={t('chat.uploadReceipt')} className="w-full max-h-48 object-cover" />
                 </div>
               )}
               <div className="flex items-center gap-2">
@@ -400,12 +402,12 @@ export default function ChatView() {
                   <Gallery size={14} className="text-[var(--text-secondary)]" aria-hidden />
                 </div>
                 <p className="text-xs font-semibold" aria-live="polite">
-                  Membaca bukti... {ocrProgress}%
+                  {t('chat.readingReceipt')} {ocrProgress}%
                 </p>
-                <span className="ml-auto text-[12px] text-[var(--text-muted)]">luring</span>
+                <span className="ml-auto text-[12px] text-[var(--text-muted)]">{t('chat.offline')}</span>
               </div>
               <progress value={ocrProgress} max={100} aria-label="Memindai bukti" aria-valuetext={`${ocrProgress}%`} className="mt-3 h-1.5 w-full rounded-full overflow-hidden" />
-              <p className="text-[12px] text-[var(--text-muted)] mt-2">Tetap di halaman ini, jangan tutup.</p>
+              <p className="text-[12px] text-[var(--text-muted)] mt-2">{t('chat.stayOnPage')}</p>
             </div>
           )}
 
@@ -417,23 +419,23 @@ export default function ChatView() {
                 <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--accent-ink)] grid place-items-center">
                   <Check size={14} aria-hidden />
                 </div>
-                <p className="text-xs font-bold tracking-wide uppercase text-[var(--accent)]">Periksa transaksi</p>
+                <p className="text-xs font-bold tracking-wide uppercase text-[var(--accent)]">{t('chat.checkTransaction')}</p>
               </div>
               <div className="mt-4 space-y-3">
                 <label htmlFor="pending-desc" className="block">
-                  <span className="text-xs font-medium text-[var(--text-secondary)]">Deskripsi</span>
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">{t('chat.description')}</span>
                   <input
                     id="pending-desc"
                     value={pending.description}
                     onChange={(e) => setPending({ ...pending, description: e.target.value })}
                     autoComplete="off"
-                    placeholder="Misal: Toko Kopi"
+                    placeholder={t('chat.descPlaceholder')}
                     className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
                   />
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <label htmlFor="pending-amount" className="block">
-                    <span className="text-xs font-medium text-[var(--text-secondary)]">Nominal</span>
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">{t('chat.amount')}</span>
                     <input
                       id="pending-amount"
                       type="number"
@@ -445,7 +447,7 @@ export default function ChatView() {
                     />
                   </label>
                   <label htmlFor="pending-date" className="block">
-                    <span className="text-xs font-medium text-[var(--text-secondary)]">Tanggal</span>
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">{t('chat.date')}</span>
                     <input
                       id="pending-date"
                       type="date"
@@ -456,24 +458,24 @@ export default function ChatView() {
                   </label>
                 </div>
                 <label htmlFor="pending-source" className="block">
-                  <span className="text-xs font-medium text-[var(--text-secondary)]">Sumber dana</span>
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">{t('chat.source')}</span>
                   <input
                     id="pending-source"
                     value={pending.source ?? ''}
                     onChange={(e) => setPending({ ...pending, source: e.target.value })}
                     autoComplete="off"
-                    placeholder="Tunai, Transfer Bank, GoPay..."
+                    placeholder={t('chat.sourcePlaceholder')}
                     className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
                   />
                 </label>
                 <label htmlFor="pending-note" className="block">
-                  <span className="text-xs font-medium text-[var(--text-secondary)]">Catatan <span className="text-[var(--text-muted)]">(opsional)</span></span>
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">{t('chat.note')} <span className="text-[var(--text-muted)]">({t('chat.noteOptional')})</span></span>
                   <input
                     id="pending-note"
                     value={pending.note ?? ''}
                     onChange={(e) => setPending({ ...pending, note: e.target.value })}
                     autoComplete="off"
-                    placeholder="Misal: untuk bulanan"
+                    placeholder={t('chat.notePlaceholder')}
                     className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
                   />
                 </label>
@@ -491,7 +493,7 @@ export default function ChatView() {
                   className="flex-1 min-h-12 py-3 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 >
                   <Check size={16} aria-hidden />
-                  Simpan transaksi
+                  {t('chat.saveTransaction')}
                 </button>
                 <button
                   type="button"
@@ -499,7 +501,7 @@ export default function ChatView() {
                   className="min-h-12 px-5 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 >
                   <X size={16} aria-hidden />
-                  Batalkan
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>
@@ -513,7 +515,7 @@ export default function ChatView() {
       {showScrollBtn && (
         <button
           type="button"
-          aria-label="Kembali ke pesan terbaru"
+          aria-label={t('chat.backToLatest')}
           onClick={() => scrollToBottom(endRef)}
           className="absolute bottom-24 md:bottom-20 left-1/2 -translate-x-1/2 z-20 min-w-12 min-h-12 w-12 h-12 rounded-full bg-[var(--card)] border border-[var(--border)] shadow-md grid place-items-center hover:bg-[var(--bone)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
         >
@@ -526,8 +528,8 @@ export default function ChatView() {
         <div className="pointer-events-none fixed inset-0 z-40 bg-[var(--accent)]/5 backdrop-blur-[1px] grid place-items-center p-6">
           <div className="rounded-[var(--radius-lg)] bg-[var(--card)] border-2 border-dashed border-[var(--accent)] p-6 text-center shadow-lg">
             <Gallery size={20} className="mx-auto text-[var(--accent)]" aria-hidden />
-            <p className="text-sm font-bold mt-2">Lepas bukti di sini</p>
-            <p className="text-xs text-[var(--text-secondary)]">JPG, PNG, atau WebP &middot; maksimal 10 MB</p>
+            <p className="text-sm font-bold mt-2">{t('chat.dropHere')}</p>
+            <p className="text-xs text-[var(--text-secondary)]">{t('chat.dropFormats')}</p>
           </div>
         </div>
       )}
@@ -552,7 +554,7 @@ export default function ChatView() {
           />
           <button
             type="button"
-            aria-label="Pilih bukti dari galeri"
+            aria-label={t('chat.pickFromGallery')}
             onClick={() => fileRef.current?.click()}
             className="w-12 h-12 rounded-full bg-[var(--bg)] border border-[var(--border)] grid place-items-center shrink-0 hover:bg-[var(--border)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
           >
@@ -560,7 +562,7 @@ export default function ChatView() {
           </button>
           <button
             type="button"
-            aria-label="Ambil foto bukti transaksi"
+            aria-label={t('chat.takePhoto')}
             onClick={() => cameraRef.current?.click()}
             className="w-12 h-12 rounded-full bg-[var(--bg)] border border-[var(--border)] grid place-items-center shrink-0 hover:bg-[var(--border)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 md:hidden"
           >
@@ -572,15 +574,15 @@ export default function ChatView() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={1}
-            placeholder="Contoh: kopi 25rb"
-            aria-label="Tulis pengeluaran"
+            placeholder={t('chat.inputPlaceholder')}
+            aria-label={t('chat.inputLabel')}
             autoComplete="off"
             enterKeyHint="send"
             className="flex-1 min-w-0 min-h-[44px] max-h-32 bg-transparent px-2 py-2.5 text-sm outline-none placeholder:text-[var(--text-muted)] resize-none leading-snug"
           />
           <button
             type="submit"
-            aria-label={isSending ? 'Memproses transaksi' : 'Kirim transaksi'}
+            aria-label={isSending ? t('chat.processing') : t('chat.send')}
             disabled={!input.trim() || isSending}
             aria-busy={isSending}
             className="w-12 h-12 rounded-full bg-[var(--accent-fill)] text-[var(--accent-ink)] grid place-items-center shrink-0 hover:opacity-90 active:scale-95 disabled:opacity-40 disabled:active:scale-100 transition-all shadow-sm focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
@@ -593,8 +595,8 @@ export default function ChatView() {
           </button>
         </form>
         <p className="text-[11px] tracking-wide text-[var(--text-secondary)] text-center mt-2.5">
-          <span className="hidden md:inline">Enter untuk kirim · Shift+Enter baris baru · Tarik bukti ke area chat</span>
-          <span className="md:hidden">Tarik bukti ke area chat untuk unggah</span>
+          <span className="hidden md:inline">{t('chat.shortcutsDesktop')}</span>
+          <span className="md:hidden">{t('chat.shortcutsMobile')}</span>
         </p>
       </div>
 

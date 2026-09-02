@@ -2,15 +2,17 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { BottomNav } from './components/BottomNav';
 import { SidebarNav } from './components/SidebarNav';
+import { I18nProvider, useTranslation } from './i18n';
 
 const HomeView = lazy(() => import('./views/HomeView'));
 const ChatView = lazy(() => import('./views/ChatView'));
 const SettingsView = lazy(() => import('./views/SettingsView'));
 
 function Skeleton() {
+  const { t } = useTranslation();
   return (
-    <output className="space-y-3 py-6 animate-pulse block" aria-label="Memuat">
-      <span className="sr-only">Memuat...</span>
+    <output className="space-y-3 py-6 animate-pulse block" aria-label={t('common.loadingData')}>
+      <span className="sr-only">{t('common.loading')}</span>
       <div className="h-24 rounded-[var(--radius-lg)] bg-[var(--border)]" />
       <div className="h-16 rounded-[var(--radius-lg)] bg-[var(--border)]" />
       <div className="h-16 rounded-[var(--radius-lg)] bg-[var(--border)]" />
@@ -19,6 +21,7 @@ function Skeleton() {
 }
 
 function Shell() {
+  const { t } = useTranslation();
   const location = useLocation();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const isChat = location.pathname === '/chat';
@@ -42,7 +45,7 @@ function Shell() {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-[var(--radius-md)] focus:bg-[var(--accent-fill)] focus:text-[var(--accent-ink)] focus:text-sm focus:font-bold focus:shadow-lg"
       >
-        Lewati ke konten utama
+        {t('common.skipToContent')}
       </a>
       <SidebarNav />
       <main id="main-content" className="flex-1 min-w-0 min-h-0 flex flex-col max-w-3xl mx-auto w-full pt-[env(safe-area-inset-top)] md:pt-6 overflow-hidden">
@@ -63,7 +66,9 @@ function Shell() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Shell />
+      <I18nProvider>
+        <Shell />
+      </I18nProvider>
     </BrowserRouter>
   );
 }
