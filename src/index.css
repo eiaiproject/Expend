@@ -224,4 +224,4 @@ progress::-moz-progress-bar { background: var(--accent); border-radius: 9999px; 
 @media (prefers-contrast: more) {
   :root { --border: #C9C9C9; --text-secondary: #2A2A2A; --accent: #1a2d19; }
 }
-.list-item { content-visibility: auto; contain-intrinsic-size: 0 72px; }
+.list-item { content-visibility: auto; contain-intrinsic-size: 0 72px; display: flex; }
