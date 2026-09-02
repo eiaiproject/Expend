@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.29 - 2026-09-02
+### Fixed
+
+- NOSONAR for LLM regex & share handler S3776/S8786
+
+
 ## 0.6.28 - 2026-09-02
 ### Added
 
