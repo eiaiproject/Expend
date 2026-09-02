@@ -104,12 +104,13 @@ export default function ChatView() {
             const meta = await metaRes.json();
             const sharedText = [meta.text, meta.url].filter(Boolean).join(' ').trim();
             if (sharedText) {
-              let parsed = parseChatInput(sharedText);
-              if (!parsed && isLLMEnabled()) {
+              let parsed: ReturnType<typeof parseChatInput> = null;
+              if (isLLMEnabled()) {
                 try {
                   parsed = await parseWithLLM(sharedText);
                 } catch {}
               }
+              if (!parsed) parsed = parseChatInput(sharedText);
               if (parsed) {
                 setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || new Date().toISOString().slice(0, 10), source: parsed.source });
               } else {
@@ -143,13 +144,14 @@ export default function ChatView() {
 
     const now = new Date().toISOString();
     await db.chatMessages.add({ role: 'user', text, createdAt: now });
-    let parsed = parseChatInput(text);
-    if (!parsed && isLLMEnabled()) {
+    // Full LLM mode: coba LLM dulu jika aktif, regex jadi fallback
+    let parsed: ReturnType<typeof parseChatInput> = null;
+    if (isLLMEnabled()) {
       try {
-        const llmParsed = await parseWithLLM(text);
-        if (llmParsed) parsed = llmParsed;
+        parsed = await parseWithLLM(text);
       } catch {}
     }
+    if (!parsed) parsed = parseChatInput(text);
     if (!parsed) {
       await db.chatMessages.add({
         role: 'assistant',
@@ -193,24 +195,24 @@ export default function ChatView() {
     setOcrProgress(0);
     try {
       const text = await recognizeImage(file, (n) => setOcrProgress(n));
-      let parsed = parseReceiptText(text);
-      // Fallback 1: LLM text parsing (typo-tolerant, handles messy OCR seperti Mandiri "mandlri", "Penerlma", "Berhas1l")
-      // Trigger jika parse gagal ATAU hasil ragu (tanpa source / deskripsi generik padahal teks panjang)
-      const needsLLM = !parsed || (isLLMEnabled() && parsed && (!parsed.source || parsed.description === 'Transfer' || /mandlri|berhas1l|penerlma|tota1/i.test(text)));
-      if (needsLLM && isLLMEnabled()) {
+      // Full LLM mode: jika aktif, coba LLM dulu (vision paling akurat untuk Mandiri yang OCR berantakan)
+      let parsed: ReturnType<typeof parseReceiptText> = null;
+      if (isLLMEnabled()) {
+        // Vision dulu jika model support (kirim gambar langsung, tanpa tergantung OCR)
         try {
-          const llmParsed = await parseReceiptWithLLM(text);
-          if (llmParsed) parsed = { ...llmParsed, rawText: text.slice(0, 500) } as ReturnType<typeof parseReceiptText> & { rawText: string };
-        } catch {}
-      }
-      // Fallback 2: Vision LLM langsung dari gambar (jika model support vision, untuk kasus OCR benar-benar hancur)
-      if (!parsed && isLLMEnabled()) {
-        try {
-          setOcrProgress(95);
           const visionParsed = await parseReceiptImageWithLLM(file);
           if (visionParsed) parsed = { ...visionParsed, rawText: text.slice(0, 500) } as ReturnType<typeof parseReceiptText> & { rawText: string };
         } catch {}
+        // Lalu LLM teks (typo-tolerant untuk OCR messy)
+        if (!parsed) {
+          try {
+            const llmParsed = await parseReceiptWithLLM(text);
+            if (llmParsed) parsed = { ...llmParsed, rawText: text.slice(0, 500) } as ReturnType<typeof parseReceiptText> & { rawText: string };
+          } catch {}
+        }
       }
+      // Fallback regex (offline)
+      if (!parsed) parsed = parseReceiptText(text);
       if (!parsed) {
         setPending({ description: 'Transfer', amount: 0, date: new Date().toISOString().slice(0, 10) });
         setOcrError('Bukti tidak dapat dibaca. Coba gunakan foto yang lebih jelas atau masukkan transaksi secara manual.');

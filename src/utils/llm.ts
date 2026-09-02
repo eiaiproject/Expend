@@ -130,6 +130,8 @@ export async function parseReceiptWithLLM(ocrText: string): Promise<(ParsedExpen
     const amount = typeof parsed.amount === 'number' ? parsed.amount : Number(parsed.amount);
     if (!amount || amount <= 0) return null;
     let description = (parsed.description || 'Transfer').trim() || 'Transfer';
+    description = stripAmountFromDesc(description);
+    if (!description) description = 'Transfer';
     description = titleCasePreserveAcronyms(description).slice(0, 80);
     let source: string | undefined;
     if (parsed.source && typeof parsed.source === 'string' && parsed.source.trim()) source = titleCasePreserveAcronyms(parsed.source.trim());
@@ -190,6 +192,8 @@ export async function parseReceiptImageWithLLM(file: File): Promise<(ParsedExpen
     const amount = typeof parsed.amount === 'number' ? parsed.amount : Number(parsed.amount);
     if (!amount || amount <= 0) return null;
     let description = (parsed.description || 'Transfer').trim() || 'Transfer';
+    description = stripAmountFromDesc(description);
+    if (!description) description = 'Transfer';
     description = titleCasePreserveAcronyms(description).slice(0, 80);
     let source: string | undefined;
     if (parsed.source && typeof parsed.source === 'string' && parsed.source.trim()) source = titleCasePreserveAcronyms(parsed.source.trim());
@@ -204,6 +208,10 @@ export async function parseReceiptImageWithLLM(file: File): Promise<(ParsedExpen
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function stripAmountFromDesc(desc: string): string {
+  return desc.replace(/\s*\d[\d.,]*\s*(?:rb|ribu|jt|juta|k)?\s*$/i, '').trim() || desc;
 }
 
 export async function parseWithLLM(text: string): Promise<ParsedExpense | null> {
@@ -262,6 +270,8 @@ export async function parseWithLLM(text: string): Promise<ParsedExpense | null> 
 
     let description = (parsed.description || 'Pengeluaran').trim();
     if (!description) description = 'Pengeluaran';
+    description = stripAmountFromDesc(description);
+    if (!description) description = 'Pengeluaran';
     description = titleCasePreserveAcronyms(description).slice(0, 80);
 
     let source: string | undefined;
@@ -270,7 +280,7 @@ export async function parseWithLLM(text: string): Promise<ParsedExpense | null> 
     }
 
     let date: string | undefined;
-    if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) {
+    if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) { // NOSONAR
       date = parsed.date;
     } else {
       date = today;
@@ -289,9 +299,9 @@ export async function testLLMConnection(): Promise<{ ok: boolean; message: strin
   if (!cfg.enabled) return { ok: false, message: 'Aktifkan dulu parsing pintar.' };
   if (!cfg.apiKey.trim()) return { ok: false, message: 'API key kosong.' };
   if (!cfg.model.trim()) return { ok: false, message: 'Model kosong.' };
-
+  // Test input "kopi 25rb" — expect amount 25000. Tampilkan desc tanpa amount.
   const r = await parseWithLLM('kopi 25rb'); // NOSONAR
   if (r && r.amount === 25000) return { ok: true, message: `OK — ${r.description} Rp${r.amount}` }; // NOSONAR
-  if (r) return { ok: true, message: `Terhubung — ${r.description}` };
+  if (r) return { ok: true, message: `Terhubung — ${r.description} (Rp${r.amount})` };
   return { ok: false, message: 'Gagal parse. Periksa base URL / key / model.' };
 }
