@@ -23,9 +23,8 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
         await page.reload();
         await expect(page.locator('main')).toBeVisible({ timeout: 5000 });
         // Wait for lazy-loaded content to replace Suspense fallback
-        await page.waitForLoadState('networkidle');
         const contentSelector = route === '/' ? 'header' : route === '/chat' ? 'h1' : 'h1';
-        await expect(page.locator(contentSelector)).toBeVisible({ timeout: 5000 });
+        await expect(page.locator(contentSelector)).toBeVisible({ timeout: 10000 });
 
         const w = viewports[vp].width;
         const isMobile = w < 768;

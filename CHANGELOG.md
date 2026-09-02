@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.12 - 2026-09-02
+### Fixed
+
+- Replace networkidle with web-first assertion (S9332)
+
+
 ## 0.6.11 - 2026-09-02
 ### Fixed
 
