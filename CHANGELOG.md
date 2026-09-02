@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.23 - 2026-09-02
+### Fixed
+
+- Extract share message regexes to module-level for Sonar S5843/S8786
+
+
 ## 0.6.22 - 2026-09-02
 ### Fixed
 
