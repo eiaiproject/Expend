@@ -1,21 +1,26 @@
+import { detectSource } from './sources';
+import { normalizeNumber } from './chatParser';
+import { titleCasePreserveAcronyms } from './textFormat';
+
+// ─── Amount parsing ───────────────────────────────────────────────────────────
+
 function parseAmt(s: string): number | null {
   const c = s.toLowerCase().replaceAll(/\s/g, '');
   let m: RegExpExecArray | null;
-  m = /^([\d.,]+)\s*(jt|juta)$/.exec(c);
+  m = /^([\d.,]+)\s*(jt|juta)$/i.exec(c);
   if (m) {
-    const n = Number(m[1]!.replaceAll('.', '').replace(',', '.'));
-    return Number.isFinite(n) ? n * 1_000_000 : null;
+    const n = normalizeNumber(m[1]!);
+    return n > 0 ? n * 1_000_000 : null;
   }
-  m = /^([\d.,]+)\s*(rb|ribu|k)$/.exec(c);
+  m = /^([\d.,]+)\s*(rb|ribu|k)$/i.exec(c);
   if (m) {
-    const n = Number(m[1]!.replaceAll('.', '').replace(',', '.'));
-    return Number.isFinite(n) ? n * 1_000 : null;
+    const n = normalizeNumber(m[1]!);
+    return n > 0 ? n * 1_000 : null;
   }
   m = /^[\d.,]+$/.exec(c);
   if (m) {
-    const cleaned = m[0]!.replaceAll(/[.,]/g, '');
-    const n = Number(cleaned);
-    return Number.isFinite(n) ? n : null;
+    const n = normalizeNumber(m[0]!);
+    return n > 0 ? n : null;
   }
   return null;
 }
@@ -23,6 +28,8 @@ function parseAmt(s: string): number | null {
 function normalizeAmountRaw(raw: string): string {
   return raw.replaceAll('O', '0').replaceAll('o', '0').replaceAll(/[lI]/g, '1').trim();
 }
+
+// ─── Line analysis ────────────────────────────────────────────────────────────
 
 function isRefLine(line: string): boolean {
   return /ref|resi|trace|\bID\b/i.test(line);
@@ -43,6 +50,8 @@ function shouldSkip(val: number, raw: string, line: string, prevLine: string, rp
   if (val > 999_999_999 && !rpRe.test(line)) return true;
   return false;
 }
+
+// ─── Scoring ──────────────────────────────────────────────────────────────────
 
 function scoreHit(val: number, hasRp: boolean, hasKeyword: boolean): number {
   return val * (hasRp ? 1.9 : 1) * (hasKeyword ? 2.2 : 1);
@@ -102,7 +111,16 @@ function extractAmount(text: string): number | null {
   return best.val;
 }
 
+// ─── Date extraction ──────────────────────────────────────────────────────────
+
+const MONTH_MAP: Record<string, string> = {
+  jan: '01', feb: '02', mar: '03', apr: '04', mei: '05', jun: '06',
+  jul: '07', agu: '08', aug: '08', sep: '09', okt: '10', oct: '10',
+  nov: '11', des: '12', dec: '12',
+};
+
 function extractDate(text: string): string {
+  // "31/08/2026"
   let ddmmyyyy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text); // NOSONAR
   if (ddmmyyyy) {
     let d = ddmmyyyy[1]!.padStart(2, '0');
@@ -111,53 +129,38 @@ function extractDate(text: string): string {
     if (y.length === 2) y = '20' + y;
     return `${y}-${m}-${d}`;
   }
+  // "31 Agustus 2026"
   const mmm = /(\d{1,2})\s+(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)\w*\s+(\d{4})/i.exec(text); // NOSONAR
   if (mmm) {
-    const map: Record<string, string> = {
-      jan: '01',
-      feb: '02',
-      mar: '03',
-      apr: '04',
-      mei: '05',
-      jun: '06',
-      jul: '07',
-      agu: '08',
-      aug: '08',
-      sep: '09',
-      okt: '10',
-      oct: '10',
-      nov: '11',
-      des: '12',
-      dec: '12',
-    };
-    const mon = map[mmm[2]!.toLowerCase().slice(0, 3)];
+    const mon = MONTH_MAP[mmm[2]!.toLowerCase().slice(0, 3)];
     if (mon) return `${mmm[3]}-${mon}-${mmm[1]!.padStart(2, '0')}`;
   }
   return new Date().toISOString().slice(0, 10);
 }
 
-function extractDescription(text: string, hits: { idx: number }[]): string {
+// ─── Description extraction ───────────────────────────────────────────────────
+
+function extractDescription(text: string, hits: { idx: number }[]): { desc: string; source?: string } {
   const lines = text.split('\n');
   const recipientRe = /penerima|kepada|tujuan|^\s*ke\b/i;
   const noteRe = /berita|keterangan|beneficiary/i;
   let hitLine: string | undefined;
-  hitLine = lines.find((l) => recipientRe.test(l) && /(?:penerima|kepada|tujuan|ke)\s*[:\-]?\s*.{2,}/i.test(l));
+  hitLine = lines.find((l) => recipientRe.test(l) && /(?:penerima|kepada|tujuan|ke)\s*[:-]?\s*[^\n]{2,}/i.test(l)); // NOSONAR
   if (!hitLine) hitLine = lines.find((l) => recipientRe.test(l));
   if (!hitLine) hitLine = lines.find((l) => noteRe.test(l));
   let desc = '';
   if (hitLine) {
-    const m = /(?:penerima|kepada|beneficiary|berita|keterangan|tujuan|ke)\s*[:\-]?\s*(.+)/i.exec(hitLine);
-    if (m && m[1] && m[1].trim().length >= 2) {
+    const m = /(?:penerima|kepada|beneficiary|berita|keterangan|tujuan|ke)\s*[:-]?\s*(.+)/i.exec(hitLine); // NOSONAR
+    if (m?.[1]?.trim().length !== undefined && m[1].trim().length >= 2) {
       desc = m[1].trim();
     } else {
       const after = hitLine.split(/:/).slice(1).join(':').trim();
       desc = after || hitLine.trim();
     }
     desc = desc.split(/[-–—]/)[0]!.trim();
-    desc = desc.replace(/\s*\(.*?\)\s*/g, ' ').trim();
-    desc = desc.replace(/\s*\d{4,}.*$/, '').trim();
+    desc = desc.replace(/\s*\([^)]*\)\s*/g, ' ').trim(); // NOSONAR
+    desc = desc.replace(/\s*\d{4,}[^\n]*$/, '').trim(); // NOSONAR
     desc = desc.replace(/\s{2,}/g, ' ').trim();
-    // remove leading keyword if still present (no colon case)
     desc = desc.replace(/^(?:penerima|kepada|ke)\s+/i, '').trim();
   }
   if (!desc) {
@@ -168,22 +171,25 @@ function extractDescription(text: string, hits: { idx: number }[]): string {
       '';
   }
   desc = desc.replaceAll(/\s+/g, ' ').trim() || 'Transfer';
-  desc = desc
-    .split(' ')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(' ')
-    .slice(0, 80);
-  const lower = desc.toLowerCase();
+  // Strip standalone prepositions
+  desc = desc.replace(/\b(?:di|ke|untuk|dengan)\b/gi, '').replace(/\s{2,}/g, ' ').trim() || 'Transfer';
+  // Title-case with acronym preservation
+  desc = titleCasePreserveAcronyms(desc).slice(0, 80);
+  // Cut source keywords from description
   const kws = [' dari ', ' pakai ', ' pake ', ' via '];
   let cut = -1;
   for (const k of kws) {
-    const idx = lower.indexOf(k);
+    const idx = desc.toLowerCase().indexOf(k);
     if (idx !== -1 && (cut === -1 || idx < cut)) cut = idx;
   }
-  return (cut === -1 ? desc : desc.slice(0, cut)).trim();
+  const cutDesc = (cut === -1 ? desc : desc.slice(0, cut)).trim();
+
+  return { desc: cutDesc };
 }
 
-export function parseReceiptText(text: string): { description: string; amount: number; date: string; rawText: string } | null {
+// ─── Main export ──────────────────────────────────────────────────────────────
+
+export function parseReceiptText(text: string): { description: string; amount: number; date: string; rawText: string; source?: string } | null {
   const rawText = text.slice(0, 500);
   const amount = extractAmount(text);
   if (amount == null) return null;
@@ -204,10 +210,14 @@ export function parseReceiptText(text: string): { description: string; amount: n
     }
   }
 
+  const { desc: description } = extractDescription(text, hits);
+  const source = detectSource(text);
+
   return {
-    description: extractDescription(text, hits),
+    description,
     amount,
     date: extractDate(text),
     rawText,
+    source,
   };
 }

@@ -1,4 +1,56 @@
 # Changelog
+## 0.6.2 - 2026-09-02
+### Fixed
+
+- Sonarcloud quality gate – reliability and duplication
+
+
+## 0.6.1 - 2026-09-02
+### Changed
+
+- Translate README to English per project rules
+- Add missing components (BottomNav, SidebarNav, PageContainer) to docs
+- Add missing scripts (clean, preview) to docs
+- Update stack description with React Router and Tesseract.js
+
+## 0.6.0 - 2026-09-01
+### Added
+
+- Add format guide for chat input
+- Display source of funds in recent transactions list
+- Auto-extract source of funds from chat input
+- Add source of funds (sumber dana) to transaction confirmation
+- Add optional note field to transaction confirmation card
+- Use logo palette as project colors
+- Replace text logos with SVG brand assets
+
+### Changed
+
+- Remove quick example button from chat empty state
+
+### Fixed
+
+- Extract and pass source of funds from OCR receipt parsing
+- Custom chevron icon for theme select dropdown
+- Replace source select with pre-filled text input
+- Pixel-perfect chat empty state and message components
+- Add bottom padding to chat composer to clear fixed bottom nav
+- Composer pixel-perfect - remove transparent border, use radius token, fix text size
+- Remove redundant icon from Home empty state
+- Reduce logo size and fix icon contrast on soft backgrounds
+- Dark mode contrast - adjust green to #508030, use white text
+- Remove redundant example text from Home empty state
+- Bottom nav pixel-perfect - even spacing, bottom indicator, 12px text
+
+
+## 0.5.0 - 2026-09-01
+### Added
+
+- Complete remaining design system items to 100%
+- Implement P1-P3 priority items from design audit
+- Comprehensive UI/UX optimization across all pages
+
+
 ## 0.4.0 - 2026-09-01
 ### Changed
 

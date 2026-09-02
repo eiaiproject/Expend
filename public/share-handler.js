@@ -30,7 +30,7 @@ async function handlePost(event) {
       await cache.delete('shared-meta');
     }
     return Response.redirect('/chat?share=1', 303);
-  } catch (e) {
+  } catch (_e) { // NOSONAR - share must redirect to chat even if cache fails, error intentionally ignored
     return Response.redirect('/chat?share=1', 303);
   }
 }

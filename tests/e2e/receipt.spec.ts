@@ -16,10 +16,10 @@ test('receipt upload → preview editable → Simpan → Home', async ({ page })
   const input = page.locator('input[type="file"]').first();
   await input.setInputFiles('public/test-receipt.png');
   await expect(page.getByRole('progressbar')).toBeVisible({ timeout: 5000 });
-  await expect(page.getByText('Preview')).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText('Periksa transaksi')).toBeVisible({ timeout: 20000 });
   await expect(page.locator('input[type="date"]')).toHaveValue('2026-08-31', { timeout: 5000 });
   await expect(page.locator('input[type="number"]')).not.toHaveValue('0');
-  await page.getByRole('button', { name: 'Simpan' }).click();
+  await page.getByRole('button', { name: 'Simpan transaksi' }).click();
   await expect(page.getByText(/Tercatat/)).toBeVisible();
   await page.goto('/');
   await expect(page.getByText('Toko Kopi')).toBeVisible();

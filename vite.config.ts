@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 const version = JSON.parse(readFileSync('./package.json', 'utf8')).version;
 
-const BRAND = '#7A9B6A';
+const BRAND = '#264025';
 
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(version) },
@@ -24,6 +24,7 @@ export default defineConfig({
         background_color: BRAND,
         display: 'standalone',
         icons: [
+          { src: '/Expend-logo.svg', sizes: 'any', type: 'image/svg+xml' },
           { src: '/icons/app-icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/app-icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
         ],

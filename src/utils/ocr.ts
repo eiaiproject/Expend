@@ -57,6 +57,10 @@ export async function recognizeImage(file: File, onProgress: (n: number) => void
   return data.text as string;
 }
 
+export function isOcrReady(): boolean {
+  return workerPromise !== null;
+}
+
 export async function terminateOcr() {
   if (workerPromise) {
     const w = await workerPromise;

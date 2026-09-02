@@ -7,6 +7,8 @@ export interface Transaction {
   date: string; // YYYY-MM-DD
   createdAt: string;
   rawText?: string;
+  note?: string;
+  source?: string;
 }
 
 export interface ChatMessage {

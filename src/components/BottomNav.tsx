@@ -1,24 +1,35 @@
 import { NavLink } from 'react-router-dom';
-import { Home, ChatRoundDots, Setting } from 'reicon-react';
+import { navigationItems } from '../config/navigation';
 
-export function BottomNav() {
-  const base = 'flex flex-col items-center justify-center gap-1 min-w-12 min-h-12 px-3 py-2 text-[11px] font-medium rounded-full transition-colors';
-  const active = 'bg-[var(--accent)] text-white';
-  const idle = 'text-[var(--text-secondary)] hover:bg-[var(--bg)]';
+export function BottomNav({ hidden = false }: { readonly hidden?: boolean }) {
+  if (hidden) return null;
+
   return (
-    <nav aria-label="Navigasi utama" className="fixed bottom-0 inset-x-0 z-30 bg-[var(--card)] border-t border-[var(--border)] flex justify-around items-center md:hidden px-2 py-2 pb-[calc(8px+env(safe-area-inset-bottom))] gap-2">
-      <NavLink to="/" end className={({ isActive }) => `${base} ${isActive ? active : idle}`}>
-        <Home size={20} />
-        <span>Home</span>
-      </NavLink>
-      <NavLink to="/chat" className={({ isActive }) => `${base} ${isActive ? active : idle}`}>
-        <ChatRoundDots size={20} />
-        <span>Chat</span>
-      </NavLink>
-      <NavLink to="/settings" className={({ isActive }) => `${base} ${isActive ? active : idle}`}>
-        <Setting size={20} />
-        <span>Setting</span>
-      </NavLink>
+    <nav aria-label="Navigasi utama" className="fixed bottom-0 inset-x-0 z-30 bg-[var(--card)] border-t border-[var(--border)] flex items-stretch md:hidden pb-[env(safe-area-inset-bottom)]">
+      {navigationItems.map((item) => (
+        <NavLink
+          key={item.href}
+          to={item.href}
+          end={item.href === '/'}
+          className={({ isActive }) =>
+            `flex-1 flex flex-col items-center justify-center gap-1.5 min-h-13 py-2 text-[12px] font-medium transition-colors relative ${
+              isActive
+                ? 'text-[var(--accent)] font-semibold'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-full bg-[var(--accent)]" aria-hidden="true" />
+              )}
+              <item.icon size={20} aria-hidden />
+              <span>{item.label}</span>
+            </>
+          )}
+        </NavLink>
+      ))}
     </nav>
   );
 }

@@ -11,12 +11,12 @@ beforeEach(async () => {
 describe('crud e2e via Dexie', () => {
   it('Create: parse + Simpan → Home totals', async () => {
     const p = parseChatInput('beli kopi di Indomaret 50000')!;
-    expect(p).toEqual({ description: 'Kopi Di Indomaret', amount: 50000 });
+    expect(p).toEqual({ description: 'Kopi Indomaret', amount: 50000, source: undefined, date: expect.any(String) });
     const now = new Date().toISOString();
     const id = (await db.transactions.add({ description: p.description, amount: p.amount, date: now.slice(0, 10), createdAt: now })) as number;
     const txs = await db.transactions.toArray();
     expect(txs).toHaveLength(1);
-    expect(txs[0]!.description).toBe('Kopi Di Indomaret');
+    expect(txs[0]!.description).toBe('Kopi Indomaret');
     const total = txs.reduce((a, t) => a + t.amount, 0);
     expect(total).toBe(50000);
     // chat persist

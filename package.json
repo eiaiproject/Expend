@@ -1,7 +1,7 @@
 {
   "name": "expend",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.6.2",
   "engines": {
     "node": ">=22"
   },

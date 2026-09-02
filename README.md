@@ -1,19 +1,51 @@
-# Expend - Chat Pencatatan Pengeluaran
+# Expend - Chat Expense Tracker
 
-![version](https://img.shields.io/badge/version-0.4.0-teal)
+![version](https://img.shields.io/badge/version-0.6.2-teal)
 
-Offline-first PWA. Navigasi: **Home** (daftar transaksi) + **Chat** (auto tercatat).
+Offline-first PWA. Navigation: **Summary** (transaction list) + **Record** (chat + OCR) + **Settings** (theme, data, privacy).
 
-## Cara pakai
-Chat: `beli kopi di Indomaret 50000` → preview `Kopi Di Indomaret · Rp50.000` → Simpan.
+## Usage
 
-Format nominal: `50000` `50.000` `50rb` `50k` `1,5jt`. Klausa wallet `dari|pakai|pake|via ...` otomatis diabaikan.
+### Chat
+Type: `buy coffee at Indomaret 50000` → preview `Coffee At Indomaret · Rp50,000` → Save.
+
+### OCR (Transfer Receipt)
+Upload a photo of the transfer receipt → auto-detected → edit if needed → Save.
+
+### Amount Format
+`50000` `50.000` `50rb` `50k` `1.5jt`. Clause `from|using|via ...` is automatically ignored.
+
+## Features
+
+- **Chat-first**: Log expenses via natural language chat
+- **OCR**: Upload transfer receipts, auto-detected (JPG/PNG/WebP, max 10MB)
+- **Offline-first**: All data stored locally in IndexedDB
+- **Theme**: System / Light / Dark (via `data-theme`)
+- **Export/Import**: JSON with format validation
+- **Share target**: Send receipts from other apps directly to Expend
+- **A11y**: Skip link, focus trap, aria labels, reduced motion
 
 ## Stack
-React 19 + Vite 6 + Tailwind 4 + Dexie 4 (IndexedDB) + `reicon-react`. Icons 100% `reicon.dev`.
+
+React 19 + Vite 6 + Tailwind 4 + Dexie 4 (IndexedDB) + React Router 7 + Tesseract.js (OCR) + `reicon-react`. Icons 100% `reicon.dev`.
+
+## Components
+
+`PageHeader` · `SectionCard` · `EmptyState` · `ConfirmDialog` · `Toast` · `InlineAlert` · `SkeletonCard` · `PrimaryButton` · `SecondaryButton` · `IconButton` · `StatusBadge` · `BottomNav` · `SidebarNav` · `PageContainer`
 
 ## Scripts
-`npm run dev` `npm run build` `npm run typecheck` `npm run test`
+
+```bash
+npm run dev          # Vite dev server (port 3000)
+npm run build        # Production build
+npm run clean        # Remove dist directory
+npm run preview      # Vite preview server
+npm run typecheck    # TypeScript check
+npm run test         # Vitest watch
+npm run test:unit    # Vitest single run
+npm run lint         # ESLint
+```
 
 ## Versioning
-Semver + Conventional Commits tiap commit.
+
+Semver + Conventional Commits per commit.
