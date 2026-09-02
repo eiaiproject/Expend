@@ -41,6 +41,13 @@ function normalizeBaseUrl(url: string): string {
   return url.trim().replace(/\/+$/, ''); // NOSONAR
 }
 
+function getLLMUrl(): string | null {
+  const cfg = getLLMConfig();
+  if (!cfg.apiKey.trim() || !cfg.model.trim()) return null;
+  const base = normalizeBaseUrl(cfg.baseUrl);
+  return base.endsWith('/chat/completions') ? base : `${base}/chat/completions`;
+}
+
 function buildPrompt(text: string, today: string): string {
   return `Kamu parser pengeluaran Indonesia. Ekstrak dari teks berikut.
 
@@ -58,14 +65,16 @@ Teks: "${text.replaceAll('"', '\\"')}"`; // NOSONAR
 
 function extractJson(raw: string): string {
   const trimmed = raw.trim();
-  // Handle ```json ... ``` wrapper
   const m = /```(?:json)?\s*([\s\S]*?)\s*```/i.exec(trimmed); // NOSONAR
   if (m?.[1]) return m[1].trim();
-  // Find first { ... } block
   const s = trimmed.indexOf('{');
   const e = trimmed.lastIndexOf('}');
   if (s !== -1 && e !== -1 && e > s) return trimmed.slice(s, e + 1);
   return trimmed;
+}
+
+function stripAmountFromDesc(desc: string): string {
+  return desc.replace(/\s*\d[\d.,]*\s*(?:rb|ribu|jt|juta|k)?\s*$/i, '').trim() || desc; // NOSONAR
 }
 
 function isVisionModel(model: string): boolean {
@@ -101,15 +110,12 @@ Aturan:
 Teks OCR:\n"""${ocrText.slice(0, 2000).replaceAll('"', '\\"')}"""`; // NOSONAR
 }
 
-export async function parseReceiptWithLLM(ocrText: string): Promise<(ParsedExpense & { note?: string }) | null> {
+async function callLLM(messages: unknown[], maxTokens: number, timeoutMs: number): Promise<string | null> {
   const cfg = getLLMConfig();
-  if (!cfg.enabled || !cfg.apiKey.trim() || !cfg.model.trim()) return null;
-  const base = normalizeBaseUrl(cfg.baseUrl);
-  const url = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`;
-  const today = new Date().toISOString().slice(0, 10);
-  const prompt = buildReceiptPrompt(ocrText, today);
+  const url = getLLMUrl();
+  if (!url) return null;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20_000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -119,179 +125,90 @@ export async function parseReceiptWithLLM(ocrText: string): Promise<(ParsedExpen
         'HTTP-Referer': window.location.origin,
         'X-Title': 'Expend',
       },
-      body: JSON.stringify({ model: cfg.model.trim(), messages: [{ role: 'user', content: prompt }], temperature: 0, max_tokens: 500 }),
+      body: JSON.stringify({ model: cfg.model.trim(), messages, temperature: 0, max_tokens: maxTokens }),
       signal: controller.signal,
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const content = data.choices?.[0]?.message?.content?.trim();
-    if (!content) return null;
-    const parsed = JSON.parse(extractJson(content)) as { description?: string; amount?: number; source?: string | null; date?: string | null; note?: string | null };
-    const amount = typeof parsed.amount === 'number' ? parsed.amount : Number(parsed.amount);
-    if (!amount || amount <= 0) return null;
-    let description = (parsed.description || 'Transfer').trim() || 'Transfer';
-    description = stripAmountFromDesc(description);
-    if (!description) description = 'Transfer';
-    description = titleCasePreserveAcronyms(description).slice(0, 80);
-    let source: string | undefined;
-    if (parsed.source && typeof parsed.source === 'string' && parsed.source.trim()) source = titleCasePreserveAcronyms(parsed.source.trim());
-    let date: string | undefined;
-    if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) date = parsed.date; // NOSONAR
-    else date = today;
-    let note: string | undefined;
-    if (parsed.note && typeof parsed.note === 'string' && parsed.note.trim()) note = parsed.note.trim().slice(0, 80);
-    return { description, amount, source, date, note };
+    return data.choices?.[0]?.message?.content?.trim() ?? null;
   } catch {
     return null;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/; // NOSONAR
+
+function normalizeExpense(
+  parsed: Record<string, unknown>,
+  today: string,
+  defaultDesc: string,
+): { description: string; amount: number; source?: string; date: string; note?: string } | null {
+  const amount = typeof parsed.amount === 'number' ? parsed.amount : Number(parsed.amount);
+  if (!amount || amount <= 0) return null;
+  let description = ((parsed.description as string) || defaultDesc).trim() || defaultDesc;
+  description = stripAmountFromDesc(description);
+  if (!description) description = defaultDesc;
+  description = titleCasePreserveAcronyms(description).slice(0, 80);
+  let source: string | undefined;
+  if (parsed.source && typeof parsed.source === 'string' && (parsed.source as string).trim()) {
+    source = titleCasePreserveAcronyms((parsed.source as string).trim());
+  }
+  const date = (parsed.date && DATE_RE.test(parsed.date as string)) ? parsed.date as string : today; // NOSONAR
+  let note: string | undefined;
+  if (parsed.note && typeof parsed.note === 'string' && (parsed.note as string).trim()) {
+    note = (parsed.note as string).trim().slice(0, 80);
+  }
+  return { description, amount, source, date, note };
+}
+
+async function parseLLMResponse(
+  messages: unknown[],
+  maxTokens: number,
+  timeoutMs: number,
+  defaultDesc: string,
+): Promise<{ description: string; amount: number; source?: string; date: string; note?: string } | null> {
+  if (!isLLMEnabled()) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const content = await callLLM(messages, maxTokens, timeoutMs);
+  if (!content) return null;
+  try {
+    const parsed = JSON.parse(extractJson(content)) as Record<string, unknown>;
+    return normalizeExpense(parsed, today, defaultDesc);
+  } catch {
+    return null;
+  }
+}
+
+export async function parseReceiptWithLLM(ocrText: string): Promise<(ParsedExpense & { note?: string }) | null> {
+  const today = new Date().toISOString().slice(0, 10);
+  return parseLLMResponse([{ role: 'user', content: buildReceiptPrompt(ocrText, today) }], 500, 20_000, 'Transfer') as Promise<(ParsedExpense & { note?: string }) | null>;
 }
 
 export async function parseReceiptImageWithLLM(file: File): Promise<(ParsedExpense & { note?: string }) | null> {
   const cfg = getLLMConfig();
-  if (!cfg.enabled || !cfg.apiKey.trim() || !cfg.model.trim()) return null;
   if (!isVisionModel(cfg.model)) return null;
-  const base = normalizeBaseUrl(cfg.baseUrl);
-  const url = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`;
   const today = new Date().toISOString().slice(0, 10);
   const b64 = await fileToBase64(file);
   const mime = file.type || 'image/jpeg';
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${cfg.apiKey.trim()}`,
-        'HTTP-Referer': window.location.origin,
-        'X-Title': 'Expend',
-      },
-      body: JSON.stringify({
-        model: cfg.model.trim(),
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: buildReceiptPrompt('Lihat gambar struk ini.', today) },
-              { type: 'image_url', image_url: { url: `data:${mime};base64,${b64}` } },
-            ],
-          },
-        ],
-        temperature: 0,
-        max_tokens: 500,
-      }),
-      signal: controller.signal,
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const content = data.choices?.[0]?.message?.content?.trim();
-    if (!content) return null;
-    const parsed = JSON.parse(extractJson(content)) as { description?: string; amount?: number; source?: string | null; date?: string | null; note?: string | null };
-    const amount = typeof parsed.amount === 'number' ? parsed.amount : Number(parsed.amount);
-    if (!amount || amount <= 0) return null;
-    let description = (parsed.description || 'Transfer').trim() || 'Transfer';
-    description = stripAmountFromDesc(description);
-    if (!description) description = 'Transfer';
-    description = titleCasePreserveAcronyms(description).slice(0, 80);
-    let source: string | undefined;
-    if (parsed.source && typeof parsed.source === 'string' && parsed.source.trim()) source = titleCasePreserveAcronyms(parsed.source.trim());
-    let date: string | undefined;
-    if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) date = parsed.date; // NOSONAR
-    else date = today;
-    let note: string | undefined;
-    if (parsed.note && typeof parsed.note === 'string' && parsed.note.trim()) note = parsed.note.trim().slice(0, 80);
-    return { description, amount, source, date, note };
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-function stripAmountFromDesc(desc: string): string {
-  return desc.replace(/\s*\d[\d.,]*\s*(?:rb|ribu|jt|juta|k)?\s*$/i, '').trim() || desc;
+  return parseLLMResponse(
+    [{
+      role: 'user',
+      content: [
+        { type: 'text', text: buildReceiptPrompt('Lihat gambar struk ini.', today) },
+        { type: 'image_url', image_url: { url: `data:${mime};base64,${b64}` } },
+      ],
+    }],
+    500,
+    30_000,
+    'Transfer',
+  ) as Promise<(ParsedExpense & { note?: string }) | null>;
 }
 
 export async function parseWithLLM(text: string): Promise<ParsedExpense | null> {
-  const cfg = getLLMConfig();
-  if (!cfg.enabled || !cfg.apiKey.trim() || !cfg.model.trim()) return null;
-
-  const base = normalizeBaseUrl(cfg.baseUrl);
-  // Support both /v1 and without
-  const url = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`;
-
   const today = new Date().toISOString().slice(0, 10);
-  const prompt = buildPrompt(text, today);
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15_000);
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${cfg.apiKey.trim()}`,
-        'HTTP-Referer': window.location.origin,
-        'X-Title': 'Expend',
-      },
-      body: JSON.stringify({
-        model: cfg.model.trim(),
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0,
-        max_tokens: 300,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      const err = await res.text().catch(() => '');
-      throw new Error(`LLM ${res.status}: ${err.slice(0, 200)}`);
-    }
-
-    const data = (await res.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const content = data.choices?.[0]?.message?.content?.trim();
-    if (!content) return null;
-
-    const jsonStr = extractJson(content);
-    const parsed = JSON.parse(jsonStr) as {
-      description?: string;
-      amount?: number;
-      source?: string | null;
-      date?: string | null;
-    };
-
-    const amount = typeof parsed.amount === 'number' ? parsed.amount : Number(parsed.amount);
-    if (!amount || amount <= 0) return null;
-
-    let description = (parsed.description || 'Pengeluaran').trim();
-    if (!description) description = 'Pengeluaran';
-    description = stripAmountFromDesc(description);
-    if (!description) description = 'Pengeluaran';
-    description = titleCasePreserveAcronyms(description).slice(0, 80);
-
-    let source: string | undefined;
-    if (parsed.source && typeof parsed.source === 'string' && parsed.source.trim()) {
-      source = titleCasePreserveAcronyms(parsed.source.trim());
-    }
-
-    let date: string | undefined;
-    if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) { // NOSONAR
-      date = parsed.date;
-    } else {
-      date = today;
-    }
-
-    return { description, amount, source, date };
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return parseLLMResponse([{ role: 'user', content: buildPrompt(text, today) }], 300, 15_000, 'Pengeluaran');
 }
 
 export async function testLLMConnection(): Promise<{ ok: boolean; message: string }> {
@@ -299,7 +216,6 @@ export async function testLLMConnection(): Promise<{ ok: boolean; message: strin
   if (!cfg.enabled) return { ok: false, message: 'Aktifkan dulu parsing pintar.' };
   if (!cfg.apiKey.trim()) return { ok: false, message: 'API key kosong.' };
   if (!cfg.model.trim()) return { ok: false, message: 'Model kosong.' };
-  // Test input "kopi 25rb" — expect amount 25000. Tampilkan desc tanpa amount.
   const r = await parseWithLLM('kopi 25rb'); // NOSONAR
   if (r && r.amount === 25000) return { ok: true, message: `OK — ${r.description} Rp${r.amount}` }; // NOSONAR
   if (r) return { ok: true, message: `Terhubung — ${r.description} (Rp${r.amount})` };

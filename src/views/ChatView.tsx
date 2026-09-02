@@ -20,6 +20,25 @@ function fmtTime(iso: string) {
   }
 }
 
+function scrollToBottom(endRef: React.RefObject<HTMLDivElement | null>) {
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  endRef.current?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
+}
+
+async function parseWithFallback<T>(
+  text: string,
+  llmFn: (t: string) => Promise<T | null>,
+  regexFn: (t: string) => T | null,
+): Promise<T | null> {
+  if (isLLMEnabled()) {
+    try {
+      const result = await llmFn(text);
+      if (result) return result;
+    } catch {}
+  }
+  return regexFn(text);
+}
+
 export default function ChatView() {
   const [input, setInput] = useState('');
   const [pending, setPending] = useState<Pending | null>(null);
@@ -45,11 +64,8 @@ export default function ChatView() {
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    // Always scroll to bottom when messages change (new message, OCR, pending)
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    endRef.current?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
+    if (!listRef.current) return;
+    scrollToBottom(endRef);
   }, [messages.length, pending, ocrProgress]);
 
   // Track scroll position for "back to latest" button
@@ -97,28 +113,21 @@ export default function ChatView() {
           await cache.delete('shared-file');
           // Discard share text when image is available
           await cache.delete('shared-meta');
-        } else {
-          // No image — use share text as chat input fallback
-          const metaRes = await cache.match('shared-meta');
-          if (metaRes) {
-            const meta = await metaRes.json();
-            const sharedText = [meta.text, meta.url].filter(Boolean).join(' ').trim();
-            if (sharedText) {
-              let parsed: ReturnType<typeof parseChatInput> = null;
-              if (isLLMEnabled()) {
-                try {
-                  parsed = await parseWithLLM(sharedText);
-                } catch {}
+        } else {              // No image — use share text as chat input fallback
+              const metaRes = await cache.match('shared-meta');
+              if (metaRes) {
+                const meta = await metaRes.json();
+                const sharedText = [meta.text, meta.url].filter(Boolean).join(' ').trim();
+                if (sharedText) {
+                  const parsed = await parseWithFallback(sharedText, parseWithLLM, parseChatInput);
+                  if (parsed) {
+                    setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || new Date().toISOString().slice(0, 10), source: parsed.source });
+                  } else {
+                    setInput(sharedText.slice(0, 80));
+                  }
+                }
+                await cache.delete('shared-meta');
               }
-              if (!parsed) parsed = parseChatInput(sharedText);
-              if (parsed) {
-                setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || new Date().toISOString().slice(0, 10), source: parsed.source });
-              } else {
-                setInput(sharedText.slice(0, 80));
-              }
-            }
-            await cache.delete('shared-meta');
-          }
         }
         window.history.replaceState({}, '', '/chat');
       } catch {}
@@ -145,13 +154,7 @@ export default function ChatView() {
     const now = new Date().toISOString();
     await db.chatMessages.add({ role: 'user', text, createdAt: now });
     // Full LLM mode: coba LLM dulu jika aktif, regex jadi fallback
-    let parsed: ReturnType<typeof parseChatInput> = null;
-    if (isLLMEnabled()) {
-      try {
-        parsed = await parseWithLLM(text);
-      } catch {}
-    }
-    if (!parsed) parsed = parseChatInput(text);
+    const parsed = await parseWithFallback(text, parseWithLLM, parseChatInput);
     if (!parsed) {
       await db.chatMessages.add({
         role: 'assistant',
@@ -212,7 +215,7 @@ export default function ChatView() {
         }
       }
       // Fallback regex (offline)
-      if (!parsed) parsed = parseReceiptText(text);
+      parsed ??= parseReceiptText(text);
       if (!parsed) {
         setPending({ description: 'Transfer', amount: 0, date: new Date().toISOString().slice(0, 10) });
         setOcrError('Bukti tidak dapat dibaca. Coba gunakan foto yang lebih jelas atau masukkan transaksi secara manual.');
@@ -511,10 +514,7 @@ export default function ChatView() {
         <button
           type="button"
           aria-label="Kembali ke pesan terbaru"
-          onClick={() => {
-            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            endRef.current?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
-          }}
+          onClick={() => scrollToBottom(endRef)}
           className="absolute bottom-24 md:bottom-20 left-1/2 -translate-x-1/2 z-20 min-w-12 min-h-12 w-12 h-12 rounded-full bg-[var(--card)] border border-[var(--border)] shadow-md grid place-items-center hover:bg-[var(--bone)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
         >
           <ChevronDown size={16} aria-hidden />
