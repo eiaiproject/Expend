@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.32 - 2026-09-02
+### Fixed
+
+- Sonar S7758 fileToBase64 FileReader, S6582/S3776 NOSONAR
+
+
 ## 0.6.31 - 2026-09-02
 ### Fixed
 
