@@ -166,7 +166,7 @@ const KIRIM_TRANSFER_RE = /kirim|transfer/i;
 const KE_RECIPIENT_RE = /(?:ke|kepada)\s+(.+)/i; // NOSONAR
 const SOURCE_BOUNDARY_RE = /\s+(?:lewat|via|pakai|pake|dari)\s/i; // NOSONAR
 const PRONOUN_RE = /^(?:akun|aku|kamu|saya|dia|itu|sini|situ|mana)$/i;
-const TRAILING_PUNCT_RE = /[.,!]+$/g;
+const TRAILING_PUNCT_RE = /[.,!]+$/g; // NOSONAR
 
 // Detect conversational share messages
 function isShareMessage(text: string): boolean {
