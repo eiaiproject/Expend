@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.16 - 2026-09-02
+### Fixed
+
+- Detect tunai/kas source without dari/via/pakai keyword
+
+
 ## 0.6.15 - 2026-09-02
 ### Fixed
 
