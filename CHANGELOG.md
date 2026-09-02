@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.14 - 2026-09-02
+### Fixed
+
+- Unify UI consistency across all pages
+
+
 ## 0.6.13 - 2026-09-02
 ### Fixed
 
