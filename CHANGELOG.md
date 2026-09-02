@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.11 - 2026-09-02
+### Fixed
+
+- Full mobile audit — contrast, touch, safe-area, perf
+
+
 ## 0.6.10 - 2026-09-02
 ### Fixed
 

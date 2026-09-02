@@ -1,5 +1,11 @@
-import * as XLSX from 'xlsx';
+import type * as XLSXTypes from 'xlsx';
 import type { Transaction } from '../db/db';
+
+const XLSXLoader = () => import('xlsx');
+
+async function getXLSX(): Promise<typeof XLSXTypes> {
+  return (await XLSXLoader()).default ?? (await XLSXLoader() as unknown as typeof XLSXTypes);
+}
 
 export type ExportRow = { Tanggal: string; Deskripsi: string; Jumlah: number; Sumber: string; Catatan: string; Dibuat: string };
 
@@ -40,13 +46,14 @@ export function filterByDate(txs: Transaction[], from?: string, to?: string): Tr
   });
 }
 
-export function xlsxBlob(txs: Transaction[]): Blob {
+export async function xlsxBlob(txs: Transaction[]): Promise<Blob> {
+  const XLSX = await getXLSX();
   const rows = toExportRows(txs);
   const ws = XLSX.utils.json_to_sheet(rows, { header: ['Tanggal', 'Deskripsi', 'Jumlah', 'Sumber', 'Catatan', 'Dibuat'] });
   ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 30 }, { wch: 22 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Transaksi');
-  const ab = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  const ab = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
   return new Blob([ab], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 

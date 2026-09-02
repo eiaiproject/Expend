@@ -262,7 +262,7 @@ export default function ChatView() {
             <h1 className="text-base font-bold tracking-tight leading-tight">Catat pengeluaran</h1>
             <p className="text-xs text-[var(--text-secondary)] leading-tight mt-0.5">Ketik transaksi atau unggah bukti</p>
           </div>
-          <div className="ml-auto hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--text-secondary)] text-[12px] font-semibold">
+          <div className="ml-auto hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bone)] text-[var(--text-secondary)] text-[12px] font-semibold border border-[var(--border)]">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
             <span>{ocrAvailable ? 'Siap diproses' : 'Memuat pemroses...'}</span>
           </div>
@@ -284,7 +284,7 @@ export default function ChatView() {
                   <div className="px-3 py-1.5 border-b border-[var(--border)]/60 bg-[var(--card)] flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" aria-hidden />
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" aria-hidden />
-                    <span className="text-[10px] font-mono tracking-wide text-[var(--text-muted)] uppercase">Contoh</span>
+                    <span className="text-[11px] font-mono tracking-wide text-[var(--text-muted)] uppercase">Contoh</span>
                   </div>
                   <div className="px-3 py-2.5 space-y-1 font-mono text-[12px] leading-5 text-[var(--text-secondary)]">
                     <p>kopi <span className="text-[var(--accent)] font-medium">25rb</span> <span className="text-[var(--text-muted)]">dari BSI</span></p>
@@ -477,7 +477,7 @@ export default function ChatView() {
             const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             endRef.current?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
           }}
-          className="absolute bottom-24 md:bottom-20 left-1/2 -translate-x-1/2 z-20 w-11 h-11 rounded-full bg-[var(--card)] border border-[var(--border)] shadow-md grid place-items-center hover:bg-[var(--bone)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+          className="absolute bottom-24 md:bottom-20 left-1/2 -translate-x-1/2 z-20 min-w-12 min-h-12 w-12 h-12 rounded-full bg-[var(--card)] border border-[var(--border)] shadow-md grid place-items-center hover:bg-[var(--bone)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
         >
           <ArrowDown size={18} aria-hidden />
         </button>
@@ -554,7 +554,7 @@ export default function ChatView() {
             )}
           </button>
         </form>
-        <p className="text-[11px] tracking-wide text-[var(--text-muted)]/80 text-center mt-2.5">
+        <p className="text-[11px] tracking-wide text-[var(--text-secondary)] text-center mt-2.5">
           <span className="hidden md:inline">Enter kirim · Shift+Enter baris baru · Tarik bukti ke area chat</span>
           <span className="md:hidden">Tarik bukti ke area chat untuk unggah</span>
         </p>

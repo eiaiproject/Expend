@@ -19,7 +19,7 @@ describe('toCSV', () => {
 describe('xlsxBlob', () => {
   it('produces valid xlsx with header and rows', async () => {
     const txs: Transaction[] = [{ description: 'Kopi', amount: 25000, date: '2026-09-02', createdAt: '2026-09-02T10:00:00.000Z', source: 'GoPay' }];
-    const blob = xlsxBlob(txs);
+    const blob = await xlsxBlob(txs);
     expect(blob.type).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     const ab = await new Response(blob).arrayBuffer();
     const wb = XLSX.read(new Uint8Array(ab), { type: 'array' });

@@ -45,7 +45,7 @@ function Shell() {
         Lewati ke konten utama
       </a>
       <SidebarNav />
-      <main id="main-content" className="flex-1 min-w-0 min-h-0 flex flex-col max-w-3xl mx-auto w-full md:pt-6 overflow-hidden">
+      <main id="main-content" className="flex-1 min-w-0 min-h-0 flex flex-col max-w-3xl mx-auto w-full pt-[env(safe-area-inset-top)] md:pt-6 overflow-hidden">
         <Suspense fallback={<Skeleton />}>
           <Routes>
             <Route path="/" element={<HomeView />} />

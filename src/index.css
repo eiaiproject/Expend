@@ -79,13 +79,13 @@
     --border-strong: #3a3a3a;
     --text-primary: #e8e8e8;
     --text-secondary: #a0a0a0;
-    --text-muted: #777777;
+    --text-muted: #8a8a8a;
     /* Logo palette dark */
-    --accent: #508030;
+    --accent: #6a9f3e;
     --accent-warm: #ddcbb7;
-    --accent-soft: rgba(80, 128, 48, 0.15);
+    --accent-soft: rgba(106, 159, 62, 0.15);
     --accent-deep: #264025;
-    --accent-fill: #508030;
+    --accent-fill: #6a9f3e;
     --accent-ink: #FFFFFF;
     /* Semantic dark */
     --danger: #F87171;
@@ -126,13 +126,13 @@
   --border-strong: #3a3a3a;
   --text-primary: #e8e8e8;
   --text-secondary: #a0a0a0;
-  --text-muted: #777777;
-  --accent: #4a8c47;
+  --text-muted: #8a8a8a;
+  --accent: #6a9f3e;
   --accent-warm: #ddcbb7;
-  --accent-soft: rgba(74, 140, 71, 0.15);
+  --accent-soft: rgba(106, 159, 62, 0.15);
   --accent-deep: #264025;
-  --accent-fill: #4a8c47;
-  --accent-ink: #ddcbb7;
+  --accent-fill: #6a9f3e;
+  --accent-ink: #FFFFFF;
   --danger: #F87171;
   --danger-bg: #2a0a0a;
   --danger-border: #5a1a1a;

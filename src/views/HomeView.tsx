@@ -23,6 +23,7 @@ export default function HomeView() {
   return (
     <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 pt-4 md:pt-0 pb-8 space-y-6">
       <header>
+        <h1 className="sr-only">Expend</h1>
         <img src="/Expend-word.svg" alt="Expend" className="h-5 md:h-6 w-auto" />
         <p className="text-sm text-[var(--text-secondary)] mt-1">Pantau pengeluaran dan transaksi terbaru</p>
       </header>
@@ -79,7 +80,7 @@ export default function HomeView() {
               {txs.map((t) => (
                 <li
                   key={t.id}
-                  className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]/40 transition-colors"
+                  className="list-item flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]/40 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold truncate">{t.description}</p>

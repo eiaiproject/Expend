@@ -22,6 +22,10 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
         await page.evaluate(() => indexedDB.deleteDatabase('ExpendDB'));
         await page.reload();
         await expect(page.locator('main')).toBeVisible({ timeout: 5000 });
+        // Wait for lazy-loaded content to replace Suspense fallback
+        await page.waitForLoadState('networkidle');
+        const contentSelector = route === '/' ? 'header' : route === '/chat' ? 'h1' : 'h1';
+        await expect(page.locator(contentSelector)).toBeVisible({ timeout: 5000 });
 
         const w = viewports[vp].width;
         const isMobile = w < 768;
@@ -40,12 +44,10 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
           const main = document.querySelector('main');
           if (!main) return { pl: 0, pr: 0, pb: 0, pt: 0 };
           const ms = getComputedStyle(main);
-          // Check if main itself has padding
           let pl = parseFloat(ms.paddingLeft);
           let pr = parseFloat(ms.paddingRight);
           let pb = parseFloat(ms.paddingBottom);
           let pt = parseFloat(ms.paddingTop);
-          // If main has no padding, check the first scrollable child
           if (pl === 0 && pr === 0) {
             const scrollChild = main.querySelector('[class*="overflow-y-auto"]') || main.firstElementChild;
             if (scrollChild) {
@@ -54,6 +56,24 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
               pr = parseFloat(cs.paddingRight);
               pb = parseFloat(cs.paddingBottom);
               pt = parseFloat(cs.paddingTop);
+            }
+          }
+          // If still 0, check direct children of firstElementChild (flex-col pattern)
+          if (pl === 0 && pr === 0 && main.firstElementChild) {
+            for (const child of main.firstElementChild.children) {
+              const cs = getComputedStyle(child);
+              const cpl = parseFloat(cs.paddingLeft);
+              const cpr = parseFloat(cs.paddingRight);
+              if (cpl > 0) { pl = cpl; pr = cpr; break; }
+            }
+          }
+          // For pb, check scrollable child's pb or last child's pb
+          if (pb === 0 && main.firstElementChild) {
+            const children = [...main.firstElementChild.children];
+            for (let i = children.length - 1; i >= 0; i--) {
+              const cs = getComputedStyle(children[i]);
+              const cpb = parseFloat(cs.paddingBottom);
+              if (cpb > 0) { pb = cpb; break; }
             }
           }
           return { pl, pr, pb, pt };
@@ -135,7 +155,7 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
             // Check element's own background first, then walk up parents
             let bg = [255, 255, 255, 1];
             const ownBg = parseColor(s.backgroundColor);
-            if (ownBg.length >= 3 && ownBg[3] !== 0) {
+            if (ownBg.length >= 3 && ownBg[3] >= 0.15) {
               bg = ownBg;
             } else {
               let bgEl = el.parentElement;

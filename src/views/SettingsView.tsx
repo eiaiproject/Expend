@@ -146,7 +146,7 @@ export default function SettingsView() {
         showToast('Tidak ada transaksi untuk diekspor.', 'error');
         return;
       }
-      const blob = xlsxBlob(filtered);
+      const blob = await xlsxBlob(filtered);
       downloadBlob(blob, exportFilename('xlsx', exportFrom || undefined, exportTo || undefined));
       showToast(`Berhasil mengekspor ${filtered.length} transaksi (Excel).`);
     } catch {
