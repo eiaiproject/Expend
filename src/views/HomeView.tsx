@@ -87,6 +87,11 @@ export default function HomeView() {
                       {fmtDate(t.date)}
                       {t.source && <>{' '}&middot;{' '}<span className="text-[var(--text-muted)]">{t.source}</span></>}
                     </p>
+                    {t.note && (
+                      <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate" title={t.note}>
+                        {t.note}
+                      </p>
+                    )}
                   </div>
                   <p className="text-sm font-bold whitespace-nowrap tabular-nums shrink-0">{fmtIDR(t.amount)}</p>
                   <button
