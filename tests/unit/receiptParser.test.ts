@@ -65,54 +65,34 @@ describe('parseReceiptText', () => {
   });
 
   // ─── Acronym preservation ─────────────────────────────────────────────────────
-  it('preserves BCA in description', () => {
-    const t = `Penerima: BCA Digital\nTotal: Rp 50.000`;
-    expect(parseReceiptText(t)!.description).toBe('BCA Digital');
-  });
-  it('preserves PLN in description', () => {
-    const t = `Penerima: PLN\nTotal: Rp 200.000`;
-    expect(parseReceiptText(t)!.description).toBe('PLN');
-  });
-  it('preserves BRI in description', () => {
-    const t = `Penerima: BRI\nTotal: Rp 100.000`;
-    expect(parseReceiptText(t)!.description).toBe('BRI');
-  });
-  it('preserves GOPAY in description', () => {
-    const t = `Penerima: GOPAY\nTotal: Rp 50.000`;
-    expect(parseReceiptText(t)!.description).toBe('GOPAY');
+  it.each([
+    ['BCA', 'BCA Digital', 'BCA Digital'],
+    ['PLN', 'PLN', 'PLN'],
+    ['BRI', 'BRI', 'BRI'],
+    ['GOPAY', 'GOPAY', 'GOPAY'],
+  ])('preserves %s in description', (_, input, expected) => {
+    const t = `Penerima: ${input}\nTotal: Rp 50.000`;
+    expect(parseReceiptText(t)!.description).toBe(expected);
   });
 
   // ─── Source detection ─────────────────────────────────────────────────────────
-  it('detect Mandiri from header', () => {
-    const t = `BANK MANDIRI\nTransfer Berhasil\nPenerima: John Doe\nTotal: Rp 500.000\nTanggal: 01/09/2026`;
-    expect(parseReceiptText(t)!.source).toBe('Mandiri');
-  });
-  it('detect BCA from header', () => {
-    const t = `BCA\nTransfer ke\nPenerima: Toko Kopi\nJumlah: Rp 100.000`;
-    expect(parseReceiptText(t)!.source).toBe('BCA');
-  });
-  it('detect GoPay from text', () => {
-    const t = `GOPAY\nTop Up Berhasil\nNominal: Rp 50.000\nTotal: Rp 50.000`;
-    expect(parseReceiptText(t)!.source).toBe('GoPay');
-  });
-  it('detect BSI from header', () => {
-    const t = `Bank Syariah Indonesia\nTransfer\nTotal Rp 7.500.000\nPenerima: KPR`;
-    expect(parseReceiptText(t)!.source).toBe('BSI');
+  it.each([
+    ['Mandiri', 'BANK MANDIRI\nTransfer Berhasil\nPenerima: John Doe\nTotal: Rp 500.000\nTanggal: 01/09/2026', 'Mandiri'],
+    ['BCA', 'BCA\nTransfer ke\nPenerima: Toko Kopi\nJumlah: Rp 100.000', 'BCA'],
+    ['GoPay', 'GOPAY\nTop Up Berhasil\nNominal: Rp 50.000\nTotal: Rp 50.000', 'GoPay'],
+    ['BSI', 'Bank Syariah Indonesia\nTransfer\nTotal Rp 7.500.000\nPenerima: KPR', 'BSI'],
+  ])('detect %s from header', (_, text, expected) => {
+    expect(parseReceiptText(text)!.source).toBe(expected);
   });
   it('prefer desc source over text scan', () => {
     const t = `MANDIRI\nTransfer via BSI\nPenerima: Budi\nTotal: Rp 200.000`;
     expect(parseReceiptText(t)!.source).toBe('BSI');
   });
-  it('detect OVO from text', () => {
-    const t = `OVO\nTransfer Berhasil\nNominal: Rp 75.000`;
-    expect(parseReceiptText(t)!.source).toBe('OVO');
-  });
-  it('detect Dana from text', () => {
-    const t = `DANA\nBerhasil\nRp 30.000`;
-    expect(parseReceiptText(t)!.source).toBe('Dana');
-  });
-  it('detect BRI from text', () => {
-    const t = `BRI\nTransfer\nRp 150.000`;
-    expect(parseReceiptText(t)!.source).toBe('BRI');
+  it.each([
+    ['OVO', 'OVO\nTransfer Berhasil\nNominal: Rp 75.000', 'OVO'],
+    ['Dana', 'DANA\nBerhasil\nRp 30.000', 'Dana'],
+    ['BRI', 'BRI\nTransfer\nRp 150.000', 'BRI'],
+  ])('detect %s from text', (_, text, expected) => {
+    expect(parseReceiptText(text)!.source).toBe(expected);
   });
 });

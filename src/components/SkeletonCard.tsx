@@ -15,7 +15,7 @@ export function SkeletonCard({ lines = 2, className = '' }: SkeletonCardProps) {
         </div>
       </div>
       {Array.from({ length: lines }).map((_, i) => (
-        <div key={`skeleton-${i}`} className="flex items-center gap-3"> // NOSONAR - static skeleton
+        <div key={`skeleton-${i}`} className="flex items-center gap-3">{/* NOSONAR - S6479 index safe for static skeleton */}
           <div className="flex-1 space-y-1.5">
             <div className="h-3.5 w-3/4 rounded bg-[var(--border)]" />
             <div className="h-3 w-1/3 rounded bg-[var(--border)]" />

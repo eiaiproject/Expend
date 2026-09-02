@@ -95,14 +95,12 @@ describe('parseChatInput - description', () => {
   it('strips preposition di', () => {
     expect(parseChatInput('beli kopi di Indomaret 50000')?.description).toBe('Kopi Indomaret');
   });
-  it('preserves acronym BCA', () => {
-    expect(parseChatInput('transfer BCA 100rb')?.description).toBe('BCA');
-  });
-  it('preserves acronym PLN', () => {
-    expect(parseChatInput('bayar PLN listrik 200rb')?.description).toBe('PLN Listrik');
-  });
-  it('preserves acronym QRIS', () => {
-    expect(parseChatInput('beli QRIS 50rb')?.description).toBe('QRIS');
+  it.each([
+    ['transfer BCA 100rb', 'BCA'],
+    ['bayar PLN listrik 200rb', 'PLN Listrik'],
+    ['beli QRIS 50rb', 'QRIS'],
+  ])('preserves acronym %s', (input, expected) => {
+    expect(parseChatInput(input)?.description).toBe(expected);
   });
   it('title case normal words', () => {
     expect(parseChatInput('kopi susu 25rb')?.description).toBe('Kopi Susu');
@@ -118,21 +116,14 @@ describe('parseChatInput - description', () => {
 // ─── Source extraction ────────────────────────────────────────────────────────
 
 describe('parseChatInput - source', () => {
-  it('dari BSI', () => {
-    const r = parseChatInput('KPR 7500000 dari BSI');
-    expect(r?.source).toBe('BSI');
-  });
-  it('via GoPay', () => {
-    const r = parseChatInput('makan siang 50rb via GoPay');
-    expect(r?.source).toBe('GoPay');
-  });
-  it('pakai Dana', () => {
-    const r = parseChatInput('bayar listrik 200rb pakai Dana');
-    expect(r?.source).toBe('Dana');
-  });
-  it('dari kas', () => {
-    const r = parseChatInput('kopi 20000 dari kas');
-    expect(r?.source).toBe('kas');
+  it.each([
+    ['KPR 7500000 dari BSI', 'BSI'],
+    ['makan siang 50rb via GoPay', 'GoPay'],
+    ['bayar listrik 200rb pakai Dana', 'Dana'],
+    ['kopi 20000 dari kas', 'kas'],
+  ])('source %s', (input, expected) => {
+    const r = parseChatInput(input);
+    expect(r?.source).toBe(expected);
   });
   it('no source', () => {
     expect(parseChatInput('kopi 50rb')?.source).toBeUndefined();

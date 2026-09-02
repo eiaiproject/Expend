@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.3 - 2026-09-02
+### Fixed
+
+- Reduce test duplication and skeleton comment placement
+
+
 ## 0.6.2 - 2026-09-02
 ### Fixed
 
