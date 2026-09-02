@@ -10,7 +10,10 @@ describe('normalizeNumber', () => {
   it('dot as thousand separator', () => {
     expect(normalizeNumber('15.000')).toBe(15000);
   });
-  it('dot as decimal (2 digits)', () => {
+  it('decimal with dot: 15.5', () => {
+    expect(normalizeNumber('15.5')).toBe(15.5);
+  });
+  it('decimal with dot (2 digits)', () => {
     expect(normalizeNumber('15.50')).toBe(15.5);
   });
   it('comma as decimal', () => {

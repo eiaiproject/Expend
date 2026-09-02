@@ -2,6 +2,18 @@ import { detectSource } from './sources';
 import { normalizeNumber } from './chatParser';
 import { titleCasePreserveAcronyms } from './textFormat';
 
+// ─── Shared constants ────────────────────────────────────────────────────────
+
+const MONTH_MAP: Record<string, string> = {
+  jan: '01', feb: '02', mar: '03', apr: '04', mei: '05', jun: '06',
+  jul: '07', agu: '08', aug: '08', sep: '09', okt: '10', oct: '10',
+  nov: '11', des: '12', dec: '12',
+};
+
+const PRODUCT_RE = /^(?:product|produk)\s*[:-]?\s*(.+)/i; // NOSONAR - anchored, bounded
+const RECIPIENT_RE = /penerima|kepada|tujuan|ditransfer\s*ke|^\s*ke\b|transfer\s*ke\b/i;
+const NOTE_RE = /berita|keterangan|beneficiary/i;
+
 // ─── Amount parsing ───────────────────────────────────────────────────────────
 
 function parseAmt(s: string): number | null {
@@ -118,18 +130,12 @@ function extractAmount(text: string): number | null {
 
 // ─── Date extraction ──────────────────────────────────────────────────────────
 
-const MONTH_MAP: Record<string, string> = {
-  jan: '01', feb: '02', mar: '03', apr: '04', mei: '05', jun: '06',
-  jul: '07', agu: '08', aug: '08', sep: '09', okt: '10', oct: '10',
-  nov: '11', des: '12', dec: '12',
-};
-
 function extractDate(text: string): string {
   // "31/08/2026"
-  let ddmmyyyy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text); // NOSONAR
+  const ddmmyyyy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text); // NOSONAR
   if (ddmmyyyy) {
-    let d = ddmmyyyy[1]!.padStart(2, '0');
-    let m = ddmmyyyy[2]!.padStart(2, '0');
+    const d = ddmmyyyy[1]!.padStart(2, '0');
+    const m = ddmmyyyy[2]!.padStart(2, '0');
     let y = ddmmyyyy[3]!;
     if (y.length === 2) y = '20' + y;
     return `${y}-${m}-${d}`;
@@ -146,29 +152,23 @@ function extractDate(text: string): string {
 // ─── Description extraction ───────────────────────────────────────────────────
 
 function findHitLine(lines: string[]): string | undefined {
-  const productRe = /^(?:product|produk)\s*[:-]?\s*(.+)/i; // NOSONAR - anchored, bounded
-  const recipientRe = /penerima|kepada|tujuan|ditransfer\s*ke|^\s*ke\b|transfer\s*ke\b/i;
-  const noteRe = /berita|keterangan|beneficiary/i;
-  let hit = lines.find((l) => productRe.test(l));
-  if (!hit) hit = lines.find((l) => recipientRe.test(l) && /(?:penerima|kepada|tujuan|ke)\s*[:-]?\s*[^\n]{2,}/i.test(l)); // NOSONAR
-  if (!hit) hit = lines.find((l) => recipientRe.test(l));
-  if (!hit) hit = lines.find((l) => noteRe.test(l));
+  let hit = lines.find((l) => PRODUCT_RE.test(l));
+  if (!hit) hit = lines.find((l) => RECIPIENT_RE.test(l) && /(?:penerima|kepada|tujuan|ke)\s*[:-]?\s*[^\n]{2,}/i.test(l)); // NOSONAR
+  if (!hit) hit = lines.find((l) => RECIPIENT_RE.test(l));
+  if (!hit) hit = lines.find((l) => NOTE_RE.test(l));
   return hit;
 }
 
 function parseHitLine(hitLine: string, lines: string[]): string {
-  const productRe = /^(?:product|produk)\s*[:-]?\s*(.+)/i; // NOSONAR - anchored, bounded
-  let m = productRe.exec(hitLine);
+  let m = PRODUCT_RE.exec(hitLine);
   if (!m) m = /(?:penerima|kepada|beneficiary|berita|keterangan|tujuan|ditransfer\s*ke|transfer\s*ke|ke)\s*[:-]?\s*(.+)/i.exec(hitLine); // NOSONAR
-  let desc = '';
-  if (m?.[1]?.trim().length !== undefined && m[1].trim().length >= 2) desc = m[1].trim();
-  else {
+  let desc = m?.[1]?.trim() ?? '';
+  if (desc.length < 2) {
     const after = hitLine.split(/:/).slice(1).join(':').trim();
     if (after) desc = after;
     else {
       const idx = lines.indexOf(hitLine);
-      const next = idx >= 0 && idx + 1 < lines.length ? lines[idx + 1]!.trim() : '';
-      desc = next || hitLine.trim();
+      desc = idx >= 0 && idx + 1 < lines.length ? lines[idx + 1]!.trim() : hitLine.trim();
     }
   }
   desc = desc.split(/[-–—]/)[0]!.trim();

@@ -46,7 +46,7 @@ function parseDotVariant(s: string): number {
     return Number.isFinite(n) ? n : 0;
   }
   const lastPart = parts.at(-1)!;
-  if (lastPart.length === 2) {
+  if (lastPart.length <= 2) {
     const n = Number(s);
     return Number.isFinite(n) ? n : 0;
   }
@@ -122,8 +122,8 @@ function parseExplicitDate(text: string): string | undefined {
   // "15/08/2026" or "15-08-2026" or "15.08.2026"
   const dmy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text);
   if (dmy) {
-    let d = dmy[1]!.padStart(2, '0');
-    let m = dmy[2]!.padStart(2, '0');
+    const d = dmy[1]!.padStart(2, '0');
+    const m = dmy[2]!.padStart(2, '0');
     let y = dmy[3]!;
     if (y.length === 2) y = '20' + y;
     return `${y}-${m}-${d}`;

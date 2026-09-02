@@ -45,7 +45,6 @@ export const SOURCES: SourceEntry[] = [
   // ─── Bank Digital ───────────────────────────────────
   { name: 'Jago',      patterns: [/\bjago\b/i, /bank\s*jago/i] },
   { name: 'Neo Commerce', patterns: [/neo\s*commerce/i, /\bneobank\b/i] },
-  { name: 'Bank Jago', patterns: [/bank\s*jago/i] },
   { name: 'Sea Bank',  patterns: [/sea\s*bank/i, /\bseabank\b/i] },
   { name: 'Bank Neo',  patterns: [/bank\s*neo/i] },
   { name: 'Bank Surya Yudha', patterns: [/\bbanksurya/i] },
