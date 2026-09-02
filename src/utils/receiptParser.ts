@@ -152,16 +152,26 @@ function extractDate(text: string): string {
 // ─── Description extraction ───────────────────────────────────────────────────
 
 // Share message markers (conversational: "halo aku sudah kirim Rpxxx...")
-const SHARE_MARKERS = /halo|hai|aku\s+sudah|sudah\s+(?:kirim|transfer)|jangan\s+lupa|tolong|terima\s+kasih|coba\s+cek|sudah\s+diterima|sudah\s+kamu/i;
+const SHARE_MARKERS: readonly RegExp[] = [
+  /halo|hai/i,
+  /aku\s+sudah/i,
+  /sudah\s+(?:kirim|transfer)/i,
+  /jangan\s+lupa/i,
+  /tolong/i,
+  /terima\s+kasih/i,
+  /coba\s+cek/i,
+  /sudah\s+diterima/i,
+];
 const KIRIM_TRANSFER_RE = /kirim|transfer/i;
 const KE_RECIPIENT_RE = /(?:ke|kepada)\s+(.+)/i;
 const SOURCE_BOUNDARY_RE = /\s+(?:lewat|via|pakai|pake|dari)\s/i;
 const PRONOUN_RE = /^(?:akun|aku|kamu|saya|dia|itu|sini|situ|mana)$/i;
+const TRAILING_PUNCT_RE = /[.,!]+$/g;
 
 // Detect conversational share messages
 function isShareMessage(text: string): boolean {
   const lines = text.split('\n');
-  return lines.length <= 3 && SHARE_MARKERS.test(text);
+  return lines.length <= 3 && SHARE_MARKERS.some((re) => re.test(text));
 }
 
 // Extract recipient from "kirim/transfer RpXXX ke/kepada YYY (lewat/via ZZZ)"
@@ -172,7 +182,7 @@ function extractShareRecipient(text: string): string | undefined {
   const keMatch = KE_RECIPIENT_RE.exec(afterKirim);
   if (!keMatch?.[1]) return undefined;
   let name = keMatch[1].split(SOURCE_BOUNDARY_RE)[0]!.trim();
-  name = name.replace(/[.,!]+$/g, '').trim();
+  name = name.replace(TRAILING_PUNCT_RE, '').trim();
   if (name.length < 2) return undefined;
   if (PRONOUN_RE.test(name)) return undefined;
   return name;
