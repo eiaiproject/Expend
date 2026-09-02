@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.34 - 2026-09-02
+### Changed
+
+- Deduplicate LLM normalizer, shared MONTH_MAP, and scroll/fallback helpers
+
+
 ## 0.6.33 - 2026-09-02
 ### Added
 
