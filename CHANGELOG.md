@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.24 - 2026-09-02
+### Fixed
+
+- Split SHARE_MARKERS into array for Sonar S5843/S8786
+
+
 ## 0.6.23 - 2026-09-02
 ### Fixed
 
