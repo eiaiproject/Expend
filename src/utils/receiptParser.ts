@@ -160,13 +160,18 @@ function isShareMessage(text: string): boolean { // NOSONAR
 
 // Extract recipient from "kirim/transfer RpXXX ke/kepada YYY (lewat/via ZZZ)"
 function extractShareRecipient(text: string): string | undefined {
-  const m = /(?:kirim|transfer)[\s\S]*?(?:ke|kepada)\s+(.+?)(?:\s+(?:lewat|via|pakai|pake|dari)\s+|[.,!\n]|$)/i.exec(text); // NOSONAR
-  if (!m?.[1]) return undefined;
-  let name = m[1].trim().replace(/[.,!]+$/g, '').trim();
-  // Reject if it's just a source name or too short
+  // Find the position of 'ke' or 'kepada' after 'kirim'/'transfer'
+  const kirimIdx = text.search(/kirim|transfer/i);
+  if (kirimIdx === -1) return undefined;
+  const afterKirim = text.slice(kirimIdx);
+  const keMatch = /(?:ke|kepada)\s+(.+)/i.exec(afterKirim); // NOSONAR
+  if (!keMatch?.[1]) return undefined;
+  // Cut at source keyword or sentence end
+  let name = keMatch[1].split(/\s+(?:lewat|via|pakai|pake|dari)\s/i)[0]!.trim();
+  name = name.replace(/[.,!]+$/g, '').trim();
+  // Reject if too short or common pronouns
   if (name.length < 2) return undefined;
-  // Reject common false positives: "akun", "aku", "kamu"
-  if (/^(?:akun|aku|kamu|saya|dia|itu|itu\s+ya|sini|situ|mana)$/i.test(name)) return undefined;
+  if (/^(?:akun|aku|kamu|saya|dia|itu|sini|situ|mana)$/i.test(name)) return undefined;
   return name;
 }
 
