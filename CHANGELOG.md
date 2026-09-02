@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.22 - 2026-09-02
+### Fixed
+
+- Simplify extractShareRecipient regex for Sonar S5843/S8786
+
+
 ## 0.6.21 - 2026-09-02
 ### Added
 
