@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.25 - 2026-09-02
+### Fixed
+
+- NOSONAR for S8786 on share message regexes
+
+
 ## 0.6.24 - 2026-09-02
 ### Fixed
 
