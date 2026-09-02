@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.15 - 2026-09-02
+### Fixed
+
+- Parser audit — decimal bug, dedup, cleanup
+
+
 ## 0.6.14 - 2026-09-02
 ### Fixed
 
