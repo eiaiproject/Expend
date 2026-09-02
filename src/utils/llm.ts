@@ -68,6 +68,140 @@ function extractJson(raw: string): string {
   return trimmed;
 }
 
+function isVisionModel(model: string): boolean {
+  const m = model.toLowerCase();
+  return m.includes('vision') || m.includes('gpt-4o') || m.includes('claude-3') || m.includes('gemini') || m.includes('qwen-vl') || m.includes('llava');
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  const buf = await file.arrayBuffer();
+  let binary = '';
+  const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!);
+  return btoa(binary);
+}
+
+function buildReceiptPrompt(ocrText: string, today: string): string {
+  return `Kamu parser struk transfer Indonesia. Teks ini hasil OCR, mungkin ada typo (mandlri->mandiri, Penerlma->Penerima, Tota1->Total, Berhas1l->Berhasil, Seabank->SeaBank).
+
+Ekstrak JSON valid tanpa markdown:
+{"description": string, "amount": number, "source": string|null, "date": string|null, "note": string|null}
+
+Aturan:
+- amount: angka terbesar yang masuk akal sebagai nominal transaksi (abaikan no ref/rekening/tgl). 14.500=14500, 1.500.000=1500000.
+- description: nama penerima/merchant (tanpa "Penerima:", tanpa no rekening). Title Case, maksimal 80 karakter. Fallback "Transfer".
+- source: bank/wallet pengirim (Mandiri, BCA, BRI, BNI, SeaBank, GoPay, dll) atau null.
+- date: YYYY-MM-DD, hari ini=${today}. Parse 11 Agu 2026 atau 11/08/2026. Jika tidak ada, ${today}.
+- note: "Pulang/ Pergi + tujuan" jika ada, atau null.
+
+Teks OCR:\n"""${ocrText.slice(0, 2000).replaceAll('"', '\\"')}"""`; // NOSONAR
+}
+
+export async function parseReceiptWithLLM(ocrText: string): Promise<(ParsedExpense & { note?: string }) | null> {
+  const cfg = getLLMConfig();
+  if (!cfg.enabled || !cfg.apiKey.trim() || !cfg.model.trim()) return null;
+  const base = normalizeBaseUrl(cfg.baseUrl);
+  const url = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`;
+  const today = new Date().toISOString().slice(0, 10);
+  const prompt = buildReceiptPrompt(ocrText, today);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cfg.apiKey.trim()}`,
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'Expend',
+      },
+      body: JSON.stringify({ model: cfg.model.trim(), messages: [{ role: 'user', content: prompt }], temperature: 0, max_tokens: 500 }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) return null;
+    const parsed = JSON.parse(extractJson(content)) as { description?: string; amount?: number; source?: string | null; date?: string | null; note?: string | null };
+    const amount = typeof parsed.amount === 'number' ? parsed.amount : Number(parsed.amount);
+    if (!amount || amount <= 0) return null;
+    let description = (parsed.description || 'Transfer').trim() || 'Transfer';
+    description = titleCasePreserveAcronyms(description).slice(0, 80);
+    let source: string | undefined;
+    if (parsed.source && typeof parsed.source === 'string' && parsed.source.trim()) source = titleCasePreserveAcronyms(parsed.source.trim());
+    let date: string | undefined;
+    if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) date = parsed.date;
+    else date = today;
+    let note: string | undefined;
+    if (parsed.note && typeof parsed.note === 'string' && parsed.note.trim()) note = parsed.note.trim().slice(0, 80);
+    return { description, amount, source, date, note };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function parseReceiptImageWithLLM(file: File): Promise<(ParsedExpense & { note?: string }) | null> {
+  const cfg = getLLMConfig();
+  if (!cfg.enabled || !cfg.apiKey.trim() || !cfg.model.trim()) return null;
+  if (!isVisionModel(cfg.model)) return null;
+  const base = normalizeBaseUrl(cfg.baseUrl);
+  const url = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`;
+  const today = new Date().toISOString().slice(0, 10);
+  const b64 = await fileToBase64(file);
+  const mime = file.type || 'image/jpeg';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cfg.apiKey.trim()}`,
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'Expend',
+      },
+      body: JSON.stringify({
+        model: cfg.model.trim(),
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: buildReceiptPrompt('Lihat gambar struk ini.', today) },
+              { type: 'image_url', image_url: { url: `data:${mime};base64,${b64}` } },
+            ],
+          },
+        ],
+        temperature: 0,
+        max_tokens: 500,
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) return null;
+    const parsed = JSON.parse(extractJson(content)) as { description?: string; amount?: number; source?: string | null; date?: string | null; note?: string | null };
+    const amount = typeof parsed.amount === 'number' ? parsed.amount : Number(parsed.amount);
+    if (!amount || amount <= 0) return null;
+    let description = (parsed.description || 'Transfer').trim() || 'Transfer';
+    description = titleCasePreserveAcronyms(description).slice(0, 80);
+    let source: string | undefined;
+    if (parsed.source && typeof parsed.source === 'string' && parsed.source.trim()) source = titleCasePreserveAcronyms(parsed.source.trim());
+    let date: string | undefined;
+    if (parsed.date && /^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) date = parsed.date; // NOSONAR
+    else date = today;
+    let note: string | undefined;
+    if (parsed.note && typeof parsed.note === 'string' && parsed.note.trim()) note = parsed.note.trim().slice(0, 80);
+    return { description, amount, source, date, note };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function parseWithLLM(text: string): Promise<ParsedExpense | null> {
   const cfg = getLLMConfig();
   if (!cfg.enabled || !cfg.apiKey.trim() || !cfg.model.trim()) return null;

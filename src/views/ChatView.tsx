@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
-import { isLLMEnabled, parseWithLLM } from '../utils/llm';
+import { isLLMEnabled, parseWithLLM, parseReceiptWithLLM, parseReceiptImageWithLLM } from '../utils/llm';
 import { recognizeImage, isOcrReady } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
 import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ChevronDown, X } from 'reicon-react';
@@ -193,7 +193,24 @@ export default function ChatView() {
     setOcrProgress(0);
     try {
       const text = await recognizeImage(file, (n) => setOcrProgress(n));
-      const parsed = parseReceiptText(text);
+      let parsed = parseReceiptText(text);
+      // Fallback 1: LLM text parsing (typo-tolerant, handles messy OCR seperti Mandiri "mandlri", "Penerlma", "Berhas1l")
+      // Trigger jika parse gagal ATAU hasil ragu (tanpa source / deskripsi generik padahal teks panjang)
+      const needsLLM = !parsed || (isLLMEnabled() && parsed && (!parsed.source || parsed.description === 'Transfer' || /mandlri|berhas1l|penerlma|tota1/i.test(text)));
+      if (needsLLM && isLLMEnabled()) {
+        try {
+          const llmParsed = await parseReceiptWithLLM(text);
+          if (llmParsed) parsed = { ...llmParsed, rawText: text.slice(0, 500) } as ReturnType<typeof parseReceiptText> & { rawText: string };
+        } catch {}
+      }
+      // Fallback 2: Vision LLM langsung dari gambar (jika model support vision, untuk kasus OCR benar-benar hancur)
+      if (!parsed && isLLMEnabled()) {
+        try {
+          setOcrProgress(95);
+          const visionParsed = await parseReceiptImageWithLLM(file);
+          if (visionParsed) parsed = { ...visionParsed, rawText: text.slice(0, 500) } as ReturnType<typeof parseReceiptText> & { rawText: string };
+        } catch {}
+      }
       if (!parsed) {
         setPending({ description: 'Transfer', amount: 0, date: new Date().toISOString().slice(0, 10) });
         setOcrError('Bukti tidak dapat dibaca. Coba gunakan foto yang lebih jelas atau masukkan transaksi secara manual.');
