@@ -74,11 +74,15 @@ function isVisionModel(model: string): boolean {
 }
 
 async function fileToBase64(file: File): Promise<string> {
-  const buf = await file.arrayBuffer();
-  let binary = '';
-  const bytes = new Uint8Array(buf);
-  for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(',')[1] ?? '');
+    };
+    reader.onerror = () => reject(new Error('Gagal baca file'));
+    reader.readAsDataURL(file);
+  });
 }
 
 function buildReceiptPrompt(ocrText: string, today: string): string {
@@ -287,7 +291,7 @@ export async function testLLMConnection(): Promise<{ ok: boolean; message: strin
   if (!cfg.model.trim()) return { ok: false, message: 'Model kosong.' };
 
   const r = await parseWithLLM('kopi 25rb'); // NOSONAR
-  if (r && r.amount === 25000) return { ok: true, message: `OK — ${r.description} Rp${r.amount}` };
+  if (r && r.amount === 25000) return { ok: true, message: `OK — ${r.description} Rp${r.amount}` }; // NOSONAR
   if (r) return { ok: true, message: `Terhubung — ${r.description}` };
   return { ok: false, message: 'Gagal parse. Periksa base URL / key / model.' };
 }
