@@ -81,6 +81,11 @@ export default function ChatView() {
     (async () => {
       try {
         const cache = await caches.open('share-cache');
+
+        // Prioritize image OCR over share text.
+        // Share messages from banking apps (e.g. SeaBank "Halo, aku sudah
+        // kirim Rp...") are conversational noise — the screenshot is the
+        // real receipt. If we have an image, use OCR only and discard text.
         const fileRes = await cache.match('shared-file');
         if (fileRes) {
           const blob = await fileRes.blob();
@@ -89,20 +94,24 @@ export default function ChatView() {
           const file = new File([blob], name, { type });
           await handleFile(file);
           await cache.delete('shared-file');
-        }
-        const metaRes = await cache.match('shared-meta');
-        if (metaRes) {
-          const meta = await metaRes.json();
-          const sharedText = [meta.text, meta.url].filter(Boolean).join(' ').trim();
-          if (sharedText) {
-            const parsed = parseChatInput(sharedText);
-            if (parsed) {
-              setPending({ description: parsed.description, amount: parsed.amount, date: new Date().toISOString().slice(0, 10) });
-            } else if (!fileRes) {
-              setInput(sharedText.slice(0, 80));
-            }
-          }
+          // Discard share text when image is available
           await cache.delete('shared-meta');
+        } else {
+          // No image — use share text as chat input fallback
+          const metaRes = await cache.match('shared-meta');
+          if (metaRes) {
+            const meta = await metaRes.json();
+            const sharedText = [meta.text, meta.url].filter(Boolean).join(' ').trim();
+            if (sharedText) {
+              const parsed = parseChatInput(sharedText);
+              if (parsed) {
+                setPending({ description: parsed.description, amount: parsed.amount, date: new Date().toISOString().slice(0, 10) });
+              } else {
+                setInput(sharedText.slice(0, 80));
+              }
+            }
+            await cache.delete('shared-meta');
+          }
         }
         window.history.replaceState({}, '', '/chat');
       } catch {}
