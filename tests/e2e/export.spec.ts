@@ -52,7 +52,7 @@ test.describe('export CSV/XLSX', () => {
     const buf = fs.readFileSync(p!);
     const wb = XLSX.read(buf, { type: 'buffer' });
     const ws = wb.Sheets[wb.SheetNames[0]!];
-    expect(XLSX.utils.sheet_to_json(ws).length).toBe(1);
+    expect(XLSX.utils.sheet_to_json(ws)).toHaveLength(1);
   });
 
   test('filter by date range', async ({ page }) => {

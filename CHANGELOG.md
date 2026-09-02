@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.9 - 2026-09-02
+### Fixed
+
+- Use toHaveLength for xlsx assertion (S5906)
+
+
 ## 0.6.8 - 2026-09-02
 ### Changed
 
