@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.28 - 2026-09-02
+### Added
+
+- LLM Opsi A — BYOK tanpa backend (9router/OpenRouter)
+
+
 ## 0.6.27 - 2026-09-02
 ### Fixed
 
