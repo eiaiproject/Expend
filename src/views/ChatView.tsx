@@ -359,7 +359,7 @@ export default function ChatView() {
                 <p className="text-xs font-semibold" aria-live="polite">
                   Membaca bukti... {ocrProgress}%
                 </p>
-                <span className="ml-auto text-[12px] text-[var(--text-muted)]">offline</span>
+                <span className="ml-auto text-[12px] text-[var(--text-muted)]">luring</span>
               </div>
               <progress value={ocrProgress} max={100} aria-label="Memindai bukti" aria-valuetext={`${ocrProgress}%`} className="mt-3 h-1.5 w-full rounded-full overflow-hidden" />
               <p className="text-[12px] text-[var(--text-muted)] mt-2">Tetap di halaman ini, jangan tutup.</p>
@@ -487,7 +487,7 @@ export default function ChatView() {
           <div className="rounded-[var(--radius-lg)] bg-[var(--card)] border-2 border-dashed border-[var(--accent)] p-6 text-center shadow-lg">
             <Gallery size={20} className="mx-auto text-[var(--accent)]" aria-hidden />
             <p className="text-sm font-bold mt-2">Lepas bukti di sini</p>
-            <p className="text-xs text-[var(--text-secondary)]">JPG, PNG, atau WebP &middot; maks 10 MB</p>
+            <p className="text-xs text-[var(--text-secondary)]">JPG, PNG, atau WebP &middot; maksimal 10 MB</p>
           </div>
         </div>
       )}
@@ -553,7 +553,7 @@ export default function ChatView() {
           </button>
         </form>
         <p className="text-[11px] tracking-wide text-[var(--text-secondary)] text-center mt-2.5">
-          <span className="hidden md:inline">Enter kirim · Shift+Enter baris baru · Tarik bukti ke area chat</span>
+          <span className="hidden md:inline">Enter untuk kirim · Shift+Enter baris baru · Tarik bukti ke area chat</span>
           <span className="md:hidden">Tarik bukti ke area chat untuk unggah</span>
         </p>
       </div>

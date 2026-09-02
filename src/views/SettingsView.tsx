@@ -199,10 +199,10 @@ export default function SettingsView() {
             </div>
             <div className="flex items-center justify-between gap-3 px-4 py-3">
               <div>
-                <p className="text-sm font-semibold">Mata uang</p>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Format nominal</p>
+                <p className="text-sm font-semibold">Format nominal</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Mata uang Rupiah</p>
               </div>
-              <span className="text-sm font-medium text-[var(--text-muted)]">IDR</span>
+              <span className="text-sm font-medium text-[var(--text-muted)]">Rp</span>
             </div>
             <div className="flex items-center justify-between gap-3 px-4 py-3">
               <div>
@@ -290,7 +290,7 @@ export default function SettingsView() {
                 <p className="text-sm font-semibold">Expend</p>
                 <p className="text-xs text-[var(--text-secondary)] mt-0.5">Pencatatan pengeluaran yang sederhana dan privat</p>
               </div>
-              <span className="inline-flex items-center rounded-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] px-2.5 py-1 text-xs font-mono font-bold">v{version}</span>
+              <span className="inline-flex items-center rounded-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] px-2.5 py-1 text-xs font-mono font-bold">versi {version}</span>
             </div>
           </div>
         </SectionCard>
