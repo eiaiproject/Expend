@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.4 - 2026-09-02
+### Fixed
+
+- Improve receipt and chat parsers for real-world receipts
+
+
 ## 0.6.3 - 2026-09-02
 ### Fixed
 

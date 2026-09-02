@@ -185,7 +185,7 @@ export default function ChatView() {
         });
         return;
       }
-      setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date, source: parsed.source });
+      setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date, note: parsed.note, source: parsed.source });
       await db.chatMessages.add({
         role: 'assistant',
         text: `Siap dicatat: ${parsed.description} - ${fmtIDR(parsed.amount)}`,

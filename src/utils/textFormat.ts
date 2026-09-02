@@ -3,6 +3,7 @@ export const ACRONYMS = new Set([
   'ATM', 'QRIS', 'EDC', 'API', 'URL', 'SMS', 'OTP', 'PIN', 'NOMOR',
   'PLN', 'PDAM', 'BPJS', 'NPWP', 'KTP', 'SIM',
   'GOPAY', 'OVO', 'DANA', 'SHOPEEPAY', 'LINKAJA',
+  'KAI', 'FINPAY', 'SHOPEEFOOD',
 ]);
 
 /**
@@ -14,7 +15,14 @@ export function titleCasePreserveAcronyms(s: string): string {
     .split(/\s+/)
     .map((w) => {
       if (!w) return w;
-      if (w === w.toUpperCase() && w.length >= 2 && ACRONYMS.has(w.toUpperCase())) return w;
+      const upper = w.toUpperCase();
+      // Preserve known acronyms (case-insensitive match)
+      if (ACRONYMS.has(upper)) {
+        // Return canonical form from set if ALL-CAPS, else preserve original casing
+        if (w === upper) return w;
+        // Mixed-case known brand (e.g. ShopeeFood) — preserve as-is
+        return w;
+      }
       return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
     })
     .join(' ');

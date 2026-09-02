@@ -24,7 +24,20 @@ export function normalizeNumber(s: string): number {
   const raw = s.trim();
   if (!raw) return 0;
 
-  // If contains comma, treat comma as decimal separator
+  // Detect international format: comma as thousands + dot as decimal
+  // e.g. "1,000.00" → 1000
+  if (raw.includes(',') && raw.includes('.')) {
+    // If comma is followed by exactly 3 digits and dot has 2 digits after → international
+    const commaIdx = raw.lastIndexOf(',');
+    const dotIdx = raw.lastIndexOf('.');
+    if (dotIdx > commaIdx && raw.slice(dotIdx + 1).length <= 2 && raw.slice(commaIdx + 1, dotIdx).length === 3) {
+      const cleaned = raw.replaceAll(',', '');
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n : 0;
+    }
+  }
+
+  // Indonesian format: comma as decimal separator
   if (raw.includes(',')) {
     // Remove thousand-separator dots, then swap comma to dot
     const cleaned = raw.replaceAll('.', '').replaceAll(',', '.');
@@ -216,7 +229,7 @@ function scoreCandidate(
 function pickBestAmount(candidates: AmountCandidate[], fullText: string): number | null {
   if (!candidates.length) return null;
 
-  const rpRe = /R\s*P\s*\.?:?|IDR/i;
+  const rpRe = /\bRp\.?|\bIDR/i;
 
   let best = candidates[0]!;
   let bestScore = scoreCandidate(best, rpRe.test(fullText));
@@ -247,6 +260,8 @@ function formatDescription(raw: string): string {
   desc = desc.replace(VERB_RE, '').trim();
   // Remove source clause
   desc = desc.replace(SOURCE_CLAUSE_RE, '').trim();
+  // Remove standalone Rp/IDR tokens
+  desc = desc.replace(/\bRp\.?\b/gi, '').replace(/\bIDR\b/gi, '').replace(/\s{2,}/g, ' ').trim(); // NOSONAR
   // Remove standalone prepositions
   desc = desc.replace(PREPOSITION_RE, '').replace(/\s{2,}/g, ' ').trim();
   // Remove trailing words + number (e.g. "lantai 2", "lantai 3", "lantai 5")

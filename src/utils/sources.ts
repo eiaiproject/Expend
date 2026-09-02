@@ -79,21 +79,28 @@ export const SOURCES: SourceEntry[] = [
  * Urutan: brand spesifik lebih prioritas daripada generic.
  */
 export function detectSource(text: string): string | undefined {
-  // 1. Cek keyword eksplisit: dari/via/pakai X
+  const lines = text.split('\n');
+
+  // 1. Cek keyword eksplisit: dari/via/pakai X (highest priority)
   const srcKwRe = /(?:dari|via|pakai|pake)\s+([A-Za-z0-9 ]+?)(?:\n|$|[.,])/i; // NOSONAR - bounded, anchored
   const srcMatch = srcKwRe.exec(text);
   if (srcMatch?.[1]) {
     const raw = srcMatch[1]!.trim();
-    // Cek apakah raw cocok dengan database
     const dbMatch = SOURCES.find((s) => s.patterns.some((p) => p.test(raw)));
     if (dbMatch) return dbMatch.name;
-    // Preserve ALL-CAPS (e.g. BSI, BCA)
     if (raw === raw.toUpperCase() && raw.length > 1) return raw;
-    // Title-case
     return raw.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
   }
 
-  // 2. Scan teks dengan database
+  // 2. Cek header (first 2 lines) — usually the app/bank name
+  for (let i = 0; i < Math.min(2, lines.length); i++) {
+    const header = lines[i]!.trim().replace(/^[©@§£€*#]+\s*/, '');
+    if (!header || header.length < 2) continue;
+    const dbMatch = SOURCES.find((s) => s.patterns.some((p) => p.test(header)));
+    if (dbMatch) return dbMatch.name;
+  }
+
+  // 3. Scan teks dengan database
   for (const source of SOURCES) {
     if (source.patterns.some((p) => p.test(text))) {
       return source.name;
