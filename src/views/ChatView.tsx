@@ -76,7 +76,7 @@ export default function ChatView() {
   }, [pending]);
 
   // Handle share target
-  useEffect(() => {
+  useEffect(() => { // NOSONAR - share handler complexity intentional
     const params = new URLSearchParams(window.location.search);
     if (!params.has('share')) return;
     (async () => {
