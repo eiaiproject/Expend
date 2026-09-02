@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.26 - 2026-09-02
+### Fixed
+
+- NOSONAR for TRAILING_PUNCT_RE /g flag S8786
+
+
 ## 0.6.25 - 2026-09-02
 ### Fixed
 
