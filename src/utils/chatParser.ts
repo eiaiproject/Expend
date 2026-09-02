@@ -247,19 +247,24 @@ function pickBestAmount(candidates: AmountCandidate[], fullText: string): number
 const VERB_RE = /^(beli|bayar|jajan|belanja|order|pesan|isi|top\s*up|transfer|tf|beliin)\s+/i;
 const SOURCE_CLAUSE_RE = /\s+(?:dari|pakai|pake|via)\s+\S.*$/i; // NOSONAR - bounded description (<80 chars)
 const PREPOSITION_RE = /\b(?:di|ke|untuk|dengan)\b/gi;
+const GENERIC_SOURCE_RE = /\b(?:tunai|cash|kas)\b/gi;
 
-function formatDescription(raw: string): string {
+function formatDescription(raw: string, hasGenericSource: boolean): string {
   let desc = raw.trim();
   if (!desc) return 'Pengeluaran';
 
   // Remove verb prefix
   desc = desc.replace(VERB_RE, '').trim();
-  // Remove source clause
+  // Remove source clause (dari/via/pakai ...)
   desc = desc.replace(SOURCE_CLAUSE_RE, '').trim();
   // Remove standalone Rp/IDR tokens
   desc = desc.replace(/\bRp\.?\b/gi, '').replace(/\bIDR\b/gi, '').replace(/\s{2,}/g, ' ').trim(); // NOSONAR
   // Remove standalone prepositions
   desc = desc.replace(PREPOSITION_RE, '').replace(/\s{2,}/g, ' ').trim();
+  // Remove generic source words (tunai/cash/kas) if detected as source
+  if (hasGenericSource) desc = desc.replace(GENERIC_SOURCE_RE, '').replace(/\s{2,}/g, ' ').trim();
+  // Remove mid-sentence verb before generic source (e.g. "kopi bayar kas" → "kopi")
+  if (hasGenericSource) desc = desc.replace(/\s+(?:bayar|pakai|pake|dari|via)\s*$/i, '').replace(/\s{2,}/g, ' ').trim();
   // Remove trailing words + number (e.g. "lantai 2", "lantai 3", "lantai 5")
   desc = desc.replace(/\s+\w+\s+\d{1,2}\s*$/ , '').trim(); // NOSONAR
   // Remove trailing standalone numbers
@@ -302,12 +307,17 @@ export function parseChatInput(input: string): ParsedExpense | null {
 
   // 6. Extract source
   const sourceMatch = /\s+(?:dari|pakai|pake|via)\s+(.+)$/i.exec(rawDesc); // NOSONAR - anchored, bounded
-  const source = sourceMatch
-    ? detectSource(sourceMatch[1]!.trim()) || sourceMatch[1]!.trim()
-    : undefined;
+  let source: string | undefined;
+  if (sourceMatch) {
+    source = detectSource(sourceMatch[1]!.trim()) || sourceMatch[1]!.trim();
+  } else {
+    // Fallback: scan full text for generic sources (Tunai, Kas) without keyword
+    const generic = detectSource(text);
+    if (generic === 'Tunai' || generic === 'Kas') source = generic;
+  }
 
   // 7. Format description
-  const description = formatDescription(rawDesc);
+  const description = formatDescription(rawDesc, !!source && (source === 'Tunai' || source === 'Kas'));
 
   return { description, amount, source, date };
 }

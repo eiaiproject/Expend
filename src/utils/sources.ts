@@ -70,6 +70,7 @@ export const SOURCES: SourceEntry[] = [
 
   // ─── Generic ────────────────────────────────────────
   { name: 'Tunai',     patterns: [/\btunai\b/i, /\bcash\b/i] },
+  { name: 'Kas',       patterns: [/\bkas\b/i] },
   { name: 'Transfer Bank', patterns: [/transfer\s*bank/i, /\btf\s*bank/i] },
 ];
 

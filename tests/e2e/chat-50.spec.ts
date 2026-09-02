@@ -19,7 +19,7 @@ const CASES: Case[] = [
   { input: 'bayar 125.000', desc: 'Bayar', amount: 125000 },
   { input: 'beli kopi Rp 25.000', desc: 'Kopi', amount: 25000 },
   { input: 'makan siang Rp 75.000', desc: 'Makan Siang', amount: 75000 },
-  { input: 'kopi 20000 dari kas', desc: 'Kopi', amount: 20000, source: 'kas' },
+  { input: 'kopi 20000 dari kas', desc: 'Kopi', amount: 20000, source: 'Kas' },
   { input: 'KPR 7500000 dari BSI', desc: 'KPR', amount: 7500000, source: 'BSI' },
   { input: 'makan siang 50rb via GoPay', desc: 'Makan Siang', amount: 50000, source: 'GoPay' },
   { input: 'bayar listrik 200rb pakai Dana', desc: 'Listrik', amount: 200000, source: 'Dana' },

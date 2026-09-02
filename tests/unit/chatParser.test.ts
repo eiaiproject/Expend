@@ -123,7 +123,10 @@ describe('parseChatInput - source', () => {
     ['KPR 7500000 dari BSI', 'BSI'],
     ['makan siang 50rb via GoPay', 'GoPay'],
     ['bayar listrik 200rb pakai Dana', 'Dana'],
-    ['kopi 20000 dari kas', 'kas'],
+    ['kopi 20000 dari kas', 'Kas'],
+    ['bayar tunai 50rb', 'Tunai'],
+    ['kopi 25rb tunai', 'Tunai'],
+    ['makan tunai 50rb', 'Tunai'],
   ])('source %s', (input, expected) => {
     const r = parseChatInput(input);
     expect(r?.source).toBe(expected);
