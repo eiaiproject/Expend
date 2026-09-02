@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.27 - 2026-09-02
+### Fixed
+
+- Prioritize image OCR over share text — ignore pesan bawaan
+
+
 ## 0.6.26 - 2026-09-02
 ### Fixed
 
