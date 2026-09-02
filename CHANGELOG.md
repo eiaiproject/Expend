@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.19 - 2026-09-02
+### Added
+
+- Danger zone + date input cross-browser fix
+
+
 ## 0.6.18 - 2026-09-02
 ### Fixed
 
