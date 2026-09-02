@@ -151,6 +151,25 @@ function extractDate(text: string): string {
 
 // ─── Description extraction ───────────────────────────────────────────────────
 
+// Detect conversational share messages: "halo aku sudah kirim Rpxxx ke YYY lewat ZZZ"
+function isShareMessage(text: string): boolean { // NOSONAR
+  const markers = /(?:halo|hai|aku\s+sudah|sudah\s+(?:kirim|transfer)|jangan\s+lupa|tolong|terima\s+kasih|coba\s+cek|sudah\s+diterima|sudah\s+kamu)/i;
+  const lines = text.split('\n');
+  return lines.length <= 3 && markers.test(text);
+}
+
+// Extract recipient from "kirim/transfer RpXXX ke/kepada YYY (lewat/via ZZZ)"
+function extractShareRecipient(text: string): string | undefined {
+  const m = /(?:kirim|transfer)[\s\S]*?(?:ke|kepada)\s+(.+?)(?:\s+(?:lewat|via|pakai|pake|dari)\s+|[.,!\n]|$)/i.exec(text); // NOSONAR
+  if (!m?.[1]) return undefined;
+  let name = m[1].trim().replace(/[.,!]+$/g, '').trim();
+  // Reject if it's just a source name or too short
+  if (name.length < 2) return undefined;
+  // Reject common false positives: "akun", "aku", "kamu"
+  if (/^(?:akun|aku|kamu|saya|dia|itu|itu\s+ya|sini|situ|mana)$/i.test(name)) return undefined;
+  return name;
+}
+
 function findHitLine(lines: string[]): string | undefined {
   let hit = lines.find((l) => PRODUCT_RE.test(l));
   if (!hit) hit = lines.find((l) => RECIPIENT_RE.test(l) && /(?:penerima|kepada|tujuan|ke)\s*[:-]?\s*[^\n]{2,}/i.test(l)); // NOSONAR
@@ -211,6 +230,13 @@ function finalizeDesc(raw: string): string {
 }
 
 function extractDescription(text: string, hits: { idx: number }[]): { desc: string; source?: string } {
+  // Check for conversational share message first
+  if (isShareMessage(text)) {
+    const recipient = extractShareRecipient(text);
+    if (recipient) return { desc: finalizeDesc(recipient) };
+    // No recipient found — use "Transfer" as generic description
+    return { desc: 'Transfer' };
+  }
   const lines = text.split('\n');
   const hitLine = findHitLine(lines);
   let desc = '';

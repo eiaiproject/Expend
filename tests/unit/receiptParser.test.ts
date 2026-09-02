@@ -176,4 +176,46 @@ describe('parseReceiptText', () => {
     const t = `Mandiri\nRp 14.500\nSender PAN 9360000812071174087`;
     expect(parseReceiptText(t)!.amount).toBe(14500);
   });
+
+  // ─── Conversational share messages ──────────────────────────────────────────
+  it('SeaBank share message with recipient', () => {
+    const t = 'Halo, aku sudah kirim Rp4.627.000 ke Luky Dian Susanti lewat GoPay. Jangan lupa cek ya!';
+    const r = parseReceiptText(t)!;
+    expect(r.description).toBe('Luky Dian Susanti');
+    expect(r.amount).toBe(4627000);
+    expect(r.source).toBe('GoPay');
+  });
+  it('share message without recipient', () => {
+    const t = 'Halo, aku sudah kirim Rp53.730 lewat SeaBank. Kalau kamu sudah diterima, tolong konfirmasi ya. Terima kasih!';
+    const r = parseReceiptText(t)!;
+    expect(r.description).toBe('Transfer');
+    expect(r.amount).toBe(53730);
+    expect(r.source).toBe('Sea Bank');
+  });
+  it('share message with suffix amount', () => {
+    const t = 'halo aku sudah kirim 50rb lewat SeaBank';
+    const r = parseReceiptText(t)!;
+    expect(r.description).toBe('Transfer');
+    expect(r.amount).toBe(50000);
+    expect(r.source).toBe('Sea Bank');
+  });
+  it('share message with via keyword', () => {
+    const t = 'Aku sudah kirim Rp100.000 ke Budi Antoni via BCA';
+    const r = parseReceiptText(t)!;
+    expect(r.description).toBe('Budi Antoni');
+    expect(r.amount).toBe(100000);
+    expect(r.source).toBe('BCA');
+  });
+  it('share message without source', () => {
+    const t = 'Aku sudah transfer Rp100.000 ke Budi Antoni';
+    const r = parseReceiptText(t)!;
+    expect(r.description).toBe('Budi Antoni');
+    expect(r.amount).toBe(100000);
+  });
+  it('receipt not mistaken as share message', () => {
+    // Multi-line receipt should NOT trigger share message detection
+    const t = `SeaBank\nBukti Transaksi\nRp 53.730\nProduct ShopeeFood\n01 Sep 2026`;
+    const r = parseReceiptText(t)!;
+    expect(r.description).toBe('ShopeeFood');
+  });
 });
