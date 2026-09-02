@@ -13,7 +13,7 @@ import type { Transaction } from '../db/db';
 const EMPTY_TXS: Transaction[] = [];
 
 export default function HomeView() {
-  const txsResult = useLiveQuery(() => db.transactions.orderBy('createdAt').reverse().toArray(), []);
+  const txsResult = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray(), []);
   const txs = txsResult ?? EMPTY_TXS;
   const isLoading = txsResult === undefined;
   const [error, setError] = useState<string | null>(null);

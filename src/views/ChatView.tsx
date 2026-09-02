@@ -5,7 +5,7 @@ import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
 import { recognizeImage, isOcrReady } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
-import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ArrowDown, X } from 'reicon-react';
+import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ChevronDown, X } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { InlineAlert } from '../components/InlineAlert';
 
@@ -46,11 +46,9 @@ export default function ChatView() {
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
-    if (isNearBottom) {
-      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      endRef.current?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
-    }
+    // Always scroll to bottom when messages change (new message, OCR, pending)
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    endRef.current?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
   }, [messages.length, pending, ocrProgress]);
 
   // Track scroll position for "back to latest" button
@@ -479,7 +477,7 @@ export default function ChatView() {
           }}
           className="absolute bottom-24 md:bottom-20 left-1/2 -translate-x-1/2 z-20 min-w-12 min-h-12 w-12 h-12 rounded-full bg-[var(--card)] border border-[var(--border)] shadow-md grid place-items-center hover:bg-[var(--bone)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
         >
-          <ArrowDown size={18} aria-hidden />
+          <ChevronDown size={16} aria-hidden />
         </button>
       )}
 

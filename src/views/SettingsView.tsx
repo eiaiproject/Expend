@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { ChevronRight, ChevronDown, Lock, CloudCross, Information, Download } from 'reicon-react';
+import { ChevronDown, Lock, CloudCross, Information, Download } from 'reicon-react';
 import { db } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { PageHeader } from '../components/PageHeader';
@@ -50,7 +50,7 @@ function SettingsRow({
         <p className="text-sm font-semibold leading-snug">{title}</p>
         {description && <p className="text-xs text-[var(--text-secondary)] mt-0.5 leading-relaxed">{description}</p>}
       </div>
-      {trailing ?? (action && <ChevronRight size={18} className="text-[var(--text-muted)] shrink-0" aria-hidden />)}
+      {trailing ?? (action && <ChevronDown size={16} className="text-[var(--text-muted)] shrink-0 pointer-events-none" aria-hidden />)}
     </Tag>
   );
 }
