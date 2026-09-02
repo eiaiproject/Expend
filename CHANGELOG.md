@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.21 - 2026-09-02
+### Added
+
+- Parse conversational share messages (SeaBank/GoPay/BCA)
+
+
 ## 0.6.20 - 2026-09-02
 ### Fixed
 
