@@ -1,4 +1,10 @@
 # Changelog
+## 0.6.20 - 2026-09-02
+### Fixed
+
+- Konsistensi bahasa Indonesia di seluruh UI
+
+
 ## 0.6.19 - 2026-09-02
 ### Added
 
