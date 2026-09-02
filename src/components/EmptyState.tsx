@@ -10,7 +10,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, children, className = '' }: EmptyStateProps) {
   return (
-    <div className={`rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)] bg-[var(--card)] px-6 py-8 text-center ${className}`}>
+    <div className={`rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-6 py-8 text-center ${className}`}>
       {icon && (
         <div className="mx-auto w-14 h-14 rounded-[var(--radius-md)] bg-[var(--accent-soft)] grid place-items-center mb-4">
           {icon}

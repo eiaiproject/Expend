@@ -253,7 +253,7 @@ export default function ChatView() {
       {/* Header */}
       <div className="shrink-0 px-4 md:px-6 py-3 border-b border-[var(--border)]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)] grid place-items-center shrink-0">
+          <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)] grid place-items-center shrink-0">
             <ChatRoundDots size={18} aria-hidden />
           </div>
           <div className="min-w-0">
@@ -272,7 +272,7 @@ export default function ChatView() {
         <div className="flex-1 min-h-0 flex items-start pt-6">
           <div className="w-full rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5">
             <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] border border-[var(--border)]/60 grid place-items-center shrink-0 shadow-sm">
+              <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--accent-soft)] border border-[var(--border)]/60 grid place-items-center shrink-0 shadow-sm">
                 <Receipt size={18} className="text-[var(--accent)]" aria-hidden />
               </div>
               <div className="min-w-0 flex-1">
@@ -325,8 +325,8 @@ export default function ChatView() {
                   <div
                     className={`px-4 py-3 text-sm leading-[22px] ${
                       m.role === 'user'
-                        ? 'bg-[var(--accent)] text-[var(--accent-ink)] rounded-[18px] rounded-br-[6px]'
-                        : 'bg-[var(--card)] border border-[var(--border)] rounded-[18px] rounded-bl-[6px]'
+                        ? 'bg-[var(--accent)] text-[var(--accent-ink)] rounded-[var(--radius-lg)] rounded-br-[var(--radius-sm)]'
+                        : 'bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-lg)] rounded-bl-[var(--radius-sm)]'
                     }`}
                   >
                     {m.text === '__LINK_RINGKASAN__' ? (
@@ -385,7 +385,7 @@ export default function ChatView() {
                     onChange={(e) => setPending({ ...pending, description: e.target.value })}
                     autoComplete="off"
                     placeholder="Misal: Toko Kopi"
-                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
+                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
                   />
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -398,7 +398,7 @@ export default function ChatView() {
                       value={pending.amount || ''}
                       onChange={(e) => setPending({ ...pending, amount: Number(e.target.value) || 0 })}
                       placeholder="50000"
-                      className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm tabular-nums outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
+                      className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
                     />
                   </label>
                   <label htmlFor="pending-date" className="block">
@@ -408,7 +408,7 @@ export default function ChatView() {
                       type="date"
                       value={pending.date}
                       onChange={(e) => setPending({ ...pending, date: e.target.value })}
-                      className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
+                      className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
                     />
                   </label>
                 </div>
@@ -420,7 +420,7 @@ export default function ChatView() {
                     onChange={(e) => setPending({ ...pending, source: e.target.value })}
                     autoComplete="off"
                     placeholder="Tunai, Transfer Bank, GoPay..."
-                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
+                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
                   />
                 </label>
                 <label htmlFor="pending-note" className="block">
@@ -431,7 +431,7 @@ export default function ChatView() {
                     onChange={(e) => setPending({ ...pending, note: e.target.value })}
                     autoComplete="off"
                     placeholder="Misal: untuk bulanan"
-                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]"
+                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
                   />
                 </label>
                 <div className="flex items-center gap-2 text-xs">
@@ -453,7 +453,7 @@ export default function ChatView() {
                 <button
                   type="button"
                   onClick={() => { setPending(null); setOcrError(null); }}
-                  className="min-h-12 px-5 rounded-[var(--radius-md)] bg-[var(--bg)] border border-[var(--border)] text-sm font-semibold inline-flex items-center gap-2 hover:bg-[var(--card)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                  className="min-h-12 px-5 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 >
                   <X size={16} aria-hidden />
                   Batalkan

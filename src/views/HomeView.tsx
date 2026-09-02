@@ -21,7 +21,7 @@ export default function HomeView() {
   const total = useMemo(() => txs.reduce((a, t) => a + t.amount, 0), [txs]);
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 pt-4 md:pt-0 pb-8 space-y-6">
+    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 pt-4 md:pt-0 pb-[calc(60px+env(safe-area-inset-bottom))] space-y-6">
       <header>
         <h1 className="sr-only">Expend</h1>
         <img src="/Expend-word.svg" alt="Expend" className="h-5 md:h-6 w-auto" />
@@ -63,7 +63,7 @@ export default function HomeView() {
         <>
           <SectionCard>
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--accent-soft)] grid place-items-center shrink-0">
+              <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--accent-soft)] grid place-items-center shrink-0">
                 <Receipt size={18} className="text-[var(--accent)]" aria-hidden />
               </div>
               <div className="min-w-0 flex-1">
