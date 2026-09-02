@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar } from 'reicon-react';
+import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar, Cpu } from 'reicon-react';
 import { db } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { PageHeader } from '../components/PageHeader';
@@ -7,6 +7,7 @@ import { SectionCard } from '../components/SectionCard';
 import { Toast } from '../components/Toast';
 import { csvBlob, xlsxBlob, filterByDate, exportFilename, downloadBlob } from '../utils/export';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { getLLMConfig, saveLLMConfig, testLLMConnection, type LLMConfig } from '../utils/llm';
 
 type Theme = 'system' | 'light' | 'dark';
 type ToastState = { message: string; type: 'success' | 'error' } | null;
@@ -102,6 +103,9 @@ export default function SettingsView() {
   const [exportFrom, setExportFrom] = useState('');
   const [exportTo, setExportTo] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [llmConfig, setLlmConfig] = useState<LLMConfig>(() => getLLMConfig());
+  const [llmTesting, setLlmTesting] = useState(false);
+  const [llmTestResult, setLlmTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Persist confirmSave
   useEffect(() => {
@@ -164,6 +168,31 @@ export default function SettingsView() {
       showToast('Gagal menghapus data. Coba lagi.', 'error');
     } finally {
       setConfirmDelete(false);
+    }
+  }, [showToast]);
+
+  const updateLLM = useCallback((patch: Partial<LLMConfig>) => {
+    setLlmConfig((prev) => {
+      const next = { ...prev, ...patch };
+      saveLLMConfig(next);
+      return next;
+    });
+    setLlmTestResult(null);
+  }, []);
+
+  const handleTestLLM = useCallback(async () => {
+    setLlmTesting(true);
+    setLlmTestResult(null);
+    try {
+      const result = await testLLMConnection();
+      setLlmTestResult(result);
+      showToast(result.message, result.ok ? 'success' : 'error');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Gagal terhubung.';
+      setLlmTestResult({ ok: false, message: msg });
+      showToast(msg, 'error');
+    } finally {
+      setLlmTesting(false);
     }
   }, [showToast]);
 
@@ -251,6 +280,53 @@ export default function SettingsView() {
         </SectionCard>
       </SettingsSection>
 
+      {/* LLM — Opsi A: BYOK tanpa backend */}
+      <SettingsSection title="Kecerdasan Buatan">
+        <SectionCard padding="sm">
+          <div className="divide-y divide-[var(--border)]">
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--accent-soft)] grid place-items-center shrink-0">
+                  <Cpu size={18} className="text-[var(--accent)]" aria-hidden />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">Parsing pintar (online)</p>
+                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">Gunakan LLM jika regex gagal. Butuh internet.</p>
+                </div>
+              </div>
+              <Toggle checked={llmConfig.enabled} onChange={(v) => updateLLM({ enabled: v })} label="Parsing pintar" />
+            </div>
+            {llmConfig.enabled && (
+              <div className="px-4 py-3 space-y-3">
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">Data transaksi hanya dikirim ke LLM saat parsing. Kunci disimpan lokal di perangkat ini. Bisa pakai OpenRouter, OpenAI, atau 9router (OpenAI-compatible).</p>
+                <label className="block">
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">Base URL</span>
+                  <input value={llmConfig.baseUrl} onChange={(e) => updateLLM({ baseUrl: e.target.value })} placeholder="https://openrouter.ai/api/v1" autoComplete="off" spellCheck={false} className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm font-mono outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                  <span className="text-[11px] text-[var(--text-muted)] mt-1 block">9router lokal: http://localhost:20128/v1 — OpenRouter: https://openrouter.ai/api/v1</span>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">API Key</span>
+                  <input type="password" value={llmConfig.apiKey} onChange={(e) => updateLLM({ apiKey: e.target.value })} placeholder="sk-or-... atau sk-9r-..." autoComplete="off" spellCheck={false} className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm font-mono outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">Model</span>
+                  <input value={llmConfig.model} onChange={(e) => updateLLM({ model: e.target.value })} placeholder="openai/gpt-4o-mini" autoComplete="off" spellCheck={false} className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm font-mono outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                  <span className="text-[11px] text-[var(--text-muted)] mt-1 block">9router combo: free-tier — OpenRouter: openai/gpt-4o-mini, anthropic/claude-3.5-haiku</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={handleTestLLM} disabled={llmTesting || !llmConfig.apiKey.trim() || !llmConfig.model.trim()} className="min-h-11 px-4 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+                    {llmTesting ? 'Menguji...' : 'Uji koneksi'}
+                  </button>
+                  {llmTestResult && (
+                    <span className={`text-xs font-medium ${llmTestResult.ok ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>{llmTestResult.message}</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </SectionCard>
+      </SettingsSection>
+
       {/* Privacy */}
       <SettingsSection title="Privasi">
         <SectionCard padding="sm">
@@ -264,8 +340,8 @@ export default function SettingsView() {
               icon={<CloudCross size={18} />}
               iconBg="bg-[var(--bg)] border border-[var(--border)]"
               iconColor="text-[var(--text-muted)]"
-              title="Tanpa koneksi eksternal"
-              description="Tidak ada data yang dikirim ke server. OCR diproses langsung di perangkat setelah model diunduh."
+              title={llmConfig.enabled ? 'Koneksi LLM aktif' : 'Tanpa koneksi eksternal'}
+              description={llmConfig.enabled ? 'Saat parsing pintar aktif, teks transaksi dikirim ke LLM (Base URL di atas). Matikan untuk 100% offline. OCR tetap lokal.' : 'Tidak ada data yang dikirim ke server. OCR diproses langsung di perangkat setelah model diunduh.'}
             />
             <SettingsRow
               icon={<Information size={18} />}

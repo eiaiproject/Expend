@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
+import { isLLMEnabled, parseWithLLM } from '../utils/llm';
 import { recognizeImage, isOcrReady } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
 import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ChevronDown, X } from 'reicon-react';
@@ -103,9 +104,14 @@ export default function ChatView() {
             const meta = await metaRes.json();
             const sharedText = [meta.text, meta.url].filter(Boolean).join(' ').trim();
             if (sharedText) {
-              const parsed = parseChatInput(sharedText);
+              let parsed = parseChatInput(sharedText);
+              if (!parsed && isLLMEnabled()) {
+                try {
+                  parsed = await parseWithLLM(sharedText);
+                } catch {}
+              }
               if (parsed) {
-                setPending({ description: parsed.description, amount: parsed.amount, date: new Date().toISOString().slice(0, 10) });
+                setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || new Date().toISOString().slice(0, 10), source: parsed.source });
               } else {
                 setInput(sharedText.slice(0, 80));
               }
@@ -137,7 +143,13 @@ export default function ChatView() {
 
     const now = new Date().toISOString();
     await db.chatMessages.add({ role: 'user', text, createdAt: now });
-    const parsed = parseChatInput(text);
+    let parsed = parseChatInput(text);
+    if (!parsed && isLLMEnabled()) {
+      try {
+        const llmParsed = await parseWithLLM(text);
+        if (llmParsed) parsed = llmParsed;
+      } catch {}
+    }
     if (!parsed) {
       await db.chatMessages.add({
         role: 'assistant',
