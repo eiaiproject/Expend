@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import id from './id';
 import en from './en';
 import type { TranslationKey } from './id';
@@ -26,12 +26,11 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function I18nProvider({ children }: { readonly children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(getInitialLang);
+  const [lang, setLang] = useState<Lang>(getInitialLang);
 
-  const setLang = useCallback((newLang: Lang) => {
-    setLangState(newLang);
-    try { localStorage.setItem(STORAGE_KEY, newLang); } catch {}
-  }, []);
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, lang); } catch {}
+  }, [lang]);
 
   const t = useCallback(
     (key: TranslationKey, params?: Record<string, string | number>): string => {

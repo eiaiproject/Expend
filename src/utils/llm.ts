@@ -218,7 +218,7 @@ export async function testLLMConnection(): Promise<{ ok: boolean; message: strin
   if (!cfg.apiKey.trim()) return { ok: false, message: t('llm.apiKeyEmpty') };
   if (!cfg.model.trim()) return { ok: false, message: t('llm.modelEmpty') };
   const r = await parseWithLLM('kopi 25rb'); // NOSONAR
-  if (r && r.amount === 25000) return { ok: true, message: t('llm.testSuccess', { desc: r.description, amount: r.amount }) };
+  if (r?.amount === 25000) return { ok: true, message: t('llm.testSuccess', { desc: r.description, amount: r.amount }) };
   if (r) return { ok: true, message: t('llm.testConnected', { desc: r.description, amount: r.amount }) };
   return { ok: false, message: t('llm.testFailed') };
 }
