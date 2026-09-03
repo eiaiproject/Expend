@@ -1,4 +1,10 @@
 # Changelog
+## 0.7.1 - 2026-09-03
+### Fixed
+
+- Resolve remaining code smells S6754 and S6582
+
+
 ## 0.7.0 - 2026-09-02
 ### Added
 
