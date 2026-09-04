@@ -1,4 +1,19 @@
 # Changelog
+## 0.8.0 - 2026-09-04
+### Added
+
+- Tambah string untuk chat mode LLM (id+en)
+- Intent detection switch parser/chat mode
+
+### Changed
+
+- Add chat mode for free-form Q&A
+
+### Fixed
+
+- Resolve S7780 String.raw should be used to avoid escaping
+
+
 ## 0.7.1 - 2026-09-03
 ### Fixed
 
