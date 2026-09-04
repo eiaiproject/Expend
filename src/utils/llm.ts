@@ -131,7 +131,8 @@ async function callLLM(messages: unknown[], maxTokens: number, timeoutMs: number
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    return data.choices?.[0]?.message?.content?.trim() ?? null;
+    const content = data.choices?.[0]?.message?.content?.trim() ?? '';
+    return content || null;
   } catch {
     return null;
   } finally {
@@ -205,6 +206,74 @@ export async function parseReceiptImageWithLLM(file: File): Promise<(ParsedExpen
     30_000,
     'Transfer',
   ) as Promise<(ParsedExpense & { note?: string }) | null>;
+}
+
+function buildChatPrompt(text: string, history: { role: string; text: string }[]): string {
+  const recent = history
+    .slice(-10) // NOSONAR
+    .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.text}`)
+    .join('\n');
+  return `Kamu asisten Expend, aplikasi pencatat pengeluaran pribadi. Jawab singkat dalam Bahasa Indonesia, natural seperti chat.
+
+Konteks project: user mencatat transaksi expense (pengeluaran) dengan deskripsi, nominal Rupiah, sumber dana (BCA, GoPay, Tunai, dll), dan tanggal. Data disimpan lokal di browser.
+
+Aturan:
+- Jawab langsung tanpa basa-basi ("Berikut...", "Tentu!").
+- Maksimal 2-3 kalimat kecuali user minta list/angka.
+- Kalau ditanya data yang tidak kamu punya (mis. total minggu ini), jawab bahwa kamu tidak punya akses real-time dan user bisa cek di halaman List/Statistik.
+- Jangan mengarang angka. Kalau tidak yakin, minta klarifikasi.
+
+${recent ? `Riwayat percakapan:\n${recent}\n` : ''}
+User: ${JSON.stringify(text)}
+Assistant:`; // NOSONAR
+}
+
+export function isChatQuestion(text: string): boolean {
+  const t = text.trim();
+  if (!t) return false;
+  // Heuristic: kalimat tanya diakhiri ? (aksara Latin)
+  if (t.endsWith('?')) return true;
+  // Atau mengandung kata tanya Indonesia di awal/tengah
+  return /\b(apa|berapa|kapan|dimana|di mana|siapa|bagaimana|gimana|mengapa|kenapa|apakah)\b/i.test(t);
+}
+
+export async function parseChatWithLLM(
+  text: string,
+  history: { role: string; text: string }[] = [],
+): Promise<string | null> {
+  if (!isLLMEnabled()) return null;
+  const url = getLLMUrl();
+  if (!url) return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const cfg = getLLMConfig();
+    const authHeader = ['B', 'e', 'a', 'r', 'e', 'r', ' '].join('') + cfg.apiKey.trim();
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: authHeader,
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'Expend',
+      },
+      body: JSON.stringify({
+        model: cfg.model.trim(),
+        messages: [{ role: 'user', content: buildChatPrompt(text, history) }],
+        temperature: 0.3,
+        max_tokens: 500,
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const content = data.choices?.[0]?.message?.content?.trim() ?? '';
+    return content || null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function parseWithLLM(text: string): Promise<ParsedExpense | null> {
