@@ -582,7 +582,7 @@ export default function ChatView() {
       {/* Composer */}
       <div
         ref={composerRef}
-        className="shrink-0 bg-[var(--bg)] px-4 md:px-6 pt-3 pb-[calc(66px+env(safe-area-inset-bottom))] md:pb-[calc(10px+env(safe-area-inset-bottom))"
+        className="shrink-0 bg-[var(--bg)] px-4 md:px-6 pt-3 pb-[calc(66px+env(safe-area-inset-bottom))] md:pb-[calc(10px+env(safe-area-inset-bottom))]"
         style={keyboardInset > 0 ? { transform: `translateY(-${keyboardInset}px)` } : undefined}
       >
         <form onSubmit={handleSend} className="flex items-end gap-2 bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-xl)] p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[var(--accent)]/20 focus-within:border-[var(--accent)] transition-all">
