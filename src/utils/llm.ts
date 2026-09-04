@@ -227,7 +227,7 @@ User: ${text.replaceAll('"', '\\"')}
 Assistant:`; // NOSONAR
 }
 
-function isChatQuestion(text: string): boolean {
+export function isChatQuestion(text: string): boolean {
   const t = text.trim();
   if (!t) return false;
   // Heuristic: kalimat tanya diakhiri ? (aksara Latin)

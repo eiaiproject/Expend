@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
-import { isLLMEnabled, parseWithLLM, parseReceiptWithLLM, parseReceiptImageWithLLM } from '../utils/llm';
+import { isLLMEnabled, parseWithLLM, parseReceiptWithLLM, parseReceiptImageWithLLM, parseChatWithLLM, isChatQuestion } from '../utils/llm';
 import { recognizeImage, isOcrReady } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
 import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ChevronDown, X } from 'reicon-react';
@@ -155,6 +155,22 @@ export default function ChatView() {
 
     const now = new Date().toISOString();
     await db.chatMessages.add({ role: 'user', text, createdAt: now });
+
+    // Chat mode: pertanyaan bebas (akhiri '?' atau kata tanya Indonesia)
+    if (isChatQuestion(text) && isLLMEnabled()) {
+      const history = await db.chatMessages.orderBy('createdAt').reverse().limit(10).toArray();
+      history.reverse();
+      const reply = await parseChatWithLLM(
+        text,
+        history.map((m) => ({ role: m.role, text: m.text })),
+      );
+      if (reply) {
+        await db.chatMessages.add({ role: 'assistant', text: reply, createdAt: new Date().toISOString() });
+        setIsSending(false);
+        return;
+      }
+    }
+
     // Full LLM mode: coba LLM dulu jika aktif, regex jadi fallback
     const parsed = await parseWithFallback(text, parseWithLLM, parseChatInput);
     if (!parsed) {
