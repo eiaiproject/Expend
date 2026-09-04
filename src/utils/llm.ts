@@ -131,7 +131,8 @@ async function callLLM(messages: unknown[], maxTokens: number, timeoutMs: number
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    return data.choices?.[0]?.message?.content?.trim() ?? null;
+    const content = data.choices?.[0]?.message?.content?.trim() ?? '';
+    return content || null;
   } catch {
     return null;
   } finally {
@@ -266,7 +267,8 @@ export async function parseChatWithLLM(
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    return data.choices?.[0]?.message?.content?.trim() ?? null;
+    const content = data.choices?.[0]?.message?.content?.trim() ?? '';
+    return content || null;
   } catch {
     return null;
   } finally {
