@@ -60,9 +60,37 @@ export default function ChatView() {
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
+  const [composerH, setComposerH] = useState(0);
+  const [keyboardInset, setKeyboardInset] = useState(0);
   const messages = useLiveQuery(() => db.chatMessages.orderBy('createdAt').toArray(), []) ?? [];
   const endRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Track composer height for dynamic padding on message list (prevents content jump)
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(([entry]) => {
+      if (entry) setComposerH(entry.contentRect.height);
+    });
+    ro.observe(el);
+    setComposerH(el.getBoundingClientRect().height);
+    return () => ro.disconnect();
+  }, []);
+
+  // Track mobile virtual keyboard via visualViewport so composer stays above it
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const onResize = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKeyboardInset(inset);
+    };
+    vv.addEventListener('resize', onResize);
+    onResize();
+    return () => vv.removeEventListener('resize', onResize);
+  }, []);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -377,6 +405,7 @@ export default function ChatView() {
           aria-label={t('chat.conversation')}
           onScroll={handleScroll}
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 py-4 pb-8 space-y-3"
+          style={{ paddingBottom: composerH + 16 }}
         >
           <h2 className="sr-only">{t('chat.conversation')}</h2>
           {messages.map((m) => (
@@ -551,7 +580,11 @@ export default function ChatView() {
       )}
 
       {/* Composer */}
-      <div className="shrink-0 bg-[var(--bg)] px-4 md:px-6 pt-3 pb-[calc(66px+env(safe-area-inset-bottom))] md:pb-[calc(10px+env(safe-area-inset-bottom))">
+      <div
+        ref={composerRef}
+        className="shrink-0 bg-[var(--bg)] px-4 md:px-6 pt-3 pb-[calc(66px+env(safe-area-inset-bottom))] md:pb-[calc(10px+env(safe-area-inset-bottom))"
+        style={keyboardInset > 0 ? { transform: `translateY(-${keyboardInset}px)` } : undefined}
+      >
         <form onSubmit={handleSend} className="flex items-end gap-2 bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-xl)] p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[var(--accent)]/20 focus-within:border-[var(--accent)] transition-all">
           <input
             ref={fileRef}
