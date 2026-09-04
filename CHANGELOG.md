@@ -1,4 +1,10 @@
 # Changelog
+## 0.9.0 - 2026-09-04
+### Added
+
+- Sticky composer UX + edit transaction from HomeView (#23)
+
+
 ## 0.8.0 - 2026-09-04
 ### Added
 
