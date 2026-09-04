@@ -224,7 +224,7 @@ Aturan:
 - Jangan mengarang angka. Kalau tidak yakin, minta klarifikasi.
 
 ${recent ? `Riwayat percakapan:\n${recent}\n` : ''}
-User: ${text.replaceAll('"', '\\"')}
+User: ${JSON.stringify(text)}
 Assistant:`; // NOSONAR
 }
 

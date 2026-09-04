@@ -140,7 +140,7 @@ describe('parseChatWithLLM', () => {
     const content = body.messages[0].content;
     expect(content).toContain('User: apa itu expend');
     expect(content).toContain('Assistant: aplikasi pencatat');
-    expect(content).toContain('User: lagi?');
+    expect(content).toMatch(/User:\s+"lagi\?"/);
   });
 });
 
