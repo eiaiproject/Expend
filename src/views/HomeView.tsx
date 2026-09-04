@@ -150,10 +150,9 @@ export default function HomeView() {
         <EditSheet
           tx={editing}
           onClose={() => setEditing(null)}
-          onSaved={(updated) => {
+          onSaved={() => {
             setEditing(null);
             setToast({ message: t('home.transactionUpdated'), type: 'success' });
-            void updated;
           }}
           onError={() => {
             setError(t('home.updateFailed'));
@@ -166,10 +165,10 @@ export default function HomeView() {
 }
 
 interface EditSheetProps {
-  tx: Transaction;
-  onClose: () => void;
-  onSaved: (tx: Transaction) => void;
-  onError: () => void;
+  readonly tx: Transaction;
+  readonly onClose: () => void;
+  readonly onSaved: () => void;
+  readonly onError: () => void;
 }
 
 function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
@@ -195,7 +194,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
         source: source.trim() || undefined,
         note: note.trim() || undefined,
       });
-      onSaved({ ...tx, description: description.trim() || tx.description, amount: parsedAmount, date, source: source.trim() || undefined, note: note.trim() || undefined });
+      onSaved();
     } catch {
       onError();
     } finally {
@@ -204,12 +203,12 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      open
       aria-label={t('home.editTransaction', { name: tx.description })}
-      className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-0 md:p-4 motion-safe:animate-[in_0.2s_ease-out]"
-      onClick={onClose}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="fixed inset-0 z-50 m-0 max-w-none max-h-none w-full h-full bg-transparent backdrop:bg-black/50 flex items-end md:items-center justify-center p-0 md:p-4 motion-safe:animate-[in_0.2s_ease-out]"
     >
       <form
         onSubmit={handleSave}
@@ -298,6 +297,6 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
           </button>
         </div>
       </form>
-    </div>
+    </dialog>
   );
 }
