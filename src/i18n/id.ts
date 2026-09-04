@@ -29,6 +29,16 @@ const id = {
   'home.transactionDeleted': 'Transaksi dihapus.',
   'home.deleteFailed': 'Gagal menghapus transaksi. Coba lagi.',
   'home.recordNew': 'Catat pengeluaran baru',
+  'home.editTransaction': 'Edit transaksi {name}',
+  'home.transactionUpdated': 'Transaksi diperbarui.',
+  'home.updateFailed': 'Gagal memperbarui transaksi. Coba lagi.',
+  'home.editDescription': 'Deskripsi',
+  'home.editAmount': 'Nominal',
+  'home.editDate': 'Tanggal',
+  'home.editSource': 'Sumber dana',
+  'home.editNote': 'Catatan',
+  'home.saveChanges': 'Simpan',
+  'home.cancel': 'Batal',
 
   // ─── Chat ──────────────────────────────────────────────────────────────────
   'chat.title': 'Catat pengeluaran',

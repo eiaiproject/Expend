@@ -31,6 +31,16 @@ const en: Record<TranslationKey, string> = {
   'home.transactionDeleted': 'Transaction deleted.',
   'home.deleteFailed': 'Failed to delete transaction. Try again.',
   'home.recordNew': 'Record new expense',
+  'home.editTransaction': 'Edit transaction {name}',
+  'home.transactionUpdated': 'Transaction updated.',
+  'home.updateFailed': 'Failed to update transaction. Try again.',
+  'home.editDescription': 'Description',
+  'home.editAmount': 'Amount',
+  'home.editDate': 'Date',
+  'home.editSource': 'Source of funds',
+  'home.editNote': 'Note',
+  'home.saveChanges': 'Save',
+  'home.cancel': 'Cancel',
 
   // ─── Chat ──────────────────────────────────────────────────────────────────
   'chat.title': 'Record expense',
