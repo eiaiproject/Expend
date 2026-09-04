@@ -206,13 +206,11 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
     <dialog
       open
       aria-label={t('home.editTransaction', { name: tx.description })}
-      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onCancel={(e) => { e.preventDefault(); onClose(); }}
       className="fixed inset-0 z-50 m-0 max-w-none max-h-none w-full h-full bg-transparent backdrop:bg-black/50 flex items-end md:items-center justify-center p-0 md:p-4 motion-safe:animate-[in_0.2s_ease-out]"
     >
       <form
         onSubmit={handleSave}
-        onClick={(e) => e.stopPropagation()}
         className="w-full md:max-w-md bg-[var(--card)] border border-[var(--border)] rounded-t-[var(--radius-xl)] md:rounded-[var(--radius-xl)] p-5 space-y-4"
       >
         <div className="flex items-center justify-between">
