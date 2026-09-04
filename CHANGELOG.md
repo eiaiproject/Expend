@@ -1,4 +1,10 @@
 # Changelog
+## 0.9.1 - 2026-09-04
+### Fixed
+
+- Add missing closing bracket in md:pb Tailwind class
+
+
 ## 0.9.0 - 2026-09-04
 ### Added
 
