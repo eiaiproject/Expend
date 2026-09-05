@@ -236,6 +236,9 @@ function formatDescription(raw: string, hasGenericSource: boolean): string {
   // Remove dangling trailing preposition/conjunction left by cleanup above
   // (e.g. "Parkir di" → "Parkir"). Mid-sentence ones are kept.
   desc = desc.replace(/\s+(?:di|ke|dari|untuk|dengan|dan|atau|yang)[,.]?\s*$/i, '').trim(); // NOSONAR
+  // Remove leading preposition left after verb stripping ("jajan di kantin"
+  // → "di kantin" → "Kantin"). Mid-sentence ones are kept.
+  desc = desc.replace(/^(?:di|ke|dari|untuk|dengan|dan|atau|yang)\s+/i, '').trim();
   // Remove trailing standalone numbers
   desc = desc.replace(/\s\d+\s*$/, '').trim(); // NOSONAR
   // Remove nomor referensi/rekening yang tersisa ("ref 123456" -> buang)

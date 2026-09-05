@@ -229,6 +229,10 @@ describe('parseChatInput - Sprint2 regression (P1)', () => {
     expect(parseChatInput('kopi 20rb tunai')?.source).toBe('Tunai');
     expect(parseChatInput('kopi 20rb kas')?.source).toBe('Kas');
   });
+  it('strip leading preposition setelah verb (jajan di kantin → Kantin)', () => {
+    expect(parseChatInput('jajan di kantin 12rb')?.description).toBe('Kantin');
+    expect(parseChatInput('beli kopi di Indomaret 50000')?.description).toBe('Kopi di Indomaret');
+  });
   it('menolak nominal overflow/NaN', () => {
     expect(parseChatInput('kopi 9999999999999999')).toBeNull();
   });
