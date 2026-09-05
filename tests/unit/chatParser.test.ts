@@ -102,8 +102,15 @@ describe('parseChatInput - description', () => {
   it('strips verb prefix', () => {
     expect(parseChatInput('beli kopi 50rb')?.description).toBe('Kopi');
   });
-  it('strips preposition di', () => {
-    expect(parseChatInput('beli kopi di Indomaret 50000')?.description).toBe('Kopi Indomaret');
+  it('keeps preposition di', () => {
+    expect(parseChatInput('beli kopi di Indomaret 50000')?.description).toBe('Kopi di Indomaret');
+  });
+  it('keeps conjunction dan', () => {
+    expect(parseChatInput('kopi dan roti 30rb')?.description).toBe('Kopi dan Roti');
+  });
+  it('trims dangling trailing preposition', () => {
+    // "di lantai 2" cleanup leaves "Parkir di" → trailing "di" trimmed
+    expect(parseChatInput('bayar parkir 5000 di lantai 2')?.description).toBe('Parkir');
   });
   it.each([
     ['transfer BCA 100rb', 'BCA'],
@@ -182,7 +189,7 @@ describe('extractChatDate', () => {
 describe('parseChatInput - integration', () => {
   it('full: beli kopi di Indomaret 50000', () => {
     expect(parseChatInput('beli kopi di Indomaret 50000')).toEqual({
-      description: 'Kopi Indomaret',
+      description: 'Kopi di Indomaret',
       amount: 50000,
       source: undefined,
       date: expect.any(String),

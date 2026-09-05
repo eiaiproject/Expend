@@ -215,7 +215,6 @@ function findFallbackDesc(lines: string[], hits: { idx: number }[], src: string 
 
 function finalizeDesc(raw: string): string {
   let d = raw.replaceAll(/\s+/g, ' ').trim() || 'Transfer';
-  d = d.replace(/\b(?:di|ke|untuk|dengan)\b/gi, '').replace(/\s{2,}/g, ' ').trim() || 'Transfer';
   d = d.replace(/\s+Oo\s*$/i, '').trim() || 'Transfer'; // NOSONAR - anchored, bounded
   d = titleCasePreserveAcronyms(d).slice(0, 80);
   const kws = [' dari ', ' pakai ', ' pake ', ' via '];

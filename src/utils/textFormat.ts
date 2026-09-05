@@ -7,13 +7,21 @@ export const ACRONYMS = new Set([
 ]);
 
 /**
+ * Kata depan/penghubung yang tetap lowercase di tengah kalimat.
+ * "kopi di Indomaret" → "Kopi di Indomaret" (bukan "Kopi Di Indomaret").
+ */
+export const LOWERCASE_WORDS = new Set([
+  'di', 'ke', 'dari', 'untuk', 'dengan', 'dan', 'atau', 'yang',
+]);
+
+/**
  * Title-case a string while preserving known acronyms and ALL-CAPS words.
- * "kopi di BCA" → "Kopi Di BCA"
+ * "kopi di BCA" → "Kopi di BCA"
  */
 export function titleCasePreserveAcronyms(s: string): string {
   return s
     .split(/\s+/)
-    .map((w) => {
+    .map((w, i) => {
       if (!w) return w;
       const upper = w.toUpperCase();
       // Preserve known acronyms (case-insensitive match)
@@ -23,6 +31,8 @@ export function titleCasePreserveAcronyms(s: string): string {
         // Mixed-case known brand (e.g. ShopeeFood) — preserve as-is
         return w;
       }
+      // Lowercase conjunctions/prepositions mid-sentence (first word stays capitalized)
+      if (i > 0 && LOWERCASE_WORDS.has(w.toLowerCase())) return w.toLowerCase();
       return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
     })
     .join(' ');

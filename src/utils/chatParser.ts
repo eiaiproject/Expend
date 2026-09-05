@@ -202,7 +202,6 @@ function pickBest(candidates: AmountCandidate[], fullText: string): AmountCandid
 
 const VERB_RE = /^(beli|bayar|jajan|belanja|order|pesan|isi|top\s*up|transfer|tf|beliin)\s+/i;
 const SOURCE_CLAUSE_RE = /\s+(?:dari|pakai|pake|via)\s+\S.*$/i; // NOSONAR - bounded description (<80 chars)
-const PREPOSITION_RE = /\b(?:di|ke|untuk|dengan)\b/gi;
 const GENERIC_SOURCE_RE = /\b(?:tunai|cash|kas)\b/gi;
 
 function formatDescription(raw: string, hasGenericSource: boolean): string {
@@ -215,14 +214,15 @@ function formatDescription(raw: string, hasGenericSource: boolean): string {
   desc = desc.replace(SOURCE_CLAUSE_RE, '').trim();
   // Remove standalone Rp/IDR tokens
   desc = desc.replace(/\bRp\.?\b/gi, '').replace(/\bIDR\b/gi, '').replace(/\s{2,}/g, ' ').trim(); // NOSONAR
-  // Remove standalone prepositions
-  desc = desc.replace(PREPOSITION_RE, '').replace(/\s{2,}/g, ' ').trim();
   // Remove generic source words (tunai/cash/kas) if detected as source
   if (hasGenericSource) desc = desc.replace(GENERIC_SOURCE_RE, '').replace(/\s{2,}/g, ' ').trim();
   // Remove mid-sentence verb before generic source (e.g. "kopi bayar kas" → "kopi")
   if (hasGenericSource) desc = desc.replace(/\s+(?:bayar|pakai|pake|dari|via)\s*$/i, '').replace(/\s{2,}/g, ' ').trim(); // NOSONAR
   // Remove trailing words + number (e.g. "lantai 2", "lantai 3", "lantai 5")
   desc = desc.replace(/\s+\w+\s+\d{1,2}\s*$/ , '').trim(); // NOSONAR
+  // Remove dangling trailing preposition/conjunction left by cleanup above
+  // (e.g. "Parkir di" → "Parkir"). Mid-sentence ones are kept.
+  desc = desc.replace(/\s+(?:di|ke|dari|untuk|dengan|dan|atau|yang)[,.]?\s*$/i, '').trim(); // NOSONAR
   // Remove trailing standalone numbers
   desc = desc.replace(/\s\d+\s*$/, '').trim(); // NOSONAR
 
