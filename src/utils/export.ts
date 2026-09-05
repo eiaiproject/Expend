@@ -1,6 +1,7 @@
 import type * as XLSXTypes from 'xlsx';
 import type { Transaction } from '../db/db';
 import { t } from '../i18n/standalone';
+import { todayLocalISO } from './date';
 
 const XLSXLoader = () => import('xlsx');
 
@@ -229,7 +230,7 @@ export function jsonBlob(txs: Transaction[]): Blob {
 }
 
 export function exportFilename(ext: 'csv' | 'xlsx' | 'json', from?: string, to?: string): string {
-  const d = new Date().toISOString().slice(0, 10);
+  const d = todayLocalISO();
   if (from && to) return `expend-${from}_${to}.${ext}`;
   if (from) return `expend-${from}.${ext}`;
   return `expend-${d}.${ext}`;

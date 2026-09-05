@@ -1,6 +1,7 @@
 import type { ParsedExpense } from './chatParser';
 import { titleCasePreserveAcronyms } from './textFormat';
 import { t } from '../i18n/standalone';
+import { todayLocalISO } from './date';
 
 export interface LLMConfig {
   enabled: boolean;
@@ -172,7 +173,7 @@ async function parseLLMResponse(
   defaultDesc: string,
 ): Promise<{ description: string; amount: number; source?: string; date: string; note?: string } | null> {
   if (!isLLMEnabled()) return null;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalISO();
   const content = await callLLM(messages, maxTokens, timeoutMs);
   if (!content) return null;
   try {
@@ -184,14 +185,14 @@ async function parseLLMResponse(
 }
 
 export async function parseReceiptWithLLM(ocrText: string): Promise<(ParsedExpense & { note?: string }) | null> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalISO();
   return parseLLMResponse([{ role: 'user', content: buildReceiptPrompt(ocrText, today) }], 500, 20_000, 'Transfer') as Promise<(ParsedExpense & { note?: string }) | null>;
 }
 
 export async function parseReceiptImageWithLLM(file: File): Promise<(ParsedExpense & { note?: string }) | null> {
   const cfg = getLLMConfig();
   if (!isVisionModel(cfg.model)) return null;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalISO();
   const b64 = await fileToBase64(file);
   const mime = file.type || 'image/jpeg';
   return parseLLMResponse(
@@ -277,7 +278,7 @@ export async function parseChatWithLLM(
 }
 
 export async function parseWithLLM(text: string): Promise<ParsedExpense | null> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalISO();
   return parseLLMResponse([{ role: 'user', content: buildPrompt(text, today) }], 300, 15_000, 'Pengeluaran');
 }
 

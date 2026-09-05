@@ -1,5 +1,6 @@
 import { detectSource } from './sources';
 import { normalizeNumber, MONTH_MAP } from './chatParser';
+import { todayLocalISO } from './date';
 import { titleCasePreserveAcronyms } from './textFormat';
 import { pickBestAmount, type RankedAmount } from './amountRank';
 
@@ -126,7 +127,7 @@ function extractDate(text: string): string {
     const mon = MONTH_MAP[mmm[2]!.toLowerCase().slice(0, 3)];
     if (mon) return `${mmm[3]}-${mon}-${mmm[1]!.padStart(2, '0')}`;
   }
-  return new Date().toISOString().slice(0, 10);
+  return todayLocalISO();
 }
 
 // ─── Description extraction ───────────────────────────────────────────────────

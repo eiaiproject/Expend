@@ -1,6 +1,7 @@
 import { detectSource } from './sources';
 import { titleCasePreserveAcronyms } from './textFormat';
 import { pickBestAmount, type RankedAmount } from './amountRank';
+import { todayLocalISO } from './date';
 
 export interface ParsedExpense {
   description: string;
@@ -103,14 +104,14 @@ function parseRelativeDate(term: string): string | undefined {
   const lower = term.toLowerCase();
   if (lower === 'kemarin' || lower === 'kemaren') {
     now.setDate(now.getDate() - 1);
-    return now.toISOString().slice(0, 10);
+    return todayLocalISO(now);
   }
   if (lower === 'lusa') {
     now.setDate(now.getDate() + 2);
-    return now.toISOString().slice(0, 10);
+    return todayLocalISO(now);
   }
   if (lower === 'hari ini' || lower === 'hariini') {
-    return now.toISOString().slice(0, 10);
+    return todayLocalISO(now);
   }
   return undefined;
 }
@@ -164,8 +165,8 @@ export function extractChatDate(text: string): string {
   // Check explicit dates
   const explicit = parseExplicitDate(text);
   if (explicit) return explicit;
-  // Default to today
-  return new Date().toISOString().slice(0, 10);
+  // Default to today (lokal, lihat utils/date)
+  return todayLocalISO();
 }
 
 // ─── Smart amount extraction ──────────────────────────────────────────────────
