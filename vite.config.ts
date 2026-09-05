@@ -25,8 +25,9 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           { src: '/Expend-logo.svg', sizes: 'any', type: 'image/svg+xml' },
-          { src: '/icons/app-icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icons/app-icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/icons/app-icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icons/app-icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
         share_target: {
           action: '/share-handler',
