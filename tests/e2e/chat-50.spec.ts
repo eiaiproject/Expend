@@ -24,9 +24,9 @@ const CASES: Case[] = [
   { input: 'makan siang 50rb via GoPay', desc: 'Makan Siang', amount: 50000, source: 'GoPay' },
   { input: 'bayar listrik 200rb pakai Dana', desc: 'Listrik', amount: 200000, source: 'Dana' },
   { input: 'transfer BCA 100rb', desc: 'BCA', amount: 100000 },
-  { input: 'beli kopi di Indomaret 50000', desc: 'Kopi Indomaret', amount: 50000 },
-  { input: 'makan di warteg 25rb', desc: 'Makan Warteg', amount: 25000 },
-  { input: 'kopi di starbucks 45rb', desc: 'Kopi Starbucks', amount: 45000 },
+  { input: 'beli kopi di Indomaret 50000', desc: 'Kopi di Indomaret', amount: 50000 },
+  { input: 'makan di warteg 25rb', desc: 'Makan di Warteg', amount: 25000 },
+  { input: 'kopi di starbucks 45rb', desc: 'Kopi di Starbucks', amount: 45000 },
   { input: 'bayar parkir 5000 di lantai 2', desc: 'Parkir', amount: 5000 },
   { input: 'makan 25000 di lantai 3', desc: 'Makan', amount: 25000 },
   { input: 'beli 2 dus kopi 50rb', desc: '2 Dus Kopi', amount: 50000 },
@@ -114,7 +114,7 @@ test('chat 50 variasi transaksi', async ({ page }) => {
   await expect(page.locator('button[aria-label^="Hapus transaksi"]')).toHaveCount(50, { timeout: 10000 });
 
   // spot-check a few descriptions exist in Home list
-  for (const spot of ['Nasi Goreng', 'Motor Bekas', 'Kopi Indomaret', 'Bensin', 'Gaji Flex']) {
+  for (const spot of ['Nasi Goreng', 'Motor Bekas', 'Kopi di Indomaret', 'Bensin', 'Gaji Flex']) {
     await expect(page.getByText(spot).first()).toBeVisible();
   }
 

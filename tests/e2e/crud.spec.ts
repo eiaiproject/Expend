@@ -14,7 +14,7 @@ test('CRUD: Chat → Home → delete', async ({ page }) => {
   await page.getByPlaceholder(/Contoh/).fill('beli kopi di Indomaret 50000');
   await page.getByRole('button', { name: 'Kirim transaksi' }).click();
   await expect(page.getByText('Siap dicatat').first()).toBeVisible();
-  await expect(page.locator('input[value="Kopi Indomaret"]')).toBeVisible();
+  await expect(page.locator('input[value="Kopi di Indomaret"]')).toBeVisible();
   await page.getByRole('button', { name: 'Simpan transaksi' }).click();
   await expect(page.getByText(/Tercatat/).first()).toBeVisible();
 
@@ -22,7 +22,7 @@ test('CRUD: Chat → Home → delete', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('Total pengeluaran')).toBeVisible();
   await expect(page.locator('.tabular-nums').first()).toContainText('50.000');
-  await expect(page.getByText('Kopi Indomaret')).toBeVisible();
+  await expect(page.getByText('Kopi di Indomaret')).toBeVisible();
 
   // Create second 1,5jt
   await page.goto('/chat');
@@ -50,7 +50,7 @@ test('CRUD: Chat → Home → delete', async ({ page }) => {
   await page.getByPlaceholder(/Contoh/).fill('kopi 25rb');
   await page.getByRole('button', { name: 'Kirim transaksi' }).click();
   await expect(page.getByText('Siap dicatat').last()).toBeVisible();
-  await page.getByRole('button', { name: 'Batalkan' }).click();
+  await page.getByRole('button', { name: 'Batal', exact: true }).click();
   await expect(page.getByText('Periksa transaksi')).toHaveCount(0);
 });
 
@@ -82,8 +82,8 @@ test('Danger zone: delete all data', async ({ page }) => {
   await expect(page.getByText('Zona Berbahaya')).toBeVisible();
   await expect(page.getByText('3 transaksi akan dihapus permanen')).toBeVisible();
 
-  // Click Hapus → confirm dialog
-  await page.getByRole('button', { name: 'Hapus semua data transaksi' }).click();
+  // Click Hapus → confirm dialog (aria-label = settings.deleteAll, i18n)
+  await page.getByRole('button', { name: 'Hapus semua data', exact: true }).click();
   await expect(page.getByText('Hapus semua data?')).toBeVisible();
   // Use exact name match to avoid collision with 'Hapus' button
   await page.getByRole('button', { name: 'Hapus semua', exact: true }).click();
