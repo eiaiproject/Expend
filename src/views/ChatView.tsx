@@ -6,6 +6,7 @@ import { parseReceiptText } from '../utils/receiptParser';
 import { isLLMEnabled, parseWithLLM, parseReceiptWithLLM, parseReceiptImageWithLLM, parseChatWithLLM, isChatQuestion } from '../utils/llm';
 import { recognizeImage, isOcrReady, validateImageFile } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
+import { todayLocalISO } from '../utils/date';
 import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ChevronDown, X } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { InlineAlert } from '../components/InlineAlert';
@@ -162,7 +163,7 @@ export default function ChatView() {
                 if (sharedText) {
                   const parsed = await parseWithFallback(sharedText, parseWithLLM, parseChatInput);
                   if (parsed) {
-                    setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || new Date().toISOString().slice(0, 10), source: parsed.source });
+                    setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || todayLocalISO(), source: parsed.source });
                   } else {
                     setInput(sharedText.slice(0, 80));
                   }
@@ -280,7 +281,7 @@ export default function ChatView() {
       // Fallback regex (offline)
       parsed ??= parseReceiptText(text);
       if (!parsed) {
-        setPending({ description: 'Transfer', amount: 0, date: new Date().toISOString().slice(0, 10) });
+        setPending({ description: 'Transfer', amount: 0, date: todayLocalISO() });
         setOcrError(t('chat.ocrReadError'));
         await db.chatMessages.add({
           role: 'assistant',
@@ -443,7 +444,7 @@ export default function ChatView() {
                   <div
                     className={`px-4 py-3 text-sm leading-[22px] ${
                       m.role === 'user'
-                        ? 'bg-[var(--accent)] text-[var(--accent-ink)] rounded-[var(--radius-lg)] rounded-br-[var(--radius-sm)]'
+                        ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)] rounded-[var(--radius-lg)] rounded-br-[var(--radius-sm)]'
                         : 'bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-lg)] rounded-bl-[var(--radius-sm)]'
                     }`}
                   >
@@ -489,7 +490,7 @@ export default function ChatView() {
           {pending && (
             <div className="rounded-[var(--radius-lg)] border border-[var(--accent)] bg-[var(--card)] p-5 motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--accent-ink)] grid place-items-center">
+                <div className="w-7 h-7 rounded-full bg-[var(--accent-fill)] text-[var(--accent-ink)] grid place-items-center">
                   <Check size={14} aria-hidden />
                 </div>
                 <p className="text-xs font-bold tracking-wide uppercase text-[var(--accent)]">{t('chat.checkTransaction')}</p>

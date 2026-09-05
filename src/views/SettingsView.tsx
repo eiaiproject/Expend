@@ -292,7 +292,7 @@ export default function SettingsView() {
                 <select
                   value={theme}
                   onChange={(e) => setTheme(e.target.value as Theme)}
-                  aria-label="Pilih tema"
+                  aria-label={t('settings.theme')}
                   className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)] appearance-none"
                 >
                   <option value="system">{t('settings.themeSystem')}</option>

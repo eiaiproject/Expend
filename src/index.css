@@ -86,7 +86,7 @@
     --accent-warm: #ddcbb7;
     --accent-soft: rgba(106, 159, 62, 0.15);
     --accent-deep: #264025;
-    --accent-fill: #6a9f3e;
+    --accent-fill: #4a7a2a;
     --accent-ink: #FFFFFF;
     /* Semantic dark */
     --danger: #F87171;
@@ -133,7 +133,7 @@
   --accent-warm: #ddcbb7;
   --accent-soft: rgba(106, 159, 62, 0.15);
   --accent-deep: #264025;
-  --accent-fill: #6a9f3e;
+  --accent-fill: #4a7a2a;
   --accent-ink: #FFFFFF;
   --danger: #F87171;
   --danger-deep: #F87171;

@@ -18,7 +18,7 @@ export function SidebarNav() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-[var(--accent)] text-[var(--accent-ink)]'
+                  ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg)]'
               }`
             }

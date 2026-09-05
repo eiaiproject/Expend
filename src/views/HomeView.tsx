@@ -181,12 +181,33 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
   const [saving, setSaving] = useState(false);
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const prevFocusRef = useRef<HTMLElement | null>(null);
+  const sheetRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     prevFocusRef.current = document.activeElement as HTMLElement | null;
     firstFieldRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      // Focus trap ringan (seperti ConfirmDialog): Tab cycling di dalam sheet.
+      if (e.key === 'Tab' && sheetRef.current) {
+        const focusable = sheetRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0]!;
+        const last = focusable[focusable.length - 1]!;
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => {
@@ -226,6 +247,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
       className="fixed inset-0 z-50 m-0 max-w-none max-h-none w-full h-full bg-transparent backdrop:bg-black/50 flex items-end md:items-center justify-center p-0 md:p-4 motion-safe:animate-[in_0.2s_ease-out]"
     >
       <form
+        ref={sheetRef}
         onSubmit={handleSave}
         className="w-full md:max-w-md bg-[var(--card)] border border-[var(--border)] rounded-t-[var(--radius-xl)] md:rounded-[var(--radius-xl)] p-5 space-y-4"
       >
