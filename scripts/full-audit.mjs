@@ -97,7 +97,7 @@ async function clearDB(page) {
     const openReq = indexedDB.open('ExpendDB');
     const db = await new Promise((res, rej) => {
       openReq.onsuccess = () => res(openReq.result);
-      openReq.onerror = () => rej(openReq.error);
+      openReq.onerror = () => rej(openReq.error ?? new Error('IndexedDB open failed'));
     });
     try {
       for (const store of ['transactions', 'chatMessages']) {
@@ -128,7 +128,7 @@ async function seedDB(page, txs, msgs) {
     const openReq = indexedDB.open('ExpendDB');
     const db = await new Promise((res, rej) => {
       openReq.onsuccess = () => res(openReq.result);
-      openReq.onerror = () => rej(openReq.error);
+      openReq.onerror = () => rej(openReq.error ?? new Error('IndexedDB open failed'));
     });
     for (const store of ['transactions', 'chatMessages']) {
       await new Promise((res) => {
@@ -178,11 +178,13 @@ const SEED_MSGS = [
   { role: 'assistant', text: 'Saya tidak punya akses real-time, cek halaman List ya.', createdAt: '2026-09-04T01:01:10.000Z' },
 ];
 
-const px = (v) => parseFloat(String(v).replace('px', '')) || 0;
+const px = (v) => Number.parseFloat(String(v).replace('px', '')) || 0;
 const shot = (page, name) => page.screenshot({ path: path.join(SHOT, name) }).then(() => shots.push(name));
 
 // ─── per-viewport main flow (light) ──────────────────────────────────────────
-async function auditViewport(browser, vp) {
+// Linear audit sequence; splitting would scatter one viewport flow across
+// helpers with no reuse. Dev-only script, not shipped.
+async function auditViewport(browser, vp) { // NOSONAR - javascript:S3776, see above
   console.log(`\n===== ${vp.name} ${vp.width}x${vp.height} (light/id) =====`);
   const { ctx, page } = await newPage(browser, vp, { theme: 'light', lang: 'id' });
 
@@ -257,8 +259,6 @@ async function auditViewport(browser, vp) {
     }
   }
   // icon square 36x36 + CTA min height
-  const iconBox = await page.locator('ul').first().isVisible().catch(() => false)
-    ? null : null;
   const sumIcon = await measure(page, 'main#main-content div.w-9.h-9');
   if (sumIcon) check(`${vp.name}.home.summary-icon-square`, Math.abs(sumIcon.width - sumIcon.height) < 1 && Math.abs(sumIcon.width - 36) < 1.5, `w=${sumIcon.width.toFixed(1)} h=${sumIcon.height.toFixed(1)}`);
   const cta2 = await measure(page, 'main#main-content a[href="/chat"]');
@@ -323,7 +323,6 @@ async function auditViewport(browser, vp) {
   }
 
   // Composer anchoring + grow (outer container, not inner form)
-  const formBox = await page.locator('main#main-content form').first().boundingBox();
   const contBottom = await page.evaluate(() => {
     const f = document.querySelector('main#main-content form');
     const c = f?.parentElement;
@@ -472,7 +471,7 @@ async function auditTokens(browser) {
     radii.add(m.borderRadius);
     fonts.add(m.fontSize);
   }
-  const num = (s) => parseFloat(String(s).replace('px', ''));
+  const num = (s) => Number.parseFloat(String(s).replace('px', ''));
   const oddPads = [...pads].filter((v) => { const n = num(v); return Number.isFinite(n) && ![0, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48].includes(Math.round(n)); });
   console.log(`  (info) gaps=[${[...gaps].join(', ')}]`);
   console.log(`  (info) paddings=[${[...pads].join(', ')}]`);
@@ -495,6 +494,16 @@ try {
 
 fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify({ pass: passCount, fail: failCount, results, shots, consoleErrors }, null, 2));
 
+function formatFail(f) {
+  return `- [ ] **${f.label}** — ${f.detail}`;
+}
+
+function formatResult(r) {
+  const box = r.pass ? '[x]' : '[ ]';
+  const detail = r.detail ? ` — ${r.detail}` : '';
+  return `- ${box} ${r.label}${detail}`;
+}
+
 const fails = results.filter((r) => !r.pass);
 const md = [
   '# Expend UI Audit — pixel-perfect report',
@@ -510,10 +519,10 @@ const md = [
   '- Token sweep: gap/padding/radius/font palette',
   '',
   fails.length ? '## FAILS' : '## FAILS — none',
-  ...fails.map((f) => `- [ ] **${f.label}** — ${f.detail}`),
+  ...fails.map(formatFail),
   '',
   '## All checks',
-  ...results.map((r) => `- ${r.pass ? '[x]' : '[ ]'} ${r.label}${r.detail ? ` — ${r.detail}` : ''}`),
+  ...results.map(formatResult),
   '',
   '## Console errors',
   ...(consoleErrors.length ? consoleErrors.map((e) => `- ${e}`) : ['- none']),
