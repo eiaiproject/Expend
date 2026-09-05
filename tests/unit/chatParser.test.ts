@@ -77,6 +77,13 @@ describe('parseChatInput - smart amount extraction', () => {
     const r = parseChatInput('bayar 150000 tagihan 50000');
     expect(r?.amount).toBe(150000);
   });
+  it('equal amounts: description split at winner index', () => {
+    // "bayar 50rb, kembali 50rb" → both 50000; winner is first occurrence,
+    // remainder (loser text) stays in description for user confirmation
+    const r = parseChatInput('bayar 50rb, kembali 50rb');
+    expect(r?.amount).toBe(50000);
+    expect(r?.description).toContain('Kembali');
+  });
   it('Rp prefix boosts score', () => {
     const r = parseChatInput('beli kopi Rp 25.000');
     expect(r?.amount).toBe(25000);

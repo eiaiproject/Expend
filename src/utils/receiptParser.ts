@@ -1,6 +1,7 @@
 import { detectSource } from './sources';
 import { normalizeNumber, MONTH_MAP } from './chatParser';
 import { titleCasePreserveAcronyms } from './textFormat';
+import { pickBestAmount, type RankedAmount } from './amountRank';
 
 const PRODUCT_RE = /^(?:product|produk)\s*[:-]?\s*(.+)/i; // NOSONAR - anchored, bounded
 const RECIPIENT_RE = /penerima|kepada|tujuan|ditransfer\s*ke|^\s*ke\b|transfer\s*ke\b/i;
@@ -60,29 +61,15 @@ function shouldSkip(val: number, raw: string, line: string, prevLine: string, rp
   return false;
 }
 
-// ─── Scoring ──────────────────────────────────────────────────────────────────
+// ─── Scoring (shared formula, see amountRank) ──────────────────────────────────
 
-function scoreHit(val: number, hasRp: boolean, hasKeyword: boolean): number {
-  return val * (hasRp ? 1.9 : 1) * (hasKeyword ? 2.2 : 1);
+interface ReceiptHit extends RankedAmount {
+  idx: number;
 }
 
-function pickBest(hits: { val: number; hasRp: boolean; hasKeyword: boolean }[]): { val: number; hasRp: boolean; hasKeyword: boolean } {
-  let best = hits[0]!;
-  let bestScore = scoreHit(best.val, best.hasRp, best.hasKeyword);
-  for (let i = 1; i < hits.length; i++) {
-    const h = hits[i]!;
-    const s = scoreHit(h.val, h.hasRp, h.hasKeyword);
-    if (s > bestScore || (s === bestScore && h.val > best.val)) {
-      best = h;
-      bestScore = s;
-    }
-  }
-  return best;
-}
-
-function collectHits(text: string): { val: number; hasRp: boolean; hasKeyword: boolean }[] { // NOSONAR
+function collectHits(text: string): ReceiptHit[] { // NOSONAR
   const lines = text.split('\n');
-  const hits: { val: number; hasRp: boolean; hasKeyword: boolean }[] = [];
+  const hits: ReceiptHit[] = [];
   const kw = /tota|juml|nomi|transf|bayar|jumlah/i;
   const rpLineRe = /\bRp\.?|\bIDR/i;
   const re = /\d[\d.,]*/g; // NOSONAR
@@ -101,7 +88,8 @@ function collectHits(text: string): { val: number; hasRp: boolean; hasKeyword: b
       if (shouldSkip(v, raw, line, prevLine, rpLineRe)) continue;
       const hasRp = rpLineRe.test(line) || rpLineRe.test(prevLine);
       const hasKeyword = kw.test(line) || kw.test(prevLine);
-      hits.push({ val: v, hasRp, hasKeyword });
+      const hasSuffix = /jt|juta|rb|ribu|k/i.test(suf);
+      hits.push({ value: v, index: m.index ?? 0, idx, signals: { hasSuffix, hasRp, hasKeyword } });
     }
   }
   return hits;
@@ -110,14 +98,14 @@ function collectHits(text: string): { val: number; hasRp: boolean; hasKeyword: b
 function extractAmount(text: string): number | null {
   const hits = collectHits(text);
   if (!hits.length) return null;
-  const best = pickBest(hits);
-  const rpHits = hits.filter((h) => h.hasRp);
-  if (!best.hasRp && !best.hasKeyword && rpHits.length) {
+  const best = pickBestAmount(hits)!;
+  const rpHits = hits.filter((h) => h.signals.hasRp);
+  if (!best.signals.hasRp && !best.signals.hasKeyword && rpHits.length) {
     let bestRp = rpHits[0]!;
-    for (let i = 1; i < rpHits.length; i++) if (rpHits[i]!.val > bestRp.val) bestRp = rpHits[i]!;
-    if (bestRp.val >= best.val * 0.8) return bestRp.val;
+    for (let i = 1; i < rpHits.length; i++) if (rpHits[i]!.value > bestRp.value) bestRp = rpHits[i]!;
+    if (bestRp.value >= best.value * 0.8) return bestRp.value;
   }
-  return best.val;
+  return best.value;
 }
 
 // ─── Date extraction ──────────────────────────────────────────────────────────

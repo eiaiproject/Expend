@@ -1,5 +1,6 @@
 import { detectSource } from './sources';
 import { titleCasePreserveAcronyms } from './textFormat';
+import { pickBestAmount, type RankedAmount } from './amountRank';
 
 export interface ParsedExpense {
   description: string;
@@ -163,11 +164,8 @@ export function extractChatDate(text: string): string {
 
 // ─── Smart amount extraction ──────────────────────────────────────────────────
 
-interface AmountCandidate {
+interface AmountCandidate extends RankedAmount {
   raw: string;
-  value: number;
-  index: number;
-  hasSuffix: boolean;
 }
 
 /**
@@ -184,62 +182,20 @@ function extractCandidates(text: string): AmountCandidate[] {
     const value = parseAmountWithSuffix(raw);
     if (value && value > 0) {
       const hasSuffix = /\b(jt|juta|rb|ribu|k)\b/i.test(raw);
-      candidates.push({ raw, value, index: m.index!, hasSuffix });
+      candidates.push({ raw, value, index: m.index!, signals: { hasSuffix, hasRp: false, hasKeyword: false } });
     }
   }
   return candidates;
 }
 
-/**
- * Score a candidate for being the primary transaction amount.
- *
- * Tier 1 (highest): Has explicit suffix (rb, jt, k, etc.) — always monetary
- * Tier 2: Has "Rp" prefix nearby — strong monetary signal
- * Tier 3: Largest plain number — likely the amount
- *
- * Penalties:
- * - Very small numbers (< 100) without suffix → likely not monetary
- * - Numbers > 999,999,999 without suffix → likely ID/ref number
- */
-function scoreCandidate(
-  c: AmountCandidate,
-  hasRpPrefix: boolean,
-): number {
-  let score = c.value;
-
-  // Tier 1: Explicit suffix → strong monetary signal
-  if (c.hasSuffix) score *= 3;
-
-  // Tier 2: Rp prefix nearby
-  if (hasRpPrefix) score *= 2.5;
-
-  // Penalty: small numbers without suffix (likely quantities, floor numbers, etc.)
-  if (!c.hasSuffix && !hasRpPrefix && c.value < 100) score *= 0.01;
-
-  // Penalty: very large numbers without suffix (likely IDs, refs)
-  if (!c.hasSuffix && !hasRpPrefix && c.value > 999_999_999) score *= 0.001;
-
-  return score;
-}
-
-function pickBestAmount(candidates: AmountCandidate[], fullText: string): number | null {
+function pickBest(candidates: AmountCandidate[], fullText: string): AmountCandidate | null {
   if (!candidates.length) return null;
-
-  const rpRe = /\bRp\.?|\bIDR/i;
-
-  let best = candidates[0]!;
-  let bestScore = scoreCandidate(best, rpRe.test(fullText));
-
-  for (let i = 1; i < candidates.length; i++) {
-    const c = candidates[i]!;
-    const s = scoreCandidate(c, rpRe.test(fullText));
-    if (s > bestScore) {
-      best = c;
-      bestScore = s;
-    }
-  }
-
-  return best.value;
+  const hasRp = /\bRp\.?|\bIDR/i.test(fullText);
+  const rescored = candidates.map((c) => ({
+    ...c,
+    signals: { ...c.signals, hasRp },
+  }));
+  return pickBestAmount(rescored);
 }
 
 // ─── Description formatting ───────────────────────────────────────────────────
@@ -291,18 +247,19 @@ export function parseChatInput(input: string): ParsedExpense | null {
     .replace(/\s{2,}/g, ' ')
     .trim();
 
-  // 3. Extract candidates and pick best amount
+  // 3. Extract candidates and pick best amount (matched by index, not value:
+  // two equal amounts like "bayar 50rb, kembali 50rb" must pick the winner)
   const candidates = extractCandidates(cleanText);
-  const amount = pickBestAmount(candidates, cleanText);
-  if (!amount) return null;
+  const bestCandidate = pickBest(candidates, cleanText);
+  if (!bestCandidate) return null;
+  const amount = bestCandidate.value;
 
-  // 4. Find the best candidate's position for description extraction
-  const bestCandidate = candidates.find((c) => c.value === amount);
-  const splitIndex = bestCandidate?.index ?? cleanText.length;
+  // 4. Best candidate position already known — slice description around it
+  const splitIndex = bestCandidate.index;
 
   // 5. Build description from text around the amount
   const before = cleanText.slice(0, splitIndex);
-  const after = cleanText.slice(splitIndex + (bestCandidate?.raw.length ?? 0));
+  const after = cleanText.slice(splitIndex + bestCandidate.raw.length);
   const rawDesc = (before + ' ' + after).replace(/\s+/g, ' ').trim();
 
   // 6. Extract source
