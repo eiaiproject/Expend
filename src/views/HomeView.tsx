@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { fmtIDR, fmtDate } from '../utils/format';
@@ -179,6 +179,21 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
   const [source, setSource] = useState(tx.source ?? '');
   const [note, setNote] = useState(tx.note ?? '');
   const [saving, setSaving] = useState(false);
+  const firstFieldRef = useRef<HTMLInputElement>(null);
+  const prevFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    prevFocusRef.current = document.activeElement as HTMLElement | null;
+    firstFieldRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      prevFocusRef.current?.focus?.();
+    };
+  }, [onClose]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -205,6 +220,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
   return (
     <dialog
       open
+      aria-modal="true"
       aria-label={t('home.editTransaction', { name: tx.description })}
       onCancel={(e) => { e.preventDefault(); onClose(); }}
       className="fixed inset-0 z-50 m-0 max-w-none max-h-none w-full h-full bg-transparent backdrop:bg-black/50 flex items-end md:items-center justify-center p-0 md:p-4 motion-safe:animate-[in_0.2s_ease-out]"
@@ -228,6 +244,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
         <label className="block">
           <span className="text-xs font-medium text-[var(--text-secondary)]">{t('home.editDescription')}</span>
           <input
+            ref={firstFieldRef}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
