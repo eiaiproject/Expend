@@ -4,7 +4,7 @@ import { db } from '../db/db';
 import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
 import { isLLMEnabled, parseWithLLM, parseReceiptWithLLM, parseReceiptImageWithLLM, parseChatWithLLM, isChatQuestion } from '../utils/llm';
-import { recognizeImage, isOcrReady } from '../utils/ocr';
+import { recognizeImage, isOcrReady, validateImageFile } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
 import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ChevronDown, X } from 'reicon-react';
 import { Link } from 'react-router-dom';
@@ -61,6 +61,10 @@ export default function ChatView() {
   const cameraRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
+  const saveInFlight = useRef(false);
+  const ocrInFlight = useRef(false);
+  const mountedRef = useRef(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [composerH, setComposerH] = useState(0);
   const [keyboardInset, setKeyboardInset] = useState(0);
   const messages = useLiveQuery(() => db.chatMessages.orderBy('createdAt').toArray(), []) ?? [];
@@ -90,6 +94,13 @@ export default function ChatView() {
     vv.addEventListener('resize', onResize);
     onResize();
     return () => vv.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   // Auto-scroll to bottom on new messages
@@ -230,20 +241,26 @@ export default function ChatView() {
   }
 
   async function handleFile(file: File) { // NOSONAR - cognitive complexity from OCR+LLM fallbacks
-    if (!file.type.startsWith('image/') || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    if (ocrInFlight.current) return;
+    const fileErr = validateImageFile(file);
+    if (fileErr === 'format' || fileErr === 'empty') {
       setOcrError(t('chat.ocrFormatError'));
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
+    if (fileErr === 'too-large') {
       setOcrError(t('chat.ocrSizeError'));
       return;
     }
+    ocrInFlight.current = true;
     setOcrError(null);
     const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    setOcrProgress(0);
+    if (mountedRef.current) setPreviewUrl(url);
+    if (mountedRef.current) setOcrProgress(0);
     try {
-      const text = await recognizeImage(file, (n) => setOcrProgress(n));
+      const text = await recognizeImage(file, (n) => {
+        if (mountedRef.current) setOcrProgress(n);
+      });
+      if (!mountedRef.current) return;
       // Full LLM mode: jika aktif, coba LLM dulu (vision paling akurat untuk Mandiri yang OCR berantakan)
       let parsed: ReturnType<typeof parseReceiptText> = null;
       if (isLLMEnabled()) {
@@ -280,19 +297,25 @@ export default function ChatView() {
         parsed: { description: parsed.description, amount: parsed.amount },
       });
     } catch {
-      setOcrError(t('chat.ocrNetworkError'));
+      if (mountedRef.current) setOcrError(t('chat.ocrNetworkError'));
     } finally {
-      setOcrProgress(null);
-      setOcrAvailable(isOcrReady());
+      ocrInFlight.current = false;
       URL.revokeObjectURL(url);
-      setPreviewUrl(null);
+      if (mountedRef.current) {
+        setOcrProgress(null);
+        setOcrAvailable(isOcrReady());
+        setPreviewUrl(null);
+      }
       if (fileRef.current) fileRef.current.value = '';
       if (cameraRef.current) cameraRef.current.value = '';
     }
   }
 
   async function saveNow(p: Pending) {
-    if (!p.amount) return;
+    if (!p.amount || !Number.isFinite(p.amount) || p.amount <= 0 || p.amount > 1_000_000_000_000) return;
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
+    if (mountedRef.current) setIsSaving(true);
     try {
       const now = new Date().toISOString();
       const txId = (await db.transactions.add({
@@ -315,15 +338,20 @@ export default function ChatView() {
         text: '__LINK_RINGKASAN__',
         createdAt: new Date().toISOString(),
       });
-      setPending(null);
-      setOcrError(null);
+      if (mountedRef.current) {
+        setPending(null);
+        setOcrError(null);
+      }
     } catch {
-      setOcrError(t('chat.saveError') ?? 'Gagal menyimpan transaksi. Coba lagi.');
+      if (mountedRef.current) setOcrError(t('chat.saveError') ?? 'Gagal menyimpan transaksi. Coba lagi.');
+    } finally {
+      saveInFlight.current = false;
+      if (mountedRef.current) setIsSaving(false);
     }
   }
 
   async function confirmSave() {
-    if (!pending?.amount) return;
+    if (!pending?.amount || isSaving) return;
     await saveNow(pending);
   }
 
@@ -534,7 +562,7 @@ export default function ChatView() {
                 <button
                   type="button"
                   onClick={confirmSave}
-                  disabled={!pending.amount}
+                  disabled={!pending.amount || isSaving}
                   className="flex-1 min-h-12 py-3 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 >
                   <Check size={16} aria-hidden />

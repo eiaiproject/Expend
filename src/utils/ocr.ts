@@ -45,6 +45,23 @@ async function preprocess(file: File): Promise<Blob | File> {
   }
 }
 
+export const OCR_MAX_BYTES = 10 * 1024 * 1024;
+export const OCR_ALLOWED = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
+export type OcrFileError = 'format' | 'empty' | 'too-large';
+
+/**
+ * Validasi file gambar bukti secara murni (testable).
+ * Return null jika valid, kode error jika tidak.
+ * Memeriksa MIME, ekstensi implisit via type, ukuran, dan file kosong.
+ */
+export function validateImageFile(file: { type: string; size: number }): OcrFileError | null {
+  if (!file.type.startsWith('image/') || !(OCR_ALLOWED as readonly string[]).includes(file.type)) return 'format';
+  if (file.size === 0) return 'empty';
+  if (file.size > OCR_MAX_BYTES) return 'too-large';
+  return null;
+}
+
 export async function recognizeImage(file: File, onProgress: (n: number) => void): Promise<string> {
   currentOnProgress = onProgress;
   onProgress(5);

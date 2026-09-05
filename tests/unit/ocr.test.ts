@@ -5,7 +5,7 @@ vi.mock('tesseract.js', () => ({
     terminate: async () => {},
   })),
 }));
-import { recognizeImage } from '../../src/utils/ocr';
+import { recognizeImage, validateImageFile } from '../../src/utils/ocr';
 
 describe('ocr', () => {
   it('calls progress', async () => {
@@ -13,5 +13,14 @@ describe('ocr', () => {
     const cb = vi.fn();
     const t = await recognizeImage(f, cb);
     expect(t).toContain('Total');
+  });
+  it('validateImageFile rejects format/empty/oversize', () => {
+    expect(validateImageFile({ type: 'image/png', size: 100 })).toBeNull();
+    expect(validateImageFile({ type: 'image/jpeg', size: 100 })).toBeNull();
+    expect(validateImageFile({ type: 'image/webp', size: 100 })).toBeNull();
+    expect(validateImageFile({ type: 'image/gif', size: 100 })).toBe('format');
+    expect(validateImageFile({ type: 'text/plain', size: 100 })).toBe('format');
+    expect(validateImageFile({ type: 'image/png', size: 0 })).toBe('empty');
+    expect(validateImageFile({ type: 'image/png', size: 11 * 1024 * 1024 })).toBe('too-large');
   });
 });
