@@ -186,6 +186,54 @@ describe('extractChatDate', () => {
 
 // ─── Integration with parseChatInput ──────────────────────────────────────────
 
+describe('parseChatInput - Sprint2 regression (P1)', () => {
+  it('R P variation reads as Rp', () => {
+    const r = parseChatInput('R P 50.000 kopi');
+    expect(r?.amount).toBe(50000);
+    expect(r?.description).toBe('Kopi');
+  });
+  it('suffix k does not eat next word (50.000 kopi bukan 50jt)', () => {
+    const r = parseChatInput('kopi 50.000');
+    expect(r?.amount).toBe(50000);
+    const r2 = parseChatInput('50.000 kopi');
+    expect(r2?.amount).toBe(50000);
+    expect(r2?.description.toLowerCase()).toContain('kopi');
+  });
+  it('English thousand 50,000 sesuai konteks', () => {
+    expect(parseChatInput('kopi 50,000')?.amount).toBe(50000);
+    expect(normalizeNumber('50,000')).toBe(50000);
+    expect(normalizeNumber('15,50')).toBe(15.5);
+  });
+  it('ref number tidak mengalahkan nominal', () => {
+    const r = parseChatInput('transfer 50rb ref 1234567890');
+    expect(r?.amount).toBe(50000);
+    expect(r?.description).not.toMatch(/1234567890/);
+    expect(r?.description).not.toMatch(/\bRef\b/i);
+  });
+  it('nominal di awal/tengah/akhir', () => {
+    expect(parseChatInput('50000 kopi')?.amount).toBe(50000);
+    expect(parseChatInput('kopi 50000 enak')?.amount).toBe(50000);
+    expect(parseChatInput('kopi enak 50000')?.amount).toBe(50000);
+  });
+  it('tanggal tidak dianggap nominal', () => {
+    const r = parseChatInput('bayar 15/08/2026 50rb');
+    expect(r?.amount).toBe(50000);
+    expect(r?.date).toBe('2026-08-15');
+  });
+  it('beberapa angka: deterministik pilih bersinyal terbesar', () => {
+    const r = parseChatInput('bayar 50rb kembali 20rb');
+    expect(r?.amount).toBe(50000);
+  });
+  it('English from + tunai/kas tanpa kata depan', () => {
+    expect(parseChatInput('coffee 25k from BCA')?.source).toBe('BCA');
+    expect(parseChatInput('kopi 20rb tunai')?.source).toBe('Tunai');
+    expect(parseChatInput('kopi 20rb kas')?.source).toBe('Kas');
+  });
+  it('menolak nominal overflow/NaN', () => {
+    expect(parseChatInput('kopi 9999999999999999')).toBeNull();
+  });
+});
+
 describe('parseChatInput - integration', () => {
   it('full: beli kopi di Indomaret 50000', () => {
     expect(parseChatInput('beli kopi di Indomaret 50000')).toEqual({
