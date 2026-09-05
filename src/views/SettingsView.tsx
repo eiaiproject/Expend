@@ -145,7 +145,7 @@ export default function SettingsView() {
     } catch {
       showToast(t('settings.exportCSVError'), 'error');
     }
-  }, [exportFrom, exportTo, showToast]);
+  }, [exportFrom, exportTo, showToast, t]);
 
   const handleExportXLSX = useCallback(async () => {
     try {
@@ -161,7 +161,7 @@ export default function SettingsView() {
     } catch {
       showToast(t('settings.exportXLSXError'), 'error');
     }
-  }, [exportFrom, exportTo, showToast]);
+  }, [exportFrom, exportTo, showToast, t]);
 
   const handleDeleteAll = useCallback(async () => {
     try {
@@ -172,7 +172,7 @@ export default function SettingsView() {
     } finally {
       setConfirmDelete(false);
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   const updateLLM = useCallback((patch: Partial<LLMConfig>) => {
     setLlmConfig((prev) => {
@@ -197,7 +197,7 @@ export default function SettingsView() {
     } finally {
       setLlmTesting(false);
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 pt-4 md:pt-0 pb-[calc(60px+env(safe-area-inset-bottom))] space-y-6">
