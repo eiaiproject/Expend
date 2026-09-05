@@ -1,4 +1,10 @@
 # Changelog
+## 0.10.0 - 2026-09-05
+### Changed
+
+- Unify amount scoring, keep prepositions, add UI audit (#25)
+
+
 ## 0.9.1 - 2026-09-04
 ### Fixed
 
