@@ -494,7 +494,7 @@ export default function SettingsView() {
             </div>
             <button
               type="button"
-              aria-label="Hapus semua data transaksi"
+              aria-label={t('settings.deleteAll')}
               disabled={txs.length === 0}
               onClick={() => setConfirmDelete(true)}
               className="shrink-0 min-h-12 px-4 rounded-[var(--radius-md)] bg-[var(--danger)] text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--danger)]/50 disabled:opacity-40 disabled:active:scale-100"

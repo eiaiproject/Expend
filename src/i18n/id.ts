@@ -13,6 +13,7 @@ const id = {
   'common.skipToContent': 'Lewati ke konten utama',
 
   // ─── Navigation ────────────────────────────────────────────────────────────
+  'nav.main': 'Navigasi utama',
   'nav.summary': 'Ringkasan',
   'nav.record': 'Catat',
   'nav.settings': 'Pengaturan',

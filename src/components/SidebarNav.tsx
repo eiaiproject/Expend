@@ -9,7 +9,7 @@ export function SidebarNav() {
       <div className="px-4 py-2.5">
         <img src="/Expend-logo.svg" alt="Expend" className="h-8 w-auto" />
       </div>
-      <nav aria-label="Navigasi utama" className="flex flex-col gap-1">
+      <nav aria-label={t('nav.main')} className="flex flex-col gap-1">
         {navigationItems.map((item) => (
           <NavLink
             key={item.href}

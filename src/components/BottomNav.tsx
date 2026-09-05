@@ -7,7 +7,7 @@ export function BottomNav({ hidden = false }: { readonly hidden?: boolean }) {
   if (hidden) return null;
 
   return (
-    <nav aria-label="Navigasi utama" className="fixed bottom-0 inset-x-0 z-30 bg-[var(--card)] border-t border-[var(--border)] flex items-stretch md:hidden pb-[env(safe-area-inset-bottom)]">
+    <nav aria-label={t('nav.main')} className="fixed bottom-0 inset-x-0 z-30 bg-[var(--card)] border-t border-[var(--border)] flex items-stretch md:hidden pb-[env(safe-area-inset-bottom)]">
       {navigationItems.map((item) => (
         <NavLink
           key={item.href}

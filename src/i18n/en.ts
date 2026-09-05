@@ -15,6 +15,7 @@ const en: Record<TranslationKey, string> = {
   'common.skipToContent': 'Skip to main content',
 
   // ─── Navigation ────────────────────────────────────────────────────────────
+  'nav.main': 'Main navigation',
   'nav.summary': 'Summary',
   'nav.record': 'Record',
   'nav.settings': 'Settings',
