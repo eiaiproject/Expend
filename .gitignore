@@ -12,6 +12,7 @@ coverage/
 .wrangler
 test-results/
 playwright-report/
+/audit-output/
 *.traineddata
 
 # Dev tools & generated files
