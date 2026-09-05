@@ -7,17 +7,18 @@ Offline-first PWA. Navigation: **Summary** (transaction list) + **Record** (chat
 ## Usage
 
 ### Chat
-Type: `buy coffee at Indomaret 50000` → preview `Coffee At Indomaret · Rp50,000` → Save.
+Ketik: `kopi di Indomaret 50000` → preview `Kopi di Indomaret · Rp50.000` → Save.
 
 ### OCR (Transfer Receipt)
 Upload a photo of the transfer receipt → auto-detected → edit if needed → Save.
 
 ### Amount Format
-`50000` `50.000` `50rb` `50k` `1.5jt`. Clause `from|using|via ...` is automatically ignored.
+`50000` `50.000` `50rb` `50k` `1.5jt`. Clause `dari|pakai|pake|via ...` is automatically ignored; prepositions (`di`, `ke`, ...) stay in the description.
 
 ## Features
 
 - **Chat-first**: Log expenses via natural language chat
+- **Edit**: Update saved transactions inline from Summary
 - **OCR**: Upload transfer receipts, auto-detected (JPG/PNG/WebP, max 10MB)
 - **Offline-first**: All data stored locally in IndexedDB
 - **Theme**: System / Light / Dark (via `data-theme`)
@@ -30,7 +31,7 @@ In **Settings → Data**: **Export JSON** (existing `expend-YYYY-MM-DD.json`), *
 
 ## Stack
 
-React 19 + Vite 6 + Tailwind 4 + Dexie 4 (IndexedDB) + React Router 7 + Tesseract.js (OCR) + `reicon-react`. Icons 100% `reicon.dev`.
+React 19 + Vite 6 + Tailwind 4 + Dexie 4 (IndexedDB) + React Router 7 + Tesseract.js (OCR) + SheetJS (Excel) + vite-plugin-pwa + `reicon-react`. Icons 100% `reicon.dev`.
 
 ## Components
 
@@ -47,6 +48,7 @@ npm run typecheck    # TypeScript check
 npm run test         # Vitest watch
 npm run test:unit    # Vitest single run
 npm run lint         # ESLint
+node scripts/full-audit.mjs  # Playwright pixel-perfect UI audit (needs dev server on :3000)
 ```
 
 ## Versioning
