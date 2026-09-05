@@ -22,7 +22,13 @@ async function preprocess(file: File): Promise<Blob | File> {
   // to avoid 6s overhead in e2e, skip heavy processing for <1.5MP
   try {
     if (file.size < 1.2 * 1024 * 1024) return file;
-    const bitmap = await createImageBitmap(file);
+    // Hormati rotasi EXIF (foto HP portrait) bila browser mendukung opsi ini.
+    let bitmap: ImageBitmap;
+    try {
+      bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' } as ImageBitmapOptions);
+    } catch {
+      bitmap = await createImageBitmap(file);
+    }
     const max = 1000;
     let { width, height } = bitmap;
     if (width <= max && height <= max) {
@@ -84,4 +90,12 @@ export async function terminateOcr() {
     await w.terminate?.();
     workerPromise = null;
   }
+}
+
+// Bebaskan worker saat halaman ditutup/disembunyikan permanen (pagehide).
+// Navigasi antar-route tidak terminate (reuse disengaja agar OCR kedua cepat).
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('pagehide', () => {
+    void terminateOcr().catch(() => {});
+  });
 }
