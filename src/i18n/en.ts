@@ -93,6 +93,7 @@ const en: Record<TranslationKey, string> = {
   'chat.recorded': 'Ready to record: {desc} - {amount}',
   'chat.saved': 'Recorded. {desc} - {amount}',
   'chat.saveError': 'Failed to save transaction. Try again.',
+  'chat.loadOlder': 'Load 50 older messages',
 
   // ─── Settings ──────────────────────────────────────────────────────────────
   'settings.title': 'Settings',

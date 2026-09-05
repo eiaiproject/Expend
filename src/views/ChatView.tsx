@@ -22,10 +22,12 @@ function fmtTime(iso: string) {
   }
 }
 
-function scrollToBottom(endRef: React.RefObject<HTMLDivElement | null>) {
+function scrollToBottom(endRef: React.RefObject<HTMLDivElement | null>, instant = false) {
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  endRef.current?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
+  endRef.current?.scrollIntoView({ behavior: instant || prefersReduced ? 'auto' : 'smooth', block: 'end' });
 }
+
+const CHAT_PAGE = 50;
 
 async function parseWithFallback<T>(
   text: string,
@@ -68,9 +70,14 @@ export default function ChatView() {
   const [isSaving, setIsSaving] = useState(false);
   const [composerH, setComposerH] = useState(0);
   const [keyboardInset, setKeyboardInset] = useState(0);
-  const messages = useLiveQuery(() => db.chatMessages.orderBy('createdAt').toArray(), []) ?? [];
+  const [visibleLimit, setVisibleLimit] = useState(CHAT_PAGE);
+  // Hanya 50 pesan terakhir agar render tetap ringan; pesan lama tidak dihapus.
+  const messages = useLiveQuery(() => db.chatMessages.orderBy('createdAt').reverse().limit(visibleLimit).toArray().then((arr) => arr.reverse()), [visibleLimit]) ?? [];
+  const totalChat = useLiveQuery(() => db.chatMessages.count(), []) ?? 0;
   const endRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const firstRenderRef = useRef(true);
+  const adjustRef = useRef<{ h: number; top: number } | null>(null);
 
   // Track composer height for dynamic padding on message list (prevents content jump)
   useEffect(() => {
@@ -104,10 +111,24 @@ export default function ChatView() {
     };
   }, []);
 
-  // Auto-scroll to bottom on new messages
+  // Default di bawah (instant saat mount), anti-rebut: hanya auto-scroll
+  // bila user sudah di dekat bawah. Muat pesan lama tidak melempar ke bawah.
   useEffect(() => {
-    if (!listRef.current) return;
-    scrollToBottom(endRef);
+    const el = listRef.current;
+    if (!el) return;
+    if (adjustRef.current) {
+      const { h, top } = adjustRef.current;
+      adjustRef.current = null;
+      el.scrollTop = top + (el.scrollHeight - h);
+      return;
+    }
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false;
+      scrollToBottom(endRef, true);
+    } else if (nearBottom) {
+      scrollToBottom(endRef);
+    }
   }, [messages.length, pending, ocrProgress]);
 
   // Track scroll position for "back to latest" button
@@ -437,6 +458,21 @@ export default function ChatView() {
           style={{ paddingBottom: composerH + 16 }}
         >
           <h2 className="sr-only">{t('chat.conversation')}</h2>
+          {totalChat > messages.length && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  const el = listRef.current;
+                  if (el) adjustRef.current = { h: el.scrollHeight, top: el.scrollTop };
+                  setVisibleLimit((v) => v + CHAT_PAGE);
+                }}
+                className="min-h-11 px-4 rounded-full bg-[var(--card)] border border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+              >
+                {t('chat.loadOlder')}
+              </button>
+            </div>
+          )}
           {messages.map((m) => (
             <div key={m.id} className="flex motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none" style={{ contentVisibility: 'auto' } as any}>
               <div className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>

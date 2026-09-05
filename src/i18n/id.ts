@@ -91,6 +91,7 @@ const id = {
   'chat.recorded': 'Siap dicatat: {desc} - {amount}',
   'chat.saved': 'Tercatat. {desc} - {amount}',
   'chat.saveError': 'Gagal menyimpan transaksi. Coba lagi.',
+  'chat.loadOlder': 'Muat 50 pesan lama',
 
   // ─── Settings ──────────────────────────────────────────────────────────────
   'settings.title': 'Pengaturan',
