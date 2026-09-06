@@ -1,4 +1,14 @@
 # Changelog
+## 0.12.1 - 2026-09-06
+### Changed
+
+- Tampilkan versi saja di Settings tanpa SHA commit
+
+### Fixed
+
+- Reset keyboard inset from multi-signal to unstick composer
+
+
 ## 0.12.0 - 2026-09-06
 ### Changed
 
