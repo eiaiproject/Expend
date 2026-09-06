@@ -13,6 +13,7 @@ const id = {
   'common.skipToContent': 'Lewati ke konten utama',
 
   // ─── Navigation ────────────────────────────────────────────────────────────
+  'nav.main': 'Navigasi utama',
   'nav.summary': 'Ringkasan',
   'nav.record': 'Catat',
   'nav.settings': 'Pengaturan',
@@ -90,6 +91,7 @@ const id = {
   'chat.recorded': 'Siap dicatat: {desc} - {amount}',
   'chat.saved': 'Tercatat. {desc} - {amount}',
   'chat.saveError': 'Gagal menyimpan transaksi. Coba lagi.',
+  'chat.loadOlder': 'Muat 50 pesan lama',
 
   // ─── Settings ──────────────────────────────────────────────────────────────
   'settings.title': 'Pengaturan',
@@ -113,11 +115,20 @@ const id = {
   'settings.to': 'Sampai',
   'settings.exportCSV': 'Ekspor CSV',
   'settings.exportExcel': 'Ekspor Excel',
+  'settings.exportJSON': 'Ekspor JSON',
+  'settings.importJSON': 'Impor JSON',
   'settings.noExport': 'Tidak ada transaksi untuk diekspor.',
+  'settings.invalidDate': 'Format tanggal tidak valid. Gunakan YYYY-MM-DD.',
+  'settings.fromAfterTo': 'Tanggal Dari tidak boleh setelah Sampai.',
   'settings.exportCSVSukses': 'Berhasil mengekspor {count} transaksi (CSV).',
   'settings.exportCSVError': 'Gagal mengekspor CSV.',
   'settings.exportXLSXSukses': 'Berhasil mengekspor {count} transaksi (Excel).',
   'settings.exportXLSXError': 'Gagal mengekspor Excel.',
+  'settings.exportJSONSukses': 'Berhasil mengekspor {count} transaksi (JSON).',
+  'settings.exportJSONError': 'Gagal mengekspor JSON.',
+  'settings.importJSONSukses': 'Berhasil mengimpor {count} transaksi.',
+  'settings.importJSONSkipped': '{count} item dilewati.',
+  'settings.importJSONError': 'Gagal mengimpor JSON.',
   'settings.ai': 'Kecerdasan Buatan',
   'settings.smartParsing': 'Parsing pintar (online)',
   'settings.smartParsingDesc': 'Gunakan LLM jika regex gagal. Butuh internet.',

@@ -81,8 +81,8 @@ export const SOURCES: SourceEntry[] = [
 export function detectSource(text: string): string | undefined {
   const lines = text.split('\n');
 
-  // 1. Cek keyword eksplisit: dari/via/pakai X (highest priority)
-  const srcKwRe = /(?:dari|via|pakai|pake)\s+([A-Za-z0-9 ]+?)(?:\n|$|[.,])/i; // NOSONAR - bounded, anchored
+  // 1. Cek keyword eksplisit: dari/via/pakai/from X (highest priority)
+  const srcKwRe = /(?:dari|via|pakai|pake|from)\s+([A-Za-z0-9 ]+?)(?:\n|$|[.,])/i; // NOSONAR - bounded, anchored
   const srcMatch = srcKwRe.exec(text);
   if (srcMatch?.[1]) {
     const raw = srcMatch[1]!.trim();

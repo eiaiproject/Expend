@@ -4,8 +4,9 @@ import { db } from '../db/db';
 import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
 import { isLLMEnabled, parseWithLLM, parseReceiptWithLLM, parseReceiptImageWithLLM, parseChatWithLLM, isChatQuestion } from '../utils/llm';
-import { recognizeImage, isOcrReady } from '../utils/ocr';
+import { recognizeImage, isOcrReady, validateImageFile } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
+import { todayLocalISO } from '../utils/date';
 import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ChevronDown, X } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { InlineAlert } from '../components/InlineAlert';
@@ -21,10 +22,12 @@ function fmtTime(iso: string) {
   }
 }
 
-function scrollToBottom(endRef: React.RefObject<HTMLDivElement | null>) {
+function scrollToBottom(endRef: React.RefObject<HTMLDivElement | null>, instant = false) {
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  endRef.current?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
+  endRef.current?.scrollIntoView({ behavior: instant || prefersReduced ? 'auto' : 'smooth', block: 'end' });
 }
+
+const CHAT_PAGE = 50;
 
 async function parseWithFallback<T>(
   text: string,
@@ -61,11 +64,20 @@ export default function ChatView() {
   const cameraRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
+  const saveInFlight = useRef(false);
+  const ocrInFlight = useRef(false);
+  const mountedRef = useRef(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [composerH, setComposerH] = useState(0);
   const [keyboardInset, setKeyboardInset] = useState(0);
-  const messages = useLiveQuery(() => db.chatMessages.orderBy('createdAt').toArray(), []) ?? [];
+  const [visibleLimit, setVisibleLimit] = useState(CHAT_PAGE);
+  // Hanya 50 pesan terakhir agar render tetap ringan; pesan lama tidak dihapus.
+  const messages = useLiveQuery(() => db.chatMessages.orderBy('createdAt').reverse().limit(visibleLimit).toArray().then((arr) => arr.reverse()), [visibleLimit]) ?? [];
+  const totalChat = useLiveQuery(() => db.chatMessages.count(), []) ?? 0;
   const endRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const firstRenderRef = useRef(true);
+  const adjustRef = useRef<{ h: number; top: number } | null>(null);
 
   // Track composer height for dynamic padding on message list (prevents content jump)
   useEffect(() => {
@@ -92,10 +104,31 @@ export default function ChatView() {
     return () => vv.removeEventListener('resize', onResize);
   }, []);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
-    if (!listRef.current) return;
-    scrollToBottom(endRef);
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // Default di bawah (instant saat mount), anti-rebut: hanya auto-scroll
+  // bila user sudah di dekat bawah. Muat pesan lama tidak melempar ke bawah.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    if (adjustRef.current) {
+      const { h, top } = adjustRef.current;
+      adjustRef.current = null;
+      el.scrollTop = top + (el.scrollHeight - h);
+      return;
+    }
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false;
+      scrollToBottom(endRef, true);
+    } else if (nearBottom) {
+      scrollToBottom(endRef);
+    }
   }, [messages.length, pending, ocrProgress]);
 
   // Track scroll position for "back to latest" button
@@ -151,7 +184,7 @@ export default function ChatView() {
                 if (sharedText) {
                   const parsed = await parseWithFallback(sharedText, parseWithLLM, parseChatInput);
                   if (parsed) {
-                    setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || new Date().toISOString().slice(0, 10), source: parsed.source });
+                    setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || todayLocalISO(), source: parsed.source });
                   } else {
                     setInput(sharedText.slice(0, 80));
                   }
@@ -230,20 +263,26 @@ export default function ChatView() {
   }
 
   async function handleFile(file: File) { // NOSONAR - cognitive complexity from OCR+LLM fallbacks
-    if (!file.type.startsWith('image/') || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    if (ocrInFlight.current) return;
+    const fileErr = validateImageFile(file);
+    if (fileErr === 'format' || fileErr === 'empty') {
       setOcrError(t('chat.ocrFormatError'));
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
+    if (fileErr === 'too-large') {
       setOcrError(t('chat.ocrSizeError'));
       return;
     }
+    ocrInFlight.current = true;
     setOcrError(null);
     const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    setOcrProgress(0);
+    if (mountedRef.current) setPreviewUrl(url);
+    if (mountedRef.current) setOcrProgress(0);
     try {
-      const text = await recognizeImage(file, (n) => setOcrProgress(n));
+      const text = await recognizeImage(file, (n) => {
+        if (mountedRef.current) setOcrProgress(n);
+      });
+      if (!mountedRef.current) return;
       // Full LLM mode: jika aktif, coba LLM dulu (vision paling akurat untuk Mandiri yang OCR berantakan)
       let parsed: ReturnType<typeof parseReceiptText> = null;
       if (isLLMEnabled()) {
@@ -263,7 +302,7 @@ export default function ChatView() {
       // Fallback regex (offline)
       parsed ??= parseReceiptText(text);
       if (!parsed) {
-        setPending({ description: 'Transfer', amount: 0, date: new Date().toISOString().slice(0, 10) });
+        setPending({ description: 'Transfer', amount: 0, date: todayLocalISO() });
         setOcrError(t('chat.ocrReadError'));
         await db.chatMessages.add({
           role: 'assistant',
@@ -280,19 +319,25 @@ export default function ChatView() {
         parsed: { description: parsed.description, amount: parsed.amount },
       });
     } catch {
-      setOcrError(t('chat.ocrNetworkError'));
+      if (mountedRef.current) setOcrError(t('chat.ocrNetworkError'));
     } finally {
-      setOcrProgress(null);
-      setOcrAvailable(isOcrReady());
+      ocrInFlight.current = false;
       URL.revokeObjectURL(url);
-      setPreviewUrl(null);
+      if (mountedRef.current) {
+        setOcrProgress(null);
+        setOcrAvailable(isOcrReady());
+        setPreviewUrl(null);
+      }
       if (fileRef.current) fileRef.current.value = '';
       if (cameraRef.current) cameraRef.current.value = '';
     }
   }
 
   async function saveNow(p: Pending) {
-    if (!p.amount) return;
+    if (!p.amount || !Number.isFinite(p.amount) || p.amount <= 0 || p.amount > 1_000_000_000_000) return;
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
+    if (mountedRef.current) setIsSaving(true);
     try {
       const now = new Date().toISOString();
       const txId = (await db.transactions.add({
@@ -315,15 +360,20 @@ export default function ChatView() {
         text: '__LINK_RINGKASAN__',
         createdAt: new Date().toISOString(),
       });
-      setPending(null);
-      setOcrError(null);
+      if (mountedRef.current) {
+        setPending(null);
+        setOcrError(null);
+      }
     } catch {
-      setOcrError(t('chat.saveError') ?? 'Gagal menyimpan transaksi. Coba lagi.');
+      if (mountedRef.current) setOcrError(t('chat.saveError') ?? 'Gagal menyimpan transaksi. Coba lagi.');
+    } finally {
+      saveInFlight.current = false;
+      if (mountedRef.current) setIsSaving(false);
     }
   }
 
   async function confirmSave() {
-    if (!pending?.amount) return;
+    if (!pending?.amount || isSaving) return;
     await saveNow(pending);
   }
 
@@ -408,6 +458,21 @@ export default function ChatView() {
           style={{ paddingBottom: composerH + 16 }}
         >
           <h2 className="sr-only">{t('chat.conversation')}</h2>
+          {totalChat > messages.length && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  const el = listRef.current;
+                  if (el) adjustRef.current = { h: el.scrollHeight, top: el.scrollTop };
+                  setVisibleLimit((v) => v + CHAT_PAGE);
+                }}
+                className="min-h-11 px-4 rounded-full bg-[var(--card)] border border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+              >
+                {t('chat.loadOlder')}
+              </button>
+            </div>
+          )}
           {messages.map((m) => (
             <div key={m.id} className="flex motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none" style={{ contentVisibility: 'auto' } as any}>
               <div className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -415,7 +480,7 @@ export default function ChatView() {
                   <div
                     className={`px-4 py-3 text-sm leading-[22px] ${
                       m.role === 'user'
-                        ? 'bg-[var(--accent)] text-[var(--accent-ink)] rounded-[var(--radius-lg)] rounded-br-[var(--radius-sm)]'
+                        ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)] rounded-[var(--radius-lg)] rounded-br-[var(--radius-sm)]'
                         : 'bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-lg)] rounded-bl-[var(--radius-sm)]'
                     }`}
                   >
@@ -461,7 +526,7 @@ export default function ChatView() {
           {pending && (
             <div className="rounded-[var(--radius-lg)] border border-[var(--accent)] bg-[var(--card)] p-5 motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--accent-ink)] grid place-items-center">
+                <div className="w-7 h-7 rounded-full bg-[var(--accent-fill)] text-[var(--accent-ink)] grid place-items-center">
                   <Check size={14} aria-hidden />
                 </div>
                 <p className="text-xs font-bold tracking-wide uppercase text-[var(--accent)]">{t('chat.checkTransaction')}</p>
@@ -534,7 +599,7 @@ export default function ChatView() {
                 <button
                   type="button"
                   onClick={confirmSave}
-                  disabled={!pending.amount}
+                  disabled={!pending.amount || isSaving}
                   className="flex-1 min-h-12 py-3 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 >
                   <Check size={16} aria-hidden />

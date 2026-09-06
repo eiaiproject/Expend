@@ -1,4 +1,27 @@
 # Changelog
+## 0.11.0 - 2026-09-06
+### Added
+
+- Default bottom instant, anti-rebut scroll, limit 50
+- Add 1200x630 social image
+- Add versioned JSON export/import with strict validation
+- Add maskable icon and explicit any purpose
+
+### Fixed
+
+- Respect EXIF orientation and release worker on pagehide
+- Use local timezone for transaction dates
+- Theme label i18n, edit dialog trap, dark contrast AA
+- Strip leading preposition after verb
+- Use PNG icon for social metadata
+- Add Escape, initial and return focus to edit dialog
+- Localize nav landmark and delete-all action name
+- Guard double-save and concurrent OCR with unmount safety
+- Handle R P variant, English thousand, ref skip, from source
+- Mitigate CSV/XLSX formula injection and validate date range
+- Add missing t deps in SettingsView callbacks
+
+
 ## 0.10.0 - 2026-09-05
 ### Changed
 

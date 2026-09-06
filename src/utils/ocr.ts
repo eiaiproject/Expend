@@ -22,7 +22,13 @@ async function preprocess(file: File): Promise<Blob | File> {
   // to avoid 6s overhead in e2e, skip heavy processing for <1.5MP
   try {
     if (file.size < 1.2 * 1024 * 1024) return file;
-    const bitmap = await createImageBitmap(file);
+    // Hormati rotasi EXIF (foto HP portrait) bila browser mendukung opsi ini.
+    let bitmap: ImageBitmap;
+    try {
+      bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' } as ImageBitmapOptions);
+    } catch {
+      bitmap = await createImageBitmap(file);
+    }
     const max = 1000;
     let { width, height } = bitmap;
     if (width <= max && height <= max) {
@@ -43,6 +49,23 @@ async function preprocess(file: File): Promise<Blob | File> {
   } catch {
     return file;
   }
+}
+
+export const OCR_MAX_BYTES = 10 * 1024 * 1024;
+export const OCR_ALLOWED = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
+export type OcrFileError = 'format' | 'empty' | 'too-large';
+
+/**
+ * Validasi file gambar bukti secara murni (testable).
+ * Return null jika valid, kode error jika tidak.
+ * Memeriksa MIME, ekstensi implisit via type, ukuran, dan file kosong.
+ */
+export function validateImageFile(file: { type: string; size: number }): OcrFileError | null {
+  if (!file.type.startsWith('image/') || !(OCR_ALLOWED as readonly string[]).includes(file.type)) return 'format';
+  if (file.size === 0) return 'empty';
+  if (file.size > OCR_MAX_BYTES) return 'too-large';
+  return null;
 }
 
 export async function recognizeImage(file: File, onProgress: (n: number) => void): Promise<string> {
@@ -67,4 +90,12 @@ export async function terminateOcr() {
     await w.terminate?.();
     workerPromise = null;
   }
+}
+
+// Bebaskan worker saat halaman ditutup/disembunyikan permanen (pagehide).
+// Navigasi antar-route tidak terminate (reuse disengaja agar OCR kedua cepat).
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('pagehide', () => {
+    void terminateOcr().catch(() => {});
+  });
 }

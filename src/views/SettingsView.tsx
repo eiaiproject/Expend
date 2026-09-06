@@ -1,15 +1,22 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar, Cpu } from 'reicon-react';
 import { db } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { PageHeader } from '../components/PageHeader';
 import { SectionCard } from '../components/SectionCard';
 import { Toast } from '../components/Toast';
-import { csvBlob, xlsxBlob, filterByDate, exportFilename, downloadBlob } from '../utils/export';
+import { csvBlob, xlsxBlob, jsonBlob, parseImportJSON, IMPORT_MAX_BYTES, filterByDate, exportFilename, downloadBlob, validateDateRange } from '../utils/export';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+
+const EXPORT_ERROR_KEY = {
+  csv: 'settings.exportCSVError',
+  xlsx: 'settings.exportXLSXError',
+  json: 'settings.exportJSONError',
+} as const;
 import { getLLMConfig, saveLLMConfig, testLLMConnection, type LLMConfig } from '../utils/llm';
 import { useTranslation } from '../i18n';
 import type { Lang } from '../i18n';
+import { buildInfo } from '../utils/buildInfo';
 
 type Theme = 'system' | 'light' | 'dark';
 type ToastState = { message: string; type: 'success' | 'error' } | null;
@@ -95,7 +102,7 @@ function Toggle({
 
 export default function SettingsView() {
   const { t, lang, setLang } = useTranslation();
-  const version: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
+  const { version, commit, date: buildDate } = buildInfo();
   const txs = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
   const [toast, setToast] = useState<ToastState>(null);
@@ -109,6 +116,7 @@ export default function SettingsView() {
   const [llmConfig, setLlmConfig] = useState<LLMConfig>(() => getLLMConfig());
   const [llmTesting, setLlmTesting] = useState(false);
   const [llmTestResult, setLlmTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const importRef = useRef<HTMLInputElement>(null);
 
   // Persist confirmSave
   useEffect(() => {
@@ -131,7 +139,18 @@ export default function SettingsView() {
     setToast({ message, type });
   }, []);
 
-  const handleExportCSV = useCallback(async () => {
+  // Satu jalur ekspor untuk csv/xlsx/json: validasi range + filter + empty
+  // check hanya sekali agar tidak terduplikasi per format.
+  const handleExport = useCallback(async (kind: 'csv' | 'xlsx' | 'json') => {
+    const rangeErr = validateDateRange(exportFrom || undefined, exportTo || undefined);
+    if (rangeErr === 'from-after-to') {
+      showToast(t('settings.fromAfterTo'), 'error');
+      return;
+    }
+    if (rangeErr === 'invalid-date') {
+      showToast(t('settings.invalidDate'), 'error');
+      return;
+    }
     try {
       const all = await db.transactions.toArray();
       const filtered = filterByDate(all, exportFrom || undefined, exportTo || undefined);
@@ -139,29 +158,50 @@ export default function SettingsView() {
         showToast(t('settings.noExport'), 'error');
         return;
       }
-      const blob = csvBlob(filtered);
-      downloadBlob(blob, exportFilename('csv', exportFrom || undefined, exportTo || undefined));
-      showToast(t('settings.exportCSVSukses', { count: filtered.length }));
+      if (kind === 'csv') {
+        downloadBlob(csvBlob(filtered), exportFilename('csv', exportFrom || undefined, exportTo || undefined));
+        showToast(t('settings.exportCSVSukses', { count: filtered.length }));
+      } else if (kind === 'xlsx') {
+        downloadBlob(await xlsxBlob(filtered), exportFilename('xlsx', exportFrom || undefined, exportTo || undefined));
+        showToast(t('settings.exportXLSXSukses', { count: filtered.length }));
+      } else {
+        downloadBlob(jsonBlob(filtered), exportFilename('json', exportFrom || undefined, exportTo || undefined));
+        showToast(t('settings.exportJSONSukses', { count: filtered.length }));
+      }
     } catch {
-      showToast(t('settings.exportCSVError'), 'error');
+      showToast(t(EXPORT_ERROR_KEY[kind]), 'error');
     }
-  }, [exportFrom, exportTo, showToast]);
+  }, [exportFrom, exportTo, showToast, t]);
 
-  const handleExportXLSX = useCallback(async () => {
+  const handleImportFile = useCallback(async (file: File) => {
+    if (!file.name.toLowerCase().endsWith('.json') && file.type !== 'application/json' && file.type !== '') {
+      showToast(t('settings.importJSONError'), 'error');
+      return;
+    }
+    if (file.size > IMPORT_MAX_BYTES || file.size === 0) {
+      showToast(t('settings.importJSONError'), 'error');
+      return;
+    }
     try {
-      const all = await db.transactions.toArray();
-      const filtered = filterByDate(all, exportFrom || undefined, exportTo || undefined);
-      if (!filtered.length) {
-        showToast(t('settings.noExport'), 'error');
+      const raw = await file.text();
+      const res = parseImportJSON(raw);
+      if (!res.ok || res.transactions.length === 0) {
+        showToast(res.errors[0] ?? t('settings.importJSONError'), 'error');
         return;
       }
-      const blob = await xlsxBlob(filtered);
-      downloadBlob(blob, exportFilename('xlsx', exportFrom || undefined, exportTo || undefined));
-      showToast(t('settings.exportXLSXSukses', { count: filtered.length }));
+      // Append-only: jangan hapus data lama. Dedupe eksak terhadap DB.
+      const existing = await db.transactions.toArray();
+      const existingKeys = new Set(existing.map((tx) => `${tx.description}|${tx.amount}|${tx.date}|${tx.source ?? ''}|${tx.note ?? ''}`));
+      const fresh = res.transactions.filter((tx) => !existingKeys.has(`${tx.description}|${tx.amount}|${tx.date}|${tx.source ?? ''}|${tx.note ?? ''}`));
+      if (fresh.length) await db.transactions.bulkAdd(fresh.map((tx) => ({ ...tx })));
+      const skippedTotal = res.skipped + (res.transactions.length - fresh.length);
+      showToast(skippedTotal > 0 ? `${t('settings.importJSONSukses', { count: fresh.length })} ${t('settings.importJSONSkipped', { count: skippedTotal })}` : t('settings.importJSONSukses', { count: fresh.length }));
     } catch {
-      showToast(t('settings.exportXLSXError'), 'error');
+      showToast(t('settings.importJSONError'), 'error');
+    } finally {
+      if (importRef.current) importRef.current.value = '';
     }
-  }, [exportFrom, exportTo, showToast]);
+  }, [showToast, t]);
 
   const handleDeleteAll = useCallback(async () => {
     try {
@@ -172,7 +212,7 @@ export default function SettingsView() {
     } finally {
       setConfirmDelete(false);
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   const updateLLM = useCallback((patch: Partial<LLMConfig>) => {
     setLlmConfig((prev) => {
@@ -197,7 +237,7 @@ export default function SettingsView() {
     } finally {
       setLlmTesting(false);
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 pt-4 md:pt-0 pb-[calc(60px+env(safe-area-inset-bottom))] space-y-6">
@@ -219,7 +259,7 @@ export default function SettingsView() {
                 <select
                   value={theme}
                   onChange={(e) => setTheme(e.target.value as Theme)}
-                  aria-label="Pilih tema"
+                  aria-label={t('settings.theme')}
                   className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)] appearance-none"
                 >
                   <option value="system">{t('settings.themeSystem')}</option>
@@ -298,13 +338,20 @@ export default function SettingsView() {
               </label>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" aria-label={t('settings.exportCSV')} onClick={handleExportCSV} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+              <button type="button" aria-label={t('settings.exportCSV')} onClick={() => void handleExport('csv')} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.exportCSV')}
               </button>
-              <button type="button" aria-label={t('settings.exportExcel')} onClick={handleExportXLSX} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+              <button type="button" aria-label={t('settings.exportExcel')} onClick={() => void handleExport('xlsx')} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.exportExcel')}
               </button>
+              <button type="button" aria-label={t('settings.exportJSON')} onClick={() => void handleExport('json')} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+                <Download size={16} aria-hidden /> {t('settings.exportJSON')}
+              </button>
+              <button type="button" aria-label={t('settings.importJSON')} onClick={() => importRef.current?.click()} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+                <Download size={16} aria-hidden /> {t('settings.importJSON')}
+              </button>
             </div>
+            <input ref={importRef} type="file" accept="application/json,.json" className="hidden" aria-label={t('settings.importJSON')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f); }} />
           </div>
         </SectionCard>
       </SettingsSection>
@@ -395,7 +442,7 @@ export default function SettingsView() {
                 <p className="text-sm font-semibold">Expend</p>
                 <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.aboutDesc')}</p>
               </div>
-              <span className="inline-flex items-center rounded-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] px-2.5 py-1 text-xs font-mono font-bold">{t('settings.version', { version })}</span>
+              <span title={buildDate ? `build ${buildDate}` : undefined} className="inline-flex items-center rounded-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] px-2.5 py-1 text-xs font-mono font-bold">{t('settings.version', { version })} · {commit}</span>
             </div>
           </div>
         </SectionCard>
@@ -414,7 +461,7 @@ export default function SettingsView() {
             </div>
             <button
               type="button"
-              aria-label="Hapus semua data transaksi"
+              aria-label={t('settings.deleteAll')}
               disabled={txs.length === 0}
               onClick={() => setConfirmDelete(true)}
               className="shrink-0 min-h-12 px-4 rounded-[var(--radius-md)] bg-[var(--danger)] text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--danger)]/50 disabled:opacity-40 disabled:active:scale-100"

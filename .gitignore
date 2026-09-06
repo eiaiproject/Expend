@@ -18,6 +18,5 @@ playwright-report/
 # Dev tools & generated files
 docs/
 scripts/gen-og-image.mjs
-public/og-image.png
 public/test-receipt.png
 rules.md

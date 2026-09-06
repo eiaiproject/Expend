@@ -1,6 +1,7 @@
 import { detectSource } from './sources';
 import { titleCasePreserveAcronyms } from './textFormat';
 import { pickBestAmount, type RankedAmount } from './amountRank';
+import { todayLocalISO } from './date';
 
 export interface ParsedExpense {
   description: string;
@@ -59,6 +60,12 @@ function parseDotVariant(s: string): number {
 export function normalizeNumber(s: string): number {
   const raw = s.trim();
   if (!raw) return 0;
+  // English thousand: 50,000 / 1,500,000 (koma grup 3 digit, tanpa titik).
+  // Tanpa ini "50,000" terbaca 50 (desimal) padahal konteks Inggris = 50000.
+  if (/^\d{1,3}(,\d{3})+$/.test(raw)) {
+    const n = Number(raw.replaceAll(',', ''));
+    return Number.isFinite(n) ? n : 0;
+  }
   const intl = tryInternational(raw);
   if (intl !== null) return intl;
   if (raw.includes(',')) return parseCommaDecimal(raw);
@@ -97,14 +104,14 @@ function parseRelativeDate(term: string): string | undefined {
   const lower = term.toLowerCase();
   if (lower === 'kemarin' || lower === 'kemaren') {
     now.setDate(now.getDate() - 1);
-    return now.toISOString().slice(0, 10);
+    return todayLocalISO(now);
   }
   if (lower === 'lusa') {
     now.setDate(now.getDate() + 2);
-    return now.toISOString().slice(0, 10);
+    return todayLocalISO(now);
   }
   if (lower === 'hari ini' || lower === 'hariini') {
-    return now.toISOString().slice(0, 10);
+    return todayLocalISO(now);
   }
   return undefined;
 }
@@ -158,8 +165,8 @@ export function extractChatDate(text: string): string {
   // Check explicit dates
   const explicit = parseExplicitDate(text);
   if (explicit) return explicit;
-  // Default to today
-  return new Date().toISOString().slice(0, 10);
+  // Default to today (lokal, lihat utils/date)
+  return todayLocalISO();
 }
 
 // ─── Smart amount extraction ──────────────────────────────────────────────────
@@ -172,15 +179,22 @@ interface AmountCandidate extends RankedAmount {
  * Extract all number candidates from text.
  * A candidate is a number optionally followed by a suffix (jt, rb, k, etc.)
  */
+const REF_LOOKBACK_RE = /(ref|resi|trace|rekening|account|\bno\.?|\bID\b)\s*[:#]?\s*$/i; // NOSONAR - anchored ($), input bounded to 20-char lookback slice
+
 function extractCandidates(text: string): AmountCandidate[] {
   const candidates: AmountCandidate[] = [];
-  // Match: number + optional suffix, or just a number
-  const re = /(\d[\d.,]*\s*(?:jt|juta|rb|ribu|k)?)/gi; // NOSONAR
+  // Suffix wajib word-boundary + negative lookahead huruf agar "k" tidak
+  // memakan huruf awal kata berikut ("50.000 kopi" bukan 50M).
+  const re = /(\d[\d.,]*(?:\s*(?:jt|juta|rb|ribu|k))?)(?![A-Za-z])/gi; // NOSONAR
   let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
     const raw = m[1]!.trim();
+    if (!raw) continue;
+    // Skip nomor referensi/rekening: didahului kata ref/resi/trace/rekening/...
+    const before = text.slice(Math.max(0, m.index - 20), m.index);
+    if (REF_LOOKBACK_RE.test(before)) continue;
     const value = parseAmountWithSuffix(raw);
-    if (value && value > 0) {
+    if (value && value > 0 && Number.isFinite(value) && value <= 1_000_000_000_000) {
       const hasSuffix = /\b(jt|juta|rb|ribu|k)\b/i.test(raw);
       candidates.push({ raw, value, index: m.index!, signals: { hasSuffix, hasRp: false, hasKeyword: false } });
     }
@@ -190,7 +204,7 @@ function extractCandidates(text: string): AmountCandidate[] {
 
 function pickBest(candidates: AmountCandidate[], fullText: string): AmountCandidate | null {
   if (!candidates.length) return null;
-  const hasRp = /\bRp\.?|\bIDR/i.test(fullText);
+  const hasRp = /\bRp\.?|\bR\s*P\b\.?|\bIDR/i.test(fullText);
   const rescored = candidates.map((c) => ({
     ...c,
     signals: { ...c.signals, hasRp },
@@ -200,8 +214,8 @@ function pickBest(candidates: AmountCandidate[], fullText: string): AmountCandid
 
 // ─── Description formatting ───────────────────────────────────────────────────
 
-const VERB_RE = /^(beli|bayar|jajan|belanja|order|pesan|isi|top\s*up|transfer|tf|beliin)\s+/i;
-const SOURCE_CLAUSE_RE = /\s+(?:dari|pakai|pake|via)\s+\S.*$/i; // NOSONAR - bounded description (<80 chars)
+const VERB_RE = /^(beli|bayar|jajan|belanja|order|pesan|isi|top\s*up|transfer|tf|beliin|buy|pay)\s+/i;
+const SOURCE_CLAUSE_RE = /\s+(?:dari|pakai|pake|via|from)\s+\S.*$/i; // NOSONAR - bounded description (<80 chars)
 const GENERIC_SOURCE_RE = /\b(?:tunai|cash|kas)\b/gi;
 
 function formatDescription(raw: string, hasGenericSource: boolean): string {
@@ -212,8 +226,8 @@ function formatDescription(raw: string, hasGenericSource: boolean): string {
   desc = desc.replace(VERB_RE, '').trim();
   // Remove source clause (dari/via/pakai ...)
   desc = desc.replace(SOURCE_CLAUSE_RE, '').trim();
-  // Remove standalone Rp/IDR tokens
-  desc = desc.replace(/\bRp\.?\b/gi, '').replace(/\bIDR\b/gi, '').replace(/\s{2,}/g, ' ').trim(); // NOSONAR
+  // Remove standalone Rp/IDR tokens (termasuk variasi "R P")
+  desc = desc.replace(/\bRp\.?\b/gi, '').replace(/\bR\s*P\b\.?/gi, '').replace(/\bIDR\b/gi, '').replace(/\s{2,}/g, ' ').trim(); // NOSONAR
   // Remove generic source words (tunai/cash/kas) if detected as source
   if (hasGenericSource) desc = desc.replace(GENERIC_SOURCE_RE, '').replace(/\s{2,}/g, ' ').trim();
   // Remove mid-sentence verb before generic source (e.g. "kopi bayar kas" → "kopi")
@@ -223,8 +237,14 @@ function formatDescription(raw: string, hasGenericSource: boolean): string {
   // Remove dangling trailing preposition/conjunction left by cleanup above
   // (e.g. "Parkir di" → "Parkir"). Mid-sentence ones are kept.
   desc = desc.replace(/\s+(?:di|ke|dari|untuk|dengan|dan|atau|yang)[,.]?\s*$/i, '').trim(); // NOSONAR
+  // Remove leading preposition left after verb stripping ("jajan di kantin"
+  // → "di kantin" → "Kantin"). Mid-sentence ones are kept.
+  desc = desc.replace(/^(?:di|ke|dari|untuk|dengan|dan|atau|yang)\s+/i, '').trim();
   // Remove trailing standalone numbers
   desc = desc.replace(/\s\d+\s*$/, '').trim(); // NOSONAR
+  // Remove nomor referensi/rekening yang tersisa ("ref 123456" -> buang)
+  desc = desc.replace(/\s*\b(ref|resi|trace|rekening|account|ID)\s*[:#]?\s*[\w\d#:.=-]*$/i, '').trim(); // NOSONAR - anchored ($), input bounded desc (<80 chars)
+  if (/^(ref|resi|trace|no|id)$/i.test(desc)) return 'Pengeluaran';
 
   if (!desc) return 'Pengeluaran';
   return titleCasePreserveAcronyms(desc).slice(0, 80);
@@ -240,7 +260,9 @@ export function parseChatInput(input: string): ParsedExpense | null {
   const date = extractChatDate(text);
 
   // 2. Remove date-related words before amount extraction
+  // Normalisasi variasi "R P" menjadi "Rp" agar terdeteksi sebagai sinyal moneter.
   let cleanText = text
+    .replace(/\bR\s*P\b\.?(?=\s|\d|$)/gi, 'Rp')
     .replace(/\b(?:kemarin|lusa|hari\s*ini)\b/gi, '') // NOSONAR
     .replace(/\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/g, '') // NOSONAR
     .replace(/\d{1,2}\s+(?:Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)\w*\s+\d{4}/gi, '') // NOSONAR
@@ -262,8 +284,8 @@ export function parseChatInput(input: string): ParsedExpense | null {
   const after = cleanText.slice(splitIndex + bestCandidate.raw.length);
   const rawDesc = (before + ' ' + after).replace(/\s+/g, ' ').trim();
 
-  // 6. Extract source
-  const sourceMatch = /\s+(?:dari|pakai|pake|via)\s+(.+)$/i.exec(rawDesc); // NOSONAR - anchored, bounded
+  // 6. Extract source (ID + EN "from")
+  const sourceMatch = /\s+(?:dari|pakai|pake|via|from)\s+(.+)$/i.exec(rawDesc); // NOSONAR - anchored, bounded
   let source: string | undefined;
   if (sourceMatch) {
     source = detectSource(sourceMatch[1]!.trim()) || sourceMatch[1]!.trim();

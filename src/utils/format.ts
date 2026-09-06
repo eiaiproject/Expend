@@ -8,4 +8,6 @@ export const fmtDate = (iso: string) => {
   dateCache.set(iso, s);
   return s;
 };
-export const todayISO = () => new Date().toISOString().slice(0, 10);
+import { todayLocalISO } from './date';
+// Tanggal lokal (lihat utils/date). Dipertahankan untuk kompatibilitas impor lama.
+export const todayISO = () => todayLocalISO();

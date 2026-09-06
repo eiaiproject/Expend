@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
+import * as fs from 'node:fs';
 
 test('receipt upload → preview editable → Simpan → Home', async ({ page }) => {
+  // Fixture public/test-receipt.png di-gitignore (lihat .gitignore) dan tidak
+  // dikomit; lewati jujur bila tidak ada, bukan gagal palsu.
+  test.skip(!fs.existsSync('public/test-receipt.png'), 'fixture public/test-receipt.png tidak tersedia (gitignored)');
   await page.goto('/');
   await page.evaluate(
     () =>

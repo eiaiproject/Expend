@@ -70,4 +70,24 @@ describe('crud e2e via Dexie', () => {
     expect(parseChatInput('halo bang')).toBeNull();
     expect(await db.transactions.count()).toBe(0);
   });
+
+  it('edit via update tidak membuat duplikat', async () => {
+    const now = new Date().toISOString();
+    const id = (await db.transactions.add({ description: 'Kopi', amount: 50000, date: '2026-09-02', createdAt: now })) as number;
+    await db.transactions.update(id, { amount: 25000, description: 'Kopi Susu' });
+    expect(await db.transactions.count()).toBe(1);
+    const got = await db.transactions.get(id);
+    expect(got!.amount).toBe(25000);
+    expect(got!.description).toBe('Kopi Susu');
+  });
+
+  it('sort tanggal deterministik (date desc, createdAt tiebreak)', async () => {
+    await db.transactions.bulkAdd([
+      { description: 'A', amount: 1, date: '2026-09-01', createdAt: '2026-09-01T00:00:00.000Z' },
+      { description: 'B', amount: 2, date: '2026-09-03', createdAt: '2026-09-03T00:00:00.000Z' },
+      { description: 'C', amount: 3, date: '2026-09-02', createdAt: '2026-09-02T00:00:00.000Z' },
+    ]);
+    const txs = await db.transactions.orderBy('date').reverse().toArray();
+    expect(txs.map((t) => t.description)).toEqual(['B', 'C', 'A']);
+  });
 });
