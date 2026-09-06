@@ -134,6 +134,26 @@ export interface ImportParseResult {
   errors: string[];
 }
 
+type OptText = { ok: true; value?: string } | { ok: false };
+
+function optText(v: unknown, max: number): OptText {
+  if (v === undefined || v === null || v === '') return { ok: true };
+  if (typeof v !== 'string' || v.length > max) return { ok: false };
+  return { ok: true, value: v.trim() || undefined };
+}
+
+function coerceCreatedAt(v: unknown): string {
+  if (typeof v === 'string' && v) {
+    const dt = new Date(v);
+    if (!Number.isNaN(dt.getTime())) return dt.toISOString();
+  }
+  return new Date().toISOString();
+}
+
+function coerceRawText(v: unknown): string | undefined {
+  return typeof v === 'string' && v ? v.slice(0, 500) : undefined;
+}
+
 function validateImportItem(item: unknown): { tx?: ImportedTransaction; error?: string } {
   if (typeof item !== 'object' || item === null || Array.isArray(item)) return { error: 'item bukan objek' };
   const o = item as Record<string, unknown>;
@@ -143,24 +163,21 @@ function validateImportItem(item: unknown): { tx?: ImportedTransaction; error?: 
   if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0 || amount > MAX_AMOUNT) return { error: 'nominal tidak valid' };
   const date = o.date;
   if (typeof date !== 'string' || !isValidISODate(date)) return { error: 'tanggal tidak valid' };
-  let source: string | undefined;
-  if (o.source !== undefined && o.source !== null && o.source !== '') {
-    if (typeof o.source !== 'string' || o.source.length > 80) return { error: 'sumber tidak valid' };
-    source = o.source.trim() || undefined;
-  }
-  let note: string | undefined;
-  if (o.note !== undefined && o.note !== null && o.note !== '') {
-    if (typeof o.note !== 'string' || o.note.length > 200) return { error: 'catatan tidak valid' };
-    note = o.note.trim() || undefined;
-  }
-  let createdAt = new Date().toISOString();
-  if (typeof o.createdAt === 'string' && o.createdAt) {
-    const dt = new Date(o.createdAt);
-    if (!Number.isNaN(dt.getTime())) createdAt = dt.toISOString();
-  }
-  let rawText: string | undefined;
-  if (typeof o.rawText === 'string' && o.rawText) rawText = o.rawText.slice(0, 500);
-  return { tx: { description: desc.trim().slice(0, 80), amount, date, source, note, createdAt, rawText } };
+  const source = optText(o.source, 80);
+  if (!source.ok) return { error: 'sumber tidak valid' };
+  const note = optText(o.note, 200);
+  if (!note.ok) return { error: 'catatan tidak valid' };
+  return {
+    tx: {
+      description: desc.trim().slice(0, 80),
+      amount,
+      date,
+      source: source.value,
+      note: note.value,
+      createdAt: coerceCreatedAt(o.createdAt),
+      rawText: coerceRawText(o.rawText),
+    },
+  };
 }
 
 /**
@@ -170,6 +187,15 @@ function validateImportItem(item: unknown): { tx?: ImportedTransaction; error?: 
  * Menolak: JSON rusak, struktur tak dikenal, versi tak dikenal,
  * ukuran berlebih, tipe salah, nominal<=0/NaN/overflow, tanggal invalid.
  */
+function extractImportList(parsed: unknown): { list?: unknown[]; error?: string } {
+  if (Array.isArray(parsed)) return { list: parsed };
+  if (typeof parsed !== 'object' || parsed === null) return { error: 'struktur tidak dikenal' };
+  const o = parsed as Record<string, unknown>;
+  if (o.version !== undefined && o.version !== 1) return { error: 'versi tidak dikenal' };
+  if (!Array.isArray(o.transactions)) return { error: 'struktur tidak dikenal' };
+  return { list: o.transactions };
+}
+
 export function parseImportJSON(raw: string): ImportParseResult {
   if (raw.length > IMPORT_MAX_BYTES) return { ok: false, transactions: [], skipped: 0, errors: ['ukuran file berlebihan'] };
   let parsed: unknown;
@@ -178,23 +204,9 @@ export function parseImportJSON(raw: string): ImportParseResult {
   } catch {
     return { ok: false, transactions: [], skipped: 0, errors: ['JSON rusak'] };
   }
-  let list: unknown;
-  if (Array.isArray(parsed)) {
-    list = parsed;
-  } else if (typeof parsed === 'object' && parsed !== null) {
-    const o = parsed as Record<string, unknown>;
-    if (o.version !== undefined) {
-      if (o.version !== 1) return { ok: false, transactions: [], skipped: 0, errors: ['versi tidak dikenal'] };
-      list = o.transactions;
-    } else if (Array.isArray(o.transactions)) {
-      list = o.transactions;
-    } else {
-      return { ok: false, transactions: [], skipped: 0, errors: ['struktur tidak dikenal'] };
-    }
-  } else {
-    return { ok: false, transactions: [], skipped: 0, errors: ['struktur tidak dikenal'] };
-  }
-  if (!Array.isArray(list)) return { ok: false, transactions: [], skipped: 0, errors: ['struktur tidak dikenal'] };
+  const { list, error } = extractImportList(parsed);
+  if (error) return { ok: false, transactions: [], skipped: 0, errors: [error] };
+  if (!list) return { ok: false, transactions: [], skipped: 0, errors: ['struktur tidak dikenal'] };
   if (list.length > IMPORT_MAX_ITEMS) return { ok: false, transactions: [], skipped: 0, errors: ['terlalu banyak item'] };
   const txs: ImportedTransaction[] = [];
   const errors: string[] = [];

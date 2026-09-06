@@ -7,6 +7,12 @@ import { SectionCard } from '../components/SectionCard';
 import { Toast } from '../components/Toast';
 import { csvBlob, xlsxBlob, jsonBlob, parseImportJSON, IMPORT_MAX_BYTES, filterByDate, exportFilename, downloadBlob, validateDateRange } from '../utils/export';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+
+const EXPORT_ERROR_KEY = {
+  csv: 'settings.exportCSVError',
+  xlsx: 'settings.exportXLSXError',
+  json: 'settings.exportJSONError',
+} as const;
 import { getLLMConfig, saveLLMConfig, testLLMConnection, type LLMConfig } from '../utils/llm';
 import { useTranslation } from '../i18n';
 import type { Lang } from '../i18n';
@@ -163,7 +169,7 @@ export default function SettingsView() {
         showToast(t('settings.exportJSONSukses', { count: filtered.length }));
       }
     } catch {
-      showToast(t(kind === 'csv' ? 'settings.exportCSVError' : kind === 'xlsx' ? 'settings.exportXLSXError' : 'settings.exportJSONError'), 'error');
+      showToast(t(EXPORT_ERROR_KEY[kind]), 'error');
     }
   }, [exportFrom, exportTo, showToast, t]);
 

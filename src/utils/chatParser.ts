@@ -179,7 +179,7 @@ interface AmountCandidate extends RankedAmount {
  * Extract all number candidates from text.
  * A candidate is a number optionally followed by a suffix (jt, rb, k, etc.)
  */
-const REF_LOOKBACK_RE = /(ref|resi|trace|rekening|account|\bno\.?|\bID\b)\s*[:#]?\s*$/i;
+const REF_LOOKBACK_RE = /(ref|resi|trace|rekening|account|\bno\.?|\bID\b)\s*[:#]?\s*$/i; // NOSONAR - anchored ($), input bounded to 20-char lookback slice
 
 function extractCandidates(text: string): AmountCandidate[] {
   const candidates: AmountCandidate[] = [];
@@ -243,7 +243,7 @@ function formatDescription(raw: string, hasGenericSource: boolean): string {
   // Remove trailing standalone numbers
   desc = desc.replace(/\s\d+\s*$/, '').trim(); // NOSONAR
   // Remove nomor referensi/rekening yang tersisa ("ref 123456" -> buang)
-  desc = desc.replace(/\s*\b(ref|resi|trace|rekening|account|ID)\s*[:#]?\s*[\w\d#:.=-]*$/i, '').trim();
+  desc = desc.replace(/\s*\b(ref|resi|trace|rekening|account|ID)\s*[:#]?\s*[\w\d#:.=-]*$/i, '').trim(); // NOSONAR - anchored ($), input bounded desc (<80 chars)
   if (/^(ref|resi|trace|no|id)$/i.test(desc)) return 'Pengeluaran';
 
   if (!desc) return 'Pengeluaran';
