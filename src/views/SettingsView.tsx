@@ -132,7 +132,9 @@ export default function SettingsView() {
     setToast({ message, type });
   }, []);
 
-  const handleExportCSV = useCallback(async () => {
+  // Satu jalur ekspor untuk csv/xlsx/json: validasi range + filter + empty
+  // check hanya sekali agar tidak terduplikasi per format.
+  const handleExport = useCallback(async (kind: 'csv' | 'xlsx' | 'json') => {
     const rangeErr = validateDateRange(exportFrom || undefined, exportTo || undefined);
     if (rangeErr === 'from-after-to') {
       showToast(t('settings.fromAfterTo'), 'error');
@@ -149,60 +151,18 @@ export default function SettingsView() {
         showToast(t('settings.noExport'), 'error');
         return;
       }
-      const blob = csvBlob(filtered);
-      downloadBlob(blob, exportFilename('csv', exportFrom || undefined, exportTo || undefined));
-      showToast(t('settings.exportCSVSukses', { count: filtered.length }));
-    } catch {
-      showToast(t('settings.exportCSVError'), 'error');
-    }
-  }, [exportFrom, exportTo, showToast, t]);
-
-  const handleExportXLSX = useCallback(async () => {
-    const rangeErr = validateDateRange(exportFrom || undefined, exportTo || undefined);
-    if (rangeErr === 'from-after-to') {
-      showToast(t('settings.fromAfterTo'), 'error');
-      return;
-    }
-    if (rangeErr === 'invalid-date') {
-      showToast(t('settings.invalidDate'), 'error');
-      return;
-    }
-    try {
-      const all = await db.transactions.toArray();
-      const filtered = filterByDate(all, exportFrom || undefined, exportTo || undefined);
-      if (!filtered.length) {
-        showToast(t('settings.noExport'), 'error');
-        return;
+      if (kind === 'csv') {
+        downloadBlob(csvBlob(filtered), exportFilename('csv', exportFrom || undefined, exportTo || undefined));
+        showToast(t('settings.exportCSVSukses', { count: filtered.length }));
+      } else if (kind === 'xlsx') {
+        downloadBlob(await xlsxBlob(filtered), exportFilename('xlsx', exportFrom || undefined, exportTo || undefined));
+        showToast(t('settings.exportXLSXSukses', { count: filtered.length }));
+      } else {
+        downloadBlob(jsonBlob(filtered), exportFilename('json', exportFrom || undefined, exportTo || undefined));
+        showToast(t('settings.exportJSONSukses', { count: filtered.length }));
       }
-      const blob = await xlsxBlob(filtered);
-      downloadBlob(blob, exportFilename('xlsx', exportFrom || undefined, exportTo || undefined));
-      showToast(t('settings.exportXLSXSukses', { count: filtered.length }));
     } catch {
-      showToast(t('settings.exportXLSXError'), 'error');
-    }
-  }, [exportFrom, exportTo, showToast, t]);
-
-  const handleExportJSON = useCallback(async () => {
-    const rangeErr = validateDateRange(exportFrom || undefined, exportTo || undefined);
-    if (rangeErr === 'from-after-to') {
-      showToast(t('settings.fromAfterTo'), 'error');
-      return;
-    }
-    if (rangeErr === 'invalid-date') {
-      showToast(t('settings.invalidDate'), 'error');
-      return;
-    }
-    try {
-      const all = await db.transactions.toArray();
-      const filtered = filterByDate(all, exportFrom || undefined, exportTo || undefined);
-      if (!filtered.length) {
-        showToast(t('settings.noExport'), 'error');
-        return;
-      }
-      downloadBlob(jsonBlob(filtered), exportFilename('json', exportFrom || undefined, exportTo || undefined));
-      showToast(t('settings.exportJSONSukses', { count: filtered.length }));
-    } catch {
-      showToast(t('settings.exportJSONError'), 'error');
+      showToast(t(kind === 'csv' ? 'settings.exportCSVError' : kind === 'xlsx' ? 'settings.exportXLSXError' : 'settings.exportJSONError'), 'error');
     }
   }, [exportFrom, exportTo, showToast, t]);
 
@@ -371,13 +331,13 @@ export default function SettingsView() {
               </label>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" aria-label={t('settings.exportCSV')} onClick={handleExportCSV} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+              <button type="button" aria-label={t('settings.exportCSV')} onClick={() => void handleExport('csv')} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.exportCSV')}
               </button>
-              <button type="button" aria-label={t('settings.exportExcel')} onClick={handleExportXLSX} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+              <button type="button" aria-label={t('settings.exportExcel')} onClick={() => void handleExport('xlsx')} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.exportExcel')}
               </button>
-              <button type="button" aria-label={t('settings.exportJSON')} onClick={handleExportJSON} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+              <button type="button" aria-label={t('settings.exportJSON')} onClick={() => void handleExport('json')} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.exportJSON')}
               </button>
               <button type="button" aria-label={t('settings.importJSON')} onClick={() => importRef.current?.click()} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">

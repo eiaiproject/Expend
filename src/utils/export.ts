@@ -47,7 +47,7 @@ function escapeCSV(v: string | number): string {
 }
 
 export function toCSV(rows: ExportRow[]): string {
-  const headers = [t('export.date'), t('export.description'), t('export.amount'), t('export.source'), t('export.note'), t('export.createdAt')];
+  const headers = exportHeaders();
   const lines = [headers.map(escapeCSV).join(',')];
   for (const r of rows) lines.push(headers.map((h) => escapeCSV(r[h] ?? '')).join(','));
   return lines.join('\r\n') + '\r\n';
@@ -61,6 +61,17 @@ const DATE_ISO_RE = /^\d{4}-\d{2}-\d{2}$/; // NOSONAR - anchored date check
 
 export type DateRangeError = 'invalid-date' | 'from-after-to';
 
+function isValidISODate(d: string): boolean {
+  if (!DATE_ISO_RE.test(d)) return false;
+  const [ys, ms, ds] = d.split('-');
+  const y = Number(ys);
+  const m = Number(ms);
+  const dd = Number(ds);
+  if (m < 1 || m > 12 || dd < 1 || dd > 31) return false;
+  // hari valid per bulan (termasuk kabisat), tanpa sensitif timezone
+  return dd <= new Date(y, m, 0).getDate();
+}
+
 /**
  * Validasi rentang From/To untuk ekspor (inklusif, YYYY-MM-DD).
  * Return null jika valid/kosong, kode error jika tidak.
@@ -71,18 +82,14 @@ export function validateDateRange(from?: string, to?: string): DateRangeError | 
   if (!f && !tt) return null;
   for (const d of [f, tt]) {
     if (!d) continue;
-    if (!DATE_ISO_RE.test(d)) return 'invalid-date';
-    const [ys, ms, ds] = d.split('-');
-    const y = Number(ys);
-    const m = Number(ms);
-    const dd = Number(ds);
-    if (m < 1 || m > 12 || dd < 1 || dd > 31) return 'invalid-date';
-    // hari valid per bulan (termasuk kabisat), tanpa sensitif timezone
-    const dim = new Date(y, m, 0).getDate();
-    if (dd > dim) return 'invalid-date';
+    if (!isValidISODate(d)) return 'invalid-date';
   }
   if (f && tt && f > tt) return 'from-after-to';
   return null;
+}
+
+export function exportHeaders(): string[] {
+  return [t('export.date'), t('export.description'), t('export.amount'), t('export.source'), t('export.note'), t('export.createdAt')];
 }
 
 export function filterByDate(txs: Transaction[], from?: string, to?: string): Transaction[] {
@@ -97,7 +104,7 @@ export function filterByDate(txs: Transaction[], from?: string, to?: string): Tr
 export async function xlsxBlob(txs: Transaction[]): Promise<Blob> {
   const XLSX = await getXLSX();
   const rows = toExportRows(txs);
-  const headers = [t('export.date'), t('export.description'), t('export.amount'), t('export.source'), t('export.note'), t('export.createdAt')];
+  const headers = exportHeaders();
   const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
   ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 30 }, { wch: 22 }];
   const wb = XLSX.utils.book_new();
@@ -125,16 +132,6 @@ export interface ImportParseResult {
   transactions: ImportedTransaction[];
   skipped: number;
   errors: string[];
-}
-
-function isValidISODate(d: string): boolean {
-  if (!DATE_ISO_RE.test(d)) return false;
-  const [ys, ms, ds] = d.split('-');
-  const y = Number(ys);
-  const m = Number(ms);
-  const dd = Number(ds);
-  if (m < 1 || m > 12 || dd < 1 || dd > 31) return false;
-  return dd <= new Date(y, m, 0).getDate();
 }
 
 function validateImportItem(item: unknown): { tx?: ImportedTransaction; error?: string } {
