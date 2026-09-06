@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
@@ -6,10 +7,22 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 const version = JSON.parse(readFileSync('./package.json', 'utf8')).version;
 
+// Identitas per-commit: setiap build bisa ditelusuri ke commit persisnya
+// tanpa harus menaikkan SemVer tiap commit. Fallback aman bila git tak ada.
+let commit = 'dev';
+try {
+  commit = execSync('git rev-parse --short HEAD').toString().trim() || 'dev';
+} catch {}
+const buildDate = new Date().toISOString().slice(0, 10);
+
 const BRAND = '#264025';
 
 export default defineConfig({
-  define: { __APP_VERSION__: JSON.stringify(version) },
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+    __APP_COMMIT__: JSON.stringify(commit),
+    __APP_BUILD_DATE__: JSON.stringify(buildDate),
+  },
   build: { target: 'esnext' },
   plugins: [
     react(),

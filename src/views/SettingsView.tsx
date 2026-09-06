@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { getLLMConfig, saveLLMConfig, testLLMConnection, type LLMConfig } from '../utils/llm';
 import { useTranslation } from '../i18n';
 import type { Lang } from '../i18n';
+import { buildInfo } from '../utils/buildInfo';
 
 type Theme = 'system' | 'light' | 'dark';
 type ToastState = { message: string; type: 'success' | 'error' } | null;
@@ -95,7 +96,7 @@ function Toggle({
 
 export default function SettingsView() {
   const { t, lang, setLang } = useTranslation();
-  const version: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
+  const { version, commit, date: buildDate } = buildInfo();
   const txs = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
   const [toast, setToast] = useState<ToastState>(null);
@@ -435,7 +436,7 @@ export default function SettingsView() {
                 <p className="text-sm font-semibold">Expend</p>
                 <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.aboutDesc')}</p>
               </div>
-              <span className="inline-flex items-center rounded-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] px-2.5 py-1 text-xs font-mono font-bold">{t('settings.version', { version })}</span>
+              <span title={buildDate ? `build ${buildDate}` : undefined} className="inline-flex items-center rounded-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] px-2.5 py-1 text-xs font-mono font-bold">{t('settings.version', { version })} · {commit}</span>
             </div>
           </div>
         </SectionCard>
