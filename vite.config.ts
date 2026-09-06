@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { readGitCommit } from './scripts/read-commit.mjs';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
@@ -8,11 +8,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 const version = JSON.parse(readFileSync('./package.json', 'utf8')).version;
 
 // Identitas per-commit: setiap build bisa ditelusuri ke commit persisnya
-// tanpa harus menaikkan SemVer tiap commit. Fallback aman bila git tak ada.
-let commit = 'dev';
-try {
-  commit = execSync('git rev-parse --short HEAD').toString().trim() || 'dev';
-} catch {}
+// tanpa harus menaikkan SemVer tiap commit. Dibaca via fs (tanpa exec)
+// agar aman dari S4036 PATH-hijack; fallback 'dev' bila git tak ada.
+const commit = readGitCommit();
 const buildDate = new Date().toISOString().slice(0, 10);
 
 const BRAND = '#264025';
