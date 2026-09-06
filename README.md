@@ -55,6 +55,4 @@ node scripts/full-audit.mjs  # Playwright pixel-perfect UI audit (needs dev serv
 
 ## Versioning
 
-Semver + Conventional Commits. Rilis via `npm version [patch|minor|major]` (otomatis sinkron badge + CHANGELOG + tag).
-
-Setiap commit juga teridentifikasi unik tanpa menaikkan SemVer: build menyematkan `__APP_VERSION__` + `__APP_COMMIT__` (SHA pendek) + `__APP_BUILD_DATE__`, tampil di **Settings → Tentang** sebagai `versi X.Y.Z · abc1234` (hover = tanggal build). Jadi tiap commit bisa ditelusuri ke build persisnya.
+Semver + Conventional Commits per commit.
