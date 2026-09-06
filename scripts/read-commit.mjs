@@ -14,10 +14,10 @@ function resolveGitDir(root) {
   const dotGit = resolve(root, '.git');
   try {
     if (statSync(dotGit).isFile()) {
-      // Worktree: `.git` berisi pointer `gitdir: <path>`
+      // Worktree: `.git` berisi pointer `gitdir: <path>` (tanpa regex: S8786)
       const pointer = readFileSync(dotGit, 'utf8').trim();
-      const m = /^gitdir:\s*(.+)$/.exec(pointer);
-      if (m) return resolve(root, m[1]);
+      const prefix = 'gitdir:';
+      if (pointer.startsWith(prefix)) return resolve(root, pointer.slice(prefix.length).trim());
     }
   } catch {}
   return dotGit;
