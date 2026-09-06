@@ -1,4 +1,10 @@
 # Changelog
+## 0.12.2 - 2026-09-06
+### Fixed
+
+- Patch react-router-dom to 7.18.3 for GHSA advisories
+
+
 ## 0.12.1 - 2026-09-06
 ### Changed
 
