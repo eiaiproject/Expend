@@ -7,6 +7,7 @@ import { isLLMEnabled, parseWithLLM, parseReceiptWithLLM, parseReceiptImageWithL
 import { recognizeImage, isOcrReady, validateImageFile } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
 import { todayLocalISO } from '../utils/date';
+import { isEditableElement, keyboardInsetPx } from '../utils/keyboard';
 import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ChevronDown, X } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { InlineAlert } from '../components/InlineAlert';
@@ -91,17 +92,39 @@ export default function ChatView() {
     return () => ro.disconnect();
   }, []);
 
-  // Track mobile virtual keyboard via visualViewport so composer stays above it
+  // Track mobile virtual keyboard via visualViewport so composer stays above it.
+  // Multi-sinyal (bukan cuma vv resize) + paksa 0 saat tak ada yang fokus,
+  // karena di sebagian Chrome Android event hide tidak sampai dan composer
+  // nyangkut di tengah layar.
   useEffect(() => {
     if (typeof window === 'undefined' || !window.visualViewport) return;
     const vv = window.visualViewport;
-    const onResize = () => {
-      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      setKeyboardInset(inset);
+    const recompute = () => {
+      if (!mountedRef.current) return;
+      setKeyboardInset(keyboardInsetPx(window.innerHeight, vv.height, vv.offsetTop, isEditableElement(document.activeElement)));
     };
-    vv.addEventListener('resize', onResize);
-    onResize();
-    return () => vv.removeEventListener('resize', onResize);
+    let blurTimer = 0;
+    const onBlur = () => {
+      // Keyboard butuh ~200-300ms untuk turun; hitung ulang setelah reda.
+      window.clearTimeout(blurTimer);
+      blurTimer = window.setTimeout(recompute, 300);
+    };
+    vv.addEventListener('resize', recompute);
+    vv.addEventListener('scroll', recompute);
+    window.addEventListener('resize', recompute);
+    window.addEventListener('orientationchange', recompute);
+    document.addEventListener('focusin', recompute);
+    document.addEventListener('focusout', onBlur);
+    recompute();
+    return () => {
+      window.clearTimeout(blurTimer);
+      vv.removeEventListener('resize', recompute);
+      vv.removeEventListener('scroll', recompute);
+      window.removeEventListener('resize', recompute);
+      window.removeEventListener('orientationchange', recompute);
+      document.removeEventListener('focusin', recompute);
+      document.removeEventListener('focusout', onBlur);
+    };
   }, []);
 
   useEffect(() => {
