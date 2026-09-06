@@ -23,7 +23,7 @@
     "dexie-react-hooks": "^4.4.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "react-router-dom": "^7.17.0",
+    "react-router-dom": "^7.18.3",
     "reicon-react": "^1.1.302",
     "tesseract.js": "^5.1.1",
     "xlsx": "^0.18.5"
