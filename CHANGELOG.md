@@ -1,4 +1,9 @@
 # Changelog
+## 0.12.0 - 2026-09-06
+### Changed
+
+- Rilis jalur main, tanpa perubahan kode sejak 0.11.0.
+
 ## 0.11.0 - 2026-09-06
 ### Added
 
