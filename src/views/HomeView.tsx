@@ -13,6 +13,7 @@ import { SkeletonCard } from '../components/SkeletonCard';
 import { Toast } from '../components/Toast';
 import type { Transaction } from '../db/db';
 import { useTranslation } from '../i18n';
+import type { TranslationKey } from '../i18n/id';
 
 const EMPTY_TXS: Transaction[] = [];
 
@@ -30,6 +31,12 @@ function monthLabel(key: string): string {
   const [y, m] = key.split('-').map(Number);
   return new Date(y!, m! - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 }
+
+const GRANULARITY_LABEL_KEY: Record<GroupGranularity, TranslationKey> = {
+  day: 'home.groupDay',
+  week: 'home.groupWeek',
+  month: 'home.groupMonth',
+};
 
 export default function HomeView() {
   const { t } = useTranslation();
@@ -129,7 +136,8 @@ export default function HomeView() {
                 </label>
               </div>
               <div className="flex items-center gap-2">
-                <div role="group" aria-label={t('home.filterDate')} className="flex flex-1 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-1 gap-1">
+                <fieldset className="flex flex-1 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-1 gap-1 m-0 min-w-0">
+                  <legend className="sr-only">{t('home.filterDate')}</legend>
                   {(['day', 'week', 'month'] as const).map((g) => (
                     <button
                       key={g}
@@ -138,10 +146,10 @@ export default function HomeView() {
                       onClick={() => setGranularity(g)}
                       className={`flex-1 min-h-10 rounded-[var(--radius-sm)] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${granularity === g ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
                     >
-                      {t(g === 'day' ? 'home.groupDay' : g === 'week' ? 'home.groupWeek' : 'home.groupMonth')}
+                      {t(GRANULARITY_LABEL_KEY[g])}
                     </button>
                   ))}
-                </div>
+                </fieldset>
                 {hasFilter && (
                   <button
                     type="button"

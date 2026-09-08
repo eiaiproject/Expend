@@ -20,7 +20,8 @@ const MOBILE = { width: 390, height: 844 };
 const KEYBOARD = 300;
 const fold = MOBILE.height - KEYBOARD; // batas atas keyboard simulasi
 
-// Isi chat sampai overflow; tiap pesan ditunggu benar-benar masuk.
+// Isi chat sampai overflow; tiap pesan ditunggu benar-benar masuk
+// (user + balasan asisten "Tercatat") — tanpa fixed wait.
 async function seedMessages(page: Page, ta: Locator, msgs: Locator, count = 14) {
   await ta.click();
   for (let i = 0; i < count; i++) {
@@ -30,14 +31,15 @@ async function seedMessages(page: Page, ta: Locator, msgs: Locator, count = 14) 
     await page.waitForFunction(
       (c) => {
         const l = document.querySelector('main [role="log"]');
-        return !!l && l.children.length > c;
+        return !!l && l.children.length > c + 1;
       },
       before,
       { timeout: 5000 },
     );
-    await page.waitForTimeout(150);
   }
-  await page.waitForTimeout(500);
+  // Settle: pastikan seed terakhir benar-benar ter-render (locator sengaja
+  // di level log agar kebal anchor kosong endRef & kartu pending).
+  await expect(page.locator('main [role="log"]')).toContainText('nomor 13', { timeout: 5000 });
 }
 
 async function openChat(page: Page) {

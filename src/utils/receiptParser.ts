@@ -50,17 +50,20 @@ function isDateFragment(line: string, raw: string): boolean {
   return datePart.replaceAll(/\s/g, '').includes(raw.replaceAll(/\s/g, ''));
 }
 
+// 4.1: dulu nomor pada baris ref lolos bila barisnya memuat "Rp" (mis. OCR
+// menggabungkan "No. Ref: Rp 982341234"). Angka ≥5 digit tanpa desimal pada
+// baris ref adalah nomor referensi — skip walau ada Rp di baris yang sama.
+function isRefLineNumber(digitsOnly: string, raw: string, line: string, rpRe: RegExp): boolean {
+  if (!isRefLine(line)) return false;
+  if (/^\d{5,}$/.test(digitsOnly) && !/[,.]/.test(raw)) return true;
+  return !rpRe.test(line);
+}
+
 function shouldSkip(val: number, raw: string, line: string, prevLine: string, rpRe: RegExp, kwRe: RegExp): boolean {
   const digitsOnly = raw.replaceAll(/\D/g, '');
   // Saldo ≠ nominal transaksi — skip baris yang menyebut saldo (DANA/OVO).
   if (SALDO_RE.test(line) || SALDO_RE.test(prevLine)) return true;
-  // 4.1: dulu nomor pada baris ref lolos bila barisnya memuat "Rp" (mis. OCR
-  // menggabungkan "No. Ref: Rp 982341234"). Angka ≥5 digit tanpa desimal pada
-  // baris ref adalah nomor referensi — skip walau ada Rp di baris yang sama.
-  if (isRefLine(line)) {
-    if (/^\d{5,}$/.test(digitsOnly) && !/[,.]/.test(raw)) return true;
-    if (!rpRe.test(line)) return true;
-  }
+  if (isRefLineNumber(digitsOnly, raw, line, rpRe)) return true;
   // Skip 4-digit years (1900-2099) when not on Rp line
   if (/^(19|20)\d{2}$/.test(digitsOnly) && !rpRe.test(line)) return true;
   // Skip reference numbers: 5+ digits without Rp/keyword. Keyword (Total/

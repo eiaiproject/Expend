@@ -26,6 +26,12 @@ function groupKey(dateISO: string, granularity: GroupGranularity): string {
   return dateISO;
 }
 
+/** Descending by ISO key (YYYY-MM-DD / YYYY-MM). Extracted for S3358. */
+function byKeyDesc(a: TxGroup, b: TxGroup): number {
+  if (a.key === b.key) return 0;
+  return a.key < b.key ? 1 : -1;
+}
+
 /** Group transactions by day/week/month key, groups sorted desc. Pure. */
 export function groupTransactions(txs: readonly Transaction[], granularity: GroupGranularity): TxGroup[] {
   const map = new Map<string, TxGroup>();
@@ -40,5 +46,5 @@ export function groupTransactions(txs: readonly Transaction[], granularity: Grou
       map.set(key, { key, total: tx.amount, count: 1, txs: [tx] });
     }
   }
-  return [...map.values()].sort((a, b) => (a.key < b.key ? 1 : a.key > b.key ? -1 : 0));
+  return [...map.values()].sort(byKeyDesc);
 }
