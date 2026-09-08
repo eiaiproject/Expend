@@ -7,15 +7,15 @@ Offline-first PWA. Navigation: **Summary** (transaction list) + **Record** (chat
 ## Usage
 
 ### Chat
-Ketik: `kopi di Indomaret 50000` → preview `Kopi di Indomaret · Rp50.000` → Save.
+Type: `kopi di Indomaret 50000` → preview `Kopi di Indomaret · Rp50.000` → Save.
 
 ### OCR (Transfer Receipt)
 Upload a photo of the transfer receipt → auto-detected → edit if needed → Save.
 
 ### Amount Format
-`50000` `50.000` `50,000` `50rb` `50k` `1.5jt` `R P 50.000` (=`Rp`). Klausa `dari|pakai|pake|via|from X` hanya jadi sumber dana bila `X` dikenal (`kopi 20rb dari kas` → source `Kas`); penjual/lokasi dipertahankan di deskripsi (`nasi goreng dari warung Pak Eko 20rb` → deskripsi `Nasi Goreng dari Warung Pak Eko`, tanpa source). Preposisi tengah kalimat (`di`, `ke`, ...) dipertahankan, preposisi gantung setelah verb stripping dibuang (`jajan di kantin` → `Kantin`). `ref/resi/trace/rekening` numbers are never picked as nominal. Max `1.000.000.000.000`; overflow/NaN rejected.
+`50000` `50.000` `50,000` `50rb` `50k` `1.5jt` `R P 50.000` (=`Rp`). A `dari|pakai|pake|via|from X` clause only becomes the funding source when `X` is known (`kopi 20rb dari kas` → source `Kas`); seller/location stays in the description (`nasi goreng dari warung Pak Eko 20rb` → description `Nasi Goreng dari Warung Pak Eko`, no source). Mid-sentence prepositions (`di`, `ke`, ...) are kept; a dangling preposition left after verb stripping is removed (`jajan di kantin` → `Kantin`). `ref/resi/trace/rekening` numbers are never picked as nominal. Max `1.000.000.000.000`; overflow/NaN rejected.
 
-Tanggal transaksi memakai zona lokal perangkat (`YYYY-MM-DD` lokal, bukan UTC) agar `hari ini/kemarin` benar di WIB.
+Transaction dates use the device's local timezone (local `YYYY-MM-DD`, not UTC) so `hari ini/kemarin` resolve correctly in WIB.
 
 ## Features
 
