@@ -13,13 +13,15 @@ Ketik: `kopi di Indomaret 50000` → preview `Kopi di Indomaret · Rp50.000` →
 Upload a photo of the transfer receipt → auto-detected → edit if needed → Save.
 
 ### Amount Format
-`50000` `50.000` `50,000` `50rb` `50k` `1.5jt` `R P 50.000` (=`Rp`). Clause `dari|pakai|pake|via|from ...` is automatically ignored; mid-sentence prepositions (`di`, `ke`, ...) stay, leadingournament preposition after verb stripping is removed (`jajan di kantin` → `Kantin`). `ref/resi/trace/rekening` numbers are never picked as nominal. Max `1.000.000.000.000`; overflow/NaN rejected.
+`50000` `50.000` `50,000` `50rb` `50k` `1.5jt` `R P 50.000` (=`Rp`). Klausa `dari|pakai|pake|via|from X` hanya jadi sumber dana bila `X` dikenal (`kopi 20rb dari kas` → source `Kas`); penjual/lokasi dipertahankan di deskripsi (`nasi goreng dari warung Pak Eko 20rb` → deskripsi `Nasi Goreng dari Warung Pak Eko`, tanpa source). Preposisi tengah kalimat (`di`, `ke`, ...) dipertahankan, preposisi gantung setelah verb stripping dibuang (`jajan di kantin` → `Kantin`). `ref/resi/trace/rekening` numbers are never picked as nominal. Max `1.000.000.000.000`; overflow/NaN rejected.
 
 Tanggal transaksi memakai zona lokal perangkat (`YYYY-MM-DD` lokal, bukan UTC) agar `hari ini/kemarin` benar di WIB.
 
 ## Features
 
 - **Chat-first**: Log expenses via natural language chat
+- **Summary filter & grouping**: Filter by date range (Dari/Sampai), group by Day/Week/Month with per-group subtotals
+- **Bilingual**: Bahasa Indonesia / English (auto-detect, switch in Settings)
 - **Edit**: Update saved transactions inline from Summary
 - **OCR**: Upload transfer receipts, auto-detected (JPG/PNG/WebP, max 10MB)
 - **Offline-first**: All data stored locally in IndexedDB
@@ -50,6 +52,7 @@ npm run typecheck    # TypeScript check
 npm run test         # Vitest watch
 npm run test:unit    # Vitest single run
 npm run lint         # ESLint
+npx playwright test  # E2E (needs dev server, auto-started on :3000)
 node scripts/full-audit.mjs  # Playwright pixel-perfect UI audit (needs dev server on :3000)
 ```
 
