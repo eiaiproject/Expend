@@ -3,7 +3,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
-import { isLLMEnabled, parseWithLLM, parseReceiptWithLLM, parseReceiptImageWithLLM, parseChatWithLLM, isChatQuestion } from '../utils/llm';
 import { recognizeImage, isOcrReady, validateImageFile } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
 import { todayLocalISO } from '../utils/date';
@@ -29,20 +28,6 @@ function scrollToBottom(endRef: React.RefObject<HTMLDivElement | null>, instant 
 }
 
 const CHAT_PAGE = 50;
-
-async function parseWithFallback<T>(
-  text: string,
-  llmFn: (t: string) => Promise<T | null>,
-  regexFn: (t: string) => T | null,
-): Promise<T | null> {
-  if (isLLMEnabled()) {
-    try {
-      const result = await llmFn(text);
-      if (result) return result;
-    } catch {}
-  }
-  return regexFn(text);
-}
 
 export default function ChatView() {
   const { t } = useTranslation();
@@ -150,9 +135,14 @@ export default function ChatView() {
       firstRenderRef.current = false;
       scrollToBottom(endRef, true);
     } else if (nearBottom) {
-      scrollToBottom(endRef);
+      // Keyboard terbuka: scrollIntoView(endRef) hanya mensejajarkan pesan ke
+      // dasar container yang berada di balik keyboard. Scroll sampai ujung
+      // konten agar padding kompensasi (keyboardInset) menaikkan pesan terbaru
+      // ke atas composer.
+      if (keyboardInset > 0) el.scrollTop = el.scrollHeight;
+      else scrollToBottom(endRef);
     }
-  }, [messages.length, pending, ocrProgress]);
+  }, [messages.length, pending, ocrProgress, keyboardInset]);
 
   // Track scroll position for "back to latest" button
   const handleScroll = useCallback(() => {
@@ -205,7 +195,7 @@ export default function ChatView() {
                 const meta = await metaRes.json();
                 const sharedText = [meta.text, meta.url].filter(Boolean).join(' ').trim();
                 if (sharedText) {
-                  const parsed = await parseWithFallback(sharedText, parseWithLLM, parseChatInput);
+                  const parsed = parseChatInput(sharedText);
                   if (parsed) {
                     setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || todayLocalISO(), source: parsed.source });
                   } else {
@@ -240,23 +230,7 @@ export default function ChatView() {
     const now = new Date().toISOString();
     await db.chatMessages.add({ role: 'user', text, createdAt: now });
 
-    // Chat mode: pertanyaan bebas (akhiri '?' atau kata tanya Indonesia)
-    if (isChatQuestion(text) && isLLMEnabled()) {
-      const history = await db.chatMessages.orderBy('createdAt').reverse().limit(10).toArray();
-      history.reverse();
-      const reply = await parseChatWithLLM(
-        text,
-        history.map((m) => ({ role: m.role, text: m.text })),
-      );
-      if (reply) {
-        await db.chatMessages.add({ role: 'assistant', text: reply, createdAt: new Date().toISOString() });
-        setIsSending(false);
-        return;
-      }
-    }
-
-    // Full LLM mode: coba LLM dulu jika aktif, regex jadi fallback
-    const parsed = await parseWithFallback(text, parseWithLLM, parseChatInput);
+    const parsed = parseChatInput(text);
     if (!parsed) {
       await db.chatMessages.add({
         role: 'assistant',
@@ -285,7 +259,7 @@ export default function ChatView() {
     }
   }
 
-  async function handleFile(file: File) { // NOSONAR - cognitive complexity from OCR+LLM fallbacks
+  async function handleFile(file: File) {
     if (ocrInFlight.current) return;
     const fileErr = validateImageFile(file);
     if (fileErr === 'format' || fileErr === 'empty') {
@@ -306,24 +280,7 @@ export default function ChatView() {
         if (mountedRef.current) setOcrProgress(n);
       });
       if (!mountedRef.current) return;
-      // Full LLM mode: jika aktif, coba LLM dulu (vision paling akurat untuk Mandiri yang OCR berantakan)
-      let parsed: ReturnType<typeof parseReceiptText> = null;
-      if (isLLMEnabled()) {
-        // Vision dulu jika model support (kirim gambar langsung, tanpa tergantung OCR)
-        try {
-          const visionParsed = await parseReceiptImageWithLLM(file);
-          if (visionParsed) parsed = { ...visionParsed, rawText: text.slice(0, 500) } as ReturnType<typeof parseReceiptText> & { rawText: string };
-        } catch {}
-        // Lalu LLM teks (typo-tolerant untuk OCR messy)
-        if (!parsed) {
-          try {
-            const llmParsed = await parseReceiptWithLLM(text);
-            if (llmParsed) parsed = { ...llmParsed, rawText: text.slice(0, 500) } as ReturnType<typeof parseReceiptText> & { rawText: string };
-          } catch {}
-        }
-      }
-      // Fallback regex (offline)
-      parsed ??= parseReceiptText(text);
+      const parsed = parseReceiptText(text);
       if (!parsed) {
         setPending({ description: 'Transfer', amount: 0, date: todayLocalISO() });
         setOcrError(t('chat.ocrReadError'));
@@ -478,7 +435,12 @@ export default function ChatView() {
           aria-label={t('chat.conversation')}
           onScroll={handleScroll}
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 py-4 pb-8 space-y-3"
-          style={{ paddingBottom: composerH + 16 }}
+          // Keyboard terbuka: composer digeser naik (translateY) tapi container
+          // scroll tetap memanjang sampai belakang keyboard — tanpa kompensasi,
+          // pesan terbaru tak bisa discroll ke atas composer (tersembunyi di
+          // balik keyboard). Tambahkan inset ke padding bawah list agar konten
+          // bisa naik setinggi keyboard saat scroll maksimal.
+          style={{ paddingBottom: composerH + 16 + keyboardInset }}
         >
           <h2 className="sr-only">{t('chat.conversation')}</h2>
           {totalChat > messages.length && (
@@ -670,7 +632,14 @@ export default function ChatView() {
       {/* Composer */}
       <div
         ref={composerRef}
-        className="shrink-0 bg-[var(--bg)] px-4 md:px-6 pt-3 pb-[calc(66px+env(safe-area-inset-bottom))] md:pb-[calc(10px+env(safe-area-inset-bottom))]"
+        className={`shrink-0 bg-[var(--bg)] px-4 md:px-6 pt-3 ${
+          keyboardInset > 0
+            ? // Keyboard terbuka → BottomNav sudah disembunyikan (App.tsx), jadi
+              // ruang 66px tidak diperlukan; kecilkan padding bawah agar area
+              // pesan lebih lega saat mengetik.
+              'pb-[calc(10px+env(safe-area-inset-bottom))]'
+            : 'pb-[calc(66px+env(safe-area-inset-bottom))] md:pb-[calc(10px+env(safe-area-inset-bottom))]'
+        }`}
         style={keyboardInset > 0 ? { transform: `translateY(-${keyboardInset}px)` } : undefined}
       >
         <form onSubmit={handleSend} className="flex items-end gap-2 bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-xl)] p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[var(--accent)]/20 focus-within:border-[var(--accent)] transition-all">
@@ -731,10 +700,14 @@ export default function ChatView() {
             )}
           </button>
         </form>
-        <p className="text-[11px] tracking-wide text-[var(--text-secondary)] text-center mt-2.5">
-          <span className="hidden md:inline">{t('chat.shortcutsDesktop')}</span>
-          <span className="md:hidden">{t('chat.shortcutsMobile')}</span>
-        </p>
+        {/* Hint hanya relevan saat keyboard tertutup — sembunyikan saat
+            mengetik agar layar mobile tidak terbuang. */}
+        {keyboardInset === 0 && (
+          <p className="text-[11px] tracking-wide text-[var(--text-secondary)] text-center mt-2.5">
+            <span className="hidden md:inline">{t('chat.shortcutsDesktop')}</span>
+            <span className="md:hidden">{t('chat.shortcutsMobile')}</span>
+          </p>
+        )}
       </div>
 
       <style>{String.raw`@keyframes in { from { opacity:0; transform: translateY(4px)} to { opacity:1; transform: translateY(0)} } @media (prefers-reduced-motion: reduce) { .motion-safe\:animate-pulse, .motion-safe\:animate-\[in_0\.2s_ease-out\] { animation: none !important; } }`}</style>

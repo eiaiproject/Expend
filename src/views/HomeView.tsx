@@ -2,16 +2,41 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { fmtIDR, fmtDate } from '../utils/format';
-import { Receipt, Trash2, ChatRoundDots, Gallery, Edit, X } from 'reicon-react';
+import { filterByDate, validateDateRange } from '../utils/export';
+import { groupTransactions, type GroupGranularity } from '../utils/grouping';
+import { Receipt, Trash2, ChatRoundDots, Gallery, Edit, X, Calendar } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { SectionCard } from '../components/SectionCard';
 import { EmptyState } from '../components/EmptyState';
+import { InlineAlert } from '../components/InlineAlert';
 import { SkeletonCard } from '../components/SkeletonCard';
 import { Toast } from '../components/Toast';
 import type { Transaction } from '../db/db';
 import { useTranslation } from '../i18n';
+import type { TranslationKey } from '../i18n/id';
 
 const EMPTY_TXS: Transaction[] = [];
+
+function addDaysISO(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y!, m! - 1, d!);
+  dt.setDate(dt.getDate() + days);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
+function monthLabel(key: string): string {
+  const [y, m] = key.split('-').map(Number);
+  return new Date(y!, m! - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+}
+
+const GRANULARITY_LABEL_KEY: Record<GroupGranularity, TranslationKey> = {
+  day: 'home.groupDay',
+  week: 'home.groupWeek',
+  month: 'home.groupMonth',
+};
 
 export default function HomeView() {
   const { t } = useTranslation();
@@ -21,7 +46,22 @@ export default function HomeView() {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [editing, setEditing] = useState<Transaction | null>(null);
-  const total = useMemo(() => txs.reduce((a, tx) => a + tx.amount, 0), [txs]);
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [granularity, setGranularity] = useState<GroupGranularity>('day');
+  const rangeErr = validateDateRange(filterFrom || undefined, filterTo || undefined);
+  const hasFilter = filterFrom !== '' || filterTo !== '';
+  const filtered = useMemo(
+    () => (rangeErr ? txs : filterByDate(txs, filterFrom || undefined, filterTo || undefined)),
+    [txs, filterFrom, filterTo, rangeErr],
+  );
+  const total = useMemo(() => filtered.reduce((a, tx) => a + tx.amount, 0), [filtered]);
+  const groups = useMemo(() => groupTransactions(filtered, granularity), [filtered, granularity]);
+  const groupLabel = (key: string) => {
+    if (granularity === 'month') return monthLabel(key);
+    if (granularity === 'week') return `${fmtDate(key)} – ${fmtDate(addDaysISO(key, 6))}`;
+    return fmtDate(key);
+  };
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 pt-4 md:pt-0 pb-[calc(60px+env(safe-area-inset-bottom))] space-y-6">
@@ -72,15 +112,76 @@ export default function HomeView() {
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-[var(--text-secondary)]">{t('home.totalExpenses')}</p>
                 <p className="text-xl font-bold tracking-tight tabular-nums mt-0.5">{fmtIDR(total)}</p>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5">{txs.length} {t('home.transactions')}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">{filtered.length} {t('home.transactions')}</p>
               </div>
             </div>
           </SectionCard>
 
+          <SectionCard>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">{t('settings.from')}</span>
+                  <div className="relative mt-1">
+                    <input id="home-filter-from" type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} aria-label={t('settings.from')} className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                    <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" aria-hidden />
+                  </div>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">{t('settings.to')}</span>
+                  <div className="relative mt-1">
+                    <input id="home-filter-to" type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} aria-label={t('settings.to')} className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                    <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" aria-hidden />
+                  </div>
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <fieldset className="flex flex-1 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-1 gap-1 m-0 min-w-0">
+                  <legend className="sr-only">{t('home.filterDate')}</legend>
+                  {(['day', 'week', 'month'] as const).map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      aria-pressed={granularity === g}
+                      onClick={() => setGranularity(g)}
+                      className={`flex-1 min-h-10 rounded-[var(--radius-sm)] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${granularity === g ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
+                    >
+                      {t(GRANULARITY_LABEL_KEY[g])}
+                    </button>
+                  ))}
+                </fieldset>
+                {hasFilter && (
+                  <button
+                    type="button"
+                    onClick={() => { setFilterFrom(''); setFilterTo(''); }}
+                    className="shrink-0 min-h-12 px-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                  >
+                    {t('home.resetFilter')}
+                  </button>
+                )}
+              </div>
+            </div>
+          </SectionCard>
+
+          {rangeErr === 'from-after-to' && <InlineAlert type="error">{t('settings.fromAfterTo')}</InlineAlert>}
+          {rangeErr === 'invalid-date' && <InlineAlert type="error">{t('settings.invalidDate')}</InlineAlert>}
+
+          {filtered.length === 0 ? (
+            <SectionCard>
+              <p className="text-sm text-[var(--text-secondary)] text-center py-2">{t('home.noMatch')}</p>
+            </SectionCard>
+          ) : (
           <section aria-label="Transaksi terbaru">
             <h2 className="sr-only">Transaksi terbaru</h2>
+            <div className="space-y-5">
+            {groups.map((g) => (
+              <div key={g.key}>
+                <div className="flex items-baseline gap-2 px-1 mb-2">
+                  <h3 className="text-xs font-bold tracking-wide uppercase text-[var(--text-secondary)]">{groupLabel(g.key)}</h3>
+                  <span className="text-xs text-[var(--text-muted)] tabular-nums">{g.count} &middot; {fmtIDR(g.total)}</span>
+                </div>
             <ul className="space-y-2">
-              {txs.map((tx) => (
+              {g.txs.map((tx) => (
                 <li
                   key={tx.id}
                   className="list-item flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]/40 transition-colors"
@@ -126,7 +227,11 @@ export default function HomeView() {
                 </li>
               ))}
             </ul>
+              </div>
+            ))}
+            </div>
           </section>
+          )}
 
           <Link
             to="/chat"

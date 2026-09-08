@@ -1,12 +1,18 @@
 import { detectSource } from './sources';
-import { normalizeNumber, MONTH_MAP } from './chatParser';
+import { normalizeNumber, MONTH_MAP, clampDayISO } from './chatParser';
 import { todayLocalISO } from './date';
 import { titleCasePreserveAcronyms } from './textFormat';
 import { pickBestAmount, type RankedAmount } from './amountRank';
 
 const PRODUCT_RE = /^(?:product|produk)\s*[:-]?\s*(.+)/i; // NOSONAR - anchored, bounded
-const RECIPIENT_RE = /penerima|kepada|tujuan|ditransfer\s*ke|^\s*ke\b|transfer\s*ke\b/i;
-const NOTE_RE = /berita|keterangan|beneficiary/i;
+const RECIPIENT_RE = /penerima|kepada|tujuan|ditransfer\s*ke|^\s*ke\b|transfer\s*ke\b|dikirim\s*ke/i;
+// Catatan: deteksi "a.n." di sini WAJIB diakhiri spasi (`a\.?\s*n\.?\s`) agar
+// kata biasa yang diawali "An/AN" (Transfer, BANDUNG, ANGGIE) tak tertangkap
+// sebagai label penerima.
+const NOTE_RE = /berita|keterangan|beneficiary|atas\s+nama|\bnama\b|\bname\b|\ba\.?\s*n\.?\s|a\/n/i;
+// Baris yang menyebut "saldo" adalah informasi saldo, bukan nominal transaksi
+// (resi DANA/OVO: "Rp 250.000 ... Saldo Rp 1.000.000" → nominal = 250.000).
+const SALDO_RE = /\bsaldo\b/i;
 
 // ─── Amount parsing ───────────────────────────────────────────────────────────
 
@@ -31,14 +37,10 @@ function parseAmt(s: string): number | null {
   return null;
 }
 
-function normalizeAmountRaw(raw: string): string {
-  return raw.replaceAll('O', '0').replaceAll('o', '0').replaceAll(/[lI]/g, '1').trim();
-}
-
 // ─── Line analysis ────────────────────────────────────────────────────────────
 
 function isRefLine(line: string): boolean {
-  return /ref|resi|trace|\bID\b|account|rekening|akun|no\.?\s*transaksi/i.test(line);
+  return /ref|resi|trace|\bID\b|account|rekening|akun|no\.?\s*transaksi|referensi|nomor/i.test(line);
 }
 
 function isDateFragment(line: string, raw: string): boolean {
@@ -48,14 +50,26 @@ function isDateFragment(line: string, raw: string): boolean {
   return datePart.replaceAll(/\s/g, '').includes(raw.replaceAll(/\s/g, ''));
 }
 
-function shouldSkip(val: number, raw: string, line: string, prevLine: string, rpRe: RegExp): boolean {
-  // Skip any number on a ref/account/ID line
-  if (isRefLine(line) && !rpRe.test(line)) return true;
+// 4.1: dulu nomor pada baris ref lolos bila barisnya memuat "Rp" (mis. OCR
+// menggabungkan "No. Ref: Rp 982341234"). Angka ≥5 digit tanpa desimal pada
+// baris ref adalah nomor referensi — skip walau ada Rp di baris yang sama.
+function isRefLineNumber(digitsOnly: string, raw: string, line: string, rpRe: RegExp): boolean {
+  if (!isRefLine(line)) return false;
+  if (/^\d{5,}$/.test(digitsOnly) && !/[,.]/.test(raw)) return true;
+  return !rpRe.test(line);
+}
+
+function shouldSkip(val: number, raw: string, line: string, prevLine: string, rpRe: RegExp, kwRe: RegExp): boolean {
   const digitsOnly = raw.replaceAll(/\D/g, '');
+  // Saldo ≠ nominal transaksi — skip baris yang menyebut saldo (DANA/OVO).
+  if (SALDO_RE.test(line) || SALDO_RE.test(prevLine)) return true;
+  if (isRefLineNumber(digitsOnly, raw, line, rpRe)) return true;
   // Skip 4-digit years (1900-2099) when not on Rp line
   if (/^(19|20)\d{2}$/.test(digitsOnly) && !rpRe.test(line)) return true;
-  // Skip reference numbers: 5+ digits without Rp/keyword
-  if (/^\d{5,}$/.test(digitsOnly) && !rpRe.test(line) && !/[,.]/.test(raw)) return true;
+  // Skip reference numbers: 5+ digits without Rp/keyword. Keyword (Total/
+  // Jumlah/Transfer) menandakan baris itu nominal — "Jumlah Transfer 100000"
+  // tanpa Rp tetap amount, bukan nomor referensi.
+  if (/^\d{5,}$/.test(digitsOnly) && !rpRe.test(line) && !kwRe.test(line) && !kwRe.test(prevLine) && !/[,.]/.test(raw)) return true;
   if (isDateFragment(line, raw)) return true;
   if (val < 1000 && !/rb|ribu|k|jt|juta/i.test(raw) && !rpRe.test(line) && !rpRe.test(prevLine)) return true;
   if (val > 999_999_999 && !rpRe.test(line)) return true;
@@ -80,13 +94,15 @@ function collectHits(text: string): ReceiptHit[] { // NOSONAR
     re.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = re.exec(line))) {
-      let raw0 = m[0]!.trim();
+      // 4.2: normalizeAmountRaw dihapus — token berasal dari /\d[\d.,]*/ yang
+      // sudah hanya digit/titik/koma, jadi penggantian O→0 / l→1 tak pernah
+      // aktif. OCR "1O00" tetap terpotong di "1", bukan jadi "1000".
+      let raw = m[0]!.trim();
       const suf = /^\s*(jt|juta|rb|ribu|k)\b/i.exec(line.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 8))?.[0] ?? '';
-      raw0 = raw0 + suf;
-      const raw = normalizeAmountRaw(raw0);
+      raw = raw + suf;
       const v = parseAmt(raw);
       if (!v || v <= 0) continue;
-      if (shouldSkip(v, raw, line, prevLine, rpLineRe)) continue;
+      if (shouldSkip(v, raw, line, prevLine, rpLineRe, kw)) continue;
       const hasRp = rpLineRe.test(line) || rpLineRe.test(prevLine);
       const hasKeyword = kw.test(line) || kw.test(prevLine);
       const hasSuffix = /jt|juta|rb|ribu|k/i.test(suf);
@@ -99,14 +115,10 @@ function collectHits(text: string): ReceiptHit[] { // NOSONAR
 function extractAmount(text: string): number | null {
   const hits = collectHits(text);
   if (!hits.length) return null;
-  const best = pickBestAmount(hits)!;
-  const rpHits = hits.filter((h) => h.signals.hasRp);
-  if (!best.signals.hasRp && !best.signals.hasKeyword && rpHits.length) {
-    let bestRp = rpHits[0]!;
-    for (let i = 1; i < rpHits.length; i++) if (rpHits[i]!.value > bestRp.value) bestRp = rpHits[i]!;
-    if (bestRp.value >= best.value * 0.8) return bestRp.value;
-  }
-  return best.value;
+  // 4.3: guard "bestRp ≥ 80% best" lama dihapus — tier-scoring di amountRank
+  // sudah menempatkan kandidat bersinyal Rp di atas angka polos, jadi cabang
+  // fallback tersebut mati/tidak konsisten secara desain.
+  return pickBestAmount(hits)!.value;
 }
 
 // ─── Date extraction ──────────────────────────────────────────────────────────
@@ -115,17 +127,16 @@ function extractDate(text: string): string {
   // "31/08/2026"
   const ddmmyyyy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text); // NOSONAR
   if (ddmmyyyy) {
-    const d = ddmmyyyy[1]!.padStart(2, '0');
-    const m = ddmmyyyy[2]!.padStart(2, '0');
-    let y = ddmmyyyy[3]!;
-    if (y.length === 2) y = '20' + y;
-    return `${y}-${m}-${d}`;
+    let y = Number(ddmmyyyy[3]);
+    if (ddmmyyyy[3]!.length === 2) y += 2000;
+    return clampDayISO(y, Number(ddmmyyyy[2]), Number(ddmmyyyy[1]));
   }
-  // "31 Agustus 2026" or "01Sep 2026" (OCR without space)
-  const mmm = /(\d{1,2})\s*(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)\w*\s+(\d{4})/i.exec(text); // NOSONAR
+  // "31 Agustus 2026", "01Sep 2026", atau OCR menempel "01Sep2026" (5.2):
+  // spasi sebelum tahun dibuat opsional (\s*) karena OCR sering menggabungkan.
+  const mmm = /(\d{1,2})\s*(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)\w*\s*(\d{4})/i.exec(text); // NOSONAR
   if (mmm) {
     const mon = MONTH_MAP[mmm[2]!.toLowerCase().slice(0, 3)];
-    if (mon) return `${mmm[3]}-${mon}-${mmm[1]!.padStart(2, '0')}`;
+    if (mon) return clampDayISO(Number(mmm[3]), Number(mon), Number(mmm[1]));
   }
   return todayLocalISO();
 }
@@ -169,8 +180,19 @@ function extractShareRecipient(text: string): string | undefined {
   return name;
 }
 
+// Baris penerima berbasis nama — label Inggris ("Beneficiary/Account/Recipient
+// Name", "Name:") maupun Indonesia ("Nama:", "Atas Nama", "Penerima:",
+// "a.n."). Diprioritaskan di atas baris "Ke <no HP>" agar LinkAja/ShopeePay /
+// transfer internasional dapat nama.
+// Bentuk "a.n." menuntut separator titik/spasi di antara a–n–nama
+// (`a[.\s]n[.\s]`) — tanpa itu kata biasa yang diawali "An/AN" (ANGGIE,
+// Antoni, DIAN) akan salah tangkap sebagai label a.n.
+const NAME_CAPTURE_RE =
+  /(?:^|[\s(])(?:a[.\s]n[.\s]|(?:beneficiary|account|recipient)?\s*(?:atas\s+nama|name|nama)|penerima)\s*[:=]?\s*([A-Z][A-Za-z .'-]{1,})/i; // NOSONAR - bounded
+
 function findHitLine(lines: string[]): string | undefined {
   let hit = lines.find((l) => PRODUCT_RE.test(l));
+  if (!hit) hit = lines.find((l) => NAME_CAPTURE_RE.test(l) && /[A-Za-z]{2,}/.test(l)); // Nama eksplisit lebih kaya drpd "Ke <hp>"
   if (!hit) hit = lines.find((l) => RECIPIENT_RE.test(l) && /(?:penerima|kepada|tujuan|ke)\s*[:-]?\s*[^\n]{2,}/i.test(l)); // NOSONAR
   if (!hit) hit = lines.find((l) => RECIPIENT_RE.test(l));
   if (!hit) hit = lines.find((l) => NOTE_RE.test(l));
@@ -178,8 +200,10 @@ function findHitLine(lines: string[]): string | undefined {
 }
 
 function parseHitLine(hitLine: string, lines: string[]): string {
-  let m = PRODUCT_RE.exec(hitLine);
-  if (!m) m = /(?:penerima|kepada|beneficiary|berita|keterangan|tujuan|ditransfer\s*ke|transfer\s*ke|ke)\s*[:-]?\s*(.+)/i.exec(hitLine); // NOSONAR
+  // "Beneficiary Name LUKY DIAN SUSANTI" / "Dikirim ke 0812... a.n. SITI AMINAH"
+  // → ambil nama setelah label, bukan nomor HP / label itu sendiri.
+  let m: RegExpExecArray | null = NAME_CAPTURE_RE.exec(hitLine) ?? PRODUCT_RE.exec(hitLine);
+  if (!m) m = /(?:penerima|kepada|beneficiary|berita|keterangan|tujuan|nama|atas\s*nama|ditransfer\s*ke|transfer\s*ke|ke)\s*[:-]?\s*(.+)/i.exec(hitLine); // NOSONAR
   let desc = m?.[1]?.trim() ?? '';
   if (desc.length < 2) {
     const after = hitLine.split(/:/).slice(1).join(':').trim();
@@ -218,11 +242,22 @@ function finalizeDesc(raw: string): string {
   let d = raw.replaceAll(/\s+/g, ' ').trim() || 'Transfer';
   d = d.replace(/\s+Oo\s*$/i, '').trim() || 'Transfer'; // NOSONAR - anchored, bounded
   d = titleCasePreserveAcronyms(d).slice(0, 80);
+  // 4.4: dulu pemotongan di "dari/pakai/via" terjadi buta sehingga nama seperti
+  // "Nasi Goreng Dari Abang" atau "Toko Via" ikut terpotong. Sekarang potong
+  // HANYA bila sisa teks setelah kata kunci adalah sumber dana yang dikenal
+  // ("... dari BCA"), yaitu klausa sumber sungguhan pada deskripsi.
   const kws = [' dari ', ' pakai ', ' pake ', ' via '];
   let cut = -1;
   for (const k of kws) {
-    const idx = d.toLowerCase().indexOf(k);
-    if (idx !== -1 && (cut === -1 || idx < cut)) cut = idx;
+    let idx = d.toLowerCase().indexOf(k);
+    while (idx !== -1) {
+      const tail = d.slice(idx + k.length).trim();
+      if (detectSource(tail)) {
+        if (cut === -1 || idx < cut) cut = idx;
+        break;
+      }
+      idx = d.toLowerCase().indexOf(k, idx + 1);
+    }
   }
   return (cut === -1 ? d : d.slice(0, cut)).trim();
 }
@@ -276,10 +311,10 @@ export function parseReceiptText(text: string): { description: string; amount: n
     re.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = re.exec(line))) {
-      let raw0 = m[0]!.trim();
+      let raw = m[0]!.trim();
       const suf = /^\s*(jt|juta|rb|ribu|k)\b/i.exec(line.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 8))?.[0] ?? '';
-      raw0 = raw0 + suf;
-      const v = parseAmt(normalizeAmountRaw(raw0));
+      raw = raw + suf;
+      const v = parseAmt(raw);
       if (v && v > 0) hits.push({ idx });
     }
   }

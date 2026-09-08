@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar, Cpu } from 'reicon-react';
+import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar } from 'reicon-react';
 import { db } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { PageHeader } from '../components/PageHeader';
@@ -13,7 +13,6 @@ const EXPORT_ERROR_KEY = {
   xlsx: 'settings.exportXLSXError',
   json: 'settings.exportJSONError',
 } as const;
-import { getLLMConfig, saveLLMConfig, testLLMConnection, type LLMConfig } from '../utils/llm';
 import { useTranslation } from '../i18n';
 import type { Lang } from '../i18n';
 
@@ -112,9 +111,6 @@ export default function SettingsView() {
   const [exportFrom, setExportFrom] = useState('');
   const [exportTo, setExportTo] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [llmConfig, setLlmConfig] = useState<LLMConfig>(() => getLLMConfig());
-  const [llmTesting, setLlmTesting] = useState(false);
-  const [llmTestResult, setLlmTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   // Persist confirmSave
@@ -210,31 +206,6 @@ export default function SettingsView() {
       showToast(t('settings.deleteError'), 'error');
     } finally {
       setConfirmDelete(false);
-    }
-  }, [showToast, t]);
-
-  const updateLLM = useCallback((patch: Partial<LLMConfig>) => {
-    setLlmConfig((prev) => {
-      const next = { ...prev, ...patch };
-      saveLLMConfig(next);
-      return next;
-    });
-    setLlmTestResult(null);
-  }, []);
-
-  const handleTestLLM = useCallback(async () => {
-    setLlmTesting(true);
-    setLlmTestResult(null);
-    try {
-      const result = await testLLMConnection();
-      setLlmTestResult(result);
-      showToast(result.message, result.ok ? 'success' : 'error');
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : t('settings.deleteError');
-      setLlmTestResult({ ok: false, message: msg });
-      showToast(msg, 'error');
-    } finally {
-      setLlmTesting(false);
     }
   }, [showToast, t]);
 
@@ -355,53 +326,6 @@ export default function SettingsView() {
         </SectionCard>
       </SettingsSection>
 
-      {/* LLM — Opsi A: BYOK tanpa backend */}
-      <SettingsSection title={t('settings.ai')}>
-        <SectionCard padding="sm">
-          <div className="divide-y divide-[var(--border)]">
-            <div className="flex items-center justify-between gap-3 px-4 py-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--accent-soft)] grid place-items-center shrink-0">
-                  <Cpu size={18} className="text-[var(--accent)]" aria-hidden />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">{t('settings.smartParsing')}</p>
-                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.smartParsingDesc')}</p>
-                </div>
-              </div>
-              <Toggle checked={llmConfig.enabled} onChange={(v) => updateLLM({ enabled: v })} label={t('settings.smartParsing')} />
-            </div>
-            {llmConfig.enabled && (
-              <div className="px-4 py-3 space-y-3">
-                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{t('settings.llmPrivacy')}</p>
-                <label className="block">
-                  <span className="text-xs font-medium text-[var(--text-secondary)]">{t('settings.baseUrl')}</span>
-                  <input value={llmConfig.baseUrl} onChange={(e) => updateLLM({ baseUrl: e.target.value })} placeholder="https://openrouter.ai/api/v1" autoComplete="off" spellCheck={false} className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm font-mono outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
-                  <span className="text-[11px] text-[var(--text-muted)] mt-1 block">{t('settings.baseUrlHint')}</span>
-                </label>
-                <label className="block">
-                  <span className="text-xs font-medium text-[var(--text-secondary)]">{t('settings.apiKey')}</span>
-                  <input type="password" value={llmConfig.apiKey} onChange={(e) => updateLLM({ apiKey: e.target.value })} placeholder="sk-or-... atau sk-9r-..." autoComplete="off" spellCheck={false} className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm font-mono outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-medium text-[var(--text-secondary)]">{t('settings.model')}</span>
-                  <input value={llmConfig.model} onChange={(e) => updateLLM({ model: e.target.value })} placeholder="openai/gpt-4o-mini" autoComplete="off" spellCheck={false} className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm font-mono outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
-                  <span className="text-[11px] text-[var(--text-muted)] mt-1 block">{t('settings.modelHint')}</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  <button type="button" onClick={handleTestLLM} disabled={llmTesting || !llmConfig.apiKey.trim() || !llmConfig.model.trim()} className="min-h-11 px-4 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
-                    {llmTesting ? t('settings.testing') : t('settings.testConnection')}
-                  </button>
-                  {llmTestResult && (
-                    <span className={`text-xs font-medium ${llmTestResult.ok ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>{llmTestResult.message}</span>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </SectionCard>
-      </SettingsSection>
-
       {/* Privacy */}
       <SettingsSection title={t('settings.privacy')}>
         <SectionCard padding="sm">
@@ -415,8 +339,8 @@ export default function SettingsView() {
               icon={<CloudCross size={18} />}
               iconBg="bg-[var(--bg)] border border-[var(--border)]"
               iconColor="text-[var(--text-muted)]"
-              title={llmConfig.enabled ? t('settings.externalConnectionActive') : t('settings.noExternalConnection')}
-              description={llmConfig.enabled ? t('settings.llmActiveDesc') : t('settings.offlineDesc')}
+              title={t('settings.noExternalConnection')}
+              description={t('settings.offlineDesc')}
             />
             <SettingsRow
               icon={<Information size={18} />}
