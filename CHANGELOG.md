@@ -1,4 +1,14 @@
 # Changelog
+## 0.13.1 - 2026-09-08
+### Fixed
+
+- Bereskan 6 temuan PR #27
+
+### Changed
+
+- README: perilaku klausa sumber dana, filter/grouping Summary, bilingual, e2e
+
+
 ## 0.13.0 - 2026-09-08
 ### Added
 
