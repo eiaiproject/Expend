@@ -1,4 +1,18 @@
 # Changelog
+## 0.13.0 - 2026-09-08
+### Added
+
+- Filter tanggal Dari/Sampai + grup Hari/Minggu/Bulan di Summary
+- Dataset regression OCR multi-bank (tests/fixtures/ocr-receipts.ts)
+
+### Changed
+
+- Hardening parser dari daftar-temuan-parser.md: sources, amountRank, chatParser, receiptParser
+
+### Removed
+
+- Fitur LLM BYOK (offline penuh, -653 baris); pengaturan AI dihapus dari Settings — BREAKING
+
 ## 0.12.2 - 2026-09-06
 ### Fixed
 
