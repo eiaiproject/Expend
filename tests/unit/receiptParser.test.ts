@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseReceiptText } from '../../src/utils/receiptParser';
+import { detectSource } from '../../src/utils/sources';
 
 describe('parseReceiptText', () => {
   // ─── Amount extraction ────────────────────────────────────────────────────────
@@ -217,5 +218,90 @@ describe('parseReceiptText', () => {
     const t = `SeaBank\nBukti Transaksi\nRp 53.730\nProduct ShopeeFood\n01 Sep 2026`;
     const r = parseReceiptText(t)!;
     expect(r.description).toBe('ShopeeFood');
+  });
+});
+
+// ─── Perbaikan daftar-temuan-parser.md ────────────────────────────────────────
+
+describe('parseReceiptText - temuan 1.2 kata umum dana', () => {
+  it('lowercase "dana" (kata benda) bukan e-wallet', () => {
+    const t = `Transfer Berhasil\nTotal: Rp 52.500\ndana darurat\nPenerima: Budi`;
+    expect(parseReceiptText(t)?.source).toBeUndefined();
+  });
+  it('ALL-CAPS DANA tetap e-wallet', () => {
+    expect(detectSource('DANA\nBerhasil\nRp 30.000')).toBe('Dana');
+  });
+});
+
+describe('sources - temuan 1.3 & 1.4', () => {
+  it('OCBC Niaga tanpa aksen terdeteksi', () => {
+    expect(detectSource('OCBC Niaga\nTransfer\nRp 100.000')).toBe('OCBC');
+  });
+  it('OCBC Níaga beraksen tetap terdeteksi', () => {
+    expect(detectSource('OCBC Níaga\nTransfer\nRp 100.000')).toBe('OCBC');
+  });
+  it('Maybank/HSBC/DBS/ICBC tidak cocok sebagai sub-string kata lain', () => {
+    expect(detectSource('xmaybankx 100rb')).toBeUndefined();
+    expect(detectSource('xhsbcx 100rb')).toBeUndefined();
+    expect(detectSource('xdbsx 100rb')).toBeUndefined();
+    expect(detectSource('xicbcx 100rb')).toBeUndefined();
+  });
+  it('Maybank/HSBC/DBS/ICBC utuh tetap cocok', () => {
+    expect(detectSource('Maybank\nRp 100.000')).toBe('Maybank');
+    expect(detectSource('HSBC\nRp 100.000')).toBe('HSBC');
+    expect(detectSource('DBS\nRp 100.000')).toBe('DBS');
+    expect(detectSource('ICBC\nRp 100.000')).toBe('ICBC');
+  });
+});
+
+describe('parseReceiptText - temuan 4.1 nomor ref dengan Rp', () => {
+  it('nomor ref pada baris ber-Rp tetap di-skip', () => {
+    const t = `No. Ref: Rp 982341234\nTotal: Rp 52.500\nPenerima: Budi`;
+    expect(parseReceiptText(t)!.amount).toBe(52500);
+  });
+});
+
+describe('parseReceiptText - temuan 4.2 huruf OCR', () => {
+  it('kata berhuruf O/I/L tidak dibaca sebagai angka', () => {
+    const t = `TOTAL O.OO\nINDRA\nTotal: Rp 52.500\nPenerima: Budi`;
+    const r = parseReceiptText(t)!;
+    expect(r.amount).toBe(52500);
+    expect(Number.isNaN(r.amount)).toBe(false);
+  });
+  it('teks tanpa digit sama sekali → null', () => {
+    expect(parseReceiptText('Halo O.OO dan INDRA')).toBeNull();
+  });
+});
+
+describe('parseReceiptText - temuan 4.3 tier vs bare', () => {
+  it('angka Rp menang walau lebih kecil dari angka polos', () => {
+    const t = `100.000\nRp 50.000\nPenerima: Budi`;
+    expect(parseReceiptText(t)!.amount).toBe(50000);
+  });
+});
+
+describe('parseReceiptText - temuan 4.4 potongan dari/via', () => {
+  it('nama dengan kata "dari" bukan sumber tidak terpotong', () => {
+    const t = `Total Rp 20.000\nPenerima: Nasi Goreng Dari Abang`;
+    expect(parseReceiptText(t)!.description).toBe('Nasi Goreng dari Abang');
+  });
+  it('klausa sumber sungguhan tetap dipotong', () => {
+    const t = `Total Rp 20.000\nPenerima: Toko Kopi dari BCA`;
+    expect(parseReceiptText(t)!.description).toBe('Toko Kopi');
+  });
+});
+
+describe('parseReceiptText - temuan 5.2 tanggal OCR menempel', () => {
+  it('01Sep2026 tanpa spasi', () => {
+    const t = `Total Rp 10.000\nKe: Budi\n01Sep2026`;
+    expect(parseReceiptText(t)!.date).toBe('2026-09-01');
+  });
+  it('15Agustus2026 tanpa spasi', () => {
+    const t = `Total Rp 10.000\nKe: Budi\n15Agustus2026`;
+    expect(parseReceiptText(t)!.date).toBe('2026-08-15');
+  });
+  it('01Sep 2026 (spasi) tetap berfungsi', () => {
+    const t = `Total Rp 10.000\nKe: Budi\n01Sep 2026`;
+    expect(parseReceiptText(t)!.date).toBe('2026-09-01');
   });
 });

@@ -1,33 +1,53 @@
 import { describe, it, expect } from 'vitest';
-import { scoreAmount, pickBestAmount, type RankedAmount } from '../../src/utils/amountRank';
+import { scoreAmount, amountTier, pickBestAmount, type RankedAmount } from '../../src/utils/amountRank';
 
 function cand(value: number, signals: Partial<RankedAmount['signals']> = {}, index = 0): RankedAmount {
   return { value, index, signals: { hasSuffix: false, hasRp: false, hasKeyword: false, ...signals } };
 }
 
-describe('scoreAmount', () => {
-  it('plain value = raw value', () => {
-    expect(scoreAmount(50000, cand(50000).signals)).toBe(50000);
+describe('amountTier', () => {
+  it('suffix/Rp → tier 3 (explicit money)', () => {
+    expect(amountTier(50000, { hasSuffix: true, hasRp: false, hasKeyword: false })).toBe(3);
+    expect(amountTier(50000, { hasSuffix: false, hasRp: true, hasKeyword: false })).toBe(3);
   });
-  it('suffix multiplies x3', () => {
-    expect(scoreAmount(50000, cand(50000, { hasSuffix: true }).signals)).toBe(150000);
+  it('keyword-only → tier 2', () => {
+    expect(amountTier(50000, { hasSuffix: false, hasRp: false, hasKeyword: true })).toBe(2);
   });
-  it('Rp multiplies x2.5', () => {
-    expect(scoreAmount(50000, cand(50000, { hasRp: true }).signals)).toBe(125000);
+  it('bare plausible amount → tier 1', () => {
+    expect(amountTier(50000, { hasSuffix: false, hasRp: false, hasKeyword: false })).toBe(1);
   });
-  it('keyword multiplies x2.2', () => {
-    expect(scoreAmount(50000, cand(50000, { hasKeyword: true }).signals)).toBeCloseTo(110000, 6);
+  it('bare tiny (quantity/floor) → tier 0', () => {
+    expect(amountTier(2, { hasSuffix: false, hasRp: false, hasKeyword: false })).toBe(0);
   });
-  it('tiny bare number penalized', () => {
-    expect(scoreAmount(2, cand(2).signals)).toBeLessThan(50000);
+  it('bare huge (ID/ref) → tier 0', () => {
+    expect(amountTier(1_234_567_890_123, { hasSuffix: false, hasRp: false, hasKeyword: false })).toBe(0);
   });
-  it('huge bare number penalized relative to unpenalized', () => {
-    const v = 123456789012;
-    expect(scoreAmount(v, cand(v).signals)).toBeLessThan(v);
+});
+
+describe('scoreAmount — tier dominates magnitude', () => {
+  it('suffix signal beats a much larger bare number', () => {
+    // 50rb (tier 3) vs bare 1.000.000 (tier 1): signal wins despite smaller value
+    expect(scoreAmount(50000, cand(50000, { hasSuffix: true }).signals))
+      .toBeGreaterThan(scoreAmount(1_000_000, cand(1_000_000).signals));
   });
-  it('suffix shields tiny number from penalty', () => {
-    // "2jt" is real money despite being a small raw count
-    expect(scoreAmount(2_000_000, cand(2_000_000, { hasSuffix: true }).signals)).toBe(6_000_000);
+  it('keyword signal beats a much larger bare number', () => {
+    // "Total 50.000" (tier 2) vs bare 1.000.000 (tier 1)
+    expect(scoreAmount(50000, cand(50000, { hasKeyword: true }).signals))
+      .toBeGreaterThan(scoreAmount(1_000_000, cand(1_000_000).signals));
+  });
+  it('Rp signal beats a much larger bare number', () => {
+    expect(scoreAmount(50000, cand(50000, { hasRp: true }).signals))
+      .toBeGreaterThan(scoreAmount(1_000_000, cand(1_000_000).signals));
+  });
+  it('same tier → larger value wins', () => {
+    expect(scoreAmount(20000, cand(20000).signals)).toBeGreaterThan(scoreAmount(10000, cand(10000).signals));
+  });
+  it('tiny bare loses to plausible bare', () => {
+    expect(scoreAmount(100000, cand(100000).signals)).toBeGreaterThan(scoreAmount(2, cand(2).signals));
+  });
+  it('suffix shields small raw count from penalty (2jt)', () => {
+    expect(scoreAmount(2_000_000, cand(2_000_000, { hasSuffix: true }).signals))
+      .toBeGreaterThan(scoreAmount(100_000, cand(100_000).signals));
   });
 });
 
@@ -35,15 +55,18 @@ describe('pickBestAmount', () => {
   it('empty → null', () => {
     expect(pickBestAmount([])).toBeNull();
   });
-  it('picks highest score, not first', () => {
-    // 60000 plain vs 50000×3=150000 suffixed → suffixed wins despite later position
-    const best = pickBestAmount([cand(60000, {}, 0), cand(50000, { hasSuffix: true }, 10)]);
+  it('signal beats larger bare value regardless of position', () => {
+    // bare 600000 vs suffixed 50000 → suffixed wins despite lower value
+    const best = pickBestAmount([cand(600000, {}, 0), cand(50000, { hasSuffix: true }, 10)]);
     expect(best?.value).toBe(50000);
     expect(best?.index).toBe(10);
   });
-  it('tie → larger value wins', () => {
+  it('same signals → larger value wins', () => {
     const best = pickBestAmount([cand(10000, {}, 0), cand(20000, {}, 5)]);
-    // 10000 vs 20000: scores differ, larger wins naturally
     expect(best?.value).toBe(20000);
+  });
+  it('equal value + same tier → first candidate wins', () => {
+    const best = pickBestAmount([cand(50000, { hasSuffix: true }, 0), cand(50000, { hasSuffix: true }, 10)]);
+    expect(best?.index).toBe(0);
   });
 });

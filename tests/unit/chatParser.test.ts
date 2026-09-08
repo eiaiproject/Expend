@@ -184,6 +184,76 @@ describe('extractChatDate', () => {
   });
 });
 
+// ─── Perbaikan daftar-temuan-parser.md ────────────────────────────────────────
+
+describe('parseChatInput - temuan 1.1 sub-brand', () => {
+  it('BCA Syariah sebelum BCA', () => {
+    expect(parseChatInput('kopi 20rb dari BCA Syariah')?.source).toBe('BCA Syariah');
+  });
+  it('BCA polos tetap BCA', () => {
+    expect(parseChatInput('kopi 20rb dari BCA')?.source).toBe('BCA');
+  });
+});
+
+describe('parseChatInput - temuan 3.1 klausa dari/penjual', () => {
+  it('warung/penjual bukan sumber dana', () => {
+    const r = parseChatInput('beli nasi goreng dari warung Pak Eko 20rb');
+    expect(r?.source).toBeUndefined();
+    expect(r?.amount).toBe(20000);
+    expect(r?.description.toLowerCase()).toContain('warung pak eko');
+  });
+  it('klausa sumber dana tetap dipakai', () => {
+    const r = parseChatInput('beli kopi 20rb dari kas');
+    expect(r?.source).toBe('Kas');
+    expect(r?.description).toBe('Kopi');
+  });
+});
+
+describe('parseChatInput - temuan 3.2 nama produk + angka', () => {
+  it('Level 5 tidak terpotong', () => {
+    const r = parseChatInput('beli ayam geprek level 5 25rb');
+    expect(r?.description).toBe('Ayam Geprek Level 5');
+  });
+  it('lantai 2 tetap dibersihkan', () => {
+    const r = parseChatInput('bayar parkir 5000 di lantai 2');
+    expect(r?.description).toBe('Parkir');
+  });
+});
+
+describe('parseChatInput - temuan 3.3 nomor referensi panjang', () => {
+  it('label panjang >20 char tetap di-skip', () => {
+    expect(parseChatInput('Nomor Referensi Pembayaran: 12345678')).toBeNull();
+  });
+  it('nomor referensi tidak mengalahkan nominal', () => {
+    const r = parseChatInput('transfer 50rb Nomor Referensi Pembayaran: 12345678');
+    expect(r?.amount).toBe(50000);
+  });
+});
+
+describe('parseChatInput - temuan 3.4 tahun 4 digit', () => {
+  it('2026 tidak dianggap nominal', () => {
+    expect(parseChatInput('Beli baju 2026')).toBeNull();
+  });
+  it('harga bulat 2000 tetap dipakai', () => {
+    expect(parseChatInput('bayar parkir 2000')?.amount).toBe(2000);
+  });
+});
+
+describe('parseChatInput - temuan 5.1 validasi kalender', () => {
+  it('31/02 di-clamp ke akhir Februari', () => {
+    expect(parseChatInput('bayar kopi 31/02/2026 25rb')?.date).toBe('2026-02-28');
+  });
+  it('tgl 31 saat April (30 hari) di-clamp', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-10T10:00:00'));
+    expect(parseChatInput('bayar kopi tgl 31 25rb')?.date).toBe('2026-04-30');
+    vi.useRealTimers();
+  });
+  it('tanggal valid tidak berubah', () => {
+    expect(parseChatInput('bayar kopi 15/08/2026 25rb')?.date).toBe('2026-08-15');
+  });
+});
+
 // ─── Integration with parseChatInput ──────────────────────────────────────────
 
 describe('parseChatInput - Sprint2 regression (P1)', () => {

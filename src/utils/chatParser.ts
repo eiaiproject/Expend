@@ -1,4 +1,4 @@
-import { detectSource } from './sources';
+import { detectKnownSource, detectSource } from './sources';
 import { titleCasePreserveAcronyms } from './textFormat';
 import { pickBestAmount, type RankedAmount } from './amountRank';
 import { todayLocalISO } from './date';
@@ -116,6 +116,17 @@ function parseRelativeDate(term: string): string | undefined {
   return undefined;
 }
 
+/**
+ * 5.1: Bulan tidak selalu 31 hari — "tgl 31" saat Februari/April dst harus
+ * di-clamp ke hari terakhir bulan tersebut, bukan menghasilkan ISO tak valid
+ * seperti `2026-02-31`. Berlaku untuk tgl/tanggal, dd/mm/yyyy, dan "15 Agustus".
+ */
+export function clampDayISO(year: number, month: number, day: number): string {
+  const lastDay = new Date(year, month, 0).getDate(); // hari terakhir bulan (1-12)
+  const d = Math.min(Math.max(1, day), lastDay);
+  return `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
 function parseExplicitDate(text: string): string | undefined {
   // "tgl 15" or "tanggal 15" → day this month
   const tglMatch = /(?:tgl|tanggal)\s+(\d{1,2})/i.exec(text);
@@ -123,25 +134,23 @@ function parseExplicitDate(text: string): string | undefined {
     const d = Number(tglMatch[1]);
     if (d >= 1 && d <= 31) {
       const now = new Date();
-      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      return clampDayISO(now.getFullYear(), now.getMonth() + 1, d);
     }
   }
 
   // "15/08/2026" or "15-08-2026" or "15.08.2026"
   const dmy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text);
   if (dmy) {
-    const d = dmy[1]!.padStart(2, '0');
-    const m = dmy[2]!.padStart(2, '0');
-    let y = dmy[3]!;
-    if (y.length === 2) y = '20' + y;
-    return `${y}-${m}-${d}`;
+    let y = Number(dmy[3]);
+    if (dmy[3]!.length === 2) y += 2000;
+    return clampDayISO(y, Number(dmy[2]), Number(dmy[1]));
   }
 
   // "15 Aug 2026" or "15 Agustus 2026"
   const mmm = /(\d{1,2})\s+(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)\w*\s+(\d{4})/i.exec(text);
   if (mmm) {
     const mon = MONTH_MAP[mmm[2]!.toLowerCase().slice(0, 3)];
-    if (mon) return `${mmm[3]}-${mon}-${mmm[1]!.padStart(2, '0')}`;
+    if (mon) return clampDayISO(Number(mmm[3]), Number(mon), Number(mmm[1]));
   }
 
   return undefined;
@@ -179,7 +188,19 @@ interface AmountCandidate extends RankedAmount {
  * Extract all number candidates from text.
  * A candidate is a number optionally followed by a suffix (jt, rb, k, etc.)
  */
-const REF_LOOKBACK_RE = /(ref|resi|trace|rekening|account|\bno\.?|\bID\b)\s*[:#]?\s*$/i; // NOSONAR - anchored ($), input bounded to 20-char lookback slice
+// 3.3: lookback diperlebar 20 → 80 karakter (prefix "Nomor Referensi
+// Pembayaran: 12345678" > 20 char), dan token ditambah referensi/nomor/nomer.
+// Catatan: "rekening" TIDAK masuk pola label-lanjutan di bawah karena dalam
+// chat "bayar rekening listrik 50000" justru nominal (rekening = tagihan).
+const REF_LOOKBACK_RE = /\b(?:ref|referensi|resi|trace|rekening|account|akun|no\.?|nomor|nomer|id|pembayaran)\b\s*[:#]?\s*$/i; // NOSONAR - anchored ($), input bounded to 80-char lookback slice
+// Klausa label panjang: "Referensi Pembayaran: 123" → izinkan ≤2 kata sisipan
+// setelah kata kunci sebelum tanda titik dua/akhir. Khusus label non-rekening
+// agar "bayar rekening listrik 50000" tetap terbaca sebagai nominal.
+const REF_LABEL_CHAIN_RE = /\b(?:ref|referensi|resi|trace|nomor|nomer|no\.?|pembayaran)\b(?:\s+(?:[A-Za-z]{2,})){0,2}\s*[:#]?\s*$/i; // NOSONAR - anchored ($), input bounded to 80-char lookback slice
+
+function isRefContext(before: string): boolean {
+  return REF_LOOKBACK_RE.test(before) || REF_LABEL_CHAIN_RE.test(before);
+}
 
 function extractCandidates(text: string): AmountCandidate[] {
   const candidates: AmountCandidate[] = [];
@@ -190,9 +211,17 @@ function extractCandidates(text: string): AmountCandidate[] {
   while ((m = re.exec(text))) {
     const raw = m[1]!.trim();
     if (!raw) continue;
-    // Skip nomor referensi/rekening: didahului kata ref/resi/trace/rekening/...
-    const before = text.slice(Math.max(0, m.index - 20), m.index);
-    if (REF_LOOKBACK_RE.test(before)) continue;
+    // Skip nomor referensi/rekening: didahului kata ref/resi/referensi/nomor/...
+    const before = text.slice(Math.max(0, m.index - 80), m.index);
+    if (isRefContext(before)) continue;
+    // 3.4: tahun 4 digit polos tanpa suffix = konteks tanggal, bukan nominal
+    // ("Beli baju 2026" ≠ Rp 2.026). Catatan: beda dari shouldSkip resi — di
+    // chat tidak ada jaminan Rp, jadi angka harga bulat seperti "parkir 2000"
+    // (y % 100 === 0) tetap dipertahankan sebagai nominal.
+    if (/^\d{4}$/.test(raw) && !/\b(jt|juta|rb|ribu|k)\b/i.test(raw)) {
+      const y = Number(raw);
+      if (y >= 1900 && y <= 2099 && y % 100 !== 0) continue;
+    }
     const value = parseAmountWithSuffix(raw);
     if (value && value > 0 && Number.isFinite(value) && value <= 1_000_000_000_000) {
       const hasSuffix = /\b(jt|juta|rb|ribu|k)\b/i.test(raw);
@@ -202,14 +231,12 @@ function extractCandidates(text: string): AmountCandidate[] {
   return candidates;
 }
 
-function pickBest(candidates: AmountCandidate[], fullText: string): AmountCandidate | null {
+function pickBest(candidates: AmountCandidate[], _fullText: string): AmountCandidate | null {
   if (!candidates.length) return null;
-  const hasRp = /\bRp\.?|\bR\s*P\b\.?|\bIDR/i.test(fullText);
-  const rescored = candidates.map((c) => ({
-    ...c,
-    signals: { ...c.signals, hasRp },
-  }));
-  return pickBestAmount(rescored);
+  // hasRp TIDAK disebar ke semua kandidat: di tier-scoring, sinyal Rp global
+  // akan menaikkan nomor polos (ID/ref) ke tier yang sama dgn nominal — justru
+  // menghidupkan kembali bug skor linear. Suffix tetap sinyal per-kandidat.
+  return pickBestAmount(candidates);
 }
 
 // ─── Description formatting ───────────────────────────────────────────────────
@@ -217,31 +244,38 @@ function pickBest(candidates: AmountCandidate[], fullText: string): AmountCandid
 const VERB_RE = /^(beli|bayar|jajan|belanja|order|pesan|isi|top\s*up|transfer|tf|beliin|buy|pay)\s+/i;
 const SOURCE_CLAUSE_RE = /\s+(?:dari|pakai|pake|via|from)\s+\S.*$/i; // NOSONAR - bounded description (<80 chars)
 const GENERIC_SOURCE_RE = /\b(?:tunai|cash|kas)\b/gi;
+// 3.2: hapus "kata + angka" di akhir HANYA untuk kata lokasi/keterangan yang
+// umum (lantai/lt/meja/dll). Kata produk seperti "Level 5" atau "Pak 2"
+// adalah nama/atribut dan tidak boleh dipotong.
+const TRAILING_LOCATION_RE = /\s+(?:di\s+)?(?:lantai|lt|zona|blok|meja|ruang|no\.?)\s+\d{1,2}\s*$/i; // NOSONAR
 
-function formatDescription(raw: string, hasGenericSource: boolean): string {
+function formatDescription(raw: string, hasGenericSource: boolean, stripSourceClause = false): string {
   let desc = raw.trim();
   if (!desc) return 'Pengeluaran';
 
   // Remove verb prefix
   desc = desc.replace(VERB_RE, '').trim();
-  // Remove source clause (dari/via/pakai ...)
-  desc = desc.replace(SOURCE_CLAUSE_RE, '').trim();
+  // Remove source clause (dari/via/pakai ...) — hanya bila klausa benar-benar
+  // dikenali sebagai sumber dana (sourceFromClause); kalau tidak, klausanya
+  // bagian deskripsi ("dari warung Pak Eko" = penjual, bukan sumber dana).
+  if (stripSourceClause) desc = desc.replace(SOURCE_CLAUSE_RE, '').trim();
   // Remove standalone Rp/IDR tokens (termasuk variasi "R P")
   desc = desc.replace(/\bRp\.?\b/gi, '').replace(/\bR\s*P\b\.?/gi, '').replace(/\bIDR\b/gi, '').replace(/\s{2,}/g, ' ').trim(); // NOSONAR
   // Remove generic source words (tunai/cash/kas) if detected as source
   if (hasGenericSource) desc = desc.replace(GENERIC_SOURCE_RE, '').replace(/\s{2,}/g, ' ').trim();
   // Remove mid-sentence verb before generic source (e.g. "kopi bayar kas" → "kopi")
   if (hasGenericSource) desc = desc.replace(/\s+(?:bayar|pakai|pake|dari|via)\s*$/i, '').replace(/\s{2,}/g, ' ').trim(); // NOSONAR
-  // Remove trailing words + number (e.g. "lantai 2", "lantai 3", "lantai 5")
-  desc = desc.replace(/\s+\w+\s+\d{1,2}\s*$/ , '').trim(); // NOSONAR
+  // Remove trailing words + number HANYA untuk kata lokasi (lantai/lt/meja/dll)
+  desc = desc.replace(TRAILING_LOCATION_RE, '').trim(); // NOSONAR - bounded, anchored
   // Remove dangling trailing preposition/conjunction left by cleanup above
   // (e.g. "Parkir di" → "Parkir"). Mid-sentence ones are kept.
   desc = desc.replace(/\s+(?:di|ke|dari|untuk|dengan|dan|atau|yang)[,.]?\s*$/i, '').trim(); // NOSONAR
   // Remove leading preposition left after verb stripping ("jajan di kantin"
   // → "di kantin" → "Kantin"). Mid-sentence ones are kept.
   desc = desc.replace(/^(?:di|ke|dari|untuk|dengan|dan|atau|yang)\s+/i, '').trim();
-  // Remove trailing standalone numbers
-  desc = desc.replace(/\s\d+\s*$/, '').trim(); // NOSONAR
+  // Remove trailing standalone numbers (3+ digit; angka 1-2 digit di akhir bisa
+  // bagian nama produk seperti "Level 5" / "Pak 2")
+  desc = desc.replace(/\s\d{3,}\s*$/, '').trim(); // NOSONAR
   // Remove nomor referensi/rekening yang tersisa ("ref 123456" -> buang)
   desc = desc.replace(/\s*\b(ref|resi|trace|rekening|account|ID)\s*[:#]?\s*[\w\d#:.=-]*$/i, '').trim(); // NOSONAR - anchored ($), input bounded desc (<80 chars)
   if (/^(ref|resi|trace|no|id)$/i.test(desc)) return 'Pengeluaran';
@@ -287,16 +321,31 @@ export function parseChatInput(input: string): ParsedExpense | null {
   // 6. Extract source (ID + EN "from")
   const sourceMatch = /\s+(?:dari|pakai|pake|via|from)\s+(.+)$/i.exec(rawDesc); // NOSONAR - anchored, bounded
   let source: string | undefined;
+  let sourceFromClause = false;
   if (sourceMatch) {
-    source = detectSource(sourceMatch[1]!.trim()) || sourceMatch[1]!.trim();
-  } else {
+    // 3.1: klausa "dari/via/pakai X" hanya jadi sumber dana bila X memang
+    // entitas sumber yang dikenal (bank/e-wallet/kas/tunai). Kalau X adalah
+    // penjual/lokasi ("dari warung Pak Eko"), jangan jadikan source dan
+    // jangan buang klausanya dari deskripsi.
+    const clauseText = sourceMatch[1]!.trim();
+    const detected = detectKnownSource(clauseText);
+    if (detected) {
+      source = detected;
+      sourceFromClause = true;
+    }
+  }
+  if (!source) {
     // Fallback: scan full text for generic sources (Tunai, Kas) without keyword
     const generic = detectSource(text);
     if (generic === 'Tunai' || generic === 'Kas') source = generic;
   }
 
   // 7. Format description
-  const description = formatDescription(rawDesc, !!source && (source === 'Tunai' || source === 'Kas'));
+  const description = formatDescription(
+    rawDesc,
+    !!source && (source === 'Tunai' || source === 'Kas'),
+    sourceFromClause,
+  );
 
   return { description, amount, source, date };
 }
