@@ -1,4 +1,10 @@
 # Changelog
+## 0.14.10 - 2026-09-09
+### Fixed
+
+- Resolve duplicate 'use' property in playwright project config
+
+
 ## 0.14.9 - 2026-09-09
 
 ## 0.14.8 - 2026-09-09
