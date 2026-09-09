@@ -1,7 +1,7 @@
 import { detectSource } from './sources';
 import { normalizeNumber, MONTH_MAP, clampDayISO } from './chatParser';
 import { todayLocalISO } from './date';
-import { titleCasePreserveAcronyms } from './textFormat';
+import { titleCasePreserveAcronyms, ACRONYMS } from './textFormat';
 import { pickBestAmount, type RankedAmount } from './amountRank';
 
 const PRODUCT_RE = /^(?:product|produk)\s*[:-]?\s*(.+)/i; // NOSONAR - anchored, bounded
@@ -252,18 +252,52 @@ function parseHitLine(hitLine: string, lines: string[]): string {
 function findFallbackDesc(lines: string[], hits: { idx: number }[], src: string | undefined): string {
   const amountIdxs = new Set(hits.map((h) => h.idx));
   const srcLower = src?.toLowerCase();
+  const srcNorm = srcLower?.replaceAll(/[^a-z]/g, '');
   const skipRe = /^\d{6,}$/;
+  // Baris label/debris OCR yang bukan merchant: label tanggal-waktu, garis
+  // tanggal ("02 Sep 2026, 08:26 WIB"), baris PAN/nomor kartu, label
+  // nama-akun ("Nama Ac r"), baris biaya/gratis. Tanpa ini fallback memilih
+  // "Tanggal & waktu trar i" padahal "FINPAY"/merchant tersedia.
+  const labelSkipRe =
+    /tanggal|waktu|\bwib\b|\bjam\b|biaya|gratis|referen|\bstatus\b|metode\s+pembayaran|sumber\s+dana|rincian|detail\s+transaksi/i; // NOSONAR
+  const dateLineRe =
+    /\d{1,2}\s*(jan|feb|mar|apr|mei|jun|jul|agu|aug|sep|okt|oct|nov|des|dec)\w*\s*\d{2,4}|\d{1,2}:\d{2}/i; // NOSONAR
+  const nameLabelRe = /^(?:nama?|akun?|ac{1,2}|name?|rek(?:ening)?|nomor|no\.?|tgl)\b/i;
   return (
     lines.find((l, i) => {
       const t = l.trim();
       if (amountIdxs.has(i) || t.length <= 3 || /biaya admin/i.test(t)) return false;
+      // OCR debris: baris tanpa ≥3 huruf (mis. "( .. eo")
+      if ((t.match(/[A-Za-z]/g) ?? []).length < 3) return false;
       if (skipRe.test(t.replaceAll(/\D/g, ''))) return false;
       if (srcLower && (t.toLowerCase() === srcLower || t.toLowerCase() === 'bank ' + srcLower)) return false;
+      // "by mandiri" adalah header sumber, bukan merchant
+      if (srcNorm && t.toLowerCase().replaceAll(/[^a-z]/g, '') === 'by' + srcNorm) return false;
+      if (labelSkipRe.test(t) || dateLineRe.test(t) || nameLabelRe.test(t)) return false;
+      // Baris PAN/nomor kartu ("Beneficiary PAN 9360…") bukan merchant
+      if (/\bpan\b/i.test(t) && /\d/.test(t)) return false;
       return true;
     })?.trim() ??
     lines.find((l) => l.trim().length > 3 && !/biaya admin/i.test(l))?.trim() ??
     ''
   );
+}
+
+// Debris OCR di desc hasil hit-line: capture pendek dari baris berlabel-rusak
+// ("Nama Ac r" → "Ac R", "Beneficiary PAN …" → "Pan"). Kembalikan '' agar
+// fallback (baris merchant) yang dipakai. Akronim dikenal (KPR/OVO) lolos.
+function isDebrisDesc(desc: string, hitLine: string): boolean {
+  const s = desc.trim();
+  if (!s) return true;
+  const hasSingleCharToken = /\b[a-zA-Z]\b/.test(hitLine);
+  if (s.length < 5 && hasSingleCharToken) return true;
+  // Short non-acronym token is debris only when the hit line itself looks
+  // broken (digit runs like "Beneficiary PAN 9360…" or single-char tokens).
+  // Plain "Ke: Ani" keeps "Ani" - a valid short name.
+  if (/^[A-Za-z]{1,3}$/.test(s) && !ACRONYMS.has(s.toUpperCase())
+    && (hasSingleCharToken || /\d{2,}/.test(hitLine))) return true;
+  if (/^[A-Z]{4,}$/.test(s) && hasSingleCharToken && /^[A-Za-z ]+$/.test(s)) return true;
+  return false;
 }
 
 function finalizeDesc(raw: string): string {
@@ -301,7 +335,11 @@ function extractDescription(text: string, hits: { idx: number }[]): { desc: stri
   const lines = text.split('\n');
   const hitLine = findHitLine(lines);
   let desc = '';
-  if (hitLine) desc = parseHitLine(hitLine, lines);
+  if (hitLine) {
+    const hitDesc = parseHitLine(hitLine, lines);
+    // Debris OCR di hit-line → buang, fallback merchant yang dipakai
+    if (!isDebrisDesc(hitDesc, hitLine)) desc = hitDesc;
+  }
   if (!desc) {
     const src = detectSource(text);
     desc = findFallbackDesc(lines, hits, src);

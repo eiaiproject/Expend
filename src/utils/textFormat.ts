@@ -1,6 +1,6 @@
 export const ACRONYMS = new Set([
   'BCA', 'BRI', 'BNI', 'BTN', 'BSI', 'KPR', 'CIMB', 'OCBC', 'UOB', 'HSBC', 'ANZ', 'DBS', 'ICBC',
-  'ATM', 'QRIS', 'EDC', 'API', 'URL', 'SMS', 'OTP', 'PIN', 'NOMOR',
+  'ATM', 'QRIS', 'QR', 'EDC', 'API', 'URL', 'SMS', 'OTP', 'PIN', 'NOMOR',
   'PLN', 'PDAM', 'BPJS', 'NPWP', 'KTP', 'SIM',
   'GOPAY', 'OVO', 'DANA', 'SHOPEEPAY', 'LINKAJA',
   'KAI', 'FINPAY', 'SHOPEEFOOD',

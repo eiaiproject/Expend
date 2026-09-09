@@ -114,6 +114,12 @@ describe('parseReceiptText', () => {
     const t = `Jago\nAccess By KAI Oo\nRp790.000`;
     expect(parseReceiptText(t)!.description).toBe('Access By KAI');
   });
+  it('debris "Nama Ac r" + FINPAY falls back to merchant', () => {
+    const t = `Jago\nAccess By KAI Oo\nRp790.000\n02 Sep 2026, 08:26 WIB\nNama Ac r\nFINPAY\nBiaya\nGratis\nPulang Jember`;
+    const r = parseReceiptText(t)!;
+    expect(r.description).toBe('Access By KAI');
+    expect(r.amount).toBe(790000);
+  });
 
   // ─── SeaBank / ShopeeFood receipt ────────────────────────────────────────────
   it('prefer product line over recipient', () => {
@@ -176,6 +182,13 @@ describe('parseReceiptText', () => {
   it('Rp regex does not match PAN in Sender PAN', () => {
     const t = `Mandiri\nRp 14.500\nSender PAN 9360000812071174087`;
     expect(parseReceiptText(t)!.amount).toBe(14500);
+  });
+  it('missing recipient block never yields "Pan"', () => {
+    const t = `( .. eo\nby mandiri\nQR Transfer\nTransfer Berhasil!\n09 Sep 2026 : 16:08:40 WIB - No. Ref. 609098405206\nBank Mandiri - -........7056\nDetail Transaksi\nTotal Transaksi Rp 9.300\nBeneficiary PAN 9360000812116970564\nSender PAN 9360000812071174087`;
+    const r = parseReceiptText(t)!;
+    expect(r.description).not.toBe('Pan');
+    expect(r.description).toBe('QR Transfer');
+    expect(r.amount).toBe(9300);
   });
 
   // ─── Conversational share messages ──────────────────────────────────────────
