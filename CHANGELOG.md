@@ -1,4 +1,10 @@
 # Changelog
+## 0.14.4 - 2026-09-09
+### Fixed
+
+- Reject OCR debris desc, skip label lines in fallback (#29)
+
+
 ## 0.14.3 - 2026-09-09
 ### Fixed
 
