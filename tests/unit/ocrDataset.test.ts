@@ -4,7 +4,7 @@ import { OCR_RECEIPTS } from '../fixtures/ocr-receipts';
 
 /**
  * Dataset-driven test untuk resi/notifikasi transfer multi-bank.
- * Lihat tests/fixtures/ocr-receipts.ts — tambahkan format baru di sana.
+ * Lihat tests/fixtures/ocr-receipts.ts - tambahkan format baru di sana.
  */
 describe('parseReceiptText - dataset OCR multi-bank', () => {
   it('dataset terisi', () => {

@@ -59,7 +59,7 @@ export default function HomeView() {
   const groups = useMemo(() => groupTransactions(filtered, granularity), [filtered, granularity]);
   const groupLabel = (key: string) => {
     if (granularity === 'month') return monthLabel(key);
-    if (granularity === 'week') return `${fmtDate(key)} – ${fmtDate(addDaysISO(key, 6))}`;
+    if (granularity === 'week') return `${fmtDate(key)} - ${fmtDate(addDaysISO(key, 6))}`;
     return fmtDate(key);
   };
 

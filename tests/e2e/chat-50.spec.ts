@@ -105,7 +105,7 @@ test('chat 50 variasi transaksi', async ({ page }) => {
   const total = CASES.reduce((a, c) => a + c.amount, 0);
   const totalDigits = String(total);
 
-  // total displayed contains Rp formatted sum — check digits only
+  // total displayed contains Rp formatted sum - check digits only
   await expect.poll(async () => (await page.locator('.tabular-nums').first().textContent())?.replace(/\D/g, ''), { timeout: 15000 }).toBe(totalDigits);
 
   await expect(page.getByText(`${CASES.length} transaksi`)).toBeVisible();

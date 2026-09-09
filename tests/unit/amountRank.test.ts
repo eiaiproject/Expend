@@ -24,7 +24,7 @@ describe('amountTier', () => {
   });
 });
 
-describe('scoreAmount — tier dominates magnitude', () => {
+describe('scoreAmount - tier dominates magnitude', () => {
   it('suffix signal beats a much larger bare number', () => {
     // 50rb (tier 3) vs bare 1.000.000 (tier 1): signal wins despite smaller value
     expect(scoreAmount(50000, cand(50000, { hasSuffix: true }).signals))
