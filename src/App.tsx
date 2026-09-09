@@ -24,6 +24,7 @@ function Shell() {
   const { t } = useTranslation();
   const location = useLocation();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [vvHeight, setVvHeight] = useState(0);
   const isChat = location.pathname === '/chat';
 
   useEffect(() => {
@@ -32,15 +33,21 @@ function Shell() {
     const threshold = 150;
     const initialHeight = vv.height;
     const onResize = () => {
-      const heightDiff = initialHeight - vv.height;
-      setKeyboardOpen(heightDiff > threshold);
+      const h = vv.height;
+      setVvHeight(h);
+      setKeyboardOpen(initialHeight - h > threshold);
     };
+    onResize();
     vv.addEventListener('resize', onResize);
     return () => vv.removeEventListener('resize', onResize);
   }, []);
 
+  // Saat keyboard buka, pakai visualViewport.height sebagai batas tinggi
+  // agar list tidak meluap ke belakang keyboard.
+  const containerStyle = vvHeight > 0 ? { height: `${vvHeight}px` } : undefined;
+
   return (
-    <div className="h-[100dvh] bg-[var(--bg)] text-[var(--text-primary)] flex overflow-hidden">
+    <div className="bg-[var(--bg)] text-[var(--text-primary)] flex overflow-hidden" style={containerStyle ?? { height: '100dvh' }}>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-[var(--radius-md)] focus:bg-[var(--accent-fill)] focus:text-[var(--accent-ink)] focus:text-sm focus:font-bold focus:shadow-lg"
