@@ -1,4 +1,10 @@
 # Changelog
+## 0.13.4 - 2026-09-09
+### Fixed
+
+- Instant chat autoscroll, drop mobile hint, export spacing
+
+
 ## 0.13.3 - 2026-09-09
 ### Fixed
 
