@@ -227,6 +227,16 @@ function preferNextLineName(desc: string, hitLine: string, lines: string[]): str
   return next;
 }
 
+function nextLineIsName(lines: string[], hitLine: string): string {
+  const idx = lines.indexOf(hitLine);
+  if (idx < 0 || idx + 1 >= lines.length) return hitLine.trim();
+  const next = lines[idx + 1]!.trim();
+  // Baris berikutnya valid sebagai nama bila ≥2 huruf, ada huruf, tanpa digit
+  return (next.length >= 2 && /[A-Za-z]{2,}/.test(next) && !/\d/.test(next))
+    ? next
+    : hitLine.trim();
+}
+
 function parseHitLine(hitLine: string, lines: string[]): string {
   // "Beneficiary Name LUKY DIAN SUSANTI" / "Dikirim ke 0812... a.n. SITI AMINAH"
   // → ambil nama setelah label, bukan nomor HP / label itu sendiri.
@@ -235,23 +245,7 @@ function parseHitLine(hitLine: string, lines: string[]): string {
   let desc = m?.[1]?.trim() ?? '';
   if (desc.length < 2) {
     const after = hitLine.split(/:/).slice(1).join(':').trim();
-    if (after) desc = after;
-    else {
-      const idx = lines.indexOf(hitLine);
-      // Baris "Penerima" tanpa nama di baris yang sama → ambil baris berikutnya
-      // sebagai nama penerima (contoh: "Penerima\nSEPTIANA ASTI BUANA")
-      if (idx >= 0 && idx + 1 < lines.length) {
-        const nextLine = lines[idx + 1]!.trim();
-        // Pastikan baris berikutnya adalah nama (huruf, ≥2 huruf, tanpa digit)
-        if (nextLine.length >= 2 && /[A-Za-z]{2,}/.test(nextLine) && !/\d/.test(nextLine)) {
-          desc = nextLine;
-        } else {
-          desc = hitLine.trim();
-        }
-      } else {
-        desc = hitLine.trim();
-      }
-    }
+    desc = after || nextLineIsName(lines, hitLine);
   }
   desc = desc.split(/[-–—]/)[0]!.trim();
   desc = desc.replace(/\s*\([^)]*\)\s*/g, ' ').trim(); // NOSONAR - bounded
