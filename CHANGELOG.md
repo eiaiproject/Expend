@@ -1,4 +1,10 @@
 # Changelog
+## 0.14.7 - 2026-09-09
+### Fixed
+
+- Constrain main container to visualViewport.height when keyboard open
+
+
 ## 0.14.6 - 2026-09-09
 ### Changed
 
