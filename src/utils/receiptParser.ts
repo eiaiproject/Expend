@@ -215,6 +215,18 @@ function findHitLine(lines: string[]): string | undefined {
   return hit;
 }
 
+// Debris label OCR ikut ke-capture ("Nama Ac r" dari "Nama Akun").
+// Bila hasil diawali fragmen label + mengandung token 1 huruf, dan baris
+// berikut mirip nama (huruf, tanpa digit), pakai baris berikut ("FINPAY").
+function preferNextLineName(desc: string, hitLine: string, lines: string[]): string {
+  if (!/^(?:nama?|akun?|ac{1,2}|name?|rek(?:ening)?|no(?:mor)?|tgl|tanggal)\b/i.test(desc)) return desc;
+  if (!/\b[a-zA-Z]\b/.test(desc)) return desc;
+  const idx = lines.indexOf(hitLine);
+  const next = idx >= 0 && idx + 1 < lines.length ? lines[idx + 1]!.trim() : '';
+  if (next.length < 2 || next.length > 40 || !/[A-Za-z]{2,}/.test(next) || /\d/.test(next)) return desc;
+  return next;
+}
+
 function parseHitLine(hitLine: string, lines: string[]): string {
   // "Beneficiary Name LUKY DIAN SUSANTI" / "Dikirim ke 0812... a.n. SITI AMINAH"
   // → ambil nama setelah label, bukan nomor HP / label itu sendiri.
@@ -234,15 +246,7 @@ function parseHitLine(hitLine: string, lines: string[]): string {
   desc = desc.replace(/\s*\d{4,}[^\n]*$/, '').trim(); // NOSONAR - anchored, bounded
   desc = desc.replace(/\s{2,}/g, ' ').trim();
   desc = desc.replace(/^(?:penerima|kepada|ke|name)\s+/i, '').trim();
-  // Debris label OCR ikut ke-capture ("Nama Ac r" dari "Nama Akun").
-  // Bila hasil diawali fragmen label + mengandung token 1 huruf, dan baris
-  // berikut mirip nama (huruf, tanpa digit), pakai baris berikut ("FINPAY").
-  if (/^(?:nama?|akun?|ac{1,2}|name?|rek(?:ening)?|no(?:mor)?|tgl|tanggal)\b/i.test(desc) && /\b[a-zA-Z]\b/.test(desc)) {
-    const idx = lines.indexOf(hitLine);
-    const next = idx >= 0 && idx + 1 < lines.length ? lines[idx + 1]!.trim() : '';
-    if (next.length >= 2 && next.length <= 40 && /[A-Za-z]{2,}/.test(next) && !/\d/.test(next)) desc = next;
-  }
-  return desc;
+  return preferNextLineName(desc, hitLine, lines);
 }
 
 function findFallbackDesc(lines: string[], hits: { idx: number }[], src: string | undefined): string {

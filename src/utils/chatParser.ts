@@ -202,6 +202,28 @@ function isRefContext(before: string): boolean {
   return REF_LOOKBACK_RE.test(before) || REF_LABEL_CHAIN_RE.test(before);
 }
 
+function isRefNumberContext(text: string, index: number): boolean {
+  // Skip nomor referensi/rekening: didahului kata ref/resi/referensi/nomor/...
+  return isRefContext(text.slice(Math.max(0, index - 80), index));
+}
+
+// 3.4: tahun 4 digit polos tanpa suffix = konteks tanggal, bukan nominal
+// ("Beli baju 2026" bukan Rp 2.026). Catatan: beda dari shouldSkip resi - di
+// chat tidak ada jaminan Rp, jadi angka harga bulat seperti "parkir 2000"
+// (y % 100 === 0) tetap dipertahankan sebagai nominal.
+function isBareYear(raw: string): boolean {
+  if (!/^\d{4}$/.test(raw) || /\b(jt|juta|rb|ribu|k)\b/i.test(raw)) return false;
+  const y = Number(raw);
+  return y >= 1900 && y <= 2099 && y % 100 !== 0;
+}
+
+// Acceptance floor: angka polos < Rp 100 tanpa satuan = noise
+// (kuantitas/lantai/level - "Kopi 50" bukan Rp 50; pecahan terkecil
+// beredar Rp 100). Suffix eksplisit = intent jelas, tetap lolos.
+function isSubFloorBareAmount(value: number, hasSuffix: boolean): boolean {
+  return value < 100 && !hasSuffix;
+}
+
 function extractCandidates(text: string): AmountCandidate[] {
   const candidates: AmountCandidate[] = [];
   // Suffix wajib word-boundary + negative lookahead huruf agar "k" tidak
@@ -211,24 +233,12 @@ function extractCandidates(text: string): AmountCandidate[] {
   while ((m = re.exec(text))) {
     const raw = m[1]!.trim();
     if (!raw) continue;
-    // Skip nomor referensi/rekening: didahului kata ref/resi/referensi/nomor/...
-    const before = text.slice(Math.max(0, m.index - 80), m.index);
-    if (isRefContext(before)) continue;
-    // 3.4: tahun 4 digit polos tanpa suffix = konteks tanggal, bukan nominal
-    // ("Beli baju 2026" ≠ Rp 2.026). Catatan: beda dari shouldSkip resi - di
-    // chat tidak ada jaminan Rp, jadi angka harga bulat seperti "parkir 2000"
-    // (y % 100 === 0) tetap dipertahankan sebagai nominal.
-    if (/^\d{4}$/.test(raw) && !/\b(jt|juta|rb|ribu|k)\b/i.test(raw)) {
-      const y = Number(raw);
-      if (y >= 1900 && y <= 2099 && y % 100 !== 0) continue;
-    }
+    if (isRefNumberContext(text, m.index)) continue;
+    if (isBareYear(raw)) continue;
     const value = parseAmountWithSuffix(raw);
     if (value && value > 0 && Number.isFinite(value) && value <= 1_000_000_000_000) {
       const hasSuffix = /\b(jt|juta|rb|ribu|k)\b/i.test(raw);
-      // Acceptance floor: angka polos < Rp 100 tanpa satuan = noise
-      // (kuantitas/lantai/level - "Kopi 50" bukan Rp 50; pecahan terkecil
-      // beredar Rp 100). Suffix eksplisit = intent jelas, tetap lolos.
-      if (value < 100 && !hasSuffix) continue;
+      if (isSubFloorBareAmount(value, hasSuffix)) continue;
       candidates.push({ raw, value, index: m.index!, signals: { hasSuffix, hasRp: false, hasKeyword: false } });
     }
   }
