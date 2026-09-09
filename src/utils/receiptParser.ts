@@ -238,7 +238,19 @@ function parseHitLine(hitLine: string, lines: string[]): string {
     if (after) desc = after;
     else {
       const idx = lines.indexOf(hitLine);
-      desc = idx >= 0 && idx + 1 < lines.length ? lines[idx + 1]!.trim() : hitLine.trim();
+      // Baris "Penerima" tanpa nama di baris yang sama → ambil baris berikutnya
+      // sebagai nama penerima (contoh: "Penerima\nSEPTIANA ASTI BUANA")
+      if (idx >= 0 && idx + 1 < lines.length) {
+        const nextLine = lines[idx + 1]!.trim();
+        // Pastikan baris berikutnya adalah nama (huruf, ≥2 huruf, tanpa digit)
+        if (nextLine.length >= 2 && /[A-Za-z]{2,}/.test(nextLine) && !/\d/.test(nextLine)) {
+          desc = nextLine;
+        } else {
+          desc = hitLine.trim();
+        }
+      } else {
+        desc = hitLine.trim();
+      }
     }
   }
   desc = desc.split(/[-–—]/)[0]!.trim();
@@ -259,7 +271,7 @@ function findFallbackDesc(lines: string[], hits: { idx: number }[], src: string 
   // nama-akun ("Nama Ac r"), baris biaya/gratis. Tanpa ini fallback memilih
   // "Tanggal & waktu trar i" padahal "FINPAY"/merchant tersedia.
   const labelSkipRe =
-    /tanggal|waktu|\bwib\b|\bjam\b|biaya|gratis|referen|\bstatus\b|metode\s+pembayaran|sumber\s+dana|rincian|detail\s+transaksi/i; // NOSONAR
+    /tanggal|waktu|\bwib\b|\bjam\b|biaya|gratis|referen|\bstatus\b|metode\s+pembayaran|sumber\s+dana|rincian|detail\s+transaksi|transfer\s+berhasil|berhasil|transfer\s+successful|transfer\s+failed|pembayaran\s+berhasil|transaksi\s+berhasil/i; // NOSONAR
   const dateLineRe =
     /\d{1,2}\s*(jan|feb|mar|apr|mei|jun|jul|agu|aug|sep|okt|oct|nov|des|dec)\w*\s*\d{2,4}|\d{1,2}:\d{2}/i; // NOSONAR
   const nameLabelRe = /^(?:nama?|akun?|ac{1,2}|name?|rek(?:ening)?|nomor|no\.?|tgl)\b/i;

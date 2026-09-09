@@ -122,6 +122,26 @@ export const OCR_RECEIPTS: OcrReceiptFixture[] = [
     ].join('\n'),
     expected: { amount: 65000, description: 'Agus Setiawan', source: 'Mandiri', date: '2026-09-04' },
   },
+  {
+    name: 'Mandiri QR Transfer: penerima di baris terpisah + no ref panjang + PAN',
+    text: [
+      'by mandiri',
+      'QR Transfer',
+      'Transfer Berhasil!',
+      '09 Sep 2026 · 16:08:40 WIB · No. Ref. 609098405206',
+      'Penerima',
+      'SEPTIANA ASTI BUANA',
+      'Bank Mandiri - .........7056',
+      'Detail Transaksi',
+      'Total Transaksi Rp 9.300',
+      'Sumber Dana',
+      'ANGGIE IRAWAN',
+      'Bank Mandiri - .........7408',
+      'Beneficiary PAN 9360000812116970564',
+      'Sender PAN 9360000812071174087',
+    ].join('\n'),
+    expected: { amount: 9300, description: 'Septiana Asti Buana', source: 'Mandiri', date: '2026-09-09' },
+  },
 
   // ─── E-wallet ───────────────────────────────────────────────────────────────
   {
