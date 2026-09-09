@@ -20,3 +20,7 @@ docs/
 scripts/gen-og-image.mjs
 public/test-receipt.png
 rules.md
+
+# Ignore tests and scripts folders
+tests/
+scripts/
