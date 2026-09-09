@@ -12,7 +12,7 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, use:{ viewport: { width: 1280, height: 720 } } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } } },
     { name: 'mobile', use: { ...devices['Pixel 5'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
