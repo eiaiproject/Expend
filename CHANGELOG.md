@@ -1,4 +1,10 @@
 # Changelog
+## 0.14.3 - 2026-09-09
+### Fixed
+
+- 4 temuan PR28, complexity di bawah ambang
+
+
 ## 0.14.2 - 2026-09-09
 ### Fixed
 
