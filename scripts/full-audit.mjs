@@ -1,4 +1,4 @@
-// Full pixel-perfect UI audit — all routes, viewports, themes, langs.
+// Full pixel-perfect UI audit - all routes, viewports, themes, langs.
 // Routes from src/App.tsx: / (Home), /chat, /settings, * -> /
 // Checks: anchoring, symmetry, consistency, proportion/ratio, spacing rhythm,
 // typography, radius palette, a11y structure, i18n, console errors + screenshots.
@@ -26,7 +26,7 @@ function check(label, cond, detail = '') {
   const pass = !!cond;
   results.push({ label, pass, detail });
   if (pass) { passCount++; console.log(`  ✓ ${label}`); }
-  else { failCount++; console.log(`  ✗ ${label} — ${detail}`); }
+  else { failCount++; console.log(`  ✗ ${label} - ${detail}`); }
 }
 
 // Safe measure: CSS strings prefixed so they never overwrite rect numbers.
@@ -89,7 +89,7 @@ async function newPage(browser, vp, { theme = 'light', lang = 'id' } = {}) {
 }
 
 async function clearDB(page) {
-  // Open at CURRENT version (no arg) — Dexie migrates this DB over time,
+  // Open at CURRENT version (no arg) - Dexie migrates this DB over time,
   // so a hardcoded version either throws VersionError or creates a
   // store-less v1. Clear stores instead of deleteDatabase (delete + reopen
   // would recreate at v1 without object stores, silently losing seeds).
@@ -447,7 +447,7 @@ async function auditTokens(browser) {
     const m = await measure(page, s);
     if (!m) continue;
     [m.gap].forEach((v) => { if (v && v !== 'normal') gaps.add(v); });
-    // div[role="log"] paddingBottom is dynamic (composerH + 16 inline) — informational only
+    // div[role="log"] paddingBottom is dynamic (composerH + 16 inline) - informational only
     if (s === 'div[role="log"]') {
       console.log(`  (info) message-log dynamic paddingBottom=${m.paddingBottom} (composerH+16, by design)`);
       [m.paddingTop, m.paddingRight, m.paddingLeft].forEach((v) => pads.add(v));
@@ -495,18 +495,18 @@ try {
 fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify({ pass: passCount, fail: failCount, results, shots, consoleErrors }, null, 2));
 
 function formatFail(f) {
-  return `- [ ] **${f.label}** — ${f.detail}`;
+  return `- [ ] **${f.label}** - ${f.detail}`;
 }
 
 function formatResult(r) {
   const box = r.pass ? '[x]' : '[ ]';
-  const detail = r.detail ? ` — ${r.detail}` : '';
+  const detail = r.detail ? ` - ${r.detail}` : '';
   return `- ${box} ${r.label}${detail}`;
 }
 
 const fails = results.filter((r) => !r.pass);
 const md = [
-  '# Expend UI Audit — pixel-perfect report',
+  '# Expend UI Audit - pixel-perfect report',
   '',
   `Date: ${new Date().toISOString()} · Base: ${BASE}`,
   `Result: **${passCount} pass / ${failCount} fail** (${results.length} checks)`,
@@ -518,7 +518,7 @@ const md = [
   '- Langs: id (full) + en (desktop spot)',
   '- Token sweep: gap/padding/radius/font palette',
   '',
-  fails.length ? '## FAILS' : '## FAILS — none',
+  fails.length ? '## FAILS' : '## FAILS - none',
   ...fails.map(formatFail),
   '',
   '## All checks',

@@ -38,7 +38,7 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
           issues.push({ vp, route, rule: 'no-h-scroll', detail: `body.scrollWidth ${bodyScroll.sw} > clientWidth ${bodyScroll.cw}` });
         }
 
-        // 2. Main padding — check main element and scrollable child
+        // 2. Main padding - check main element and scrollable child
         const mainPad = await page.evaluate(() => {
           const main = document.querySelector('main');
           if (!main) return { pl: 0, pr: 0, pb: 0, pt: 0 };
@@ -123,7 +123,7 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
         });
         tooWide.forEach((d) => issues.push({ vp, route, rule: 'wider-than-vp', detail: d }));
 
-        // 6. Contrast (basic) — fixed parser for modern CSS color formats
+        // 6. Contrast (basic) - fixed parser for modern CSS color formats
         const lowContrast = await page.evaluate(() => {
           const v: string[] = [];
           // Parse: rgba(r,g,b,a), rgb(r g b), rgb(r,g,b), #hex, color(srgb ...)
@@ -168,7 +168,7 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
             if (fg.length < 3) continue;
             const ratio = (Math.max(lum(fg), lum(bg)) + 0.05) / (Math.min(lum(fg), lum(bg)) + 0.05);
             if (ratio < 4.5 && (el.textContent || '').trim().length > 0) {
-              // Skip nav links — they have their own bg and the audit parent-walk misses it
+              // Skip nav links - they have their own bg and the audit parent-walk misses it
               const isNavLink = el.closest('nav[aria-label="Navigasi utama"]') !== null;
               if (isNavLink) continue;
               v.push(`${el.tagName}.${(el.className.toString() || '').slice(0, 30)} ratio=${ratio.toFixed(2)} text="${(el.textContent || '').trim().slice(0, 20)}"`);

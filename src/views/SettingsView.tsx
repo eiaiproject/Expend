@@ -285,11 +285,11 @@ export default function SettingsView() {
       </SettingsSection>
 
       <SettingsSection title={t('settings.data')}>
-        <SectionCard padding="sm">
-          <div className="px-4 py-3 space-y-3">
+        <SectionCard>
+          <div className="space-y-3">
             <div>
               <p className="text-sm font-semibold">{t('settings.exportDateRange')}</p>
-              <p className="text-xs text-[var(--text-secondary)]">{t('settings.exportDateRangeDesc')}</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.exportDateRangeDesc')}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
@@ -307,7 +307,7 @@ export default function SettingsView() {
                 </div>
               </label>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button type="button" aria-label={t('settings.exportCSV')} onClick={() => void handleExport('csv')} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.exportCSV')}
               </button>

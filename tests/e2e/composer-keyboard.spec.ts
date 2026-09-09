@@ -21,7 +21,7 @@ const KEYBOARD = 300;
 const fold = MOBILE.height - KEYBOARD; // batas atas keyboard simulasi
 
 // Isi chat sampai overflow; tiap pesan ditunggu benar-benar masuk
-// (user + balasan asisten "Tercatat") — tanpa fixed wait.
+// (user + balasan asisten "Tercatat") - tanpa fixed wait.
 async function seedMessages(page: Page, ta: Locator, msgs: Locator, count = 14) {
   await ta.click();
   for (let i = 0; i < count; i++) {
@@ -73,12 +73,10 @@ test('composer merapat saat keyboard virtual terbuka & pulih saat blur', async (
   await expect(page.locator('h1')).toBeVisible({ timeout: 10000 });
 
   // Wrapper composer = parent dari form (memegang padding bawah dinamis).
-  // <p> di dalamnya = baris hint (di-render kondisional).
   const composer = page.locator('main form').locator('xpath=..');
-  const hint = composer.locator('p');
 
-  // State awal (keyboard tertutup): hint terlihat, padding bawah ~66px (nav).
-  await expect(hint).toBeVisible();
+  // State awal (keyboard tertutup): padding bawah ~66px (ruang BottomNav).
+  // (Hint desktop-only, jadi padding satu-satunya sinyal yang valid di mobile.)
   const pbBefore = await composer.evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom));
   expect(pbBefore).toBeGreaterThan(50);
 
@@ -86,8 +84,7 @@ test('composer merapat saat keyboard virtual terbuka & pulih saat blur', async (
   await page.locator('main textarea').click();
   await simulateKeyboardOpen(page);
 
-  // State keyboard terbuka: hint hilang, padding bawah mengecil (~10px).
-  await expect(hint).toBeHidden();
+  // State keyboard terbuka: padding bawah mengecil (~10px).
   await expect
     .poll(async () => composer.evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom)))
     .toBeLessThan(20);
@@ -97,9 +94,8 @@ test('composer merapat saat keyboard virtual terbuka & pulih saat blur', async (
     .toBeLessThan(fold);
   await expect(page.locator('main textarea')).toBeVisible();
 
-  // Tutup keyboard: blur → inset 0 setelah delay ~300ms → hint & padding pulih.
+  // Tutup keyboard: blur → inset 0 setelah delay ~300ms → padding pulih.
   await page.locator('h1').click();
-  await expect(hint).toBeVisible({ timeout: 4000 });
   await expect
     .poll(async () => composer.evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom)))
     .toBeGreaterThan(50);

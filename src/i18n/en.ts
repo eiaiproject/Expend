@@ -83,7 +83,6 @@ const en: Record<TranslationKey, string> = {
   'chat.processing': 'Processing transaction',
   'chat.send': 'Send transaction',
   'chat.shortcutsDesktop': 'Enter to send · Shift+Enter for new line · Drag receipt to chat area',
-  'chat.shortcutsMobile': 'Drag receipt to chat area to upload',
   'chat.noAmount': 'Amount not recognized. Example: "coffee 20rb" or "50000 indomaret".',
   'chat.ocrFormatError': 'Use JPG, PNG, or WebP images, max 10 MB.',
   'chat.ocrSizeError': 'Image max size is 10 MB. Try compressing or cropping.',

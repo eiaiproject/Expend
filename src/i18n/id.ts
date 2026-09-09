@@ -81,7 +81,6 @@ const id = {
   'chat.processing': 'Memproses transaksi',
   'chat.send': 'Kirim transaksi',
   'chat.shortcutsDesktop': 'Enter untuk kirim · Shift+Enter baris baru · Tarik bukti ke area chat',
-  'chat.shortcutsMobile': 'Tarik bukti ke area chat untuk unggah',
   'chat.noAmount': 'Nominal tidak terbaca. Contoh: "kopi 20rb" atau "50000 indomaret".',
   'chat.ocrFormatError': 'Gunakan gambar JPG, PNG, atau WebP dengan ukuran maksimal 10 MB.',
   'chat.ocrSizeError': 'Ukuran gambar maksimal 10 MB. Coba kompres atau potong gambar.',

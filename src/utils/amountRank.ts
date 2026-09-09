@@ -9,10 +9,10 @@
  * numerically larger. Within the same tier, larger values win.
  *
  * Tiers (higher = more likely the actual amount):
- *   3 — explicit money notation: Rp/IDR or suffix (rb/ribu/k/jt/juta)
- *   2 — total-like keyword nearby (total/jumlah/nominal/transfer/bayar)
- *   1 — bare plausible amount (100 .. 999.999.999)
- *   0 — bare tiny (<100: quantities/floors) or huge (>999M: IDs/refs)
+ *   3 - explicit money notation: Rp/IDR or suffix (rb/ribu/k/jt/juta)
+ *   2 - total-like keyword nearby (total/jumlah/nominal/transfer/bayar)
+ *   1 - bare plausible amount (100 .. 999.999.999)
+ *   0 - bare tiny (<100: quantities/floors) or huge (>999M: IDs/refs)
  *
  * ponytail: single weight set for both callers. If chat vs receipt ever need
  * different weights, add an optional `weights` param here instead of forking
@@ -20,9 +20,9 @@
  */
 
 export interface AmountSignals {
-  /** Explicit suffix: jt/juta/rb/ribu/k — always monetary. */
+  /** Explicit suffix: jt/juta/rb/ribu/k - always monetary. */
   hasSuffix: boolean;
-  /** `Rp`/`IDR` marker near the number — strong monetary signal. */
+  /** `Rp`/`IDR` marker near the number - strong monetary signal. */
   hasRp: boolean;
   /** Total-like keyword nearby (total/jumlah/nominal/transfer/bayar). */
   hasKeyword: boolean;

@@ -28,7 +28,7 @@ export function titleCasePreserveAcronyms(s: string): string {
       if (ACRONYMS.has(upper)) {
         // Return canonical form from set if ALL-CAPS, else preserve original casing
         if (w === upper) return w;
-        // Mixed-case known brand (e.g. ShopeeFood) — preserve as-is
+        // Mixed-case known brand (e.g. ShopeeFood) - preserve as-is
         return w;
       }
       // Lowercase conjunctions/prepositions mid-sentence (first word stays capitalized)

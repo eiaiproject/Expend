@@ -21,6 +21,16 @@ test('receipt upload → preview editable → Simpan → Home', async ({ page })
   await input.setInputFiles('public/test-receipt.png');
   await expect(page.getByRole('progressbar')).toBeVisible({ timeout: 5000 });
   await expect(page.getByText('Periksa transaksi')).toBeVisible({ timeout: 20000 });
+  // Regresi scroll: kartu pending harus langsung terlihat (list terkunci di
+  // bawah) tanpa klik panah - auto-scroll programatik wajib instant.
+  const list = page.locator('main [role="log"]');
+  await expect
+    .poll(
+      async () =>
+        list.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight),
+      { timeout: 5000 },
+    )
+    .toBeLessThan(200);
   await expect(page.locator('input[type="date"]')).toHaveValue('2026-08-31', { timeout: 5000 });
   await expect(page.locator('input[type="number"]')).not.toHaveValue('0');
   await page.getByRole('button', { name: 'Simpan transaksi' }).click();

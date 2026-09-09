@@ -105,6 +105,23 @@ export const OCR_RECEIPTS: OcrReceiptFixture[] = [
     ].join('\n'),
     expected: { amount: 150000, source: 'Mandiri', date: '2026-09-05' },
   },
+  {
+    name: 'Mandiri QR: baris PAN diabaikan, penerima dari label',
+    text: [
+      'QR Transfer',
+      'Transfer Berhasil!',
+      '04 Sep 2026 : 12:27:11 WIB - No. Ref. 709148237639',
+      'Penerima',
+      'AGUS SETIAWAN',
+      'Bank Mandiri - .........4417',
+      'Total Transaksi Rp 65.000',
+      'Sumber Dana',
+      'DEWI LESTARI',
+      'Beneficiary PAN 9360000812078221030',
+      'Sender PAN 9360000812071174087',
+    ].join('\n'),
+    expected: { amount: 65000, description: 'Agus Setiawan', source: 'Mandiri', date: '2026-09-04' },
+  },
 
   // ─── E-wallet ───────────────────────────────────────────────────────────────
   {
@@ -166,8 +183,36 @@ export const OCR_RECEIPTS: OcrReceiptFixture[] = [
     ].join('\n'),
     expected: { amount: 4627000, description: 'Luky Dian Susanti', source: 'GoPay', date: '2026-09-01' },
   },
+  {
+    name: 'SeaBank: Product + Bayar Instan (kasus nyata, anonim)',
+    text: [
+      'SeaBank',
+      'Bukti Transaksi',
+      'Rp 53.730',
+      'Dari Rina Wulandari',
+      'Ke Shopee',
+      'Username: r.maul',
+      'Jumlah Transfer Rp 53.730',
+      'No. Transaksi 2026090143508579638149000',
+      'Metode Transaksi SeaBank Bayar Instan',
+      'Product ShopeeFood',
+      'Waktu Transaksi 01 Sep 2026, 19:16',
+    ].join('\n'),
+    expected: { amount: 53730, description: 'ShopeeFood', source: 'Sea Bank', date: '2026-09-01' },
+  },
 
   // ─── Kasus tanpa Rp (OCR menghilangkan simbol) ──────────────────────────────
+  {
+    name: 'Minimarket: Tunai & Kembalian bukan nominal',
+    text: [
+      'INDOMARET',
+      'Total Rp 55.000',
+      'Tunai Rp 100.000',
+      'Kembalian Rp 45.000',
+      'Tanggal 09/09/2026',
+    ].join('\n'),
+    expected: { amount: 55000, description: 'Indomaret', source: 'Tunai', date: '2026-09-09' },
+  },
   {
     name: 'Total tanpa Rp (dengan titik ribuan)',
     text: [
@@ -210,5 +255,20 @@ export const OCR_RECEIPTS: OcrReceiptFixture[] = [
       date: '2026-09-02',
       note: 'Pulang Jember',
     },
+  },
+  {
+    name: 'Jago: debris label OCR "Nama Ac r" -> nama baris berikut',
+    text: [
+      'Jago',
+      'Rp790.000',
+      'Tanggal & waktu trar i',
+      '02 Sep 2026, 08:26 WIB',
+      'Nama Ac r',
+      'FINPAY',
+      'Biaya',
+      'Gratis',
+      'PAN Merchant 9360071188405130696',
+    ].join('\n'),
+    expected: { amount: 790000, description: 'FINPAY', source: 'Jago', date: '2026-09-02' },
   },
 ];

@@ -161,7 +161,7 @@ describe('extractChatDate', () => {
     ['kemarin', 'bayar kopi kemarin', '2026-09-14', 'extract'],
     ['lusa', 'bayar kopi lusa', '2026-09-17', 'extract'],
     ['hari ini', 'bayar kopi hari ini', '2026-09-15', 'extract'],
-    ['tgl 15', 'bayar kopi tgl 15', '2026-09-15', 'parse'],
+    ['tgl 15', 'bayar kopi 20rb tgl 15', '2026-09-15', 'parse'],
   ] as const)('%s', (_, input, expected, mode) => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-15T10:00:00'));
@@ -330,5 +330,20 @@ describe('parseChatInput - integration', () => {
     const r = parseChatInput('bayar parkir 5000 di lantai 2');
     expect(r?.amount).toBe(5000);
     expect(r?.description).toBe('Parkir');
+  });
+});
+
+describe('acceptance floor: angka polos < Rp 100 ditolak (pecahan terkecil Rp 100)', () => {
+  it('Kopi 50 di lantai 2 → null, bukan Rp 50', () => {
+    expect(parseChatInput('Kopi 50 di lantai 2')).toBeNull();
+  });
+  it('bayar Rp 50 → null', () => {
+    expect(parseChatInput('bayar Rp 50')).toBeNull();
+  });
+  it('batas bawah: parkir 100 tetap lolos', () => {
+    expect(parseChatInput('parkir 100')?.amount).toBe(100);
+  });
+  it('kecil normal: permen 500 tetap lolos', () => {
+    expect(parseChatInput('permen 500')?.amount).toBe(500);
   });
 });

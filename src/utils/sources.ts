@@ -127,22 +127,21 @@ export function detectSource(text: string): string | undefined {
   // 1. Cek keyword eksplisit: dari/via/pakai/from X (highest priority)
   const srcKwRe = /(?:dari|via|pakai|pake|from)\s+([A-Za-z0-9 ]+?)(?:\n|$|[.,])/i; // NOSONAR - bounded, anchored
   const srcMatch = srcKwRe.exec(text);
-  let raw: string | undefined;
   if (srcMatch?.[1]) {
-    raw = srcMatch[1]!.trim();
-    const dbMatch = findSourceIn(raw);
+    const candidate = srcMatch[1]!.trim();
+    const dbMatch = findSourceIn(candidate);
     if (dbMatch) return dbMatch.name;
     // "Dari 1234567890 a.n. BUDI SANTOSO" pada resi = info pengirim, BUKAN
-    // sumber dana si pengguna. Kalau klausa berisi angka (rekening/no HP),
-    // jangan pakai fallback nama — lanjut ke header/scan di bawah.
-    if (/\d/.test(raw)) raw = undefined;
-  }
-  if (raw) {
-    if (raw === raw.toUpperCase() && raw.length > 1) return raw;
-    return raw.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    // sumber dana si pengguna. "Dari Rina Wulandari" (nama orang) juga
+    // bukan sumber dana - lanjut ke header/scan di bawah.
+    // (Paralel temuan 3.1 chatParser: klausa dari + nama = penjual/pengirim.)
+    // Hanya akronim kapital yang diterima mentah ("DARI QRIS").
+    if (!/\d/.test(candidate) && candidate === candidate.toUpperCase() && candidate.length > 1) {
+      return candidate;
+    }
   }
 
-  // 2. Cek header (first 2 lines) — usually the app/bank name
+  // 2. Cek header (first 2 lines) - usually the app/bank name
   for (let i = 0; i < Math.min(2, lines.length); i++) {
     const header = lines[i]!.trim().replace(/^[©@§£€*#]+\s*/, '');
     if (!header || header.length < 2) continue;

@@ -135,12 +135,11 @@ export default function ChatView() {
       firstRenderRef.current = false;
       scrollToBottom(endRef, true);
     } else if (nearBottom) {
-      // Keyboard terbuka: scrollIntoView(endRef) hanya mensejajarkan pesan ke
-      // dasar container yang berada di balik keyboard. Scroll sampai ujung
-      // konten agar padding kompensasi (keyboardInset) menaikkan pesan terbaru
-      // ke atas composer.
-      if (keyboardInset > 0) el.scrollTop = el.scrollHeight;
-      else scrollToBottom(endRef);
+      // Selalu instant: smooth scrollIntoView di-interupsi setiap ada
+      // mutasi layout (progress OCR, kartu pending, gambar) sehingga
+      // berhenti di tengah - user harus klik panah bawah manual.
+      // Smooth hanya untuk ketukan eksplisit tombol panah (scrollToBottom).
+      el.scrollTop = el.scrollHeight;
     }
   }, [messages.length, pending, ocrProgress, keyboardInset]);
 
@@ -177,7 +176,7 @@ export default function ChatView() {
 
         // Prioritize image OCR over share text.
         // Share messages from banking apps (e.g. SeaBank "Halo, aku sudah
-        // kirim Rp...") are conversational noise — the screenshot is the
+        // kirim Rp...") are conversational noise - the screenshot is the
         // real receipt. If we have an image, use OCR only and discard text.
         const fileRes = await cache.match('shared-file');
         if (fileRes) {
@@ -189,7 +188,7 @@ export default function ChatView() {
           await cache.delete('shared-file');
           // Discard share text when image is available
           await cache.delete('shared-meta');
-        } else {              // No image — use share text as chat input fallback
+        } else {              // No image - use share text as chat input fallback
               const metaRes = await cache.match('shared-meta');
               if (metaRes) {
                 const meta = await metaRes.json();
@@ -436,7 +435,7 @@ export default function ChatView() {
           onScroll={handleScroll}
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 py-4 pb-8 space-y-3"
           // Keyboard terbuka: composer digeser naik (translateY) tapi container
-          // scroll tetap memanjang sampai belakang keyboard — tanpa kompensasi,
+          // scroll tetap memanjang sampai belakang keyboard - tanpa kompensasi,
           // pesan terbaru tak bisa discroll ke atas composer (tersembunyi di
           // balik keyboard). Tambahkan inset ke padding bawah list agar konten
           // bisa naik setinggi keyboard saat scroll maksimal.
@@ -700,12 +699,11 @@ export default function ChatView() {
             )}
           </button>
         </form>
-        {/* Hint hanya relevan saat keyboard tertutup — sembunyikan saat
+        {/* Hint hanya relevan saat keyboard tertutup - sembunyikan saat
             mengetik agar layar mobile tidak terbuang. */}
         {keyboardInset === 0 && (
-          <p className="text-[11px] tracking-wide text-[var(--text-secondary)] text-center mt-2.5">
-            <span className="hidden md:inline">{t('chat.shortcutsDesktop')}</span>
-            <span className="md:hidden">{t('chat.shortcutsMobile')}</span>
+          <p className="hidden md:block text-[11px] tracking-wide text-[var(--text-secondary)] text-center mt-2.5">
+            <span>{t('chat.shortcutsDesktop')}</span>
           </p>
         )}
       </div>
