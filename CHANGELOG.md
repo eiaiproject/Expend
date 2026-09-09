@@ -1,4 +1,10 @@
 # Changelog
+## 0.14.6 - 2026-09-09
+### Changed
+
+- Reduce parseHitLine cognitive complexity 16→13
+
+
 ## 0.14.5 - 2026-09-09
 ### Fixed
 
