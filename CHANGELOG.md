@@ -1,4 +1,10 @@
 # Changelog
+## 0.14.5 - 2026-09-09
+### Fixed
+
+- Filter status lines from fallback description, handle recipient on separate line
+
+
 ## 0.14.4 - 2026-09-09
 ### Fixed
 
