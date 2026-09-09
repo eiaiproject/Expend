@@ -1,4 +1,10 @@
 # Changelog
+## 0.13.3 - 2026-09-09
+### Fixed
+
+- Acceptance floor, tunai/kembalian, OCR debris, dari-name source
+
+
 ## 0.13.2 - 2026-09-08
 
 ## 0.13.1 - 2026-09-08
@@ -23,7 +29,7 @@
 
 ### Removed
 
-- Fitur LLM BYOK (offline penuh, -653 baris); pengaturan AI dihapus dari Settings — BREAKING
+- Fitur LLM BYOK (offline penuh, -653 baris); pengaturan AI dihapus dari Settings - BREAKING
 
 ## 0.12.2 - 2026-09-06
 ### Fixed
@@ -123,7 +129,7 @@
 ## 0.6.33 - 2026-09-02
 ### Added
 
-- Full LLM mode — LLM dulu, regex jadi fallback + strip amount dari desc
+- Full LLM mode - LLM dulu, regex jadi fallback + strip amount dari desc
 
 
 ## 0.6.32 - 2026-09-02
@@ -135,7 +141,7 @@
 ## 0.6.31 - 2026-09-02
 ### Fixed
 
-- Sonar S4138/S6582/S3776 — fileToBase64 for-of, NOSONAR for regex & handleFile
+- Sonar S4138/S6582/S3776 - fileToBase64 for-of, NOSONAR for regex & handleFile
 
 
 ## 0.6.30 - 2026-09-02
@@ -153,13 +159,13 @@
 ## 0.6.28 - 2026-09-02
 ### Added
 
-- LLM Opsi A — BYOK tanpa backend (9router/OpenRouter)
+- LLM Opsi A - BYOK tanpa backend (9router/OpenRouter)
 
 
 ## 0.6.27 - 2026-09-02
 ### Fixed
 
-- Prioritize image OCR over share text — ignore pesan bawaan
+- Prioritize image OCR over share text - ignore pesan bawaan
 
 
 ## 0.6.26 - 2026-09-02
@@ -213,7 +219,7 @@
 ## 0.6.18 - 2026-09-02
 ### Fixed
 
-- List-item display flex — delete button was stacking below on mobile
+- List-item display flex - delete button was stacking below on mobile
 
 
 ## 0.6.17 - 2026-09-02
@@ -231,7 +237,7 @@
 ## 0.6.15 - 2026-09-02
 ### Fixed
 
-- Parser audit — decimal bug, dedup, cleanup
+- Parser audit - decimal bug, dedup, cleanup
 
 
 ## 0.6.14 - 2026-09-02
@@ -255,7 +261,7 @@
 ## 0.6.11 - 2026-09-02
 ### Fixed
 
-- Full mobile audit — contrast, touch, safe-area, perf
+- Full mobile audit - contrast, touch, safe-area, perf
 
 
 ## 0.6.10 - 2026-09-02
@@ -315,7 +321,7 @@
 ## 0.6.2 - 2026-09-02
 ### Fixed
 
-- Sonarcloud quality gate – reliability and duplication
+- Sonarcloud quality gate - reliability and duplication
 
 
 ## 0.6.1 - 2026-09-02

@@ -1,6 +1,6 @@
 # Expend - Chat Expense Tracker
 
-![version](https://img.shields.io/badge/version-0.13.2-teal)
+![version](https://img.shields.io/badge/version-0.13.3-teal)
 
 Offline-first PWA. Navigation: **Summary** (transaction list) + **Record** (chat + OCR) + **Settings** (theme, data, privacy).
 
@@ -31,7 +31,7 @@ Transaction dates use the device's local timezone (local `YYYY-MM-DD`, not UTC) 
 - **A11y**: Skip link, focus trap, aria labels, reduced motion
 
 ### Export
-In **Settings → Data**: **Export JSON** (`expend-YYYY-MM-DD.json`, format `{version:1, transactions:[...]}`, legacy bare array accepted on import), **Export CSV** (`expend-YYYY-MM-DD.csv` RFC4180) and **Export Excel** (`expend-YYYY-MM-DD.xlsx` via SheetJS). Optional **From/To** (`YYYY-MM-DD`) filters by `date` inclusive; `From` after `To` and invalid dates are rejected with a toast; empty exports all in filename but empty result → error toast. CSV/XLSX string cells starting with `=+-@` are prefixed with `'` (OWASP, DB unchanged; `amount` stays numeric; no formula cells from user input). Import JSON is append-only with strict validation (reject corrupt/unknown-version/oversize `>5MB`/`>10k`/bad type/negative-NaN-overflow/bad date) and exact-duplicate skip (in-file + against DB). 100% offline — `Blob` + `URL.createObjectURL` + `a.click()`.
+In **Settings → Data**: **Export JSON** (`expend-YYYY-MM-DD.json`, format `{version:1, transactions:[...]}`, legacy bare array accepted on import), **Export CSV** (`expend-YYYY-MM-DD.csv` RFC4180) and **Export Excel** (`expend-YYYY-MM-DD.xlsx` via SheetJS). Optional **From/To** (`YYYY-MM-DD`) filters by `date` inclusive; `From` after `To` and invalid dates are rejected with a toast; empty exports all in filename but empty result → error toast. CSV/XLSX string cells starting with `=+-@` are prefixed with `'` (OWASP, DB unchanged; `amount` stays numeric; no formula cells from user input). Import JSON is append-only with strict validation (reject corrupt/unknown-version/oversize `>5MB`/`>10k`/bad type/negative-NaN-overflow/bad date) and exact-duplicate skip (in-file + against DB). 100% offline - `Blob` + `URL.createObjectURL` + `a.click()`.
 
 ## Stack
 
