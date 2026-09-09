@@ -117,7 +117,7 @@ function parseRelativeDate(term: string): string | undefined {
 }
 
 /**
- * 5.1: Bulan tidak selalu 31 hari — "tgl 31" saat Februari/April dst harus
+ * 5.1: Bulan tidak selalu 31 hari - "tgl 31" saat Februari/April dst harus
  * di-clamp ke hari terakhir bulan tersebut, bukan menghasilkan ISO tak valid
  * seperti `2026-02-31`. Berlaku untuk tgl/tanggal, dd/mm/yyyy, dan "15 Agustus".
  */
@@ -215,7 +215,7 @@ function extractCandidates(text: string): AmountCandidate[] {
     const before = text.slice(Math.max(0, m.index - 80), m.index);
     if (isRefContext(before)) continue;
     // 3.4: tahun 4 digit polos tanpa suffix = konteks tanggal, bukan nominal
-    // ("Beli baju 2026" ≠ Rp 2.026). Catatan: beda dari shouldSkip resi — di
+    // ("Beli baju 2026" ≠ Rp 2.026). Catatan: beda dari shouldSkip resi - di
     // chat tidak ada jaminan Rp, jadi angka harga bulat seperti "parkir 2000"
     // (y % 100 === 0) tetap dipertahankan sebagai nominal.
     if (/^\d{4}$/.test(raw) && !/\b(jt|juta|rb|ribu|k)\b/i.test(raw)) {
@@ -225,6 +225,10 @@ function extractCandidates(text: string): AmountCandidate[] {
     const value = parseAmountWithSuffix(raw);
     if (value && value > 0 && Number.isFinite(value) && value <= 1_000_000_000_000) {
       const hasSuffix = /\b(jt|juta|rb|ribu|k)\b/i.test(raw);
+      // Acceptance floor: angka polos < Rp 100 tanpa satuan = noise
+      // (kuantitas/lantai/level - "Kopi 50" bukan Rp 50; pecahan terkecil
+      // beredar Rp 100). Suffix eksplisit = intent jelas, tetap lolos.
+      if (value < 100 && !hasSuffix) continue;
       candidates.push({ raw, value, index: m.index!, signals: { hasSuffix, hasRp: false, hasKeyword: false } });
     }
   }
@@ -234,7 +238,7 @@ function extractCandidates(text: string): AmountCandidate[] {
 function pickBest(candidates: AmountCandidate[], _fullText: string): AmountCandidate | null {
   if (!candidates.length) return null;
   // hasRp TIDAK disebar ke semua kandidat: di tier-scoring, sinyal Rp global
-  // akan menaikkan nomor polos (ID/ref) ke tier yang sama dgn nominal — justru
+  // akan menaikkan nomor polos (ID/ref) ke tier yang sama dgn nominal - justru
   // menghidupkan kembali bug skor linear. Suffix tetap sinyal per-kandidat.
   return pickBestAmount(candidates);
 }
@@ -255,7 +259,7 @@ function formatDescription(raw: string, hasGenericSource: boolean, stripSourceCl
 
   // Remove verb prefix
   desc = desc.replace(VERB_RE, '').trim();
-  // Remove source clause (dari/via/pakai ...) — hanya bila klausa benar-benar
+  // Remove source clause (dari/via/pakai ...) - hanya bila klausa benar-benar
   // dikenali sebagai sumber dana (sourceFromClause); kalau tidak, klausanya
   // bagian deskripsi ("dari warung Pak Eko" = penjual, bukan sumber dana).
   if (stripSourceClause) desc = desc.replace(SOURCE_CLAUSE_RE, '').trim();
@@ -310,7 +314,7 @@ export function parseChatInput(input: string): ParsedExpense | null {
   if (!bestCandidate) return null;
   const amount = bestCandidate.value;
 
-  // 4. Best candidate position already known — slice description around it
+  // 4. Best candidate position already known - slice description around it
   const splitIndex = bestCandidate.index;
 
   // 5. Build description from text around the amount
