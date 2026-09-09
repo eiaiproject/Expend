@@ -1,4 +1,10 @@
 # Changelog
+## 0.14.2 - 2026-09-09
+### Fixed
+
+- Resync package-lock, revert sed-corrupted dep versions
+
+
 ## 0.14.1 - 2026-09-09
 ### Changed
 
