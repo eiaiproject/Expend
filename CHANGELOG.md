@@ -1,4 +1,10 @@
 # Changelog
+## 0.14.0 - 2026-09-09
+### Added
+
+- Redesigned og-image card, descriptive title
+
+
 ## 0.13.4 - 2026-09-09
 ### Fixed
 
