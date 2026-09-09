@@ -1,4 +1,10 @@
 # Changelog
+## 0.14.1 - 2026-09-09
+### Changed
+
+- README: Rp 100 acceptance floor, Tunai/Kembalian receipt rule
+
+
 ## 0.14.0 - 2026-09-09
 ### Added
 
