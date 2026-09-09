@@ -17,8 +17,13 @@
     "noUncheckedIndexedAccess": true,
     "jsx": "react-jsx",
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@tests/*": ["tests/*"],
+      "@scripts/*": ["scripts/*"]
+    }
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src", "scripts/**/*"],
+  "exclude": ["node_modules", "dist", "test-results", "coverage"]
 }

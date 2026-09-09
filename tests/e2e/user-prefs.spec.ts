@@ -14,7 +14,7 @@ async function freshDB(page) {
 }
 
 test.describe('user prefs + edit + keyboard', () => {
-  test('edit transaksi via dialog (Escape menutup, simpan tak duplikat)', async ({ page }) => {
+  test('edit transaksi via dialog (Escape menutup, simpan tak duplikat)', async ({ page }: { page: import('@playwright/test').Page }) => {
     await freshDB(page);
     await page.goto('/chat');
     await page.getByPlaceholder(/Contoh/).fill('kopi 20rb');
@@ -38,7 +38,7 @@ test.describe('user prefs + edit + keyboard', () => {
     await expect(page.getByLabel('Deskripsi')).toHaveCount(0);
   });
 
-  test('ganti tema tersimpan + ganti bahasa memperbarui UI', async ({ page }) => {
+  test('ganti tema tersimpan + ganti bahasa memperbarui UI', async ({ page }: { page: import('@playwright/test').Page }) => {
     await page.goto('/settings');
     const theme = page.getByRole('combobox', { name: 'Tema' });
     await expect(theme).toBeVisible();
@@ -56,7 +56,7 @@ test.describe('user prefs + edit + keyboard', () => {
     await expect(page.getByRole('heading', { name: 'Pengaturan' })).toBeVisible();
   });
 
-  test('navigasi keyboard dasar: skip link + tab ke composer', async ({ page }) => {
+  test('navigasi keyboard dasar: skip link + tab ke composer', async ({ page }: { page: import('@playwright/test').Page }) => {
     await page.goto('/chat');
     await page.keyboard.press('Tab');
     const skip = page.getByRole('link', { name: /Lewati|Skip/ });

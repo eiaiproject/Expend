@@ -146,7 +146,7 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
           const lum = (rgb: number[]) => {
             if (rgb.length < 3) return 0;
             const a = rgb.slice(0, 3).map((x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
-            return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+            return 0.2126 * a[0]! + 0.7152 * a[1]! + 0.0722 * a[2]!;
           };
           for (const el of document.querySelectorAll('p, span, h1, h2, h3, button, a')) {
             const s = getComputedStyle(el);

@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import * as XLSX from 'xlsx';
-import * as fs from 'node:fs';
+import fs from 'node:fs';
+import type { Transaction } from '../../src/db/db';
+import { db } from '../../src/db/db';
 
 test.describe('export CSV/XLSX', () => {
   test.beforeEach(async ({ page }) => {
@@ -20,11 +22,10 @@ test.describe('export CSV/XLSX', () => {
 
   test('CSV download contains header + rows', async ({ page }) => {
     await page.evaluate(async () => {
-      const { db } = await import('/src/db/db.ts');
       await db.transactions.bulkAdd([
         { description: 'Kopi, "Susu"', amount: 25000, date: '2026-09-02', createdAt: '2026-09-02T10:00:00.000Z', source: 'GoPay' },
         { description: 'Nasi Goreng', amount: 35000, date: '2026-09-01', createdAt: '2026-09-01T10:00:00.000Z' },
-      ]);
+      ] as Transaction[]);
     });
     await page.reload();
     await page.goto('/settings');
@@ -40,8 +41,7 @@ test.describe('export CSV/XLSX', () => {
 
   test('Excel download valid xlsx', async ({ page }) => {
     await page.evaluate(async () => {
-      const { db } = await import('/src/db/db.ts');
-      await db.transactions.bulkAdd([{ description: 'Kopi', amount: 25000, date: '2026-09-02', createdAt: new Date().toISOString() }]);
+      await db.transactions.bulkAdd([{ description: 'Kopi', amount: 25000, date: '2026-09-02', createdAt: new Date().toISOString() } as Transaction]);
     });
     await page.reload();
     await page.goto('/settings');
@@ -51,17 +51,16 @@ test.describe('export CSV/XLSX', () => {
     const p = await dl.path();
     const buf = fs.readFileSync(p!);
     const wb = XLSX.read(buf, { type: 'buffer' });
-    const ws = wb.Sheets[wb.SheetNames[0]!];
+    const ws = wb.Sheets[wb.SheetNames[0]!]!;
     expect(XLSX.utils.sheet_to_json(ws)).toHaveLength(1);
   });
 
   test('filter by date range', async ({ page }) => {
     await page.evaluate(async () => {
-      const { db } = await import('/src/db/db.ts');
       await db.transactions.bulkAdd([
         { description: 'A', amount: 1, date: '2026-09-01', createdAt: '2026-09-01T00:00:00.000Z' },
         { description: 'B', amount: 2, date: '2026-09-02', createdAt: '2026-09-02T00:00:00.000Z' },
-      ]);
+      ] as Transaction[]);
     });
     await page.reload();
     await page.goto('/settings');
@@ -82,8 +81,7 @@ test.describe('export CSV/XLSX', () => {
 
   test('filtered empty shows toast', async ({ page }) => {
     await page.evaluate(async () => {
-      const { db } = await import('/src/db/db.ts');
-      await db.transactions.bulkAdd([{ description: 'A', amount: 1, date: '2026-09-01', createdAt: '2026-09-01T00:00:00.000Z' }]);
+      await db.transactions.bulkAdd([{ description: 'A', amount: 1, date: '2026-09-01', createdAt: '2026-09-01T00:00:00.000Z' } as Transaction]);
     });
     await page.reload();
     await page.goto('/settings');
