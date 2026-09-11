@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
-import { recognizeImage, isOcrReady, validateImageFile } from '../utils/ocr';
+import { recognizeImage, isOcrReady, validateImageFile, validateFileMagic } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
 import { todayLocalISO } from '../utils/date';
 import { isEditableElement, keyboardInsetPx } from '../utils/keyboard';
@@ -35,6 +35,7 @@ export default function ChatView() {
   const [pending, setPending] = useState<Pending | null>(null);
   const [ocrProgress, setOcrProgress] = useState<number | null>(null);
   const [ocrError, setOcrError] = useState<string | null>(null);
+  const [magicError, setMagicError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -148,8 +149,10 @@ export default function ChatView() {
     const el = listRef.current;
     if (!el) return;
     const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
-    setShowScrollBtn(!isNearBottom && messages.length > 0);
-  }, [messages.length]);
+    // C5: Tampilkan tombol "back to latest" juga saat ada pending/OCR
+    // (pesan baru ditambahkan tapi user sudah scroll ke atas)
+    setShowScrollBtn(!isNearBottom && (messages.length > 0 || pending !== null || ocrProgress !== null));
+  }, [messages.length, pending, ocrProgress]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -170,6 +173,13 @@ export default function ChatView() {
   useEffect(() => { // NOSONAR - cognitive complexity from share file+text handling
     const params = new URLSearchParams(window.location.search);
     if (!params.has('share')) return;
+    // B2/B3: Cek error param dari share-handler.js (cache gagal)
+    const shareError = params.get('error');
+    if (shareError) {
+      setOcrError(t('chat.ocrShareFailed'));
+      window.history.replaceState({}, '', '/chat');
+      return;
+    }
     (async () => {
       try {
         const cache = await caches.open('share-cache');
@@ -202,10 +212,18 @@ export default function ChatView() {
                   }
                 }
                 await cache.delete('shared-meta');
+              } else {
+                // B3: Cache kosong - kemungkinan iOS Safari atau share gagal.
+                // Tampilkan pesan引导 user upload manual.
+                setOcrError(t('chat.ocrShareFailed'));
               }
         }
         window.history.replaceState({}, '', '/chat');
-      } catch {}
+      } catch {
+        // B3: Cache API error (iOS Safari compatibility / quota exceeded)
+        setOcrError(t('chat.ocrShareFailed'));
+        window.history.replaceState({}, '', '/chat');
+      }
     })();
   }, []);
 
@@ -269,8 +287,15 @@ export default function ChatView() {
       setOcrError(t('chat.ocrSizeError'));
       return;
     }
+    // A7: Validasi magic number untuk cegah polyglot file
+    const magicErr = await validateFileMagic(file);
+    if (magicErr === 'magic') {
+      setMagicError(t('chat.ocrFormatError'));
+      return;
+    }
     ocrInFlight.current = true;
     setOcrError(null);
+    setMagicError(null);
     const url = URL.createObjectURL(file);
     if (mountedRef.current) setPreviewUrl(url);
     if (mountedRef.current) setOcrProgress(0);
@@ -342,6 +367,7 @@ export default function ChatView() {
       if (mountedRef.current) {
         setPending(null);
         setOcrError(null);
+        setMagicError(null);
       }
     } catch {
       if (mountedRef.current) setOcrError(t('chat.saveError') ?? 'Gagal menyimpan transaksi. Coba lagi.');
@@ -410,7 +436,15 @@ export default function ChatView() {
                 </div>
               </div>
             </div>
-            <div className="mt-5">
+            <div className="mt-5 flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={() => textareaRef.current?.focus()}
+                className="w-full min-h-12 py-2 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+              >
+                <Send size={16} aria-hidden />
+                {t('chat.startTyping')}
+              </button>
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
@@ -506,6 +540,7 @@ export default function ChatView() {
           )}
 
           {ocrError && <InlineAlert type="error">{ocrError}</InlineAlert>}
+          {magicError && <InlineAlert type="error">{magicError}</InlineAlert>}
 
           {pending && (
             <div className="rounded-[var(--radius-lg)] border border-[var(--accent)] bg-[var(--card)] p-5 motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none">
@@ -534,8 +569,13 @@ export default function ChatView() {
                       id="pending-amount"
                       type="number"
                       inputMode="numeric"
+                      min="0"
+                      max="1000000000000"
                       value={pending.amount || ''}
-                      onChange={(e) => setPending({ ...pending, amount: Number(e.target.value) || 0 })}
+                      onChange={(e) => {
+                        const v = Math.max(0, Number(e.target.value) || 0);
+                        setPending({ ...pending, amount: v });
+                      }}
                       placeholder="50000"
                       className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
                     />
@@ -546,7 +586,13 @@ export default function ChatView() {
                       id="pending-date"
                       type="date"
                       value={pending.date}
-                      onChange={(e) => setPending({ ...pending, date: e.target.value })}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        // C4: Validasi format YYYY-MM-DD sebelum update state
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(v) || v === '') {
+                          setPending({ ...pending, date: v });
+                        }
+                      }}
                       className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
                     />
                   </label>
@@ -591,7 +637,7 @@ export default function ChatView() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setPending(null); setOcrError(null); }}
+                  onClick={() => { setPending(null); setOcrError(null); setMagicError(null); }}
                   className="min-h-12 px-5 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 >
                   <X size={16} aria-hidden />
@@ -656,6 +702,8 @@ export default function ChatView() {
             capture="environment"
             className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+            // B7: iOS Safari menampilkan error event saat izin kamera ditolak
+            onError={() => setOcrError(t('chat.ocrCameraDenied'))}
           />
           <button
             type="button"
@@ -679,12 +727,18 @@ export default function ChatView() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={1}
+            maxLength={500}
             placeholder={t('chat.inputPlaceholder')}
             aria-label={t('chat.inputLabel')}
             autoComplete="off"
             enterKeyHint="send"
             className="flex-1 min-w-0 min-h-[44px] max-h-32 bg-transparent px-2 py-2.5 text-sm outline-none placeholder:text-[var(--text-muted)] resize-none leading-snug"
           />
+          {input.length > 400 && (
+            <span className={`text-[10px] tabular-nums self-end mb-2.5 ${input.length >= 500 ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'}`} aria-live="polite">
+              {input.length}/500
+            </span>
+          )}
           <button
             type="submit"
             aria-label={isSending ? t('chat.processing') : t('chat.send')}
