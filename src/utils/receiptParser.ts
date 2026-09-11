@@ -16,9 +16,11 @@ const NOTE_RE = /berita|keterangan|beneficiary|atas\s+nama|\bnama\b|\bname\b|\ba
 const SALDO_RE = /\bsaldo\b/i;
 // Regex untuk mendeteksi baris yang memang berisi nominal saldo (ada angka).
 // Dipakai untuk skip saldo yang terpisah baris ("Saldo\nAkhir: Rp 2.000.000").
-// S8786: Gunakan \D* (bukan .*?) agar tidak ada backtracking antar
-// quantifier - \D* hanya match non-digit, tidak overlap dengan \d[\d.,]+.
-const SALDO_AMT_RE = /\bsaldo\b\D*\d[\d.,]+|\d[\d.,]+\D*\bsaldo\b/i;
+// S8786: Deteksi baris saldo+angka tanpa regex (hindari backtracking).
+// Cek apakah baris mengandung "saldo" DAN minimal satu digit.
+function isSaldoAmtLine(line: string): boolean {
+  return SALDO_RE.test(line) && /\d/.test(line);
+}
 
 // ─── Amount parsing ───────────────────────────────────────────────────────────
 
@@ -72,8 +74,8 @@ function shouldSkip(val: number, raw: string, line: string, prevLine: string, rp
   if (SALDO_RE.test(line) || SALDO_RE.test(prevLine)) return true;
   // A3: Skip saldo yang terpisah baris - "Saldo" di baris terpisah dari angka.
   // Hanya skip baris saldo murni (tanpa angka) yang diikuti baris saldo+angka.
-  if (SALDO_RE.test(line) && !SALDO_AMT_RE.test(line)) {
-    if (nextLines.some((nl) => SALDO_AMT_RE.test(nl))) return true;
+  if (SALDO_RE.test(line) && !isSaldoAmtLine(line)) {
+    if (nextLines.some((nl) => isSaldoAmtLine(nl))) return true;
   }
   if (isRefLineNumber(digitsOnly, raw, line, rpRe)) return true;
   // Skip 4-digit years (1900-2099) when not on Rp line
