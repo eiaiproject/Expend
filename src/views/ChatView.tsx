@@ -701,9 +701,20 @@ export default function ChatView() {
             accept="image/jpeg,image/png,image/webp"
             capture="environment"
             className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-            // B7: iOS Safari menampilkan error event saat izin kamera ditolak
-            onError={() => setOcrError(t('chat.ocrCameraDenied'))}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) {
+                handleFile(f);
+              } else {
+                // B7: Jika tidak ada file dipilih (permission ditolak di iOS Safari)
+                // tampilkan pesan error setelah delay singkat
+                setTimeout(() => {
+                  if (mountedRef.current && !ocrInFlight.current) {
+                    setOcrError(t('chat.ocrCameraDenied'));
+                  }
+                }, 500);
+              }
+            }}
           />
           <button
             type="button"

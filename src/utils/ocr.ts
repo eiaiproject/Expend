@@ -18,45 +18,58 @@ async function getWorker(): Promise<any> {
 }
 
 // B6: Baca orientasi EXIF dari header JPEG (offset 2-64KB).
-// Mengembalikan nilai 1-8 (default 1 jika tidak ditemukan).
+// Helper: baca uint16 big-endian atau little-endian
+function readU16(buf: Uint8Array, off: number, le: boolean): number {
+  return le ? buf[off]! | (buf[off + 1]! << 8) : (buf[off]! << 8) | buf[off + 1]!;
+}
+
+// Helper: baca uint32 little-endian
+function readU32LE(buf: Uint8Array, off: number): number {
+  return buf[off]! | (buf[off + 1]! << 8) | (buf[off + 2]! << 16) | (buf[off + 3]! << 24);
+}
+
+// Helper: baca uint32 big-endian
+function readU32BE(buf: Uint8Array, off: number): number {
+  return (buf[off]! << 24) | (buf[off + 1]! << 16) | (buf[off + 2]! << 8) | buf[off + 3]!;
+}
+
+// Helper: cari orientasi dari TIFF IFD entries
+function findOrientationInIFD(buf: Uint8Array, tiffStart: number, ifdOffset: number, le: boolean): number {
+  const base = tiffStart + ifdOffset;
+  if (base + 2 > buf.length) return 1;
+  const entries = readU16(buf, base, le);
+  for (let e = 0; e < entries; e++) {
+    const tagOff = base + 2 + e * 12;
+    if (tagOff + 12 > buf.length) return 1;
+    const tag = readU16(buf, tagOff, le);
+    if (tag === 0x0112) return le ? buf[tagOff + 8]! : buf[tagOff + 9]!;
+  }
+  return 1;
+}
+
+// Helper: proses APP1 marker untuk cari orientasi
+function parseAPP1(buf: Uint8Array, app1Start: number): number {
+  const exifStart = app1Start + 4; // skip marker(2) + length(2)
+  if (exifStart + 8 > buf.length) return 1;
+  if (buf[exifStart] !== 0x45 || buf[exifStart + 1] !== 0x78) return 1; // 'Ex'
+  const tiffStart = exifStart + 6;
+  if (tiffStart + 8 > buf.length) return 1;
+  const le = buf[tiffStart] === 0x49; // 'I' = little-endian
+  const ifdOffset = le ? readU32LE(buf, tiffStart + 4) : readU32BE(buf, tiffStart + 4);
+  return findOrientationInIFD(buf, tiffStart, ifdOffset, le);
+}
+
 async function getExifOrientation(file: File): Promise<number> {
   if (file.type !== 'image/jpeg') return 1;
   try {
     const buf = new Uint8Array(await file.slice(0, 65536).arrayBuffer());
-    // Cari marker APP1 (0xFF 0xE1) setelah SOI (0xFF 0xD8)
-    let i = 2;
+    let i = 2; // skip SOI marker
     while (i < buf.length - 1) {
       if (buf[i] !== 0xFF) return 1;
       const marker = buf[i + 1]!;
-      if (marker === 0xE1) {
-        // APP1 - cari "Exif\0\0" + TIFF header
-        const exifStart = i + 4; // skip marker(2) + length(2)
-        if (exifStart + 8 > buf.length) return 1;
-        if (buf[exifStart] !== 0x45 || buf[exifStart + 1] !== 0x78) return 1; // 'Ex'
-        const tiffStart = exifStart + 6;
-        if (tiffStart + 8 > buf.length) return 1;
-        const le = buf[tiffStart] === 0x49; // 'I' = little-endian
-        const ifdOffset = le
-          ? buf[tiffStart + 4]! | (buf[tiffStart + 5]! << 8) | (buf[tiffStart + 6]! << 16) | (buf[tiffStart + 7]! << 24)
-          : (buf[tiffStart + 4]! << 24) | (buf[tiffStart + 5]! << 16) | (buf[tiffStart + 6]! << 8) | buf[tiffStart + 7]!;
-        const entries = le
-          ? buf[tiffStart + ifdOffset]! | (buf[tiffStart + ifdOffset + 1]! << 8)
-          : (buf[tiffStart + ifdOffset]! << 8) | buf[tiffStart + ifdOffset + 1]!;
-        for (let e = 0; e < entries && tiffStart + ifdOffset + 2 + e * 12 + 8 < buf.length; e++) {
-          const tagOff = tiffStart + ifdOffset + 2 + e * 12;
-          const tag = le
-            ? buf[tagOff]! | (buf[tagOff + 1]! << 8)
-            : (buf[tagOff]! << 8) | buf[tagOff + 1]!;
-          if (tag === 0x0112) { // Orientation tag
-            return le ? buf[tagOff + 8]! : buf[tagOff + 9]!;
-          }
-        }
-        return 1;
-      }
-      // Skip ke marker berikutnya
+      if (marker === 0xE1) return parseAPP1(buf, i);
       if (marker === 0xDA || marker === 0xD9) break; // SOS atau EOI
-      const segLen = (buf[i + 2]! << 8) | buf[i + 3]!;
-      i += 2 + segLen;
+      i += 2 + ((buf[i + 2]! << 8) | buf[i + 3]!);
     }
     return 1;
   } catch {

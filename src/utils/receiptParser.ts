@@ -16,7 +16,9 @@ const NOTE_RE = /berita|keterangan|beneficiary|atas\s+nama|\bnama\b|\bname\b|\ba
 const SALDO_RE = /\bsaldo\b/i;
 // Regex untuk mendeteksi baris yang memang berisi nominal saldo (ada angka).
 // Dipakai untuk skip saldo yang terpisah baris ("Saldo\nAkhir: Rp 2.000.000").
-const SALDO_AMT_RE = /\bsaldo\b.*?\d[\d.,]+|\d[\d.,]+.*?\bsaldo\b/i;
+// S8786: Gunakan \D* (bukan .*?) agar tidak ada backtracking antar
+// quantifier - \D* hanya match non-digit, tidak overlap dengan \d[\d.,]+.
+const SALDO_AMT_RE = /\bsaldo\b\D*\d[\d.,]+|\d[\d.,]+\D*\bsaldo\b/i;
 
 // ─── Amount parsing ───────────────────────────────────────────────────────────
 
@@ -63,7 +65,7 @@ function isRefLineNumber(digitsOnly: string, raw: string, line: string, rpRe: Re
   return !rpRe.test(line);
 }
 
-function shouldSkip(val: number, raw: string, line: string, prevLine: string, rpRe: RegExp, kwRe: RegExp, nextLine = '', nextLine2 = ''): boolean {
+function shouldSkip(val: number, raw: string, line: string, prevLine: string, rpRe: RegExp, kwRe: RegExp, nextLines: string[] = []): boolean {
   const digitsOnly = raw.replaceAll(/\D/g, '');
   // Saldo ≠ nominal transaksi - skip baris yang menyebut saldo (DANA/OVO).
   // Cek current/prev line (kasus inline "Saldo Rp X")
@@ -71,7 +73,7 @@ function shouldSkip(val: number, raw: string, line: string, prevLine: string, rp
   // A3: Skip saldo yang terpisah baris - "Saldo" di baris terpisah dari angka.
   // Hanya skip baris saldo murni (tanpa angka) yang diikuti baris saldo+angka.
   if (SALDO_RE.test(line) && !SALDO_AMT_RE.test(line)) {
-    if (SALDO_AMT_RE.test(nextLine) || SALDO_AMT_RE.test(nextLine2)) return true;
+    if (nextLines.some((nl) => SALDO_AMT_RE.test(nl))) return true;
   }
   if (isRefLineNumber(digitsOnly, raw, line, rpRe)) return true;
   // Skip 4-digit years (1900-2099) when not on Rp line
@@ -114,9 +116,8 @@ function collectHits(text: string): ReceiptHit[] { // NOSONAR
       raw = raw + suf;
       const v = parseAmt(raw);
       if (!v || v <= 0) continue;
-      const nextLine = idx + 1 < lines.length ? lines[idx + 1]! : '';
-      const nextLine2 = idx + 2 < lines.length ? lines[idx + 2]! : '';
-      if (shouldSkip(v, raw, line, prevLine, rpLineRe, KW_RE, nextLine, nextLine2)) continue;
+      const nextLines = [idx + 1 < lines.length ? lines[idx + 1]! : '', idx + 2 < lines.length ? lines[idx + 2]! : ''];
+      if (shouldSkip(v, raw, line, prevLine, rpLineRe, KW_RE, nextLines)) continue;
       const hasRp = rpLineRe.test(line) || rpLineRe.test(prevLine);
       const hasKeyword = KW_RE.test(line) || KW_RE.test(prevLine);
       const hasSuffix = /jt|juta|rb|ribu|k/i.test(suf);
