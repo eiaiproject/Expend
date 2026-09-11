@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { BottomNav } from './components/BottomNav';
+import { isEditableElement } from './utils/keyboard';
 import { SidebarNav } from './components/SidebarNav';
 import { I18nProvider, useTranslation } from './i18n';
 
@@ -34,14 +35,36 @@ function Shell() {
     // (~80px) dan Android floating keyboard (~100-120px) juga terdeteksi.
     const threshold = 60;
     const initialHeight = vv.height;
-    const onResize = () => {
+    const isEditing = () => isEditableElement(document.activeElement);
+    const recompute = () => {
       const h = vv.height;
+      // Tanpa fokus editable, keyboard pasti turun: paksa pulih agar
+      // container tidak nyangkut kecil bila event vv resize tidak sampai (iOS).
+      if (!isEditing()) {
+        setVvHeight(h);
+        setKeyboardOpen(false);
+        return;
+      }
       setVvHeight(h);
-      setKeyboardOpen(initialHeight - h > threshold);
+      setKeyboardOpen(Math.max(initialHeight, h) - h > threshold);
     };
-    onResize();
-    vv.addEventListener('resize', onResize);
-    return () => vv.removeEventListener('resize', onResize);
+    let blurTimer = 0;
+    const onBlur = () => {
+      window.clearTimeout(blurTimer);
+      blurTimer = window.setTimeout(recompute, 300);
+    };
+    recompute();
+    vv.addEventListener('resize', recompute);
+    window.addEventListener('resize', recompute);
+    document.addEventListener('focusin', recompute);
+    document.addEventListener('focusout', onBlur);
+    return () => {
+      window.clearTimeout(blurTimer);
+      vv.removeEventListener('resize', recompute);
+      window.removeEventListener('resize', recompute);
+      document.removeEventListener('focusin', recompute);
+      document.removeEventListener('focusout', onBlur);
+    };
   }, []);
 
   // Saat keyboard buka, pakai visualViewport.height sebagai batas tinggi
