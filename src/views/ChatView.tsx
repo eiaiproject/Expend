@@ -59,7 +59,19 @@ export default function ChatView() {
   const [keyboardInset, setKeyboardInset] = useState(0);
   const [visibleLimit, setVisibleLimit] = useState(CHAT_PAGE);
   // Hanya 50 pesan terakhir agar render tetap ringan; pesan lama tidak dihapus.
-  const messages = useLiveQuery(() => db.chatMessages.orderBy('createdAt').reverse().limit(visibleLimit).toArray().then((arr) => arr.reverse()), [visibleLimit]) ?? [];
+  // Loading awal dibedakan dari empty (R-27). hasLoaded mengunci agar reload transien
+  // Dexie saat kirim pesan tidak me-remount wadah scroll (itu yang melempar ke atas).
+  const messagesResult = useLiveQuery(() => db.chatMessages.orderBy('createdAt').reverse().limit(visibleLimit).toArray().then((arr) => arr.reverse()), [visibleLimit]);
+  const [cachedMessages, setCachedMessages] = useState<typeof messagesResult>(undefined);
+  const [hasLoadedMessages, setHasLoadedMessages] = useState(false);
+  useEffect(() => {
+    if (messagesResult !== undefined) {
+      setCachedMessages(messagesResult);
+      setHasLoadedMessages(true);
+    }
+  }, [messagesResult]);
+  const messages = messagesResult ?? cachedMessages ?? [];
+  const isMessagesLoading = !hasLoadedMessages && messagesResult === undefined;
   const totalChat = useLiveQuery(() => db.chatMessages.count(), []) ?? 0;
   const endRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -214,7 +226,7 @@ export default function ChatView() {
                 await cache.delete('shared-meta');
               } else {
                 // B3: Cache kosong - kemungkinan iOS Safari atau share gagal.
-                // Tampilkan pesan引导 user upload manual.
+                // Minta user upload manual lewat galeri.
                 setOcrError(t('chat.ocrShareFailed'));
               }
         }
@@ -227,7 +239,6 @@ export default function ChatView() {
     })();
   }, []);
 
-  // Handle mode=upload from URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('mode') === 'upload') {
@@ -411,8 +422,19 @@ export default function ChatView() {
         </div>
       </div>
 
+      {/* Loading dibedakan dari empty (R-27): skeleton saat Dexie belum jawab. */}
+      {isMessagesLoading && !pending && ocrProgress === null && (
+        <div className="flex-1 min-h-0 flex items-start pt-6 px-4 md:px-6">
+          <output className="w-full rounded-[var(--radius-lg)] bg-[var(--card)] border border-[var(--border)] p-4 space-y-3 animate-pulse" aria-live="polite" aria-label={t('common.loadingData')}>
+            <span className="sr-only">{t('common.loading')}</span>
+            <div className="h-16 rounded-[var(--radius-md)] bg-[var(--border)]" />
+            <div className="h-16 rounded-[var(--radius-md)] bg-[var(--border)]" />
+          </output>
+        </div>
+      )}
+
       {/* Empty state - outside of role="log" */}
-      {messages.length === 0 && !pending && (
+      {!isMessagesLoading && messages.length === 0 && !pending && ocrProgress === null && (
         <div className="flex-1 min-h-0 flex items-start pt-6">
           <div className="w-full rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5">
             <div className="flex items-start gap-3.5">
@@ -459,7 +481,7 @@ export default function ChatView() {
       )}
 
       {/* Message log */}
-      {(messages.length > 0 || pending || ocrProgress !== null) && (
+      {(!isMessagesLoading || pending || ocrProgress !== null) && (messages.length > 0 || pending || ocrProgress !== null) && (
         <div
           ref={listRef}
           role="log"
@@ -559,7 +581,7 @@ export default function ChatView() {
                     onChange={(e) => setPending({ ...pending, description: e.target.value })}
                     autoComplete="off"
                     placeholder={t('chat.descPlaceholder')}
-                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
+                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
                   />
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -577,7 +599,7 @@ export default function ChatView() {
                         setPending({ ...pending, amount: v });
                       }}
                       placeholder="50000"
-                      className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
+                      className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
                     />
                   </label>
                   <label htmlFor="pending-date" className="block">
@@ -593,7 +615,7 @@ export default function ChatView() {
                           setPending({ ...pending, date: v });
                         }
                       }}
-                      className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
+                      className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
                     />
                   </label>
                 </div>
@@ -605,7 +627,7 @@ export default function ChatView() {
                     onChange={(e) => setPending({ ...pending, source: e.target.value })}
                     autoComplete="off"
                     placeholder={t('chat.sourcePlaceholder')}
-                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
+                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
                   />
                 </label>
                 <label htmlFor="pending-note" className="block">
@@ -616,7 +638,7 @@ export default function ChatView() {
                     onChange={(e) => setPending({ ...pending, note: e.target.value })}
                     autoComplete="off"
                     placeholder={t('chat.notePlaceholder')}
-                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
+                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
                   />
                 </label>
                 <div className="flex items-center gap-2 text-xs">
@@ -687,7 +709,7 @@ export default function ChatView() {
         }`}
         style={keyboardInset > 0 ? { transform: `translateY(-${keyboardInset}px)` } : undefined}
       >
-        <form onSubmit={handleSend} className="flex items-end gap-2 bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-xl)] p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[var(--accent)]/20 focus-within:border-[var(--accent)] transition-all">
+        <form onSubmit={handleSend} className="flex items-end gap-2 bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-xl)] p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[var(--accent)] focus-within:border-[var(--accent)] transition-all">
           <input
             ref={fileRef}
             type="file"
