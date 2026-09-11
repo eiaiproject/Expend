@@ -1,4 +1,10 @@
 # Changelog
+## 0.15.9 - 2026-09-11
+### Fixed
+
+- Hentikan kompensasi ganda keyboard yang membuat composer menggantung di Android (#31)
+
+
 ## 0.15.8 - 2026-09-11
 
 ## 0.15.7 - 2026-09-11
