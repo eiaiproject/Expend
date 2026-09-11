@@ -55,7 +55,6 @@ export default function ChatView() {
   const ocrInFlight = useRef(false);
   const mountedRef = useRef(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [composerH, setComposerH] = useState(0);
   const [keyboardInset, setKeyboardInset] = useState(0);
   const [visibleLimit, setVisibleLimit] = useState(CHAT_PAGE);
   // Hanya 50 pesan terakhir agar render tetap ringan; pesan lama tidak dihapus.
@@ -78,22 +77,12 @@ export default function ChatView() {
   const firstRenderRef = useRef(true);
   const adjustRef = useRef<{ h: number; top: number } | null>(null);
 
-  // Track composer height for dynamic padding on message list (prevents content jump)
-  useEffect(() => {
-    const el = composerRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(([entry]) => {
-      if (entry) setComposerH(entry.contentRect.height);
-    });
-    ro.observe(el);
-    setComposerH(el.getBoundingClientRect().height);
-    return () => ro.disconnect();
-  }, []);
-
-  // Track mobile virtual keyboard via visualViewport so composer stays above it.
-  // Multi-sinyal (bukan cuma vv resize) + paksa 0 saat tak ada yang fokus,
-  // karena di sebagian Chrome Android event hide tidak sampai dan composer
-  // nyangkut di tengah layar.
+  // Track mobile virtual keyboard via visualViewport. Shell (App.tsx) sudah
+  // memotong container app ke visualViewport.height sehingga dasar container
+  // = atap keyboard; inset di sini HANYA dipakai sebagai boolean (padding
+  // BottomNav, auto-scroll, hint). JANGAN geser composer atau tambah inset ke
+  // padding - itu kompensasi ganda yang membuat composer menggantung di tengah
+  // layar Android.
   useEffect(() => {
     if (typeof window === 'undefined' || !window.visualViewport) return;
     const vv = window.visualViewport;
@@ -131,6 +120,23 @@ export default function ChatView() {
       mountedRef.current = false;
     };
   }, []);
+
+  // Guard regresi DEV: composer harus docked di dasar visual viewport saat
+  // keyboard terbuka (bottom == vv.height + vv.offsetTop). Hanya peringatan
+  // console, dihapus dari bundle produksi oleh dead-code elimination Vite.
+  useEffect(() => {
+    if (!import.meta.env.DEV || keyboardInset <= 0) return;
+    const el = composerRef.current;
+    const vv = window.visualViewport;
+    if (!el || !vv) return;
+    const r = el.getBoundingClientRect();
+    const target = vv.height + vv.offsetTop;
+    if (Math.abs(r.bottom - target) > 4) {
+      console.warn(
+        `[expend] composer tidak docked: bottom=${r.bottom.toFixed(1)} target=${target.toFixed(1)}`,
+      );
+    }
+  }, [keyboardInset]);
 
   // Default di bawah (instant saat mount), anti-rebut: hanya auto-scroll
   // bila user sudah di dekat bawah. Muat pesan lama tidak melempar ke bawah.
@@ -490,12 +496,12 @@ export default function ChatView() {
           aria-label={t('chat.conversation')}
           onScroll={handleScroll}
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 py-4 pb-8 space-y-3"
-          // Keyboard terbuka: composer digeser naik (translateY) tapi container
-          // scroll tetap memanjang sampai belakang keyboard - tanpa kompensasi,
-          // pesan terbaru tak bisa discroll ke atas composer (tersembunyi di
-          // balik keyboard). Tambahkan inset ke padding bawah list agar konten
-          // bisa naik setinggi keyboard saat scroll maksimal.
-          style={{ paddingBottom: composerH + 16 + keyboardInset }}
+          // Shell (App.tsx) sudah memotong app sampai visualViewport -> dasar
+          // list = atap keyboard. JANGAN tambah inset keyboard di sini
+          // (penyebab bug composer menggantung di Android). Composer di flow
+          // normal (bukan overlay) sehingga tingginya juga tidak perlu masuk
+          // padding (menghasilkan gap mati antara bubble terakhir dan composer).
+          style={{ paddingBottom: 16 }}
         >
           <h2 className="sr-only">{t('chat.conversation')}</h2>
           {totalChat > messages.length && (
@@ -707,7 +713,6 @@ export default function ChatView() {
               'pb-[calc(10px+env(safe-area-inset-bottom))]'
             : 'pb-[calc(66px+env(safe-area-inset-bottom))] md:pb-[calc(10px+env(safe-area-inset-bottom))]'
         }`}
-        style={keyboardInset > 0 ? { transform: `translateY(-${keyboardInset}px)` } : undefined}
       >
         <form onSubmit={handleSend} className="flex items-end gap-2 bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-xl)] p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[var(--accent)] focus-within:border-[var(--accent)] transition-all">
           <input
