@@ -17,11 +17,76 @@ async function getWorker(): Promise<any> {
   return workerPromise;
 }
 
+// B6: Baca orientasi EXIF dari header JPEG (offset 2-64KB).
+// Mengembalikan nilai 1-8 (default 1 jika tidak ditemukan).
+async function getExifOrientation(file: File): Promise<number> {
+  if (file.type !== 'image/jpeg') return 1;
+  try {
+    const buf = new Uint8Array(await file.slice(0, 65536).arrayBuffer());
+    // Cari marker APP1 (0xFF 0xE1) setelah SOI (0xFF 0xD8)
+    let i = 2;
+    while (i < buf.length - 1) {
+      if (buf[i] !== 0xFF) return 1;
+      const marker = buf[i + 1]!;
+      if (marker === 0xE1) {
+        // APP1 - cari "Exif\0\0" + TIFF header
+        const exifStart = i + 4; // skip marker(2) + length(2)
+        if (exifStart + 8 > buf.length) return 1;
+        if (buf[exifStart] !== 0x45 || buf[exifStart + 1] !== 0x78) return 1; // 'Ex'
+        const tiffStart = exifStart + 6;
+        if (tiffStart + 8 > buf.length) return 1;
+        const le = buf[tiffStart] === 0x49; // 'I' = little-endian
+        const ifdOffset = le
+          ? buf[tiffStart + 4]! | (buf[tiffStart + 5]! << 8) | (buf[tiffStart + 6]! << 16) | (buf[tiffStart + 7]! << 24)
+          : (buf[tiffStart + 4]! << 24) | (buf[tiffStart + 5]! << 16) | (buf[tiffStart + 6]! << 8) | buf[tiffStart + 7]!;
+        const entries = le
+          ? buf[tiffStart + ifdOffset]! | (buf[tiffStart + ifdOffset + 1]! << 8)
+          : (buf[tiffStart + ifdOffset]! << 8) | buf[tiffStart + ifdOffset + 1]!;
+        for (let e = 0; e < entries && tiffStart + ifdOffset + 2 + e * 12 + 8 < buf.length; e++) {
+          const tagOff = tiffStart + ifdOffset + 2 + e * 12;
+          const tag = le
+            ? buf[tagOff]! | (buf[tagOff + 1]! << 8)
+            : (buf[tagOff]! << 8) | buf[tagOff + 1]!;
+          if (tag === 0x0112) { // Orientation tag
+            return le ? buf[tagOff + 8]! : buf[tagOff + 9]!;
+          }
+        }
+        return 1;
+      }
+      // Skip ke marker berikutnya
+      if (marker === 0xDA || marker === 0xD9) break; // SOS atau EOI
+      const segLen = (buf[i + 2]! << 8) | buf[i + 3]!;
+      i += 2 + segLen;
+    }
+    return 1;
+  } catch {
+    return 1;
+  }
+}
+
+// B6: Terapkan rotasi EXIF berdasarkan orientasi (1-8) pada canvas.
+function applyExifRotation(ctx: CanvasRenderingContext2D, w: number, h: number, orient: number): void {
+  switch (orient) {
+    case 2: ctx.transform(-1, 0, 0, 1, w, 0); break;
+    case 3: ctx.transform(-1, 0, 0, -1, w, h); break;
+    case 4: ctx.transform(1, 0, 0, -1, 0, h); break;
+    case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
+    case 6: ctx.transform(0, 1, -1, 0, h, 0); break;
+    case 7: ctx.transform(0, -1, -1, 0, h, w); break;
+    case 8: ctx.transform(0, -1, 1, 0, 0, w); break;
+  }
+}
+
 async function preprocess(file: File): Promise<Blob | File> {
   // fast path: keep original for now, resizing only for very large images via canvas
   // to avoid 6s overhead in e2e, skip heavy processing for <1.5MP
   try {
-    if (file.size < 1.2 * 1024 * 1024) return file;
+    // B6: Untuk file kecil, cek EXIF orientation. Jika rotasi diperlukan,
+    // proses via canvas agar OCR membaca struk dalam orientasi benar.
+    const isSmall = file.size < 1.2 * 1024 * 1024;
+    const orient = isSmall ? await getExifOrientation(file) : 1;
+    if (isSmall && orient === 1) return file;
+
     // Hormati rotasi EXIF (foto HP portrait) bila browser mendukung opsi ini.
     let bitmap: ImageBitmap;
     try {
@@ -31,7 +96,7 @@ async function preprocess(file: File): Promise<Blob | File> {
     }
     const max = 1000;
     let { width, height } = bitmap;
-    if (width <= max && height <= max) {
+    if (width <= max && height <= max && orient === 1) {
       bitmap.close?.();
       return file;
     }
@@ -42,6 +107,9 @@ async function preprocess(file: File): Promise<Blob | File> {
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d')!;
+    // B6: applyExifRotation sebagai fallback bila createImageBitmap tidak support
+    // imageOrientation option (beberapa browser lama).
+    applyExifRotation(ctx, width, height, orient);
     ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close?.();
     const blob: Blob = await new Promise((res) => canvas.toBlob((b) => res(b as Blob), 'image/jpeg', 0.85) as any);
@@ -54,7 +122,7 @@ async function preprocess(file: File): Promise<Blob | File> {
 export const OCR_MAX_BYTES = 10 * 1024 * 1024;
 export const OCR_ALLOWED = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
-export type OcrFileError = 'format' | 'empty' | 'too-large';
+export type OcrFileError = 'format' | 'empty' | 'too-large' | 'magic';
 
 /**
  * Validasi file gambar bukti secara murni (testable).
@@ -65,6 +133,29 @@ export function validateImageFile(file: { type: string; size: number }): OcrFile
   if (!file.type.startsWith('image/') || !(OCR_ALLOWED as readonly string[]).includes(file.type)) return 'format';
   if (file.size === 0) return 'empty';
   if (file.size > OCR_MAX_BYTES) return 'too-large';
+  return null;
+}
+
+// A7: Magic number signatures untuk validasi file upload.
+// Mencegah polyglot file (gambar + script) yang lolos hanya berdasarkan MIME type.
+const MAGIC_SIGNATURES: ReadonlyArray<{ magic: number[]; mime: string }> = [
+  { magic: [0xff, 0xd8, 0xff], mime: 'image/jpeg' },
+  { magic: [0x89, 0x50, 0x4e, 0x47], mime: 'image/png' },
+  { magic: [0x52, 0x49, 0x46, 0x46], mime: 'image/webp' }, // RIFF header (WebP starts with RIFF)
+];
+
+/**
+ * Validasi magic number file gambar (async - perlu baca header).
+ * Return null jika valid, 'magic' jika magic number tidak cocok dengan MIME type.
+ * A7: Mencegah polyglot file yang lolos hanya berdasarkan extension/MIME.
+ */
+export async function validateFileMagic(file: File): Promise<OcrFileError | null> {
+  // Baca 16 byte pertama untuk identifikasi magic number
+  const header = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const sig = MAGIC_SIGNATURES.find((s) => header.slice(0, s.magic.length).every((b, i) => b === s.magic[i]));
+  if (!sig) return 'magic';
+  // Pastikan magic number cocok dengan declared MIME type
+  if (sig.mime !== file.type) return 'magic';
   return null;
 }
 
