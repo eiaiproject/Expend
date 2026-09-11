@@ -26,6 +26,7 @@ function Shell() {
   const location = useLocation();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [vvHeight, setVvHeight] = useState(0);
+  const [vvTop, setVvTop] = useState(0);
   const isChat = location.pathname === '/chat';
 
   useEffect(() => {
@@ -38,6 +39,9 @@ function Shell() {
     const isEditing = () => isEditableElement(document.activeElement);
     const recompute = () => {
       const h = vv.height;
+      // Pin container ke visual viewport: iOS Safari mem-pan offsetTop saat
+      // keyboard terbuka; tanpa ini dasar container menggantung di atas keyboard.
+      setVvTop(vv.offsetTop);
       // Tanpa fokus editable, keyboard pasti turun: paksa pulih agar
       // container tidak nyangkut kecil bila event vv resize tidak sampai (iOS).
       if (!isEditing()) {
@@ -69,7 +73,13 @@ function Shell() {
 
   // Saat keyboard buka, pakai visualViewport.height sebagai batas tinggi
   // agar list tidak meluap ke belakang keyboard.
-  const containerStyle = vvHeight > 0 ? { height: `${vvHeight}px` } : undefined;
+  const containerStyle =
+    vvHeight > 0
+      ? {
+          height: `${vvHeight}px`,
+          transform: vvTop > 0 ? `translateY(${vvTop}px)` : undefined,
+        }
+      : undefined;
 
   return (
     <div className="bg-[var(--bg)] text-[var(--text-primary)] flex overflow-hidden" style={containerStyle ?? { height: '100dvh' }}>
