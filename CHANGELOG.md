@@ -1,4 +1,16 @@
 # Changelog
+## 0.15.0 - 2026-09-11
+### Added
+
+- Empty-state quick actions, form validation, share fallback
+
+### Fixed
+
+- Keyboard detection, safe areas, touch targets, nav, toast, share
+- Add file magic validation and EXIF rotation for mobile photos
+- Saldo detection, import allowlist, ReDoS input bounds
+
+
 ## 0.14.10 - 2026-09-09
 ### Fixed
 
