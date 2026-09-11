@@ -9,7 +9,7 @@ interface InlineAlertProps {
 
 export function InlineAlert({ type = 'error', children, className = '' }: InlineAlertProps) {
   const Icon = type === 'error' ? AlertCircle : Information;
-  const bg = type === 'error' ? 'bg-[var(--danger-bg)] border-[var(--danger-border)] text-[var(--danger)]' : 'bg-[var(--accent-soft)] border-[var(--border)] text-[var(--text-secondary)]';
+  const bg = type === 'error' ? 'bg-[var(--danger-bg)] border-[var(--danger-border)] text-[var(--danger-deep)]' : 'bg-[var(--accent-soft)] border-[var(--border)] text-[var(--text-secondary)]';
 
   return (
     <div

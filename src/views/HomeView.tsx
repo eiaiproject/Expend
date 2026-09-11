@@ -76,7 +76,7 @@ export default function HomeView() {
       {error && (
         <div role="alert" className="text-xs px-3 py-2.5 rounded-[var(--radius-md)] bg-[var(--danger-bg)] border border-[var(--danger-border)] text-[var(--danger)] flex items-start gap-2">
           <span className="flex-1">{error}</span>
-          <button type="button" onClick={() => setError(null)} className="text-[var(--danger)] hover:opacity-70" aria-label={t('common.close')}>&times;</button>
+          <button type="button" onClick={() => setError(null)} className="min-w-11 min-h-11 grid place-items-center rounded-[var(--radius-md)] text-[var(--danger-deep)] hover:opacity-70 focus-visible:ring-2 focus-visible:ring-[var(--accent)]" aria-label={t('common.close')}><span aria-hidden className="text-lg leading-none">&times;</span></button>
         </div>
       )}
 
@@ -123,14 +123,14 @@ export default function HomeView() {
                 <label className="block">
                   <span className="text-xs font-medium text-[var(--text-secondary)]">{t('settings.from')}</span>
                   <div className="relative mt-1">
-                    <input id="home-filter-from" type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} aria-label={t('settings.from')} className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                    <input id="home-filter-from" type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} aria-label={t('settings.from')} className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]" />
                     <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" aria-hidden />
                   </div>
                 </label>
                 <label className="block">
                   <span className="text-xs font-medium text-[var(--text-secondary)]">{t('settings.to')}</span>
                   <div className="relative mt-1">
-                    <input id="home-filter-to" type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} aria-label={t('settings.to')} className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                    <input id="home-filter-to" type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} aria-label={t('settings.to')} className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]" />
                     <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" aria-hidden />
                   </div>
                 </label>
@@ -144,7 +144,7 @@ export default function HomeView() {
                       type="button"
                       aria-pressed={granularity === g}
                       onClick={() => setGranularity(g)}
-                      className={`flex-1 min-h-10 rounded-[var(--radius-sm)] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${granularity === g ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
+                      className={`flex-1 min-h-11 rounded-[var(--radius-sm)] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${granularity === g ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
                     >
                       {t(GRANULARITY_LABEL_KEY[g])}
                     </button>
@@ -362,7 +362,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
             type="button"
             onClick={onClose}
             aria-label={t('home.cancel')}
-            className="w-9 h-9 grid place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+            className="min-w-11 min-h-11 grid place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <X size={18} aria-hidden />
           </button>
@@ -375,7 +375,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
-            className="mt-1 w-full min-h-12 px-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
+            className="mt-1 w-full min-h-12 px-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
           />
         </label>
 
@@ -387,7 +387,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
-            className="mt-1 w-full min-h-12 px-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
+            className="mt-1 w-full min-h-12 px-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
           />
         </label>
 
@@ -398,7 +398,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
             value={date}
             onChange={(e) => setDate(e.target.value)}
             required
-            className="mt-1 w-full min-h-12 px-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
+            className="mt-1 w-full min-h-12 px-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
           />
         </label>
 
@@ -408,7 +408,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
             value={source}
             onChange={(e) => setSource(e.target.value)}
             placeholder="BCA, GoPay, Tunai"
-            className="mt-1 w-full min-h-12 px-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]"
+            className="mt-1 w-full min-h-12 px-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
           />
         </label>
 
@@ -418,7 +418,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={2}
-            className="mt-1 w-full min-h-12 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)] resize-none"
+            className="mt-1 w-full min-h-12 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)] resize-none"
           />
         </label>
 

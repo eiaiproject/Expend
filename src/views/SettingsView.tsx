@@ -113,12 +113,10 @@ export default function SettingsView() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
-  // Persist confirmSave
   useEffect(() => {
     localStorage.setItem('confirmSave', String(confirmSave));
   }, [confirmSave]);
 
-  // Apply theme
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'system') {
@@ -230,7 +228,7 @@ export default function SettingsView() {
                   value={theme}
                   onChange={(e) => setTheme(e.target.value as Theme)}
                   aria-label={t('settings.theme')}
-                  className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)] appearance-none"
+                  className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
                 >
                   <option value="system">{t('settings.themeSystem')}</option>
                   <option value="light">{t('settings.themeLight')}</option>
@@ -272,7 +270,7 @@ export default function SettingsView() {
                   value={lang}
                   onChange={(e) => setLang(e.target.value as Lang)}
                   aria-label={t('settings.language')}
-                  className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)] appearance-none"
+                  className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
                 >
                   <option value="id">Bahasa Indonesia</option>
                   <option value="en">English</option>
@@ -295,14 +293,14 @@ export default function SettingsView() {
               <label className="block">
                 <span className="text-xs font-medium text-[var(--text-secondary)]">{t('settings.from')}</span>
                 <div className="relative mt-1">
-                  <input id="export-from" type="date" value={exportFrom} onChange={(e) => setExportFrom(e.target.value)} className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                  <input id="export-from" type="date" value={exportFrom} onChange={(e) => setExportFrom(e.target.value)} className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]" />
                   <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" aria-hidden />
                 </div>
               </label>
               <label className="block">
                 <span className="text-xs font-medium text-[var(--text-secondary)]">{t('settings.to')}</span>
                 <div className="relative mt-1">
-                  <input id="export-to" type="date" value={exportTo} onChange={(e) => setExportTo(e.target.value)} className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 focus-visible:border-[var(--accent)]" />
+                  <input id="export-to" type="date" value={exportTo} onChange={(e) => setExportTo(e.target.value)} className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]" />
                   <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" aria-hidden />
                 </div>
               </label>
