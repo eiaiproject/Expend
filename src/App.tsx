@@ -30,7 +30,9 @@ function Shell() {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const threshold = 150;
+    // B1: Turunkan threshold dari 150px ke 60px agar iPadOS split keyboard
+    // (~80px) dan Android floating keyboard (~100-120px) juga terdeteksi.
+    const threshold = 60;
     const initialHeight = vv.height;
     const onResize = () => {
       const h = vv.height;

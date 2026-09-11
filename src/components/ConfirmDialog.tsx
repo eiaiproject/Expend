@@ -70,8 +70,8 @@ export function ConfirmDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/40" onClick={onCancel} aria-hidden="true" />
+    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="fixed inset-0 bg-black/40 hover:bg-black/50 transition-colors cursor-pointer" onClick={onCancel} aria-hidden="true" />
       <dialog
         ref={dialogRef as unknown as React.RefObject<HTMLDialogElement>}
         open
