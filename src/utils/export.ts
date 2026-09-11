@@ -157,6 +157,12 @@ function coerceRawText(v: unknown): string | undefined {
 function validateImportItem(item: unknown): { tx?: ImportedTransaction; error?: string } {
   if (typeof item !== 'object' || item === null || Array.isArray(item)) return { error: 'item bukan objek' };
   const o = item as Record<string, unknown>;
+  // A5: Allowlist kunci untuk cegah prototype pollution dari JSON import.
+  // Hanya field yang dikenal yang diizinkan; kunci lain diabaikan.
+  const ALLOWED_KEYS = new Set(['description', 'amount', 'date', 'source', 'note', 'createdAt', 'rawText']);
+  for (const k of Object.keys(o)) {
+    if (!ALLOWED_KEYS.has(k)) return { error: `field tidak dikenal: ${k}` };
+  }
   const desc = o.description;
   if (typeof desc !== 'string' || !desc.trim() || desc.trim().length > 200) return { error: 'deskripsi tidak valid' };
   const amount = o.amount;

@@ -12,7 +12,11 @@ const RECIPIENT_RE = /penerima|kepada|tujuan|ditransfer\s*ke|^\s*ke\b|transfer\s
 const NOTE_RE = /berita|keterangan|beneficiary|atas\s+nama|\bnama\b|\bname\b|\ba\.?\s*n\.?\s|a\/n/i;
 // Baris yang menyebut "saldo" adalah informasi saldo, bukan nominal transaksi
 // (resi DANA/OVO: "Rp 250.000 ... Saldo Rp 1.000.000" → nominal = 250.000).
+// Word-boundary agar "Saldo Gift" / "Saldo Cashback" tidak salah skip.
 const SALDO_RE = /\bsaldo\b/i;
+// Regex untuk mendeteksi baris yang memang berisi nominal saldo (ada angka).
+// Dipakai untuk skip saldo yang terpisah baris ("Saldo\nAkhir: Rp 2.000.000").
+const SALDO_AMT_RE = /\bsaldo\b.*?\d[\d.,]+|\d[\d.,]+.*?\bsaldo\b/i;
 
 // ─── Amount parsing ───────────────────────────────────────────────────────────
 
@@ -59,10 +63,16 @@ function isRefLineNumber(digitsOnly: string, raw: string, line: string, rpRe: Re
   return !rpRe.test(line);
 }
 
-function shouldSkip(val: number, raw: string, line: string, prevLine: string, rpRe: RegExp, kwRe: RegExp): boolean {
+function shouldSkip(val: number, raw: string, line: string, prevLine: string, rpRe: RegExp, kwRe: RegExp, nextLine = '', nextLine2 = ''): boolean {
   const digitsOnly = raw.replaceAll(/\D/g, '');
   // Saldo ≠ nominal transaksi - skip baris yang menyebut saldo (DANA/OVO).
+  // Cek current/prev line (kasus inline "Saldo Rp X")
   if (SALDO_RE.test(line) || SALDO_RE.test(prevLine)) return true;
+  // A3: Skip saldo yang terpisah baris - "Saldo" di baris terpisah dari angka.
+  // Hanya skip baris saldo murni (tanpa angka) yang diikuti baris saldo+angka.
+  if (SALDO_RE.test(line) && !SALDO_AMT_RE.test(line)) {
+    if (SALDO_AMT_RE.test(nextLine) || SALDO_AMT_RE.test(nextLine2)) return true;
+  }
   if (isRefLineNumber(digitsOnly, raw, line, rpRe)) return true;
   // Skip 4-digit years (1900-2099) when not on Rp line
   if (/^(19|20)\d{2}$/.test(digitsOnly) && !rpRe.test(line)) return true;
@@ -104,7 +114,9 @@ function collectHits(text: string): ReceiptHit[] { // NOSONAR
       raw = raw + suf;
       const v = parseAmt(raw);
       if (!v || v <= 0) continue;
-      if (shouldSkip(v, raw, line, prevLine, rpLineRe, KW_RE)) continue;
+      const nextLine = idx + 1 < lines.length ? lines[idx + 1]! : '';
+      const nextLine2 = idx + 2 < lines.length ? lines[idx + 2]! : '';
+      if (shouldSkip(v, raw, line, prevLine, rpLineRe, KW_RE, nextLine, nextLine2)) continue;
       const hasRp = rpLineRe.test(line) || rpLineRe.test(prevLine);
       const hasKeyword = KW_RE.test(line) || KW_RE.test(prevLine);
       const hasSuffix = /jt|juta|rb|ribu|k/i.test(suf);
@@ -371,8 +383,11 @@ function extractNote(text: string): string | undefined {
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function parseReceiptText(text: string): { description: string; amount: number; date: string; rawText: string; note?: string; source?: string } | null {
-  const rawText = text.slice(0, 500);
-  const amount = extractAmount(text);
+  // A2: Batasi panjang input untuk cegah ReDoS - regex kompleks
+  // pada text panjang (amount candidate, source detect, label chain).
+  const bounded = text.slice(0, 500);
+  const rawText = bounded;
+  const amount = extractAmount(bounded);
   if (amount == null) return null;
 
   const lines = text.split('\n');
@@ -391,9 +406,9 @@ export function parseReceiptText(text: string): { description: string; amount: n
     }
   }
 
-  const { desc: description } = extractDescription(text, hits);
-  const source = detectSource(text);
-  const note = extractNote(text);
+  const { desc: description } = extractDescription(bounded, hits);
+  const source = detectSource(bounded);
+  const note = extractNote(bounded);
 
   return {
     description,

@@ -301,7 +301,9 @@ function formatDescription(raw: string, hasGenericSource: boolean, stripSourceCl
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function parseChatInput(input: string): ParsedExpense | null {
-  const text = input.trim();
+  // A2: Batasi panjang input untuk cegah ReDoS - regex kompleks
+  // (sumber dana, amount candidate) aman pada input terbatas (<500 char).
+  const text = input.trim().slice(0, 500);
   if (!text) return null;
 
   // 1. Extract date from text
