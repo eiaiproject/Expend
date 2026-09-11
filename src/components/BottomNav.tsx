@@ -1,9 +1,10 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { navigationItems } from '../config/navigation';
 import { useTranslation } from '../i18n';
 
 export function BottomNav({ hidden = false }: { readonly hidden?: boolean }) {
   const { t } = useTranslation();
+  const location = useLocation();
   if (hidden) return null;
 
   return (
@@ -13,13 +14,17 @@ export function BottomNav({ hidden = false }: { readonly hidden?: boolean }) {
           key={item.href}
           to={item.href}
           end={item.href === '/'}
-          className={({ isActive }) =>
-            `flex-1 flex flex-col items-center justify-center gap-1.5 min-h-13 py-2 text-[12px] font-medium transition-colors relative ${
-              isActive
+          className={({ isActive }) => {
+            const match = item.href === '/'
+              ? location.pathname === '/'
+              : location.pathname.startsWith(item.href);
+            const active = isActive || match;
+            return `flex-1 flex flex-col items-center justify-center gap-1.5 min-h-13 py-2 text-[12px] font-medium transition-colors relative ${
+              active
                 ? 'text-[var(--accent)] font-semibold'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`
-          }
+            }`;
+          }}
         >
           {({ isActive }) => (
             <>

@@ -9,9 +9,11 @@ interface StatusBadgeProps {
 const variants = {
   default: 'bg-[var(--accent-soft)] text-[var(--accent)]',
   success: 'bg-[var(--success-soft)] text-[var(--success)]',
-  warning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  // C7: Gunakan CSS variables konsisten dengan komponen lain,
+  // bukan Tailwind dark: modifier yang tidak ikut custom theme override.
+  warning: 'bg-[var(--warning-soft)] text-[var(--warning)]',
   error: 'bg-[var(--danger-soft)] text-[var(--danger)]',
-  info: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+  info: 'bg-[var(--info-soft)] text-[var(--info)]',
 };
 
 export function StatusBadge({ children, variant = 'default', className = '' }: StatusBadgeProps) {

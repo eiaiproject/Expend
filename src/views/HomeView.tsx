@@ -203,7 +203,7 @@ export default function HomeView() {
                     type="button"
                     aria-label={t('home.editTransaction', { name: tx.description })}
                     onClick={() => setEditing(tx)}
-                    className="w-11 h-11 grid place-items-center rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg)] active:scale-95 transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                    className="min-w-12 min-h-12 grid place-items-center rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg)] active:scale-95 transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                   >
                     <Edit size={18} aria-hidden />
                   </button>
@@ -220,7 +220,7 @@ export default function HomeView() {
                         setError(t('home.deleteFailed'));
                       }
                     }}
-                    className="w-11 h-11 -mr-2 grid place-items-center rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg)] active:scale-95 transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                    className="min-w-12 min-h-12 -mr-2 grid place-items-center rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg)] active:scale-95 transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                   >
                     <Trash2 size={18} aria-hidden />
                   </button>

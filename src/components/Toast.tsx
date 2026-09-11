@@ -37,9 +37,10 @@ export function Toast({ message, type = 'success', onDismiss, duration = 4000 }:
     <div
       role="status"
       aria-live="polite"
-      className={`fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] px-4 py-3 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] shadow-lg flex items-start gap-3 transition-all duration-300 ${
+      className={`fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 max-w-sm w-[calc(100%-2rem)] px-4 py-3 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] shadow-lg flex items-start gap-3 transition-all duration-300 ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
       }`}
+      style={{ zIndex: 'var(--z-toast)', marginBottom: 'env(safe-area-inset-bottom)' }}
     >
       <Icon size={18} className={`shrink-0 mt-0.5 ${iconClass}`} aria-hidden />
       <p className="text-sm flex-1 min-w-0 leading-snug">{message}</p>

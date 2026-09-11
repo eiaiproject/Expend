@@ -30,7 +30,10 @@ async function handlePost(event) {
       await cache.delete('shared-meta');
     }
     return Response.redirect('/chat?share=1', 303);
-  } catch (_e) { // NOSONAR - share must redirect to chat even if cache fails, error intentionally ignored
-    return Response.redirect('/chat?share=1', 303);
+  } catch (e) { // NOSONAR - share must redirect to chat even if cache fails
+    // B2: Sertakan info error agar ChatView bisa menampilkan pesan fallback
+    // ke user, bukan halaman chat kosong tanpa penjelasan.
+    const msg = e instanceof Error ? e.message : 'cache failed';
+    return Response.redirect(`/chat?share=1&error=${encodeURIComponent(msg)}`, 303);
   }
 }

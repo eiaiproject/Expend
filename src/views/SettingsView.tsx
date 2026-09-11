@@ -349,6 +349,14 @@ export default function SettingsView() {
               title={t('settings.receiptData')}
               description={t('settings.receiptDataDesc')}
             />
+            {/* A6: Peringatan data tidak terenkripsi */}
+            <SettingsRow
+              icon={<Lock size={18} />}
+              iconBg="bg-[var(--danger-soft)]"
+              iconColor="text-[var(--danger)]"
+              title={t('settings.notEncrypted')}
+              description={t('settings.notEncryptedDesc')}
+            />
           </div>
         </SectionCard>
       </SettingsSection>
