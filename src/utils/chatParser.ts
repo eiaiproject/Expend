@@ -10,8 +10,7 @@ export interface ParsedExpense {
   date?: string;
 }
 
-// ─── Number normalization ─────────────────────────────────────────────────────
-
+// Number normalization
 /**
  * Normalize a number string from Indonesian format to JS number.
  *
@@ -72,8 +71,7 @@ export function normalizeNumber(s: string): number {
   return parseDotVariant(raw);
 }
 
-// ─── Amount parsing with suffixes ─────────────────────────────────────────────
-
+// Amount parsing with suffixes
 const SUFFIX_RE = /^([\d.,]+)\s*(jt|juta|rb|ribu|k)$/i; // NOSONAR - anchored, input bounded (<80 chars)
 
 function parseAmountWithSuffix(raw: string): number | null {
@@ -91,8 +89,7 @@ function parseAmountWithSuffix(raw: string): number | null {
   return base * 1_000; // rb, ribu, k
 }
 
-// ─── Date parsing ─────────────────────────────────────────────────────────────
-
+// Date parsing
 export const MONTH_MAP: Record<string, string> = {
   jan: '01', feb: '02', mar: '03', apr: '04', mei: '05', jun: '06',
   jul: '07', agu: '08', aug: '08', sep: '09', okt: '10', oct: '10',
@@ -178,8 +175,7 @@ export function extractChatDate(text: string): string {
   return todayLocalISO();
 }
 
-// ─── Smart amount extraction ──────────────────────────────────────────────────
-
+// Smart amount extraction
 interface AmountCandidate extends RankedAmount {
   raw: string;
 }
@@ -253,8 +249,7 @@ function pickBest(candidates: AmountCandidate[], _fullText: string): AmountCandi
   return pickBestAmount(candidates);
 }
 
-// ─── Description formatting ───────────────────────────────────────────────────
-
+// Description formatting
 const VERB_RE = /^(beli|bayar|jajan|belanja|order|pesan|isi|top\s*up|transfer|tf|beliin|buy|pay)\s+/i;
 const SOURCE_CLAUSE_RE = /\s+(?:dari|pakai|pake|via|from)\s+\S.*$/i; // NOSONAR - bounded description (<80 chars)
 const GENERIC_SOURCE_RE = /\b(?:tunai|cash|kas)\b/gi;
@@ -298,8 +293,7 @@ function formatDescription(raw: string, hasGenericSource: boolean, stripSourceCl
   return titleCasePreserveAcronyms(desc).slice(0, 80);
 }
 
-// ─── Main export ──────────────────────────────────────────────────────────────
-
+// Main export
 export function parseChatInput(input: string): ParsedExpense | null {
   // A2: Batasi panjang input untuk cegah ReDoS - regex kompleks
   // (sumber dana, amount candidate) aman pada input terbatas (<500 char).

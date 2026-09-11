@@ -22,8 +22,7 @@ function isSaldoAmtLine(line: string): boolean {
   return SALDO_RE.test(line) && /\d/.test(line);
 }
 
-// ─── Amount parsing ───────────────────────────────────────────────────────────
-
+// Amount parsing
 function parseAmt(s: string): number | null {
   const c = s.toLowerCase().replaceAll(/\s/g, '');
   let m: RegExpExecArray | null;
@@ -45,8 +44,7 @@ function parseAmt(s: string): number | null {
   return null;
 }
 
-// ─── Line analysis ────────────────────────────────────────────────────────────
-
+// Line analysis
 function isRefLine(line: string): boolean {
   return /ref|resi|trace|\bID\b|account|rekening|akun|no\.?\s*transaksi|referensi|nomor/i.test(line);
 }
@@ -90,8 +88,7 @@ function shouldSkip(val: number, raw: string, line: string, prevLine: string, rp
   return false;
 }
 
-// ─── Scoring (shared formula, see amountRank) ──────────────────────────────────
-
+// Scoring (shared formula, see amountRank)
 interface ReceiptHit extends RankedAmount {
   idx: number;
 }
@@ -152,8 +149,7 @@ function extractAmount(text: string): number | null {
   return pickBestAmount(pool)!.value;
 }
 
-// ─── Date extraction ──────────────────────────────────────────────────────────
-
+// Date extraction
 function extractDate(text: string): string {
   // "31/08/2026"
   const ddmmyyyy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text); // NOSONAR
@@ -172,8 +168,7 @@ function extractDate(text: string): string {
   return todayLocalISO();
 }
 
-// ─── Description extraction ───────────────────────────────────────────────────
-
+// Description extraction
 // Share message markers (conversational: "halo aku sudah kirim Rpxxx...")
 const SHARE_MARKERS: readonly RegExp[] = [
   /halo|hai/i,
@@ -368,8 +363,7 @@ function extractDescription(text: string, hits: { idx: number }[]): { desc: stri
   return { desc: finalizeDesc(desc) };
 }
 
-// ─── Note extraction ─────────────────────────────────────────────────────────
-
+// Note extraction
 function extractNote(text: string): string | undefined {
   const lines = text.split('\n');
   // Match "Pulang X" or "Pergi X" (travel/ride receipt notes)
@@ -383,8 +377,7 @@ function extractNote(text: string): string | undefined {
   return undefined;
 }
 
-// ─── Main export ──────────────────────────────────────────────────────────────
-
+// Main export
 export function parseReceiptText(text: string): { description: string; amount: number; date: string; rawText: string; note?: string; source?: string } | null {
   // A2: Batasi panjang input untuk cegah ReDoS - regex kompleks
   // pada text panjang (amount candidate, source detect, label chain).

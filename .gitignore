@@ -24,3 +24,8 @@ rules.md
 # Ignore tests and scripts folders
 tests/
 scripts/
+
+# Local-only: audit output and agent design docs
+anti-slop/
+AGENTS.md
+DESIGN.md

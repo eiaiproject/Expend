@@ -1,5 +1,5 @@
 const id = {
-  // ─── Common ────────────────────────────────────────────────────────────────
+  // Common
   'common.loading': 'Memuat...',
   'common.loadingData': 'Memuat data',
   'common.loadingProcessor': 'Memuat pemroses...',
@@ -12,13 +12,13 @@ const id = {
   'common.export': 'Ekspor',
   'common.skipToContent': 'Lewati ke konten utama',
 
-  // ─── Navigation ────────────────────────────────────────────────────────────
+  // Navigation
   'nav.main': 'Navigasi utama',
   'nav.summary': 'Ringkasan',
   'nav.record': 'Catat',
   'nav.settings': 'Pengaturan',
 
-  // ─── Home ──────────────────────────────────────────────────────────────────
+  // Home
   'home.subtitle': 'Pantau pengeluaran dan transaksi terbaru',
   'home.emptyTitle': 'Belum ada transaksi',
   'home.emptyDesc': 'Catat pengeluaran lewat chat atau unggah bukti transaksi. Data diproses di perangkat Anda.',
@@ -47,7 +47,7 @@ const id = {
   'home.groupMonth': 'Bulan',
   'home.noMatch': 'Tidak ada transaksi pada rentang ini.',
 
-  // ─── Chat ──────────────────────────────────────────────────────────────────
+  // Chat
   'chat.title': 'Catat pengeluaran',
   'chat.subtitle': 'Ketik transaksi atau unggah bukti',
   'chat.startRecording': 'Mulai mencatat',
@@ -97,7 +97,7 @@ const id = {
   'chat.saveError': 'Gagal menyimpan transaksi. Coba lagi.',
   'chat.loadOlder': 'Muat 50 pesan lama',
 
-  // ─── Settings ──────────────────────────────────────────────────────────────
+  // Settings
   'settings.title': 'Pengaturan',
   'settings.subtitle': 'Atur tampilan, data, dan privasi',
   'settings.preferences': 'Preferensi',
@@ -154,7 +154,7 @@ const id = {
   'settings.deleteSuccess': 'Semua data transaksi berhasil dihapus.',
   'settings.deleteError': 'Gagal menghapus data. Coba lagi.',
 
-  // ─── Export columns ────────────────────────────────────────────────────────
+  // Export columns
   'export.date': 'Tanggal',
   'export.description': 'Deskripsi',
   'export.amount': 'Jumlah',

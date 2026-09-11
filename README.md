@@ -1,6 +1,6 @@
 # Expend - Chat Expense Tracker
 
-![version](https://img.shields.io/badge/version-0.15.7-teal)
+![version](https://img.shields.io/badge/version-0.15.8-teal)
 
 Offline-first PWA. Navigation: **Summary** (transaction list) + **Record** (chat + OCR) + **Settings** (theme, data, privacy).
 

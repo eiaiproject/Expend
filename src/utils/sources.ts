@@ -19,7 +19,7 @@ export interface SourceEntry {
 const GENERIC_WORD_SOURCES = new Set(['Dana']);
 
 export const SOURCES: SourceEntry[] = [
-  // ─── Bank BUMN ──────────────────────────────────────
+  // Bank BUMN
   // Sub-brand (Mandiri Taspen, BCA Syariah) DIDAHULUKAN induknya karena
   // pencarian memakai first-match; teks "Bank Mandiri Taspen" harus terdeteksi
   // sebagai Mandiri Taspen, bukan Mandiri.
@@ -31,7 +31,7 @@ export const SOURCES: SourceEntry[] = [
   { name: 'BSI',       patterns: [/bank\s*syariah/i, /\bbsi\b/i] },
   { name: 'Bank INA',  patterns: [/bank\s*ina\b/i] },
 
-  // ─── Bank Swasta ────────────────────────────────────
+  // Bank Swasta
   { name: 'BCA Syariah', patterns: [/bca\s*syariah/i, /bank\s*syariah\s*bca/i] },
   { name: 'BCA',       patterns: [/bank\s*central\s*asia/i, /\bbca\b/i] },
   { name: 'CIMB Niaga', patterns: [/cimb\s*niaga/i, /\bcimb\b/i] },
@@ -44,7 +44,7 @@ export const SOURCES: SourceEntry[] = [
   { name: 'Muamalat',  patterns: [/bank\s*muamalat/i, /\bmuamalat\b/i] },
   { name: 'Sinarmas',  patterns: [/\bsinarmas\b/i] },
 
-  // ─── Bank Asing ─────────────────────────────────────
+  // Bank Asing
   // 1.3: pola lama memakai 'í' beraksen sehingga "OCBC Niaga" (ASCII) tak cocok.
   // Dipakai [ií] agar dua-duanya cocok tanpa mengandalkan fallback \bocbc\b.
   { name: 'OCBC',      patterns: [/ocbc\s*n[ií]aga/i, /\bocbc\b/i] },
@@ -56,7 +56,7 @@ export const SOURCES: SourceEntry[] = [
   { name: 'DBS',       patterns: [/\bdbs\b/i] },
   { name: 'ICBC',      patterns: [/\bicbc\b/i] },
 
-  // ─── Bank Digital ───────────────────────────────────
+  // Bank Digital
   { name: 'Jago',      patterns: [/\bjago\b/i, /bank\s*jago/i] },
   { name: 'Neo Commerce', patterns: [/neo\s*commerce/i, /\bneobank\b/i] },
   { name: 'Sea Bank',  patterns: [/sea\s*bank/i, /\bseabank\b/i] },
@@ -64,7 +64,7 @@ export const SOURCES: SourceEntry[] = [
   { name: 'Bank Surya Yudha', patterns: [/\bbanksurya/i] },
   { name: 'Allo Bank', patterns: [/allo\s*bank/i, /\ballobank\b/i] },
 
-  // ─── E-Wallet ───────────────────────────────────────
+  // E-Wallet
   { name: 'GoPay',     patterns: [/go\s*pay/i, /\bgopay\b/i, /gopaylater/i] },
   { name: 'OVO',       patterns: [/\bovo\b/i] },
   { name: 'Dana',      patterns: [/\bdana\b/i] },
@@ -73,16 +73,16 @@ export const SOURCES: SourceEntry[] = [
   { name: 'i.saku',    patterns: [/i\.?saku/i] },
   { name: 'Doku',      patterns: [/\bdoku\b/i] },
 
-  // ─── Fintech / Lending ──────────────────────────────
+  // Fintech / Lending
   { name: 'Flip',      patterns: [/\bflip\b/i] },
   { name: 'Fitco',     patterns: [/\bfitco\b/i] },
   { name: 'Topindo',   patterns: [/\btopindo\b/i] },
 
-  // ─── Kartu ──────────────────────────────────────────
+  // Kartu
   { name: 'Kartu Kredit', patterns: [/kartu\s*kredit/i, /\bkk\b/i, /credit\s*card/i] },
   { name: 'Kartu Debit',  patterns: [/kartu\s*debit/i, /\bkd\b/i, /debit\s*card/i] },
 
-  // ─── Generic ────────────────────────────────────────
+  // Generic
   { name: 'Tunai',     patterns: [/\btunai\b/i, /\bcash\b/i] },
   { name: 'Kas',       patterns: [/\bkas\b/i] },
   { name: 'Transfer Bank', patterns: [/transfer\s*bank/i, /\btf\s*bank/i] },

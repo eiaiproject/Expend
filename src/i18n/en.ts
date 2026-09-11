@@ -1,7 +1,7 @@
 import type { TranslationKey } from './id';
 
 const en: Record<TranslationKey, string> = {
-  // ─── Common ────────────────────────────────────────────────────────────────
+  // Common
   'common.loading': 'Loading...',
   'common.loadingData': 'Loading data',
   'common.loadingProcessor': 'Loading processor...',
@@ -14,13 +14,13 @@ const en: Record<TranslationKey, string> = {
   'common.export': 'Export',
   'common.skipToContent': 'Skip to main content',
 
-  // ─── Navigation ────────────────────────────────────────────────────────────
+  // Navigation
   'nav.main': 'Main navigation',
   'nav.summary': 'Summary',
   'nav.record': 'Record',
   'nav.settings': 'Settings',
 
-  // ─── Home ──────────────────────────────────────────────────────────────────
+  // Home
   'home.subtitle': 'Track expenses and recent transactions',
   'home.emptyTitle': 'No transactions yet',
   'home.emptyDesc': 'Record expenses via chat or upload transaction receipts. Data is processed on your device.',
@@ -49,7 +49,7 @@ const en: Record<TranslationKey, string> = {
   'home.groupMonth': 'Month',
   'home.noMatch': 'No transactions in this range.',
 
-  // ─── Chat ──────────────────────────────────────────────────────────────────
+  // Chat
   'chat.title': 'Record expense',
   'chat.subtitle': 'Type transaction or upload receipt',
   'chat.startRecording': 'Start recording',
@@ -99,7 +99,7 @@ const en: Record<TranslationKey, string> = {
   'chat.saveError': 'Failed to save transaction. Try again.',
   'chat.loadOlder': 'Load 50 older messages',
 
-  // ─── Settings ──────────────────────────────────────────────────────────────
+  // Settings
   'settings.title': 'Settings',
   'settings.subtitle': 'Customize appearance, data, and privacy',
   'settings.preferences': 'Preferences',
@@ -156,7 +156,7 @@ const en: Record<TranslationKey, string> = {
   'settings.deleteSuccess': 'All transaction data deleted successfully.',
   'settings.deleteError': 'Failed to delete data. Try again.',
 
-  // ─── Export columns ────────────────────────────────────────────────────────
+  // Export columns
   'export.date': 'Date',
   'export.description': 'Description',
   'export.amount': 'Amount',
