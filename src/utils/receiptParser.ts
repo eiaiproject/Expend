@@ -206,6 +206,11 @@ function extractShareRecipient(text: string): string | undefined {
   return name;
 }
 
+// Label metadata acquirer/payment-network pada resi QRIS merchant - bukan
+// penerima ("Nama Acquirer", "PAN Merchant", "Merchant ID", "Sumber
+// Transaksi"). Baris berlabel ini wajib ditolak sebagai kandidat deskripsi.
+const ACQUIRER_LABEL_RE = /\bacquirer?\b|\bmerchant\s+id\b|\bmerchant\s+name\b|\bpan\s+merchant\b|\bpan\s+pelanggan\b|\bpan\s+customer\b|\bsumber\s+transaksi\b|\bsumber\s+dana\b|\bacquiring\s+bank\b|\bissuing\s+bank\b|\bsettlement\b|\bprocessor\b/i; // NOSONAR - anchored word-boundaries, bounded input (≤500 chars)
+
 // Baris penerima berbasis nama - label Inggris ("Beneficiary/Account/Recipient
 // Name", "Name:") maupun Indonesia ("Nama:", "Atas Nama", "Penerima:",
 // "a.n."). Diprioritaskan di atas baris "Ke <no HP>" agar LinkAja/ShopeePay /
@@ -217,12 +222,48 @@ const NAME_CAPTURE_RE =
   /(?:^|[\s(])(?:a[.\s]n[.\s]|(?:beneficiary|account|recipient)?\s*(?:atas\s+nama|name|nama)|penerima)\s*[:=]?\s*([A-Z][A-Za-z .'-]{1,})/i; // NOSONAR - bounded
 
 function findHitLine(lines: string[]): string | undefined {
+  const notAcquirer = (l: string) => !ACQUIRER_LABEL_RE.test(l);
   let hit = lines.find((l) => PRODUCT_RE.test(l));
-  if (!hit) hit = lines.find((l) => NAME_CAPTURE_RE.test(l) && /[A-Za-z]{2,}/.test(l)); // Nama eksplisit lebih kaya drpd "Ke <hp>"
-  if (!hit) hit = lines.find((l) => RECIPIENT_RE.test(l) && /(?:penerima|kepada|tujuan|ke)\s*[:-]?\s*[^\n]{2,}/i.test(l)); // NOSONAR
-  if (!hit) hit = lines.find((l) => RECIPIENT_RE.test(l));
-  if (!hit) hit = lines.find((l) => NOTE_RE.test(l));
+  if (!hit) hit = lines.find((l) => notAcquirer(l) && NAME_CAPTURE_RE.test(l) && /[A-Za-z]{2,}/.test(l)); // Nama eksplisit lebih kaya drpd "Ke <hp>"
+  if (!hit) hit = lines.find((l) => notAcquirer(l) && RECIPIENT_RE.test(l) && /(?:penerima|kepada|tujuan|ke)\s*[:-]?\s*[^\n]{2,}/i.test(l)); // NOSONAR
+  if (!hit) hit = lines.find((l) => notAcquirer(l) && RECIPIENT_RE.test(l));
+  if (!hit) hit = lines.find((l) => notAcquirer(l) && NOTE_RE.test(l));
   return hit;
+}
+
+// Baris merchant khas resi QRIS: ALL-CAPS tanpa label di awal resi ("TYA BUAH
+// 2", "WARUNG KOPI SUDIANG"). Dicari sebelum baris nominal: 2-40 karakter,
+// tanpa digit panjang, tanpa tanda baca (alamat/kota selalu bertanda),
+// bukan baris berlabel penerima, bukan label tanggal/biaya/acquirer,
+// bukan nama bank, dan minimal 40% huruf kapital (longgar untuk mixed-case,
+// ketat untuk kalimat).
+function findMerchantLine(lines: string[], amountIdx: number): string | undefined { // NOSONAR
+  const labelSkipRe = /tanggal|waktu|\bwib\b|\bjam\b|biaya|gratis|referen|\bstatus\b|metode|rincian|detail|berhasil|failed|sumber\s+transaksi|sumber\s+dana/i;
+  const recipientLabelRe = new RegExp(`${PRODUCT_RE.source}|${NAME_CAPTURE_RE.source}|${RECIPIENT_RE.source}|${NOTE_RE.source}`, 'i');
+  for (let i = 0; i < amountIdx && i < lines.length; i++) {
+    const t = lines[i]!.trim();
+    if (!t || t.length < 2 || t.length > 40) continue;
+    if (labelSkipRe.test(t) || ACQUIRER_LABEL_RE.test(t)) continue;
+    // Baris berlabel penerima ("Beneficiary Name X", "Penerima: Y") bukan
+    // merchant - biar jalur hit-line yang menanganinya (nama tepat, bukan
+    // label + nama).
+    if (recipientLabelRe.test(t)) continue;
+    if (/\d{4,}/.test(t)) continue; // skip baris dg angka panjang
+    // Baris merchant murni nama (huruf/spasi/digit pendek). Baris alamat/kota
+    // ("JL. RAYA ...", "SURABAYA - JAWA TIMUR", "Sidoarjo (Kab)") selalu
+    // bertanda baca - tolak agar tak menang atas nama toko di baris atas.
+    if (/[./\-():,]/.test(t)) continue;
+    if (detectSource(t)) continue; // skip baris nama bank
+    // Minimal 40% huruf kapital (ciri merchant ALL-CAPS). Bukan 60%:
+    // "Access By KAI Oo" hanya ~46% kapital tapi merchant valid, sementara
+    // kalimat biasa ("Bukti Transaksi", "Dari Rina Wulandari") <30%.
+    const letters = t.match(/[A-Za-z]/g) ?? [];
+    const uppers = t.match(/[A-Z]/g) ?? [];
+    if (letters.length >= 3 && uppers.length / letters.length >= 0.4) {
+      return t;
+    }
+  }
+  return undefined;
 }
 
 // Debris label OCR ikut ke-capture ("Nama Ac r" dari "Nama Akun").
@@ -275,7 +316,7 @@ function findFallbackDesc(lines: string[], hits: { idx: number }[], src: string 
   // nama-akun ("Nama Ac r"), baris biaya/gratis. Tanpa ini fallback memilih
   // "Tanggal & waktu trar i" padahal "FINPAY"/merchant tersedia.
   const labelSkipRe =
-    /tanggal|waktu|\bwib\b|\bjam\b|biaya|gratis|referen|\bstatus\b|metode\s+pembayaran|sumber\s+dana|rincian|detail\s+transaksi|transfer\s+berhasil|berhasil|transfer\s+successful|transfer\s+failed|pembayaran\s+berhasil|transaksi\s+berhasil/i; // NOSONAR
+    /tanggal|waktu|\bwib\b|\bjam\b|biaya|gratis|referen|\bstatus\b|metode\s+pembayaran|sumber\s+dana|sumber\s+transaksi|rincian|detail\s+transaksi|transfer\s+berhasil|berhasil|transfer\s+successful|transfer\s+failed|pembayaran\s+berhasil|transaksi\s+berhasil|acquirer|pan\s+merchant|pan\s+pelanggan|merchant\s+id/i; // NOSONAR
   const dateLineRe =
     /\d{1,2}\s*(jan|feb|mar|apr|mei|jun|jul|agu|aug|sep|okt|oct|nov|des|dec)\w*\s*\d{2,4}|\d{1,2}:\d{2}/i; // NOSONAR
   const nameLabelRe = /^(?:nama?|akun?|ac{1,2}|name?|rek(?:ening)?|nomor|no\.?|tgl)\b/i;
@@ -349,6 +390,27 @@ function extractDescription(text: string, hits: { idx: number }[]): { desc: stri
     return { desc: 'Transfer' };
   }
   const lines = text.split('\n');
+  // Prioritas QRIS merchant: baris nama toko ALL-CAPS tanpa label sebelum
+  // nominal ("TYA BUAH 2"). Wajib di depan findHitLine - bila sesudahnya,
+  // "Nama Acquirer" selalu menang dan merchant terabaikan.
+  // amountIdx = baris pertama berangka ≥1000 (bukan hits[0] mentah: digit
+  // kecil seperti "2" di "TYA BUAH 2" ikut jadi hit dan memotong scan ke 0).
+  const amountIdx = (() => {
+    const i = lines.findIndex((l) =>
+      (l.match(/\d[\d.,]*/g) ?? []).some((tok) => {
+        const v = parseAmt(tok);
+        return v != null && v >= 1000;
+      }),
+    );
+    return i === -1 ? lines.length : i;
+  })();
+  const merchantLine = findMerchantLine(lines, amountIdx);
+  if (merchantLine) {
+    const merchantDesc = titleCasePreserveAcronyms(merchantLine).slice(0, 80);
+    if (!isDebrisDesc(merchantDesc, merchantLine)) {
+      return { desc: finalizeDesc(merchantDesc) };
+    }
+  }
   const hitLine = findHitLine(lines);
   let desc = '';
   if (hitLine) {

@@ -124,8 +124,10 @@ export function detectKnownSource(text: string): string | undefined {
 export function detectSource(text: string): string | undefined {
   const lines = text.split('\n');
 
-  // 1. Cek keyword eksplisit: dari/via/pakai/from X (highest priority)
-  const srcKwRe = /(?:dari|via|pakai|pake|from)\s+([A-Za-z0-9 ]+?)(?:\n|$|[.,])/i; // NOSONAR - bounded, anchored
+  // 1. Cek keyword eksplisit: dari/via/pakai/from X + label resi QRIS
+  // "Sumber Transaksi: Bank Jago" (highest priority). "Sumber Dana:" SENGAJA
+  // bukan keyword - isinya nama orang pemilik rekening, bukan sumber dana.
+  const srcKwRe = /(?:dari|via|pakai|pake|from|sumber\s+transaksi)\s*:?\s+([A-Za-z0-9 ]+?)(?:\n|$|[.,])/i; // NOSONAR - bounded, anchored
   const srcMatch = srcKwRe.exec(text);
   if (srcMatch?.[1]) {
     const candidate = srcMatch[1]!.trim();
