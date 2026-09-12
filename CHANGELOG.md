@@ -1,4 +1,10 @@
 # Changelog
+## 0.15.10 - 2026-09-12
+### Fixed
+
+- Prioritize QRIS merchant name over acquirer label (#32)
+
+
 ## 0.15.9 - 2026-09-11
 ### Fixed
 
