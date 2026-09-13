@@ -132,6 +132,8 @@ const en: Record<TranslationKey, string> = {
   'settings.exportXLSXError': 'Failed to export Excel.',
   'settings.exportJSONSukses': 'Successfully exported {count} transactions (JSON).',
   'settings.exportJSONError': 'Failed to export JSON.',
+  'settings.backupDue': 'No backup for 30 days. Export CSV or JSON to keep data safe.',
+  'settings.backupLast': 'Last backup: {date}.',
   'settings.importJSONSukses': 'Successfully imported {count} transactions.',
   'settings.importJSONSkipped': '{count} items skipped.',
   'settings.importJSONError': 'Failed to import JSON.',

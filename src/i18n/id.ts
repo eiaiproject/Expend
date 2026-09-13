@@ -130,6 +130,8 @@ const id = {
   'settings.exportXLSXError': 'Gagal mengekspor Excel.',
   'settings.exportJSONSukses': 'Berhasil mengekspor {count} transaksi (JSON).',
   'settings.exportJSONError': 'Gagal mengekspor JSON.',
+  'settings.backupDue': 'Sudah 30 hari tanpa backup. Ekspor CSV atau JSON agar data aman.',
+  'settings.backupLast': 'Backup terakhir: {date}.',
   'settings.importJSONSukses': 'Berhasil mengimpor {count} transaksi.',
   'settings.importJSONSkipped': '{count} item dilewati.',
   'settings.importJSONError': 'Gagal mengimpor JSON.',

@@ -4,20 +4,19 @@ import { db } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { PageHeader } from '../components/PageHeader';
 import { SectionCard } from '../components/SectionCard';
-import { Toast } from '../components/Toast';
-import { csvBlob, xlsxBlob, jsonBlob, parseImportJSON, IMPORT_MAX_BYTES, filterByDate, exportFilename, downloadBlob, validateDateRange } from '../utils/export';
+import { Toast, useToast } from '../components/Toast';
+import { csvBlob, jsonBlob, parseImportJSON, IMPORT_MAX_BYTES, filterByDate, exportFilename, downloadBlob, validateDateRange } from '../utils/export';
+import { isBackupDue, readLastBackup, recordBackup } from '../utils/backup';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 const EXPORT_ERROR_KEY = {
   csv: 'settings.exportCSVError',
-  xlsx: 'settings.exportXLSXError',
   json: 'settings.exportJSONError',
 } as const;
 import { useTranslation } from '../i18n';
 import type { Lang } from '../i18n';
 
 type Theme = 'system' | 'light' | 'dark';
-type ToastState = { message: string; type: 'success' | 'error' } | null;
 
 function SettingsSection({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
   return (
@@ -103,13 +102,15 @@ export default function SettingsView() {
   const version: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
   const txs = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
-  const [toast, setToast] = useState<ToastState>(null);
+  const { toast, showToast, dismissToast } = useToast();
   const [confirmSave, setConfirmSave] = useState(() => {
     const v = localStorage.getItem('confirmSave');
     return v === null ? true : v === 'true';
   });
   const [exportFrom, setExportFrom] = useState('');
   const [exportTo, setExportTo] = useState('');
+  const [lastBackup, setLastBackup] = useState<string | null>(readLastBackup);
+  const backupDue = isBackupDue(txs.length, lastBackup);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -128,13 +129,9 @@ export default function SettingsView() {
     }
   }, [theme]);
 
-  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-  }, []);
-
-  // Satu jalur ekspor untuk csv/xlsx/json: validasi range + filter + empty
+  // Satu jalur ekspor untuk csv/json: validasi range + filter + empty
   // check hanya sekali agar tidak terduplikasi per format.
-  const handleExport = useCallback(async (kind: 'csv' | 'xlsx' | 'json') => {
+  const handleExport = useCallback(async (kind: 'csv' | 'json') => {
     const rangeErr = validateDateRange(exportFrom || undefined, exportTo || undefined);
     if (rangeErr === 'from-after-to') {
       showToast(t('settings.fromAfterTo'), 'error');
@@ -153,12 +150,11 @@ export default function SettingsView() {
       }
       if (kind === 'csv') {
         downloadBlob(csvBlob(filtered), exportFilename('csv', exportFrom || undefined, exportTo || undefined));
+        setLastBackup(recordBackup());
         showToast(t('settings.exportCSVSukses', { count: filtered.length }));
-      } else if (kind === 'xlsx') {
-        downloadBlob(await xlsxBlob(filtered), exportFilename('xlsx', exportFrom || undefined, exportTo || undefined));
-        showToast(t('settings.exportXLSXSukses', { count: filtered.length }));
       } else {
         downloadBlob(jsonBlob(filtered), exportFilename('json', exportFrom || undefined, exportTo || undefined));
+        setLastBackup(recordBackup());
         showToast(t('settings.exportJSONSukses', { count: filtered.length }));
       }
     } catch {
@@ -309,9 +305,6 @@ export default function SettingsView() {
               <button type="button" aria-label={t('settings.exportCSV')} onClick={() => void handleExport('csv')} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.exportCSV')}
               </button>
-              <button type="button" aria-label={t('settings.exportExcel')} onClick={() => void handleExport('xlsx')} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
-                <Download size={16} aria-hidden /> {t('settings.exportExcel')}
-              </button>
               <button type="button" aria-label={t('settings.exportJSON')} onClick={() => void handleExport('json')} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.exportJSON')}
               </button>
@@ -320,6 +313,16 @@ export default function SettingsView() {
               </button>
             </div>
             <input ref={importRef} type="file" accept="application/json,.json" className="hidden" aria-label={t('settings.importJSON')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f); }} />
+            {backupDue && (
+              <p className="text-xs text-[var(--text-secondary)]" role="note">
+                {t('settings.backupDue')}
+              </p>
+            )}
+            {!backupDue && lastBackup && (
+              <p className="text-xs text-[var(--text-muted)]">
+                {t('settings.backupLast', { date: lastBackup.slice(0, 10) })}
+              </p>
+            )}
           </div>
         </SectionCard>
       </SettingsSection>
@@ -411,7 +414,7 @@ export default function SettingsView() {
         <Toast
           message={toast.message}
           type={toast.type}
-          onDismiss={() => setToast(null)}
+          onDismiss={dismissToast}
         />
       )}
 
