@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { fmtIDR, fmtDate } from '../utils/format';
@@ -10,8 +10,9 @@ import { SectionCard } from '../components/SectionCard';
 import { EmptyState } from '../components/EmptyState';
 import { InlineAlert } from '../components/InlineAlert';
 import { SkeletonCard } from '../components/SkeletonCard';
-import { Toast } from '../components/Toast';
+import { Toast, useToast } from '../components/Toast';
 import type { Transaction } from '../db/db';
+import { useFocusTrap } from '../utils/focusTrap';
 import { useTranslation } from '../i18n';
 import type { TranslationKey } from '../i18n/id';
 
@@ -44,7 +45,7 @@ export default function HomeView() {
   const txs = txsResult ?? EMPTY_TXS;
   const isLoading = txsResult === undefined;
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const { toast, showToast, dismissToast } = useToast();
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
@@ -214,7 +215,7 @@ export default function HomeView() {
                       try {
                         if (tx.id) {
                           await db.transactions.delete(tx.id);
-                          setToast({ message: t('home.transactionDeleted'), type: 'success' });
+                          showToast(t('home.transactionDeleted')); 
                         }
                       } catch {
                         setError(t('home.deleteFailed'));
@@ -247,7 +248,7 @@ export default function HomeView() {
         <Toast
           message={toast.message}
           type={toast.type}
-          onDismiss={() => setToast(null)}
+          onDismiss={dismissToast}
         />
       )}
 
@@ -257,7 +258,7 @@ export default function HomeView() {
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
-            setToast({ message: t('home.transactionUpdated'), type: 'success' });
+            showToast(t('home.transactionUpdated'));
           }}
           onError={() => {
             setError(t('home.updateFailed'));
@@ -285,41 +286,9 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
   const [note, setNote] = useState(tx.note ?? '');
   const [saving, setSaving] = useState(false);
   const firstFieldRef = useRef<HTMLInputElement>(null);
-  const prevFocusRef = useRef<HTMLElement | null>(null);
   const sheetRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
-    prevFocusRef.current = document.activeElement as HTMLElement | null;
-    firstFieldRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-        return;
-      }
-      // Focus trap ringan (seperti ConfirmDialog): Tab cycling di dalam sheet.
-      if (e.key === 'Tab' && sheetRef.current) {
-        const focusable = sheetRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0]!;
-        const last = focusable[focusable.length - 1]!;
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      prevFocusRef.current?.focus?.();
-    };
-  }, [onClose]);
+  useFocusTrap(sheetRef, { onClose, initialFocusRef: firstFieldRef });
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
