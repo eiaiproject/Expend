@@ -2,6 +2,8 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { logPerf } from './utils/perf';
+const bootT0 = performance.now();
 
 const root = createRoot(document.getElementById('root')!);
 
@@ -10,6 +12,8 @@ root.render(
     <App />
   </StrictMode>,
 );
+
+logPerf('startup', Math.round(performance.now() - bootT0));
 
 // Dismiss splash screen after React has mounted.
 // pointer-events:none immediately - the overlay must never swallow the
