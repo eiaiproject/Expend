@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { AlertCircle } from 'reicon-react';
 
 interface InlineAlertProps {
-  readonly type?: 'error';
   readonly children: ReactNode;
 }
 

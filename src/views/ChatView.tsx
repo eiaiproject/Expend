@@ -394,7 +394,7 @@ export default function ChatView() {
           alert validasi/upload tidak boleh terkubur di dalam wadah log. */}
       {ocrError && (
         <div className="shrink-0 px-4 md:px-6 pt-3">
-          <InlineAlert type="error">{ocrError}</InlineAlert>
+          <InlineAlert>{ocrError}</InlineAlert>
         </div>
       )}
 

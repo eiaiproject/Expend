@@ -164,8 +164,8 @@ export default function HomeView() {
             </div>
           </SectionCard>
 
-          {rangeErr === 'from-after-to' && <InlineAlert type="error">{t('settings.fromAfterTo')}</InlineAlert>}
-          {rangeErr === 'invalid-date' && <InlineAlert type="error">{t('settings.invalidDate')}</InlineAlert>}
+          {rangeErr === 'from-after-to' && <InlineAlert>{t('settings.fromAfterTo')}</InlineAlert>}
+          {rangeErr === 'invalid-date' && <InlineAlert>{t('settings.invalidDate')}</InlineAlert>}
 
           {filtered.length === 0 ? (
             <SectionCard>
