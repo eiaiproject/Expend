@@ -39,7 +39,7 @@ React 19 + Vite 6 + Tailwind 4 + Dexie 4 (IndexedDB) + React Router 7 + Tesserac
 
 ## Components
 
-`PageHeader` · `SectionCard` · `EmptyState` · `ConfirmDialog` · `Toast` · `InlineAlert` · `SkeletonCard` · `PrimaryButton` · `SecondaryButton` · `IconButton` · `StatusBadge` · `BottomNav` · `SidebarNav` · `PageContainer`
+`PageHeader` · `SectionCard` · `EmptyState` · `ConfirmDialog` · `Toast` · `InlineAlert` · `SkeletonCard` · `PrimaryButton` · `SecondaryButton` · `IconButton` · `BottomNav` · `SidebarNav` · `PageContainer`
 
 ## Scripts
 
@@ -53,7 +53,6 @@ npm run test         # Vitest watch
 npm run test:unit    # Vitest single run
 npm run lint         # ESLint
 npx playwright test  # E2E (needs dev server, auto-started on :3000)
-node scripts/full-audit.mjs  # Playwright pixel-perfect UI audit (needs dev server on :3000)
 ```
 
 ## Versioning
