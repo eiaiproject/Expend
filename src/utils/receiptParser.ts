@@ -1,5 +1,5 @@
 import { detectSource } from './sources';
-import { normalizeNumber, MONTH_MAP, clampDayISO } from './chatParser';
+import { parseAmountWithSuffix, parseDMYDate } from './chatParser';
 import { todayLocalISO } from './date';
 import { titleCasePreserveAcronyms, ACRONYMS } from './textFormat';
 import { pickBestAmount, type RankedAmount } from './amountRank';
@@ -22,26 +22,9 @@ function isSaldoAmtLine(line: string): boolean {
   return SALDO_RE.test(line) && /\d/.test(line);
 }
 
-// Amount parsing
+// Amount parsing — shared with chatParser (suffix + ID thousand/decimal rules).
 function parseAmt(s: string): number | null {
-  const c = s.toLowerCase().replaceAll(/\s/g, '');
-  let m: RegExpExecArray | null;
-  m = /^([\d.,]+)\s*(jt|juta)$/i.exec(c);
-  if (m) {
-    const n = normalizeNumber(m[1]!);
-    return n > 0 ? n * 1_000_000 : null;
-  }
-  m = /^([\d.,]+)\s*(rb|ribu|k)$/i.exec(c);
-  if (m) {
-    const n = normalizeNumber(m[1]!);
-    return n > 0 ? n * 1_000 : null;
-  }
-  m = /^[\d.,]+$/.exec(c);
-  if (m) {
-    const n = normalizeNumber(m[0]!);
-    return n > 0 ? n : null;
-  }
-  return null;
+  return parseAmountWithSuffix(s);
 }
 
 // Line analysis
@@ -149,23 +132,9 @@ function extractAmount(text: string): number | null {
   return pickBestAmount(pool)!.value;
 }
 
-// Date extraction
+// Date extraction — shared dmy/mmm parsing with chatParser.
 function extractDate(text: string): string {
-  // "31/08/2026"
-  const ddmmyyyy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text); // NOSONAR
-  if (ddmmyyyy) {
-    let y = Number(ddmmyyyy[3]);
-    if (ddmmyyyy[3]!.length === 2) y += 2000;
-    return clampDayISO(y, Number(ddmmyyyy[2]), Number(ddmmyyyy[1]));
-  }
-  // "31 Agustus 2026", "01Sep 2026", atau OCR menempel "01Sep2026" (5.2):
-  // spasi sebelum tahun dibuat opsional (\s*) karena OCR sering menggabungkan.
-  const mmm = /(\d{1,2})\s*(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)\w*\s*(\d{4})/i.exec(text); // NOSONAR
-  if (mmm) {
-    const mon = MONTH_MAP[mmm[2]!.toLowerCase().slice(0, 3)];
-    if (mon) return clampDayISO(Number(mmm[3]), Number(mon), Number(mmm[1]));
-  }
-  return todayLocalISO();
+  return parseDMYDate(text) ?? todayLocalISO();
 }
 
 // Description extraction
