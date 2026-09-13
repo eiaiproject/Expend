@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test';
-import * as XLSX from 'xlsx';
 import fs from 'node:fs';
 import type { Transaction } from '../../src/db/db';
 import { db } from '../../src/db/db';
 
-test.describe('export CSV/XLSX', () => {
+test.describe('export CSV', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.evaluate(
@@ -39,22 +38,6 @@ test.describe('export CSV/XLSX', () => {
     expect(csv.split('\n').length).toBeGreaterThanOrEqual(3);
   });
 
-  test('Excel download valid xlsx', async ({ page }) => {
-    await page.evaluate(async () => {
-      await db.transactions.bulkAdd([{ description: 'Kopi', amount: 25000, date: '2026-09-02', createdAt: new Date().toISOString() } as Transaction]);
-    });
-    await page.reload();
-    await page.goto('/settings');
-    const dlPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Ekspor Excel' }).click();
-    const dl = await dlPromise;
-    const p = await dl.path();
-    const buf = fs.readFileSync(p!);
-    const wb = XLSX.read(buf, { type: 'buffer' });
-    const ws = wb.Sheets[wb.SheetNames[0]!]!;
-    expect(XLSX.utils.sheet_to_json(ws)).toHaveLength(1);
-  });
-
   test('filter by date range', async ({ page }) => {
     await page.evaluate(async () => {
       await db.transactions.bulkAdd([
@@ -76,7 +59,7 @@ test.describe('export CSV/XLSX', () => {
 
   test('empty disables export', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Ekspor CSV' })).toBeDisabled();
-    await expect(page.getByRole('button', { name: 'Ekspor Excel' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Ekspor JSON' })).toBeDisabled();
   });
 
   test('filtered empty shows toast', async ({ page }) => {
@@ -89,5 +72,40 @@ test.describe('export CSV/XLSX', () => {
     await page.locator('#export-to').fill('2026-09-04');
     await page.getByRole('button', { name: 'Ekspor CSV' }).click();
     await expect(page.getByText('Tidak ada transaksi')).toBeVisible();
+  });
+
+  test('CSV download filename respects date range', async ({ page }) => {
+    await page.goto('/chat');
+    await page.getByLabel('Tulis pengeluaran').fill('kopi 25000');
+    await page.getByRole('button', { name: 'Kirim transaksi' }).click();
+    await expect(page.getByText('Periksa transaksi')).toBeVisible({ timeout: 5000 });
+    await page.getByRole('button', { name: 'Simpan transaksi' }).click();
+    await expect(page.getByText(/Tercatat/)).toBeVisible();
+    await page.goto('/settings');
+    await page.locator('#export-from').fill('2026-01-01');
+    await page.locator('#export-to').fill('2099-12-31');
+    const dlPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Ekspor CSV' }).click();
+    const dl = await dlPromise;
+    expect(dl.suggestedFilename()).toBe('expend-2026-01-01_2099-12-31.csv');
+  });
+
+  test('JSON download round-trips version plus rows', async ({ page }) => {
+    await page.goto('/chat');
+    await page.getByLabel('Tulis pengeluaran').fill('kopi 25000');
+    await page.getByRole('button', { name: 'Kirim transaksi' }).click();
+    await expect(page.getByText('Periksa transaksi')).toBeVisible({ timeout: 5000 });
+    await page.getByRole('button', { name: 'Simpan transaksi' }).click();
+    await expect(page.getByText(/Tercatat/)).toBeVisible();
+    await page.goto('/settings');
+    const dlPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Ekspor JSON' }).click();
+    const dl = await dlPromise;
+    const p = await dl.path();
+    const parsed = JSON.parse(fs.readFileSync(p!, 'utf-8'));
+    expect(parsed.version).toBe(1);
+    expect(parsed.count).toBe(1);
+    expect(parsed.transactions).toHaveLength(1);
+    expect(parsed.transactions[0].description).toBe('Kopi');
   });
 });
