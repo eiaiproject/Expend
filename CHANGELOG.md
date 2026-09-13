@@ -1,4 +1,10 @@
 # Changelog
+## 0.16.1 - 2026-09-13
+### Fixed
+
+- Drop unused InlineAlert type prop flagged by Sonar S6767
+
+
 ## 0.16.0 - 2026-09-13
 ### Added
 
