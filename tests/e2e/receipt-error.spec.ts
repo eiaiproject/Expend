@@ -15,11 +15,8 @@ test('receipt upload non-image shows validation alert, no OCR attempt', async ({
   );
   await page.reload();
   await page.goto('/chat');
-  // Validation alert only renders inside the message log, so create
-  // one message first through the real composer flow.
-  await page.getByLabel('Tulis pengeluaran').fill('kopi 25rb');
-  await page.getByRole('button', { name: 'Kirim transaksi' }).click();
-  await expect(page.getByText('Periksa transaksi')).toBeVisible({ timeout: 5000 });
+  // Regresi: alert validasi harus muncul walau chat masih kosong
+  // (tidak terkubur di dalam wadah log yang mensyaratkan pesan).
   await page.locator('input[type="file"]').first().setInputFiles('/tmp/bukan-gambar.txt');
   await expect(page.getByText('Gunakan gambar JPG, PNG, atau WebP')).toBeVisible({ timeout: 5000 });
 });

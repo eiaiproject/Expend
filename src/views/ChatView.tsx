@@ -6,7 +6,7 @@ import { parseReceiptText } from '../utils/receiptParser';
 import { recognizeImage, isOcrReady, validateImageFile, validateFileMagic } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
 import { todayLocalISO } from '../utils/date';
-import { isEditableElement, keyboardInsetPx } from '../utils/keyboard';
+import { useKeyboardInset } from '../utils/keyboard';
 import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ChevronDown, X } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { InlineAlert } from '../components/InlineAlert';
@@ -35,7 +35,6 @@ export default function ChatView() {
   const [pending, setPending] = useState<Pending | null>(null);
   const [ocrProgress, setOcrProgress] = useState<number | null>(null);
   const [ocrError, setOcrError] = useState<string | null>(null);
-  const [magicError, setMagicError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -55,7 +54,7 @@ export default function ChatView() {
   const ocrInFlight = useRef(false);
   const mountedRef = useRef(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [keyboardInset, setKeyboardInset] = useState(0);
+  const keyboardInset = useKeyboardInset();
   const [visibleLimit, setVisibleLimit] = useState(CHAT_PAGE);
   // Hanya 50 pesan terakhir agar render tetap ringan; pesan lama tidak dihapus.
   // Loading awal dibedakan dari empty (R-27). hasLoaded mengunci agar reload transien
@@ -77,42 +76,7 @@ export default function ChatView() {
   const firstRenderRef = useRef(true);
   const adjustRef = useRef<{ h: number; top: number } | null>(null);
 
-  // Track mobile virtual keyboard via visualViewport. Shell (App.tsx) sudah
-  // memotong container app ke visualViewport.height sehingga dasar container
-  // = atap keyboard; inset di sini HANYA dipakai sebagai boolean (padding
-  // BottomNav, auto-scroll, hint). JANGAN geser composer atau tambah inset ke
-  // padding - itu kompensasi ganda yang membuat composer menggantung di tengah
-  // layar Android.
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.visualViewport) return;
-    const vv = window.visualViewport;
-    const recompute = () => {
-      if (!mountedRef.current) return;
-      setKeyboardInset(keyboardInsetPx(window.innerHeight, vv.height, vv.offsetTop, isEditableElement(document.activeElement)));
-    };
-    let blurTimer = 0;
-    const onBlur = () => {
-      // Keyboard butuh ~200-300ms untuk turun; hitung ulang setelah reda.
-      window.clearTimeout(blurTimer);
-      blurTimer = window.setTimeout(recompute, 300);
-    };
-    vv.addEventListener('resize', recompute);
-    vv.addEventListener('scroll', recompute);
-    window.addEventListener('resize', recompute);
-    window.addEventListener('orientationchange', recompute);
-    document.addEventListener('focusin', recompute);
-    document.addEventListener('focusout', onBlur);
-    recompute();
-    return () => {
-      window.clearTimeout(blurTimer);
-      vv.removeEventListener('resize', recompute);
-      vv.removeEventListener('scroll', recompute);
-      window.removeEventListener('resize', recompute);
-      window.removeEventListener('orientationchange', recompute);
-      document.removeEventListener('focusin', recompute);
-      document.removeEventListener('focusout', onBlur);
-    };
-  }, []);
+
 
   useEffect(() => {
     mountedRef.current = true;
@@ -307,12 +271,11 @@ export default function ChatView() {
     // A7: Validasi magic number untuk cegah polyglot file
     const magicErr = await validateFileMagic(file);
     if (magicErr === 'magic') {
-      setMagicError(t('chat.ocrFormatError'));
+      setOcrError(t('chat.ocrFormatError'));
       return;
     }
     ocrInFlight.current = true;
     setOcrError(null);
-    setMagicError(null);
     const url = URL.createObjectURL(file);
     if (mountedRef.current) setPreviewUrl(url);
     if (mountedRef.current) setOcrProgress(0);
@@ -384,7 +347,6 @@ export default function ChatView() {
       if (mountedRef.current) {
         setPending(null);
         setOcrError(null);
-        setMagicError(null);
       }
     } catch {
       if (mountedRef.current) setOcrError(t('chat.saveError') ?? 'Gagal menyimpan transaksi. Coba lagi.');
@@ -427,6 +389,14 @@ export default function ChatView() {
           </div>
         </div>
       </div>
+
+      {/* Error selalu terlihat, termasuk saat chat masih kosong (R-27):
+          alert validasi/upload tidak boleh terkubur di dalam wadah log. */}
+      {ocrError && (
+        <div className="shrink-0 px-4 md:px-6 pt-3">
+          <InlineAlert type="error">{ocrError}</InlineAlert>
+        </div>
+      )}
 
       {/* Loading dibedakan dari empty (R-27): skeleton saat Dexie belum jawab. */}
       {isMessagesLoading && !pending && ocrProgress === null && (
@@ -567,9 +537,6 @@ export default function ChatView() {
             </div>
           )}
 
-          {ocrError && <InlineAlert type="error">{ocrError}</InlineAlert>}
-          {magicError && <InlineAlert type="error">{magicError}</InlineAlert>}
-
           {pending && (
             <div className="rounded-[var(--radius-lg)] border border-[var(--accent)] bg-[var(--card)] p-5 motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none">
               <div className="flex items-center gap-2">
@@ -665,7 +632,7 @@ export default function ChatView() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setPending(null); setOcrError(null); setMagicError(null); }}
+                  onClick={() => { setPending(null); setOcrError(null); }}
                   className="min-h-12 px-5 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 >
                   <X size={16} aria-hidden />
