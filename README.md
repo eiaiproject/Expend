@@ -57,4 +57,4 @@ npx playwright test  # E2E (needs dev server, auto-started on :3000)
 
 ## Versioning
 
-Semver + Conventional Commits per commit.
+Semver + Conventional Commits per commit. Merges to `main` cut a release automatically (`release.yml` + `scripts/auto-release.mjs`): highest bump wins (breaking to MAJOR once 1.0 ships, MINOR while on 0.x; `feat` to MINOR; `fix`/`perf`/`refactor`/`revert` to PATCH).
