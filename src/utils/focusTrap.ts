@@ -39,9 +39,10 @@ export function useFocusTrap<T extends HTMLElement>(
 ): void {
   const previousFocus = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
   useEffect(() => {
     if (!active) return;
+    // Tulis ref di dalam effect, bukan saat render (react-hooks/refs).
+    onCloseRef.current = onClose;
     const restoreEl = restoreFocusRef?.current;
     previousFocus.current = document.activeElement as HTMLElement | null;
     const initial =
@@ -54,5 +55,5 @@ export function useFocusTrap<T extends HTMLElement>(
       document.removeEventListener('keydown', onKey);
       (restoreEl ?? previousFocus.current)?.focus?.();
     };
-  }, [active, containerRef, initialFocusRef, restoreFocusRef]);
+  }, [active, containerRef, initialFocusRef, restoreFocusRef, onClose]);
 }

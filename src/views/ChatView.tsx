@@ -60,16 +60,19 @@ export default function ChatView() {
   // Loading awal dibedakan dari empty (R-27). hasLoaded mengunci agar reload transien
   // Dexie saat kirim pesan tidak me-remount wadah scroll (itu yang melempar ke atas).
   const messagesResult = useLiveQuery(() => db.chatMessages.orderBy('createdAt').reverse().limit(visibleLimit).toArray().then((arr) => arr.reverse()), [visibleLimit]);
-  const [cachedMessages, setCachedMessages] = useState<typeof messagesResult>(undefined);
-  const [hasLoadedMessages, setHasLoadedMessages] = useState(false);
-  useEffect(() => {
-    if (messagesResult !== undefined) {
-      setCachedMessages(messagesResult);
-      setHasLoadedMessages(true);
-    }
-  }, [messagesResult]);
-  const messages = messagesResult ?? cachedMessages ?? [];
-  const isMessagesLoading = !hasLoadedMessages && messagesResult === undefined;
+  const [messageCache, setMessageCache] = useState<{ snapshot: typeof messagesResult; loaded: boolean }>({
+    snapshot: undefined,
+    loaded: false,
+  });
+  // Cache snapshot Dexie saat render, bukan di effect (react-hooks/set-state-in-effect).
+  // Semantik sama: pesan lama tetap tampil saat reload transien agar wadah
+  // scroll tidak remount (itu yang melempar ke atas), dan loading awal
+  // tetap dibedakan dari empty (R-27).
+  if (messagesResult !== undefined && messagesResult !== messageCache.snapshot) {
+    setMessageCache({ snapshot: messagesResult, loaded: true });
+  }
+  const messages = messagesResult ?? messageCache.snapshot ?? [];
+  const isMessagesLoading = !messageCache.loaded && messagesResult === undefined;
   const totalChat = useLiveQuery(() => db.chatMessages.count(), []) ?? 0;
   const endRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -155,15 +158,18 @@ export default function ChatView() {
   useEffect(() => { // NOSONAR - cognitive complexity from share file+text handling
     const params = new URLSearchParams(window.location.search);
     if (!params.has('share')) return;
-    // B2/B3: Cek error param dari share-handler.js (cache gagal)
-    const shareError = params.get('error');
-    if (shareError) {
-      setOcrError(t('chat.ocrShareFailed'));
-      window.history.replaceState({}, '', '/chat');
-      return;
-    }
     (async () => {
       try {
+        // B2/B3: Cek error param dari share-handler.js (cache gagal).
+        // setState di dalam callback async, bukan body effect langsung
+        // (react-hooks/set-state-in-effect). Badan async fn jalan sinkron
+        // sampai await pertama, jadi urutannya identik.
+        const shareError = params.get('error');
+        if (shareError) {
+          setOcrError(t('chat.ocrShareFailed'));
+          window.history.replaceState({}, '', '/chat');
+          return;
+        }
         const cache = await caches.open('share-cache');
 
         // Prioritize image OCR over share text.
