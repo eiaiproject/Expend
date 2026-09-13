@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { navigationItems } from '../config/navigation';
 import { useTranslation } from '../i18n';
+import { navigationItems, isActivePath } from '../config/navigation';
 
 export function BottomNav({ hidden = false }: { readonly hidden?: boolean }) {
   const { t } = useTranslation();
@@ -15,10 +15,7 @@ export function BottomNav({ hidden = false }: { readonly hidden?: boolean }) {
           to={item.href}
           end={item.href === '/'}
           className={({ isActive }) => {
-            const match = item.href === '/'
-              ? location.pathname === '/'
-              : location.pathname.startsWith(item.href);
-            const active = isActive || match;
+            const active = isActive || isActivePath(item.href, location.pathname);
             return `flex-1 flex flex-col items-center justify-center gap-1.5 min-h-13 py-2 text-[12px] font-medium transition-colors relative ${
               active
                 ? 'text-[var(--accent)] font-semibold'

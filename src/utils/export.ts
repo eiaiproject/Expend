@@ -1,13 +1,6 @@
-import type * as XLSXTypes from 'xlsx';
 import type { Transaction } from '../db/db';
-import { t } from '../i18n/standalone';
+import { t } from '../i18n/shared';
 import { todayLocalISO } from './date';
-
-const XLSXLoader = () => import('xlsx');
-
-async function getXLSX(): Promise<typeof XLSXTypes> {
-  return (await XLSXLoader()).default ?? (await XLSXLoader() as unknown as typeof XLSXTypes);
-}
 
 export type ExportRow = { [key: string]: string | number };
 
@@ -23,7 +16,7 @@ export function toExportRows(txs: Transaction[]): ExportRow[] {
 }
 
 /**
- * Mitigasi CSV/XLSX formula injection (OWASP).
+ * Mitigasi CSV formula injection (OWASP).
  * Value string yang diawali = + - @ diprefix single-quote agar Excel/Sheets
  * memperlakukannya sebagai teks, bukan formula. Data asli tidak diubah di DB,
  * hanya representasi ekspor. Angka (amount) tidak disentuh agar tetap numerik.
@@ -99,18 +92,6 @@ export function filterByDate(txs: Transaction[], from?: string, to?: string): Tr
     if (to && t.date > to) return false;
     return true;
   });
-}
-
-export async function xlsxBlob(txs: Transaction[]): Promise<Blob> {
-  const XLSX = await getXLSX();
-  const rows = toExportRows(txs);
-  const headers = exportHeaders();
-  const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
-  ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 30 }, { wch: 22 }];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, t('export.sheetName'));
-  const ab = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
-  return new Blob([ab], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
 export const IMPORT_MAX_BYTES = 5 * 1024 * 1024;
@@ -244,7 +225,7 @@ export function jsonBlob(txs: Transaction[]): Blob {
   return new Blob([toJSON(txs)], { type: 'application/json;charset=utf-8' });
 }
 
-export function exportFilename(ext: 'csv' | 'xlsx' | 'json', from?: string, to?: string): string {
+export function exportFilename(ext: 'csv' | 'json', from?: string, to?: string): string {
   const d = todayLocalISO();
   if (from && to) return `expend-${from}_${to}.${ext}`;
   if (from) return `expend-${from}.${ext}`;

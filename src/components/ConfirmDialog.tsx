@@ -1,6 +1,7 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useRef } from 'react';
 import type { RefObject } from 'react';
 import { useTranslation } from '../i18n';
+import { useFocusTrap } from '../utils/focusTrap';
 
 interface ConfirmDialogProps {
   readonly open: boolean;
@@ -28,44 +29,8 @@ export function ConfirmDialog({
   const { t } = useTranslation();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement & HTMLDialogElement>(null);
-  const previousFocus = useRef<HTMLElement | null>(null);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
-      if (e.key === 'Tab' && dialogRef.current) {
-        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0]!;
-        const last = focusable[focusable.length - 1]!;
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    },
-    [onCancel]
-  );
-
-  useEffect(() => {
-    if (open) {
-      previousFocus.current = document.activeElement as HTMLElement;
-      cancelRef.current?.focus();
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
-    } else {
-      // Return focus to trigger element
-      const target = returnFocusRef?.current ?? previousFocus.current;
-      if (target && typeof target.focus === 'function') {
-        target.focus();
-      }
-    }
-  }, [open, handleKeyDown, returnFocusRef]);
+  useFocusTrap(dialogRef, { onClose: onCancel, initialFocusRef: cancelRef, restoreFocusRef: returnFocusRef, active: open });
 
   if (!open) return null;
 

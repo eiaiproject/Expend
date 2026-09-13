@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { navigationItems } from '../config/navigation';
 import { useTranslation } from '../i18n';
+import { navigationItems, isActivePath } from '../config/navigation';
 
 export function SidebarNav() {
   const { t } = useTranslation();
@@ -19,10 +19,7 @@ export function SidebarNav() {
             // C10: isActive custom - path matching tanpa query string
             // agar /chat?mode=upload tetap highlight "Chat"
             className={({ isActive }) => {
-              const match = item.href === '/' 
-                ? location.pathname === '/'
-                : location.pathname.startsWith(item.href);
-              const active = isActive || match;
+              const active = isActive || isActivePath(item.href, location.pathname);
               return `flex items-center gap-3 px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium transition-colors ${
                 active
                   ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]'

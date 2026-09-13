@@ -18,6 +18,23 @@ export interface SourceEntry {
  */
 const GENERIC_WORD_SOURCES = new Set(['Dana']);
 
+const customSources: SourceEntry[] = [];
+
+/**
+ * Daftarkan pola bank/e-wallet lokal yang belum ada di bawaan.
+ * Custom dicek SEBELUM bawaan sehingga selalu menang bila sama-sama cocok.
+ */
+export function registerCustomSource(entry: SourceEntry): void {
+  const i = customSources.findIndex((s) => s.name === entry.name);
+  if (i >= 0) customSources[i] = entry;
+  else customSources.unshift(entry);
+}
+
+/** Hapus semua custom (dipakai antar-test; bukan API runtime utama). */
+export function clearCustomSources(): void {
+  customSources.length = 0;
+}
+
 export const SOURCES: SourceEntry[] = [
   // Bank BUMN
   // Sub-brand (Mandiri Taspen, BCA Syariah) DIDAHULUKAN induknya karena
@@ -99,6 +116,9 @@ function isGenericWordIntentional(name: string, text: string): boolean {
 
 /** Cari entri SOURCES pertama yang cocok (sub-brand sudah didahulukan). */
 function findSourceIn(text: string): SourceEntry | undefined {
+  for (const source of customSources) {
+    if (source.patterns.some((p) => p.test(text))) return source;
+  }
   for (const source of SOURCES) {
     if (!GENERIC_WORD_SOURCES.has(source.name) || isGenericWordIntentional(source.name, text)) {
       if (source.patterns.some((p) => p.test(text))) return source;

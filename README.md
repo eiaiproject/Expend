@@ -1,6 +1,6 @@
 # Expend - Chat Expense Tracker
 
-![version](https://img.shields.io/badge/version-0.15.10-teal)
+![version](https://img.shields.io/badge/version-0.16.1-teal)
 
 Offline-first PWA. Navigation: **Summary** (transaction list) + **Record** (chat + OCR) + **Settings** (theme, data, privacy).
 
@@ -35,11 +35,11 @@ In **Settings → Data**: **Export JSON** (`expend-YYYY-MM-DD.json`, format `{ve
 
 ## Stack
 
-React 19 + Vite 6 + Tailwind 4 + Dexie 4 (IndexedDB) + React Router 7 + Tesseract.js (OCR) + SheetJS (Excel) + vite-plugin-pwa + `reicon-react`. Icons 100% `reicon.dev`.
+React 19 + Vite 6 + Tailwind 4 + Dexie 4 (IndexedDB) + React Router 7 + Tesseract.js (OCR) + vite-plugin-pwa + `reicon-react`. Icons 100% `reicon.dev`.
 
 ## Components
 
-`PageHeader` · `SectionCard` · `EmptyState` · `ConfirmDialog` · `Toast` · `InlineAlert` · `SkeletonCard` · `PrimaryButton` · `SecondaryButton` · `IconButton` · `StatusBadge` · `BottomNav` · `SidebarNav` · `PageContainer`
+`PageHeader` · `SectionCard` · `EmptyState` · `ConfirmDialog` · `Toast` · `InlineAlert` · `SkeletonCard` · `PrimaryButton` · `SecondaryButton` · `IconButton` · `BottomNav` · `SidebarNav` · `PageContainer`
 
 ## Scripts
 
@@ -53,9 +53,8 @@ npm run test         # Vitest watch
 npm run test:unit    # Vitest single run
 npm run lint         # ESLint
 npx playwright test  # E2E (needs dev server, auto-started on :3000)
-node scripts/full-audit.mjs  # Playwright pixel-perfect UI audit (needs dev server on :3000)
 ```
 
 ## Versioning
 
-Semver + Conventional Commits per commit.
+Semver + Conventional Commits per commit. Merges to `main` cut a release automatically (`release.yml` + `scripts/auto-release.mjs`): highest bump wins (breaking to MAJOR once 1.0 ships, MINOR while on 0.x; `feat` to MINOR; `fix`/`perf`/`refactor`/`revert` to PATCH).

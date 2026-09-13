@@ -1,6 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle, AlertCircle, X } from 'reicon-react';
 import { useTranslation } from '../i18n';
+
+export interface ToastData {
+  message: string;
+  type: 'success' | 'error';
+}
+
+/** Shared toast state for views (replaces per-view useState+showToast). */
+export function useToast() {
+  const [toast, setToast] = useState<ToastData | null>(null);
+  const showToast = useCallback((message: string, type: ToastData['type'] = 'success') => {
+    setToast({ message, type });
+  }, []);
+  const dismissToast = useCallback(() => setToast(null), []);
+  return { toast, showToast, dismissToast, setToast };
+}
 
 interface ToastProps {
   readonly message: string;

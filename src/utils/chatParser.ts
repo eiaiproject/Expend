@@ -74,7 +74,7 @@ export function normalizeNumber(s: string): number {
 // Amount parsing with suffixes
 const SUFFIX_RE = /^([\d.,]+)\s*(jt|juta|rb|ribu|k)$/i; // NOSONAR - anchored, input bounded (<80 chars)
 
-function parseAmountWithSuffix(raw: string): number | null {
+export function parseAmountWithSuffix(raw: string): number | null {
   const trimmed = raw.trim();
   const m = SUFFIX_RE.exec(trimmed);
   if (!m) {
@@ -124,6 +124,29 @@ export function clampDayISO(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
+/**
+ * Shared dmy + month-name date parsing (chat + receipt).
+ * Permissive `\s*` before the year: OCR often glues it ("01Sep2026").
+ */
+export function parseDMYDate(text: string): string | undefined {
+  // "15/08/2026" or "15-08-2026" or "15.08.2026"
+  const dmy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text);
+  if (dmy) {
+    let y = Number(dmy[3]);
+    if (dmy[3]!.length === 2) y += 2000;
+    return clampDayISO(y, Number(dmy[2]), Number(dmy[1]));
+  }
+
+  // "15 Aug 2026", "15 Agustus 2026", or OCR-glued "01Sep2026"
+  const mmm = /(\d{1,2})\s*(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)\w*\s*(\d{4})/i.exec(text);
+  if (mmm) {
+    const mon = MONTH_MAP[mmm[2]!.toLowerCase().slice(0, 3)];
+    if (mon) return clampDayISO(Number(mmm[3]), Number(mon), Number(mmm[1]));
+  }
+
+  return undefined;
+}
+
 function parseExplicitDate(text: string): string | undefined {
   // "tgl 15" or "tanggal 15" → day this month
   const tglMatch = /(?:tgl|tanggal)\s+(\d{1,2})/i.exec(text);
@@ -135,22 +158,7 @@ function parseExplicitDate(text: string): string | undefined {
     }
   }
 
-  // "15/08/2026" or "15-08-2026" or "15.08.2026"
-  const dmy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text);
-  if (dmy) {
-    let y = Number(dmy[3]);
-    if (dmy[3]!.length === 2) y += 2000;
-    return clampDayISO(y, Number(dmy[2]), Number(dmy[1]));
-  }
-
-  // "15 Aug 2026" or "15 Agustus 2026"
-  const mmm = /(\d{1,2})\s+(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)\w*\s+(\d{4})/i.exec(text);
-  if (mmm) {
-    const mon = MONTH_MAP[mmm[2]!.toLowerCase().slice(0, 3)];
-    if (mon) return clampDayISO(Number(mmm[3]), Number(mon), Number(mmm[1]));
-  }
-
-  return undefined;
+  return parseDMYDate(text);
 }
 
 /**

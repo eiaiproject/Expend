@@ -1,4 +1,34 @@
 # Changelog
+## 0.16.1 - 2026-09-13
+### Fixed
+
+- Drop unused InlineAlert type prop flagged by Sonar S6767
+
+
+## 0.16.0 - 2026-09-13
+### Added
+
+- Local-only startup perf log (no network)
+- Backup reminder driven by last successful export
+- Custom source registry checked before built-in patterns
+
+### Changed
+
+- Remove format cache plus legacy date alias
+- Drop redundant theme tokens and dead CSS
+- Dedupe i18n dictionaries through shared module
+- Trim unused component props
+- Shared focus-trap and toast state hooks
+- Centralize navigation items plus active-path helper
+- Shared keyboard viewport hooks
+- Simplify OCR preprocess via platform image orientation
+- Share amount and date helpers between chat and receipt parsers
+
+### Fixed
+
+- E2e export seeding via UI plus empty-chat OCR alert always visible
+
+
 ## 0.15.10 - 2026-09-12
 ### Fixed
 

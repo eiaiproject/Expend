@@ -1,21 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import id from './id';
-import en from './en';
 import type { TranslationKey } from './id';
-
-export type Lang = 'id' | 'en';
-
-const STORAGE_KEY = 'expend_lang';
-
-const dictionaries: Record<Lang, Record<TranslationKey, string>> = { id, en };
-
-function getInitialLang(): Lang {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'id' || stored === 'en') return stored;
-  } catch {}
-  return 'id';
-}
+import { getStoredLang, translate, STORAGE_KEY } from './shared';
+import type { Lang } from './shared';
+export type { Lang } from './shared';
 
 interface I18nContextValue {
   lang: Lang;
@@ -26,24 +13,13 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function I18nProvider({ children }: { readonly children: React.ReactNode }) {
-  const [lang, setLang] = useState<Lang>(getInitialLang);
+  const [lang, setLang] = useState<Lang>(getStoredLang);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, lang); } catch {}
   }, [lang]);
 
-  const t = useCallback(
-    (key: TranslationKey, params?: Record<string, string | number>): string => {
-      let str = dictionaries[lang][key] ?? dictionaries.id[key] ?? key;
-      if (params) {
-        for (const [k, v] of Object.entries(params)) {
-          str = str.replaceAll(`{${k}}`, String(v));
-        }
-      }
-      return str;
-    },
-    [lang],
-  );
+  const t = useCallback((key: TranslationKey, params?: Record<string, string | number>) => translate(lang, key, params), [lang]);
 
   const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
 
