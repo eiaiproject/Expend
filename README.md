@@ -35,7 +35,7 @@ In **Settings → Data**: **Export JSON** (`expend-YYYY-MM-DD.json`, format `{ve
 
 ## Stack
 
-React 19 + Vite 6 + Tailwind 4 + Dexie 4 (IndexedDB) + React Router 7 + Tesseract.js (OCR) + SheetJS (Excel) + vite-plugin-pwa + `reicon-react`. Icons 100% `reicon.dev`.
+React 19 + Vite 6 + Tailwind 4 + Dexie 4 (IndexedDB) + React Router 7 + Tesseract.js (OCR) + vite-plugin-pwa + `reicon-react`. Icons 100% `reicon.dev`.
 
 ## Components
 

@@ -25,8 +25,7 @@
     "react-dom": "^19.0.1",
     "react-router-dom": "^7.18.3",
     "reicon-react": "^1.1.302",
-    "tesseract.js": "^5.1.1",
-    "xlsx": "^0.18.5"
+    "tesseract.js": "^5.1.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
