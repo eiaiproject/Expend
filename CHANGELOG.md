@@ -1,4 +1,10 @@
 # Changelog
+## 0.16.3 - 2026-09-14
+### Fixed
+
+- Drop deprecated baseUrl, prefix paths with ./
+
+
 ## 0.16.2 - 2026-09-13
 
 ## 0.16.1 - 2026-09-13
