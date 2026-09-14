@@ -54,6 +54,10 @@ export default function ChatView() {
   const ocrInFlight = useRef(false);
   const mountedRef = useRef(true);
   const [isSaving, setIsSaving] = useState(false);
+  // false = kartu ringkas (default tiap pending baru); true = form Ubah.
+  // Di-reset di tiap titik yang membuat pending (handleSend/handleFile/share)
+  // agar setState tidak di dalam effect (react-hooks/set-state-in-effect).
+  const [pendingEditable, setPendingEditable] = useState(false);
   const keyboardInset = useKeyboardInset();
   const [visibleLimit, setVisibleLimit] = useState(CHAT_PAGE);
   // Hanya 50 pesan terakhir agar render tetap ringan; pesan lama tidak dihapus.
@@ -147,12 +151,17 @@ export default function ChatView() {
     ta.style.height = `${Math.min(ta.scrollHeight, 128)}px`;
   }, [input]);
 
-  // Auto-save when confirmBeforeSave is off
-  useEffect(() => {
-    if (pending && pending.amount > 0 && !confirmBeforeSaveRef.current) {
-      saveNow(pending);
+  // Live preview selagi ketik: parseChatInput sinkron + murah, jadi tanpa
+  // debounce. Guard pending agar tak ganggu kartu verifikasi; try agar draf
+  // aneh tidak meruntuhkan composer.
+  let liveParsed: { description: string; amount: number } | null = null;
+  if (input.trim() && !pending) {
+    try {
+      liveParsed = parseChatInput(input.trim());
+    } catch {
+      liveParsed = null;
     }
-  }, [pending]);
+  }
 
   // Handle share target
   useEffect(() => { // NOSONAR - cognitive complexity from share file+text handling
@@ -195,6 +204,7 @@ export default function ChatView() {
                   const parsed = parseChatInput(sharedText);
                   if (parsed) {
                     setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || todayLocalISO(), source: parsed.source });
+                    setPendingEditable(false);
                   } else {
                     setInput(sharedText.slice(0, 80));
                   }
@@ -247,6 +257,7 @@ export default function ChatView() {
     const today = now.slice(0, 10);
     const p: Pending = { description: parsed.description, amount: parsed.amount, date: parsed.date || today, source: parsed.source };
     setPending(p);
+    setPendingEditable(false);
     await db.chatMessages.add({
       role: 'assistant',
       text: t('chat.recorded', { desc: p.description, amount: fmtIDR(p.amount) }),
@@ -293,6 +304,7 @@ export default function ChatView() {
       const parsed = parseReceiptText(text);
       if (!parsed) {
         setPending({ description: 'Transfer', amount: 0, date: todayLocalISO() });
+        setPendingEditable(false);
         setOcrError(t('chat.ocrReadError'));
         await db.chatMessages.add({
           role: 'assistant',
@@ -302,6 +314,7 @@ export default function ChatView() {
         return;
       }
       setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date, note: parsed.note, source: parsed.source });
+      setPendingEditable(false);
       await db.chatMessages.add({
         role: 'assistant',
         text: t('chat.recorded', { desc: parsed.description, amount: fmtIDR(parsed.amount) }),
@@ -431,24 +444,47 @@ export default function ChatView() {
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" aria-hidden />
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" aria-hidden />
                     <span className="text-[11px] font-mono tracking-wide text-[var(--text-muted)] uppercase">{t('chat.example')}</span>
+                    <span className="ml-auto text-[11px] font-sans normal-case tracking-normal text-[var(--text-muted)]">{t('chat.tapExample')}</span>
                   </div>
-                  <div className="px-3 py-2.5 space-y-1 font-mono text-[12px] leading-5 text-[var(--text-secondary)]">
-                    <p>kopi <span className="text-[var(--accent)] font-medium">25rb</span> <span className="text-[var(--text-muted)]">dari BSI</span></p>
-                    <p>bayar listrik <span className="text-[var(--accent)] font-medium">200rb</span> <span className="text-[var(--text-muted)]">via GoPay</span></p>
-                    <p>belanja indomaret <span className="text-[var(--accent)] font-medium">50000</span></p>
+                  <div className="px-3 py-2.5 flex flex-col gap-1 font-mono text-[12px] leading-5 text-[var(--text-secondary)]">
+                    <button
+                      type="button"
+                      aria-label={t('chat.useExample', { example: 'kopi 25rb dari BSI' })}
+                      onClick={() => {
+                        setInput('kopi 25rb dari BSI');
+                        textareaRef.current?.focus();
+                      }}
+                      className="text-left rounded-[8px] px-2 py-1.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                    >
+                      <span>kopi <span className="text-[var(--accent)] font-medium">25rb</span> <span className="text-[var(--text-muted)]">dari BSI</span></span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t('chat.useExample', { example: 'bayar listrik 200rb via GoPay' })}
+                      onClick={() => {
+                        setInput('bayar listrik 200rb via GoPay');
+                        textareaRef.current?.focus();
+                      }}
+                      className="text-left rounded-[8px] px-2 py-1.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                    >
+                      <span>bayar listrik <span className="text-[var(--accent)] font-medium">200rb</span> <span className="text-[var(--text-muted)]">via GoPay</span></span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t('chat.useExample', { example: 'belanja indomaret 50000' })}
+                      onClick={() => {
+                        setInput('belanja indomaret 50000');
+                        textareaRef.current?.focus();
+                      }}
+                      className="text-left rounded-[8px] px-2 py-1.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                    >
+                      <span>belanja indomaret <span className="text-[var(--accent)] font-medium">50000</span></span>
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="mt-5 flex flex-col gap-2.5">
-              <button
-                type="button"
-                onClick={() => textareaRef.current?.focus()}
-                className="w-full min-h-12 py-2 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-              >
-                <Send size={16} aria-hidden />
-                {t('chat.startTyping')}
-              </button>
+            <div className="mt-5">
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
@@ -495,32 +531,38 @@ export default function ChatView() {
               </button>
             </div>
           )}
-          {messages.map((m) => (
-            <div key={m.id} className="flex motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none" style={{ contentVisibility: 'auto' } as any}>
-              <div className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className="max-w-[76%]">
-                  <div
-                    className={`px-4 py-3 text-sm leading-[22px] ${
-                      m.role === 'user'
-                        ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)] rounded-[var(--radius-lg)] rounded-br-[var(--radius-sm)]'
-                        : 'bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-lg)] rounded-bl-[var(--radius-sm)]'
-                    }`}
-                  >
-                    {m.text === '__LINK_RINGKASAN__' ? (
-                      <Link to="/" className="text-sm font-semibold text-[var(--accent)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded">
-                        {t('chat.viewSummary')}
-                      </Link>
-                    ) : (
-                      <p className="whitespace-pre-wrap break-words">{m.text}</p>
+          {messages.map((m, i) => {
+            const prev = messages[i - 1];
+            const showTime = !prev || prev.createdAt.slice(0, 10) !== m.createdAt.slice(0, 10) || m.role !== prev.role;
+            return (
+              <div key={m.id} className="flex motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none" style={{ contentVisibility: 'auto' } as any}>
+                <div className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className="max-w-[76%]">
+                    <div
+                      className={`px-4 py-3 text-sm leading-[22px] ${
+                        m.role === 'user'
+                          ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)] rounded-[var(--radius-lg)] rounded-br-[var(--radius-sm)]'
+                          : 'bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-lg)] rounded-bl-[var(--radius-sm)]'
+                      }`}
+                    >
+                      {m.text === '__LINK_RINGKASAN__' ? (
+                        <Link to="/" className="text-sm font-semibold text-[var(--accent)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded">
+                          {t('chat.viewSummary')}
+                        </Link>
+                      ) : (
+                        <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                      )}
+                    </div>
+                    {showTime && (
+                      <p className={`mt-1 text-[12px] tabular-nums ${m.role === 'user' ? 'text-right text-[var(--text-muted)]' : 'text-[var(--text-muted)]'}`}>
+                        {fmtTime(m.createdAt)}
+                      </p>
                     )}
                   </div>
-                  <p className={`mt-1 text-[12px] tabular-nums ${m.role === 'user' ? 'text-right text-[var(--text-muted)]' : 'text-[var(--text-muted)]'}`}>
-                    {fmtTime(m.createdAt)}
-                  </p>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {ocrProgress !== null && (
             <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4">
@@ -550,8 +592,23 @@ export default function ChatView() {
                   <Check size={14} aria-hidden />
                 </div>
                 <p className="text-xs font-bold tracking-wide uppercase text-[var(--accent)]">{t('chat.checkTransaction')}</p>
+                <button
+                  type="button"
+                  onClick={() => setPendingEditable((v) => !v)}
+                  aria-expanded={pendingEditable}
+                  className="ml-auto text-xs font-semibold text-[var(--accent)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded px-1 min-h-8"
+                >
+                  {t('chat.pendingEdit')}
+                </button>
               </div>
-              <div className="mt-4 space-y-3">
+              {/* Ringkasan selalu di atas aksi: Simpan/Batal tidak boleh jatuh
+                  di bawah fold layar kecil/keyboard. */}
+              <p className="mt-3 text-sm font-bold leading-snug break-words">{pending.description}</p>
+              <p className="mt-1 text-xs text-[var(--text-secondary)] tabular-nums">
+                {fmtIDR(pending.amount || 0)} &middot; {pending.date}{pending.source ? ` · ${pending.source}` : ''}
+              </p>
+              {(pendingEditable || !pending.amount) && (
+                <div className="mt-4 space-y-3 border-t border-[var(--border)]/60 pt-4">
                 <label htmlFor="pending-desc" className="block">
                   <span className="text-xs font-medium text-[var(--text-secondary)]">{t('chat.description')}</span>
                   <input
@@ -620,13 +677,9 @@ export default function ChatView() {
                     className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
                   />
                 </label>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="px-2.5 py-1 rounded-full bg-[var(--bg)] border border-[var(--border)] font-medium tabular-nums">{fmtIDR(pending.amount || 0)}</span>
-                  <span className="text-[var(--text-muted)]">&middot;</span>
-                  <span className="text-[var(--text-secondary)] tabular-nums">{pending.date}</span>
-                </div>
               </div>
-              <div className="flex gap-2 mt-5">
+              )}
+              <div className="sticky bottom-0 -mx-5 -mb-5 mt-4 border-t border-[var(--border)]/60 bg-[var(--card)] px-5 pb-5 pt-3 flex gap-2">
                 <button
                   type="button"
                   onClick={confirmSave}
@@ -687,6 +740,12 @@ export default function ChatView() {
             : 'pb-[calc(66px+env(safe-area-inset-bottom))] md:pb-[calc(10px+env(safe-area-inset-bottom))]'
         }`}
       >
+      {liveParsed && (
+        <p aria-live="polite" className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] px-3 py-1 text-xs font-semibold">
+          <Check size={13} aria-hidden />
+          {t('chat.livePreview', { desc: liveParsed.description, amount: fmtIDR(liveParsed.amount) })}
+        </p>
+      )}
         <form onSubmit={handleSend} className="flex items-end gap-2 bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-xl)] p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[var(--accent)] focus-within:border-[var(--accent)] transition-all">
           <input
             ref={fileRef}
