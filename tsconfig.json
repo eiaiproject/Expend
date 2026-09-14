@@ -16,10 +16,9 @@
     "jsx": "react-jsx",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "baseUrl": ".",
     "paths": {
-      "@tests/*": ["tests/*"],
-      "@scripts/*": ["scripts/*"]
+      "@tests/*": ["./tests/*"],
+      "@scripts/*": ["./scripts/*"]
     }
   },
   "include": ["src", "scripts/**/*"],
