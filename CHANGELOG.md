@@ -1,4 +1,10 @@
 # Changelog
+## 0.17.0 - 2026-09-14
+### Added
+
+- Compact verify card, tap-to-fill examples, live preview
+
+
 ## 0.16.3 - 2026-09-14
 ### Fixed
 
