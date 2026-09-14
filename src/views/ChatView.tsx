@@ -29,6 +29,26 @@ function scrollToBottom(endRef: React.RefObject<HTMLDivElement | null>, instant 
 
 const CHAT_PAGE = 50;
 
+interface LiveDraft { description: string; amount: number }
+
+// Murni + teruji via chatParser: draf valid -> hasil parse, sisanya null.
+// Dipisah dari komponen agar S3776 tidak menghitung cabang guard ini.
+export function previewDraft(raw: string): LiveDraft | null {
+  const text = raw.trim();
+  if (!text) return null;
+  try {
+    return parseChatInput(text);
+  } catch {
+    return null;
+  }
+}
+
+// Timestamp hanya saat ganti hari/role agar list tidak berisik.
+// Dipisah dari komponen agar S3776 tidak menghitung rantai || ini.
+export function shouldShowTime(prev: { createdAt: string; role: string } | undefined, cur: { createdAt: string; role: string }): boolean {
+  if (!prev) return true;
+  return prev.createdAt.slice(0, 10) !== cur.createdAt.slice(0, 10) || cur.role !== prev.role;
+}
 export default function ChatView() {
   const { t } = useTranslation();
   const [input, setInput] = useState('');
@@ -152,16 +172,8 @@ export default function ChatView() {
   }, [input]);
 
   // Live preview selagi ketik: parseChatInput sinkron + murah, jadi tanpa
-  // debounce. Guard pending agar tak ganggu kartu verifikasi; try agar draf
-  // aneh tidak meruntuhkan composer.
-  let liveParsed: { description: string; amount: number } | null = null;
-  if (input.trim() && !pending) {
-    try {
-      liveParsed = parseChatInput(input.trim());
-    } catch {
-      liveParsed = null;
-    }
-  }
+  // debounce. Guard pending agar tak ganggu kartu verifikasi.
+  const liveParsed = pending ? null : previewDraft(input);
 
   // Handle share target
   useEffect(() => { // NOSONAR - cognitive complexity from share file+text handling
@@ -532,8 +544,7 @@ export default function ChatView() {
             </div>
           )}
           {messages.map((m, i) => {
-            const prev = messages[i - 1];
-            const showTime = !prev || prev.createdAt.slice(0, 10) !== m.createdAt.slice(0, 10) || m.role !== prev.role;
+            const showTime = shouldShowTime(messages[i - 1], m);
             return (
               <div key={m.id} className="flex motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none" style={{ contentVisibility: 'auto' } as any}>
                 <div className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
