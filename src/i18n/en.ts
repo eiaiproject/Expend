@@ -169,6 +169,80 @@ const en: Record<TranslationKey, string> = {
   'export.note': 'Note',
   'export.createdAt': 'Created',
   'export.sheetName': 'Transactions',
+
+  // Onboarding (first-run coach)
+  'onboarding.title': 'Welcome to Expend',
+  'onboarding.step1Title': 'Log expenses via chat',
+  'onboarding.step1Desc': 'Type like chatting. Example: "coffee 25rb from BSI". 100% offline, data stays on device.',
+  'onboarding.step2Title': 'Try this example',
+  'onboarding.step2Desc': 'Tap an example to autofill it on the Record page.',
+  'onboarding.step3Title': 'See how it is read',
+  'onboarding.step3Desc': 'Description, amount, source, and date are color-coded before saving.',
+  'onboarding.step4Title': 'Ready for your first entry',
+  'onboarding.step4Desc': 'Write your first expense. Done in < 60 seconds, no docs needed.',
+  'onboarding.skip': 'Skip',
+  'onboarding.next': 'Next',
+  'onboarding.back': 'Back',
+  'onboarding.done': 'Start recording',
+  'onboarding.replay': 'View tutorial again',
+
+  // Smart input (live parse + cheat sheet)
+  'chat.parseTooSmall': "Amount too small. Try 'Kopi 50rb' or 'Kopi Rp500'.",
+  'chat.formatHelp': 'View input formats',
+  'chat.sheetTitle': 'Accepted input formats',
+  'chat.sheetDesc': 'The parser reads flexible amounts. Plain numbers below Rp100 without a prefix are rejected.',
+  'chat.sheetClose': 'Close',
+  'chat.detectedLang': 'Detected English. Change language in Settings?',
+
+  // Home search / educational empty state / backup banner
+  'home.searchPlaceholder': 'Search transactions...',
+  'home.searchLabel': 'Search transactions',
+  'home.quickToday': 'Today',
+  'home.quick7d': '7 days',
+  'home.quickMonth': 'This month',
+  'home.quickAll': 'All',
+  'home.tryExamples': 'Try examples:',
+  'home.learnFormat': 'Learn input formats',
+  'home.backupRemind': 'No backup for a while. Export to keep data safe.',
+  'home.backupNow': 'Back up now',
+
+  // OCR guidance
+  'chat.ocrGuideTitle': 'Make sure the receipt is fully visible',
+  'chat.ocrGuideDesc': "Enough light, no blur, receipt fills the frame. We use the 'Total' line when present, not Cash/Change.",
+  'chat.ocrGuideGotIt': 'Got it',
+  'chat.ocrConfidence': 'Confidence {value}%',
+  'chat.ocrPriorityNote': "We use 'Total' when present, not 'Cash/Change'.",
+  'chat.ocrTooLarge': 'File too large. Compress below 10 MB or crop the image and retry.',
+
+  // Export wizard (JSON/CSV only)
+  'export.wizardTitle': 'Export data',
+  'export.wizardStep1': '1. Choose format',
+  'export.wizardStep2': '2. Range & preview',
+  'export.wizardStep3': '3. Confirm & export',
+  'export.wizardJsonDesc': 'JSON: full backup, can be re-imported.',
+  'export.wizardCsvDesc': 'CSV: opens in Excel/Sheets.',
+  'export.wizardPreview': '{count} transactions will be exported.',
+  'export.wizardAll': 'All data',
+  'export.wizardBack': 'Back',
+  'export.wizardNext': 'Next',
+  'export.wizardExport': 'Export now',
+
+  // Settings a11y + backup interval + tutorial
+  'settings.fontSize': 'Font size',
+  'settings.fontSizeDesc': 'Small / Medium / Large',
+  'settings.fontSizeS': 'Small',
+  'settings.fontSizeM': 'Medium',
+  'settings.fontSizeL': 'Large',
+  'settings.contrast': 'High contrast',
+  'settings.contrastDesc': 'Stronger text and borders',
+  'settings.tutorial': 'Tutorial',
+  'settings.tutorialDesc': 'Replay the intro guide',
+  'settings.backupInterval': 'Remind me to back up',
+  'settings.backupIntervalDesc': 'Local reminder, no network',
+  'settings.backupWeekly': 'Weekly',
+  'settings.backupMonthly': 'Monthly',
+  'settings.backupOff': 'Off',
+  'settings.backupNow': 'Back up now (JSON)',
 };
 
 export default en;
