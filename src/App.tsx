@@ -7,7 +7,7 @@ import { SkeletonCard } from './components/SkeletonCard';
 import { OnboardingCoach } from './components/OnboardingCoach';
 import { isOnboarded, markOnboarded } from './utils/onboarding';
 import { applyA11yPrefs } from './utils/a11yPrefs';
-import { applyTheme } from './utils/theme';
+import { applyTheme, migrateLegacyTheme } from './utils/theme';
 import { I18nProvider, useTranslation } from './i18n';
 
 const HomeView = lazy(() => import('./views/HomeView'));
@@ -24,6 +24,7 @@ function Shell() {
   const [showCoach, setShowCoach] = useState<boolean>(() => !isOnboarded());
 
   useEffect(() => {
+    migrateLegacyTheme();
     applyTheme();
     applyA11yPrefs();
   }, []);

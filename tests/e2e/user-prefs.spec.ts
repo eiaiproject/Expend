@@ -46,7 +46,8 @@ test.describe('user prefs + edit + keyboard', () => {
     await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark');
     await theme.selectOption('light');
     await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('light');
-    await theme.selectOption('system');
+    // Hanya 2 opsi tema (system dihapus).
+    expect(await theme.locator('option').count()).toBe(2);
 
     const langId = page.getByRole('combobox', { name: 'Bahasa' });
     await langId.selectOption('en');

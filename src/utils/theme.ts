@@ -1,39 +1,44 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Theme = 'system' | 'light' | 'dark';
+export type Theme = 'light' | 'dark';
 export const THEME_KEY = 'theme';
 
 export function getTheme(): Theme {
   try {
     const v = localStorage.getItem(THEME_KEY);
-    if (v === 'light' || v === 'dark' || v === 'system') return v;
+    if (v === 'light' || v === 'dark') return v;
   } catch {}
-  return 'system';
+  return 'dark';
 }
 
-/** Terapkan tema tersimpan ke <html> saat boot. Idempoten. */
+/** Terapkan tema tersimpan ke <html>. Idempoten. */
 export function applyTheme(): void {
-  const root = document.documentElement;
-  const t = getTheme();
-  if (t === 'system') {
-    delete root.dataset.theme;
-  } else {
-    root.dataset.theme = t;
-  }
+  document.documentElement.dataset.theme = getTheme();
+}
+
+/**
+ * Migrasi satu-kali dari era 3 opsi: nilai legacy 'system'/kosong/rusak
+ * disampel dari OS lalu disimpan permanen, agar tampilan tak berubah
+ * mendadak. Dipanggil saat boot sebelum applyTheme.
+ */
+export function migrateLegacyTheme(): void {
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    if (v === 'light' || v === 'dark') return;
+    const dark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? true;
+    localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
+  } catch {}
 }
 
 export function setStoredTheme(t: Theme): void {
   try {
-    if (t === 'system') localStorage.removeItem(THEME_KEY);
-    else localStorage.setItem(THEME_KEY, t);
+    localStorage.setItem(THEME_KEY, t);
   } catch {}
   applyTheme();
 }
 
 export function nextTheme(t: Theme): Theme {
-  if (t === 'system') return 'light';
-  if (t === 'light') return 'dark';
-  return 'system';
+  return t === 'dark' ? 'light' : 'dark';
 }
 
 /** State tema bersama agar header cepat & dropdown Settings selalu sinkron. */

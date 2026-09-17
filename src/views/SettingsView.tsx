@@ -230,7 +230,6 @@ export default function SettingsView() {
                   aria-label={t('settings.theme')}
                   className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
                 >
-                  <option value="system">{t('settings.themeSystem')}</option>
                   <option value="light">{t('settings.themeLight')}</option>
                   <option value="dark">{t('settings.themeDark')}</option>
                 </select>

@@ -106,7 +106,6 @@ const id = {
   'settings.preferences': 'Preferensi',
   'settings.theme': 'Tema',
   'settings.themeDesc': 'Pilih tampilan aplikasi',
-  'settings.themeSystem': 'Sistem',
   'settings.themeLight': 'Terang',
   'settings.themeDark': 'Gelap',
   'settings.numberFormat': 'Format nominal',

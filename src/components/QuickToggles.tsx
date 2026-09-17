@@ -1,20 +1,19 @@
-import { Moon, Sun, Monitor } from 'reicon-react';
+import { Moon, Sun } from 'reicon-react';
 import { useTranslation } from '../i18n';
 import type { Lang } from '../i18n';
 import { useTheme, type Theme } from '../utils/theme';
 import type { TranslationKey } from '../i18n/id';
 
 const THEME_LABEL_KEY: Record<Theme, TranslationKey> = {
-  system: 'settings.themeSystem',
   light: 'settings.themeLight',
   dark: 'settings.themeDark',
 };
 
-/** Satu tombol cycling system → light → dark. Ikon mencerminkan tema aktif. */
+/** Toggle biner light ↔ dark. Ikon mencerminkan tema aktif. */
 export function ThemeCycleButton() {
   const { t } = useTranslation();
   const { theme, cycleTheme } = useTheme();
-  const Icon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor;
+  const Icon = theme === 'light' ? Sun : Moon;
   const label = `${t('settings.theme')}: ${t(THEME_LABEL_KEY[theme])}`;
   return (
     <button

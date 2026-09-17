@@ -108,7 +108,6 @@ const en: Record<TranslationKey, string> = {
   'settings.preferences': 'Preferences',
   'settings.theme': 'Theme',
   'settings.themeDesc': 'Choose app appearance',
-  'settings.themeSystem': 'System',
   'settings.themeLight': 'Light',
   'settings.themeDark': 'Dark',
   'settings.numberFormat': 'Number format',
