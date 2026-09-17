@@ -154,6 +154,31 @@
 h1, h2, h3 { text-wrap: balance; }
 p, li { text-wrap: pretty; }
 html { scrollbar-gutter: stable; font-size: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* TASK 7: skala font pengguna (persist, hormati reduced-motion — hanya ukuran). */
+html[data-fontsize="s"] { font-size: 87.5%; }
+html[data-fontsize="m"] { font-size: 100%; }
+html[data-fontsize="l"] { font-size: 112.5%; }
+/* TASK 7: kontras tinggi — garis & teks sekunder ditegaskan di kedua tema. */
+html[data-contrast="high"] {
+  --border: #8a8a8a;
+  --border-strong: #555;
+  --text-secondary: #111;
+  --text-muted: #333;
+}
+@media (prefers-color-scheme: dark) {
+  html[data-contrast="high"]:not([data-theme="light"]) {
+    --border: #8a8a8a;
+    --border-strong: #bdbdbd;
+    --text-secondary: #f0f0f0;
+    --text-muted: #d6d6d6;
+  }
+}
+html[data-contrast="high"][data-theme="dark"] {
+  --border: #8a8a8a;
+  --border-strong: #bdbdbd;
+  --text-secondary: #f0f0f0;
+  --text-muted: #d6d6d6;
+}
 body { font-family: var(--font-sans); color: var(--text-primary); background: var(--bg); }
 progress { appearance: none; -webkit-appearance: none; }
 progress::-webkit-progress-bar { background: var(--border); border-radius: 9999px; }
