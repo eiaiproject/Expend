@@ -262,7 +262,7 @@ export default function SettingsView() {
                 <p className="text-sm font-semibold">{t('settings.fontSize')}</p>
                 <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.fontSizeDesc')}</p>
               </div>
-              <fieldset className="flex rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-1 gap-1 m-0 min-w-0">
+              <fieldset className="grid grid-cols-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-1 gap-1 m-0 shrink-0">
                 <legend className="sr-only">{t('settings.fontSize')}</legend>
                 {(['s', 'm', 'l'] as const).map((s) => (
                   <button
@@ -270,7 +270,7 @@ export default function SettingsView() {
                     type="button"
                     aria-pressed={fontSize === s}
                     onClick={() => { persistFontSize(s); setFontSize(s); }}
-                    className={`min-h-11 px-3 rounded-[var(--radius-sm)] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${fontSize === s ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
+                    className={`min-h-11 px-2 rounded-[var(--radius-sm)] text-xs font-bold text-center truncate transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${fontSize === s ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
                   >
                     {t(FONT_SIZE_LABEL_KEY[s])}
                   </button>
