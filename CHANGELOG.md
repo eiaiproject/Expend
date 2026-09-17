@@ -1,4 +1,10 @@
 # Changelog
+## 0.18.1 - 2026-09-17
+### Fixed
+
+- Resolve font size overflow on mobile (#47)
+
+
 ## 0.18.0 - 2026-09-17
 ### Added
 
