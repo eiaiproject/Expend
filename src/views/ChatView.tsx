@@ -240,7 +240,7 @@ export default function ChatView() {
                 if (sharedText) {
                   const parsed = parseChatInput(sharedText);
                   if (parsed) {
-                    setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || todayLocalISO(), source: parsed.source });
+                    setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || todayLocalISO(), source: parsed.source, note: parsed.note });
                     setPendingEditable(false);
                   } else {
                     setInput(sharedText.slice(0, 80));
@@ -308,7 +308,7 @@ export default function ChatView() {
       return;
     }
     const today = now.slice(0, 10);
-    const p: Pending = { description: parsed.description, amount: parsed.amount, date: parsed.date || today, source: parsed.source };
+    const p: Pending = { description: parsed.description, amount: parsed.amount, date: parsed.date || today, source: parsed.source, note: parsed.note };
     setPending(p);
     setOcrConfidence(null);
     setPendingEditable(false);
@@ -662,6 +662,11 @@ export default function ChatView() {
               <p className="mt-1 text-xs text-[var(--text-secondary)] tabular-nums">
                 {fmtIDR(pending.amount || 0)} &middot; {pending.date}{pending.source ? ` · ${pending.source}` : ''}
               </p>
+              {pending.note && (
+                <p className="mt-1 text-xs text-[var(--text-secondary)] break-words">
+                  {t('chat.note')}: {pending.note}
+                </p>
+              )}
               {ocrConfidence !== null && (
                 <div className="mt-2 space-y-1">
                   <p className="text-[11px] font-semibold text-[var(--text-secondary)] tabular-nums" aria-live="polite">

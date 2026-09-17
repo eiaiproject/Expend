@@ -11,6 +11,7 @@ interface Parts {
   amount: number;
   source?: string;
   date?: string;
+  note?: string;
   /** Tanggal eksplisit/relatif di input (bukan default hari ini). */
   dateBadge: string | null;
 }
@@ -40,7 +41,7 @@ export function getLiveParts(raw: string): Parts | null {
       dateBadge = parsed.date ?? null;
     }
   }
-  return { description: parsed.description, amount: parsed.amount, source: parsed.source, date: parsed.date, dateBadge };
+  return { description: parsed.description, amount: parsed.amount, source: parsed.source, date: parsed.date, note: parsed.note, dateBadge };
 }
 
 export function hasDigits(s: string): boolean {
@@ -80,6 +81,14 @@ export function LiveParseFeedback({ debounced }: { readonly debounced: string })
       {parts.dateBadge && (
         <span className="inline-flex items-center rounded-full bg-[var(--bg)] text-[var(--text-secondary)] border border-[var(--border)] px-2.5 py-1 tabular-nums">
           {parts.dateBadge}
+        </span>
+      )}
+      {parts.note && (
+        <span
+          title={parts.note}
+          className="inline-flex items-center rounded-full bg-transparent text-[var(--text-secondary)] border border-dashed border-[var(--border-strong)] px-2.5 py-1 max-w-[12rem] truncate"
+        >
+          {t('chat.note')}: {parts.note}
         </span>
       )}
     </div>

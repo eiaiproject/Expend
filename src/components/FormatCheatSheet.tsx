@@ -11,6 +11,7 @@ const FORMATS: ReadonlyArray<{ sample: string; note: string }> = [
   { sample: 'kopi 20rb dari BSI / via GoPay / from BCA', note: 'sumber dana hanya bila dikenal' },
   { sample: 'nasi goreng dari warung Pak Eko 20rb', note: 'penjual tetap di deskripsi' },
   { sample: 'kopi 20rb kemarin / lusa / hari ini', note: 'tanggal relatif' },
+  { sample: 'kopi 25rb note untuk rapat', note: 'catatan (note/notes/catatan/keterangan, tulis di akhir)' },
   { sample: 'kopi 20rb tgl 15 / 15/08/2026', note: 'tanggal eksplisit' },
   { sample: 'Kopi 50 ✗ ditolak', note: 'angka < Rp100 tanpa awalan = noise' },
   { sample: 'maks Rp1.000.000.000.000', note: 'overflow ditolak' },
