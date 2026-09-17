@@ -1,9 +1,12 @@
-import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { BottomNav } from './components/BottomNav';
 import { useVisualViewport } from './utils/keyboard';
 import { SidebarNav } from './components/SidebarNav';
 import { SkeletonCard } from './components/SkeletonCard';
+import { OnboardingCoach } from './components/OnboardingCoach';
+import { isOnboarded, markOnboarded } from './utils/onboarding';
+import { applyA11yPrefs } from './utils/a11yPrefs';
 import { I18nProvider, useTranslation } from './i18n';
 
 const HomeView = lazy(() => import('./views/HomeView'));
@@ -13,8 +16,27 @@ const SettingsView = lazy(() => import('./views/SettingsView'));
 function Shell() {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const { vvHeight, vvTop, keyboardOpen } = useVisualViewport();
   const isChat = location.pathname === '/chat';
+  // TASK 1: coach saat first-run — baca flag saat init (bukan setState di effect).
+  const [showCoach, setShowCoach] = useState<boolean>(() => !isOnboarded());
+
+  useEffect(() => {
+    applyA11yPrefs();
+  }, []);
+
+  // TASK 1: replay dari Settings ("Lihat tutorial lagi") via event lokal.
+  useEffect(() => {
+    const onReplay = () => setShowCoach(true);
+    window.addEventListener('expend:replay-onboarding', onReplay);
+    return () => window.removeEventListener('expend:replay-onboarding', onReplay);
+  }, []);
+
+  const closeCoach = () => {
+    markOnboarded();
+    setShowCoach(false);
+  };
 
   // Saat keyboard buka, pakai visualViewport.height sebagai batas tinggi
   // agar list tidak meluap ke belakang keyboard.
@@ -46,6 +68,15 @@ function Shell() {
         </Suspense>
       </main>
       <BottomNav hidden={isChat && keyboardOpen} />
+      <OnboardingCoach
+        open={showCoach}
+        onClose={closeCoach}
+        onTryExample={(ex) => {
+          markOnboarded();
+          setShowCoach(false);
+          navigate(`/chat?input=${encodeURIComponent(ex)}`);
+        }}
+      />
     </div>
   );
 }
