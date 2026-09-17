@@ -29,9 +29,13 @@ function fmtTime(iso: string) {
   }
 }
 
-function scrollToBottom(endRef: React.RefObject<HTMLDivElement | null>, instant = false) {
+function scrollToBottom(listRef: React.RefObject<HTMLDivElement | null>, instant = false) {
+  // Scroll di dalam wadah list SAJA (bukan endRef.scrollIntoView): scrollIntoView
+  // menggelembung ke semua ancestor scrollable termasuk main (overflow:hidden
+  // tetap bisa di-scroll programatik) sehingga seluruh kolom bergeser dan
+  // composer lepas dari docking keyboard.
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  endRef.current?.scrollIntoView({ behavior: instant || prefersReduced ? 'auto' : 'smooth', block: 'end' });
+  listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: instant || prefersReduced ? 'auto' : 'smooth' });
 }
 
 const CHAT_PAGE = 50;
@@ -155,6 +159,19 @@ export default function ChatView() {
     }
   }, [keyboardInset]);
 
+  // Jangkar kirim: kemunculan kartu verifikasi (~200px+) dalam commit Dexie
+  // bertahap dapat melompati threshold nearBottom sehingga pesan baru tak
+  // terlihat. Jangkar mencatat posisi & inset keyboard SAAT menekan kirim:
+  // commit-commit berikutnya dipaksa scroll hanya bila user memang di bawah
+  // dengan inset yang sama. Ganti inset (buka/tutup keyboard) atau baca atas
+  // otomatis membatalkan — anti-rebut utuh, tanpa timestamp/window.
+  const sendAnchorRef = useRef<{ atBottom: boolean; kb: number } | null>(null);
+  const captureSendAnchor = () => {
+    const el = listRef.current;
+    const atBottom = el ? el.scrollHeight - el.scrollTop - el.clientHeight < 200 : true;
+    sendAnchorRef.current = { atBottom, kb: keyboardInset };
+  };
+
   // Default di bawah (instant saat mount), anti-rebut: hanya auto-scroll
   // bila user sudah di dekat bawah. Muat pesan lama tidak melempar ke bawah.
   useEffect(() => {
@@ -167,10 +184,12 @@ export default function ChatView() {
       return;
     }
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+    const anchor = sendAnchorRef.current;
+    const forceSend = !!anchor && anchor.atBottom && anchor.kb === keyboardInset;
     if (firstRenderRef.current) {
       firstRenderRef.current = false;
-      scrollToBottom(endRef, true);
-    } else if (nearBottom) {
+      scrollToBottom(listRef, true);
+    } else if (nearBottom || forceSend) {
       // Selalu instant: smooth scrollIntoView di-interupsi setiap ada
       // mutasi layout (progress OCR, kartu pending, gambar) sehingga
       // berhenti di tengah - user harus klik panah bawah manual.
@@ -280,10 +299,19 @@ export default function ChatView() {
     }
   }, []);
 
+  // TASK 5: panduan visual pra-capture (dismiss persist lokal).
+  const dismissGuide = useCallback(() => {
+    setShowOcrGuide(false);
+    try {
+      localStorage.setItem('expend_ocr_guide', '1');
+    } catch {}
+  }, []);
+
   async function handleSend(e?: React.FormEvent) {
     e?.preventDefault();
     const text = input.trim();
     if (!text || isSending) return;
+    captureSendAnchor();
     setIsSending(true);
     setInput('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
@@ -331,6 +359,7 @@ export default function ChatView() {
 
   async function handleFile(file: File) {
     if (ocrInFlight.current) return;
+    captureSendAnchor();
     const fileErr = validateImageFile(file);
     if (fileErr === 'format' || fileErr === 'empty') {
       setOcrError(t('chat.ocrFormatError'));
@@ -490,8 +519,8 @@ export default function ChatView() {
 
       {/* Empty state - outside of role="log" */}
       {!isMessagesLoading && messages.length === 0 && !pending && ocrProgress === null && (
-        <div className="flex-1 min-h-0 flex items-start pt-6">
-          <div className="w-full rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-3">
+          <div className="w-full rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5 mt-6 mb-4">
             <div className="flex items-start gap-3.5">
               <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--accent-soft)] border border-[var(--border)]/60 grid place-items-center shrink-0 shadow-sm">
                 <Receipt size={18} className="text-[var(--accent)]" aria-hidden />
@@ -555,6 +584,13 @@ export default function ChatView() {
               </button>
             </div>
           </div>
+          {/* Panduan pra-capture di dalam area scroll (bukan fixed flow) agar
+              viewport pendek/landscape tak mendorong composer keluar layar. */}
+          {showOcrGuide && keyboardInset === 0 && (
+            <div className="mb-4">
+              <OcrGuideOverlay onDismiss={dismissGuide} />
+            </div>
+          )}
         </div>
       )}
 
@@ -567,15 +603,21 @@ export default function ChatView() {
           aria-relevant="additions"
           aria-label={t('chat.conversation')}
           onScroll={handleScroll}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 py-4 pb-8 space-y-3"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 pt-4 space-y-3"
           // Shell (App.tsx) sudah memotong app sampai visualViewport -> dasar
           // list = atap keyboard. JANGAN tambah inset keyboard di sini
           // (penyebab bug composer menggantung di Android). Composer di flow
           // normal (bukan overlay) sehingga tingginya juga tidak perlu masuk
           // padding (menghasilkan gap mati antara bubble terakhir dan composer).
-          style={{ paddingBottom: 16 }}
+          // Padding bawah dipindah ke anchor endRef: padding container menjadi
+          // lantai minimum flex dan mendorong composer keluar di viewport pendek.
         >
           <h2 className="sr-only">{t('chat.conversation')}</h2>
+          {/* Panduan pra-capture ikut scroll (anak pertama log) dengan alasan
+              yang sama: fixed flow memakan ruang viewport pendek. */}
+          {showOcrGuide && keyboardInset === 0 && !pending && ocrProgress === null && (
+            <OcrGuideOverlay onDismiss={dismissGuide} />
+          )}
           {totalChat > messages.length && (
             <div className="flex justify-center">
               <button
@@ -594,7 +636,7 @@ export default function ChatView() {
           {messages.map((m, i) => {
             const showTime = shouldShowTime(messages[i - 1], m);
             return (
-              <div key={m.id} className="flex motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none" style={{ contentVisibility: 'auto' } as any}>
+              <div key={m.id} className="flex motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 96px' } as any}>
                 <div className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className="max-w-[76%]">
                     <div
@@ -773,7 +815,7 @@ export default function ChatView() {
             </div>
           )}
 
-          <div ref={endRef} />
+          <div ref={endRef} className="pb-4" />
         </div>
       )}
 
@@ -782,7 +824,7 @@ export default function ChatView() {
         <button
           type="button"
           aria-label={t('chat.backToLatest')}
-          onClick={() => scrollToBottom(endRef)}
+          onClick={() => scrollToBottom(listRef)}
           className="absolute bottom-24 md:bottom-20 left-1/2 -translate-x-1/2 z-20 min-w-12 min-h-12 w-12 h-12 rounded-full bg-[var(--card)] border border-[var(--border)] shadow-md grid place-items-center hover:bg-[var(--bone)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
         >
           <ChevronDown size={16} aria-hidden />
@@ -797,20 +839,6 @@ export default function ChatView() {
             <p className="text-sm font-bold mt-2">{t('chat.dropHere')}</p>
             <p className="text-xs text-[var(--text-secondary)]">{t('chat.dropFormats')}</p>
           </div>
-        </div>
-      )}
-
-      {/* TASK 5: panduan visual pra-capture (dismiss persist lokal). */}
-      {showOcrGuide && !pending && ocrProgress === null && (
-        <div className="shrink-0 px-4 md:px-6 pb-1">
-          <OcrGuideOverlay
-            onDismiss={() => {
-              setShowOcrGuide(false);
-              try {
-                localStorage.setItem('expend_ocr_guide', '1');
-              } catch {}
-            }}
-          />
         </div>
       )}
 

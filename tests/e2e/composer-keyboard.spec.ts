@@ -132,3 +132,28 @@ test('pesan terbaru tetap terlihat di atas composer saat keyboard terbuka', asyn
   );
   await expectLastMessageAboveComposer(msgs, composer);
 });
+
+// Regresi landscape: md:pt-6 di main mendorong composer ke bawah viewport
+// saat keyboard terbuka (tombol kirim terpotong ~27px). Dasar composer harus
+// merapat ke vv.height + vv.offsetTop (toleransi 5px, guard DEV memakai 4px).
+test('composer tetap docked saat landscape + keyboard terbuka', async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto('/chat');
+  await expect(page.locator('h1')).toBeVisible({ timeout: 10000 });
+  const composer = page.locator('main form').locator('xpath=..');
+  await page.locator('main textarea').click();
+  await simulateKeyboardOpen(page, 200);
+  await expect
+    .poll(async () => {
+      const box = await composer.boundingBox();
+      const vv = await page.evaluate(() => ({
+        h: window.visualViewport!.height,
+        t: window.visualViewport!.offsetTop,
+      }));
+      if (!box) return 999;
+      return Math.abs(box.y + box.height - (vv.h + vv.t));
+    }, { timeout: 5000 })
+    .toBeLessThanOrEqual(5);
+  // Tombol kirim terlihat penuh (tidak terpotong keyboard).
+  await expect(page.getByRole('button', { name: 'Kirim transaksi' })).toBeVisible();
+});

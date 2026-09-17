@@ -60,7 +60,7 @@ function Shell() {
         {t('common.skipToContent')}
       </a>
       <SidebarNav />
-      <main id="main-content" className="flex-1 min-w-0 min-h-0 flex flex-col max-w-3xl mx-auto w-full pt-[env(safe-area-inset-top)] md:pt-6 overflow-hidden">
+      <main id="main-content" className={`flex-1 min-w-0 min-h-0 flex flex-col max-w-3xl mx-auto w-full overflow-hidden ${isChat && keyboardOpen ? 'pt-0 md:pt-0' : 'pt-[env(safe-area-inset-top)] md:pt-6'}`}>
         <Suspense fallback={<SkeletonCard lines={3} />}>
           <Routes>
             <Route path="/" element={<HomeView />} />
