@@ -18,8 +18,7 @@ const EXPORT_ERROR_KEY = {
 } as const;
 import { useTranslation } from '../i18n';
 import type { Lang } from '../i18n';
-
-type Theme = 'system' | 'light' | 'dark';
+import { applyTheme, getTheme, type Theme } from '../utils/theme';
 
 function SettingsSection({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
   return (
@@ -104,7 +103,7 @@ export default function SettingsView() {
   const { t, lang, setLang } = useTranslation();
   const version: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
   const txs = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
+  const [theme, setTheme] = useState<Theme>(getTheme);
   const { toast, showToast, dismissToast } = useToast();
   const [confirmSave, setConfirmSave] = useState(() => {
     const v = localStorage.getItem('confirmSave');
@@ -128,14 +127,11 @@ export default function SettingsView() {
   }, [confirmSave]);
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'system') {
-      delete root.dataset.theme;
-      localStorage.removeItem('theme');
-    } else {
-      root.dataset.theme = theme;
-      localStorage.setItem('theme', theme);
-    }
+    try {
+      if (theme === 'system') localStorage.removeItem('theme');
+      else localStorage.setItem('theme', theme);
+    } catch {}
+    applyTheme();
   }, [theme]);
 
   // Satu jalur ekspor untuk csv/json: validasi range + filter + empty

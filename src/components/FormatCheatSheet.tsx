@@ -31,7 +31,7 @@ export function FormatCheatSheet({ open, onClose }: { readonly open: boolean; re
         open
         aria-modal="true"
         aria-labelledby="cheatsheet-title"
-        className="relative z-10 w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--card)] border border-[var(--border)] p-5 shadow-lg max-h-[80dvh] overflow-y-auto"
+        className="relative z-10 w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] p-5 shadow-lg max-h-[80dvh] overflow-y-auto"
       >
         <h2 id="cheatsheet-title" className="text-base font-bold leading-snug">{t('chat.sheetTitle')}</h2>
         <p className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">{t('chat.sheetDesc')}</p>

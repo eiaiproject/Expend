@@ -43,7 +43,7 @@ export function ExportWizard({
         open
         aria-modal="true"
         aria-labelledby="export-wizard-title"
-        className="relative z-10 w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--card)] border border-[var(--border)] p-5 shadow-lg max-h-[85dvh] overflow-y-auto"
+        className="relative z-10 w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] p-5 shadow-lg max-h-[85dvh] overflow-y-auto"
       >
         <div className="flex items-center justify-between gap-2">
           <h2 id="export-wizard-title" className="text-base font-bold">{t('export.wizardTitle')}</h2>

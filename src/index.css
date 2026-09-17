@@ -4,6 +4,11 @@
   --color-brand: #264025;
 }
 :root {
+  /* Skema form-control/UA mengikuti TEMA APLIKASI, bukan OS: tanpa ini,
+     <dialog> (color: CanvasText di UA stylesheet) dan input tanggal
+     mewarisi skema OS sehingga teks putih di atas background terang
+     saat OS dark + tema Light. */
+  color-scheme: light;
   --bg: #F7F6F2;
   --bone: #F1F0EA;
   --card: #FFFFFF;
@@ -74,6 +79,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #0a0a0a;
     --bone: #111111;
     --card: #1a1a1a;
@@ -114,6 +120,7 @@
 }
 /* Explicit dark theme via data-theme="dark" (same tokens as system dark above) */
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0a0a0a;
   --bone: #111111;
   --card: #1a1a1a;

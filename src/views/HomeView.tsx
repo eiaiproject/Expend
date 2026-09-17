@@ -462,7 +462,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
       aria-modal="true"
       aria-label={t('home.editTransaction', { name: tx.description })}
       onCancel={(e) => { e.preventDefault(); onClose(); }}
-      className="fixed inset-0 z-50 m-0 max-w-none max-h-none w-full h-full bg-transparent backdrop:bg-black/50 flex items-end md:items-center justify-center p-0 md:p-4 motion-safe:animate-[in_0.2s_ease-out]"
+      className="fixed inset-0 z-50 m-0 max-w-none max-h-none w-full h-full bg-transparent text-[var(--text-primary)] backdrop:bg-black/50 flex items-end md:items-center justify-center p-0 md:p-4 motion-safe:animate-[in_0.2s_ease-out]"
     >
       <form
         ref={sheetRef}

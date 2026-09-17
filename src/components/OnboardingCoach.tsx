@@ -29,7 +29,7 @@ export function OnboardingCoach({
         open
         aria-modal="true"
         aria-labelledby="onboarding-title"
-        className="relative z-10 w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--card)] border border-[var(--border)] p-5 shadow-lg motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none"
+        className="relative z-10 w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] p-5 shadow-lg motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none"
       >
         <div className="flex items-center justify-between gap-2">
           <p className="text-[11px] font-bold tracking-wide uppercase text-[var(--text-muted)] tabular-nums">
