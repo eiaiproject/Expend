@@ -87,14 +87,27 @@ export async function validateFileMagic(file: File): Promise<OcrFileError | null
   return null;
 }
 
-export async function recognizeImage(file: File, onProgress: (n: number) => void): Promise<string> {
+export interface OcrResult {
+  text: string;
+  /** Keyakinan 0-100 dari Tesseract; null bila worker tidak melaporkannya. */
+  confidence: number | null;
+}
+
+export async function recognizeImageDetailed(file: File, onProgress: (n: number) => void): Promise<OcrResult> {
   onProgress(5);
   const input = await preprocess(file);
   const worker = await getWorker();
   currentOnProgress = onProgress;
   const { data } = await worker.recognize(input as any);
   onProgress(100);
-  return data.text as string;
+  const raw = typeof data?.confidence === 'number' ? data.confidence : null;
+  const confidence = raw === null ? null : Math.max(0, Math.min(100, Math.round(raw)));
+  return { text: (data.text ?? '') as string, confidence };
+}
+
+export async function recognizeImage(file: File, onProgress: (n: number) => void): Promise<string> {
+  const r = await recognizeImageDetailed(file, onProgress);
+  return r.text;
 }
 
 export function isOcrReady(): boolean {

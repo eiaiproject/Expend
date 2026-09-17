@@ -3,13 +3,19 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
-import { recognizeImage, isOcrReady, validateImageFile, validateFileMagic } from '../utils/ocr';
+import { recognizeImageDetailed, isOcrReady, validateImageFile, validateFileMagic } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
 import { todayLocalISO } from '../utils/date';
 import { useKeyboardInset } from '../utils/keyboard';
+import { useDebouncedValue } from '../utils/useDebouncedValue';
+import { detectInputLang } from '../utils/langDetect';
 import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ChevronDown, X } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { InlineAlert } from '../components/InlineAlert';
+import { Toast, useToast } from '../components/Toast';
+import { LiveParseFeedback } from '../components/LiveParseFeedback';
+import { FormatCheatSheet } from '../components/FormatCheatSheet';
+import { OcrGuideOverlay } from '../components/OcrGuideOverlay';
 import { useTranslation } from '../i18n';
 
 type Pending = { description: string; amount: number; date: string; note?: string; source?: string };
@@ -50,11 +56,30 @@ export function shouldShowTime(prev: { createdAt: string; role: string } | undef
   return prev.createdAt.slice(0, 10) !== cur.createdAt.slice(0, 10) || cur.role !== prev.role;
 }
 export default function ChatView() {
-  const { t } = useTranslation();
-  const [input, setInput] = useState('');
+  const { t, lang } = useTranslation();
+  // TASK 3: prefill dari contoh one-tap (?input=...) — baca saat init.
+  const [input, setInput] = useState(() => {
+    try {
+      return (new URLSearchParams(window.location.search).get('input') ?? '').slice(0, 500);
+    } catch {
+      return '';
+    }
+  });
+  const debouncedInput = useDebouncedValue(input, 300);
   const [pending, setPending] = useState<Pending | null>(null);
   const [ocrProgress, setOcrProgress] = useState<number | null>(null);
   const [ocrError, setOcrError] = useState<string | null>(null);
+  const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
+  const [showSheet, setShowSheet] = useState(false);
+  const [showOcrGuide, setShowOcrGuide] = useState(() => {
+    try {
+      return localStorage.getItem('expend_ocr_guide') !== '1';
+    } catch {
+      return true;
+    }
+  });
+  const { toast, showToast, dismissToast } = useToast();
+  const langHintShown = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -171,9 +196,9 @@ export default function ChatView() {
     ta.style.height = `${Math.min(ta.scrollHeight, 128)}px`;
   }, [input]);
 
-  // Live preview selagi ketik: parseChatInput sinkron + murah, jadi tanpa
-  // debounce. Guard pending agar tak ganggu kartu verifikasi.
-  const liveParsed = pending ? null : previewDraft(input);
+  // TASK 2: live parse feedback dengan debounce 300ms (via useDebouncedValue).
+  // Guard pending agar tak ganggu kartu verifikasi.
+  const liveDebounced = pending ? '' : debouncedInput;
 
   // Handle share target
   useEffect(() => { // NOSONAR - cognitive complexity from share file+text handling
@@ -245,6 +270,15 @@ export default function ChatView() {
     }
   }, []);
 
+  // TASK 3: fokus + bersihkan param setelah prefill (sinkron DOM, tanpa setState).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('input')) {
+      textareaRef.current?.focus();
+      window.history.replaceState({}, '', '/chat');
+    }
+  }, []);
+
   async function handleSend(e?: React.FormEvent) {
     e?.preventDefault();
     const text = input.trim();
@@ -255,6 +289,13 @@ export default function ChatView() {
 
     const now = new Date().toISOString();
     await db.chatMessages.add({ role: 'user', text, createdAt: now });
+
+    // TASK 8: deteksi bahasa per-input (parse tetap jalan; toast sekali per session).
+    const detected = detectInputLang(text);
+    if (detected && detected !== lang && !langHintShown.current) {
+      langHintShown.current = true;
+      showToast(t('chat.detectedLang'));
+    }
 
     const parsed = parseChatInput(text);
     if (!parsed) {
@@ -269,6 +310,7 @@ export default function ChatView() {
     const today = now.slice(0, 10);
     const p: Pending = { description: parsed.description, amount: parsed.amount, date: parsed.date || today, source: parsed.source };
     setPending(p);
+    setOcrConfidence(null);
     setPendingEditable(false);
     await db.chatMessages.add({
       role: 'assistant',
@@ -294,7 +336,7 @@ export default function ChatView() {
       return;
     }
     if (fileErr === 'too-large') {
-      setOcrError(t('chat.ocrSizeError'));
+      setOcrError(t('chat.ocrTooLarge'));
       return;
     }
     // A7: Validasi magic number untuk cegah polyglot file
@@ -309,10 +351,11 @@ export default function ChatView() {
     if (mountedRef.current) setPreviewUrl(url);
     if (mountedRef.current) setOcrProgress(0);
     try {
-      const text = await recognizeImage(file, (n) => {
+      const { text, confidence } = await recognizeImageDetailed(file, (n) => {
         if (mountedRef.current) setOcrProgress(n);
       });
       if (!mountedRef.current) return;
+      if (mountedRef.current) setOcrConfidence(confidence);
       const parsed = parseReceiptText(text);
       if (!parsed) {
         setPending({ description: 'Transfer', amount: 0, date: todayLocalISO() });
@@ -378,6 +421,7 @@ export default function ChatView() {
       if (mountedRef.current) {
         setPending(null);
         setOcrError(null);
+        setOcrConfidence(null);
       }
     } catch {
       if (mountedRef.current) setOcrError(t('chat.saveError') ?? 'Gagal menyimpan transaksi. Coba lagi.');
@@ -618,6 +662,14 @@ export default function ChatView() {
               <p className="mt-1 text-xs text-[var(--text-secondary)] tabular-nums">
                 {fmtIDR(pending.amount || 0)} &middot; {pending.date}{pending.source ? ` · ${pending.source}` : ''}
               </p>
+              {ocrConfidence !== null && (
+                <div className="mt-2 space-y-1">
+                  <p className="text-[11px] font-semibold text-[var(--text-secondary)] tabular-nums" aria-live="polite">
+                    {t('chat.ocrConfidence', { value: ocrConfidence })}
+                  </p>
+                  <p className="text-[11px] text-[var(--text-muted)]">{t('chat.ocrPriorityNote')}</p>
+                </div>
+              )}
               {(pendingEditable || !pending.amount) && (
                 <div className="mt-4 space-y-3 border-t border-[var(--border)]/60 pt-4">
                 <label htmlFor="pending-desc" className="block">
@@ -702,7 +754,7 @@ export default function ChatView() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setPending(null); setOcrError(null); }}
+                  onClick={() => { setPending(null); setOcrError(null); setOcrConfidence(null); }}
                   className="min-h-12 px-5 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 >
                   <X size={16} aria-hidden />
@@ -739,6 +791,20 @@ export default function ChatView() {
         </div>
       )}
 
+      {/* TASK 5: panduan visual pra-capture (dismiss persist lokal). */}
+      {showOcrGuide && !pending && ocrProgress === null && (
+        <div className="shrink-0 px-4 md:px-6 pb-1">
+          <OcrGuideOverlay
+            onDismiss={() => {
+              setShowOcrGuide(false);
+              try {
+                localStorage.setItem('expend_ocr_guide', '1');
+              } catch {}
+            }}
+          />
+        </div>
+      )}
+
       {/* Composer */}
       <div
         ref={composerRef}
@@ -751,12 +817,7 @@ export default function ChatView() {
             : 'pb-[calc(66px+env(safe-area-inset-bottom))] md:pb-[calc(10px+env(safe-area-inset-bottom))]'
         }`}
       >
-      {liveParsed && (
-        <p aria-live="polite" className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] px-3 py-1 text-xs font-semibold">
-          <Check size={13} aria-hidden />
-          {t('chat.livePreview', { desc: liveParsed.description, amount: fmtIDR(liveParsed.amount) })}
-        </p>
-      )}
+      {liveDebounced.trim() !== '' && <LiveParseFeedback debounced={liveDebounced} />}
         <form onSubmit={handleSend} className="flex items-end gap-2 bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-xl)] p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[var(--accent)] focus-within:border-[var(--accent)] transition-all">
           <input
             ref={fileRef}
@@ -802,6 +863,15 @@ export default function ChatView() {
           >
             <Camera size={18} aria-hidden />
           </button>
+          <button
+            type="button"
+            aria-label={t('chat.formatHelp')}
+            title={t('chat.formatHelp')}
+            onClick={() => setShowSheet(true)}
+            className="w-12 h-12 rounded-full bg-[var(--bg)] border border-[var(--border)] grid place-items-center shrink-0 text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--border)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+          >
+            <span aria-hidden>?</span>
+          </button>
           <textarea
             ref={textareaRef}
             value={input}
@@ -842,6 +912,9 @@ export default function ChatView() {
           </p>
         )}
       </div>
+
+      <FormatCheatSheet open={showSheet} onClose={() => setShowSheet(false)} />
+      {toast && <Toast message={toast.message} type={toast.type} onDismiss={dismissToast} />}
 
       <style>{String.raw`@keyframes in { from { opacity:0; transform: translateY(4px)} to { opacity:1; transform: translateY(0)} } @media (prefers-reduced-motion: reduce) { .motion-safe\:animate-pulse, .motion-safe\:animate-\[in_0\.2s_ease-out\] { animation: none !important; } }`}</style>
     </div>
