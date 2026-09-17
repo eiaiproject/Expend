@@ -10,6 +10,10 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
+    // First-run coach (expend_onboarded) dibuka sebagai modal; tandai sudah
+    // onboard agar 9 spec existing tidak terhalang overlay. Spec onboarding
+    // khusus menghapus flag ini sendiri untuk menguji first-run.
+    storageState: 'tests/e2e/storageState.json',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } } },

@@ -1,8 +1,12 @@
-import { useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { fmtIDR, fmtDate } from '../utils/format';
-import { filterByDate, validateDateRange } from '../utils/export';
+import { filterByDate, validateDateRange, jsonBlob, exportFilename, downloadBlob } from '../utils/export';
+import { todayLocalISO } from '../utils/date';
+import { isBackupDueWithInterval, getBackupInterval, readLastBackup, recordBackup } from '../utils/backup';
+import { useDebouncedValue } from '../utils/useDebouncedValue';
+import { isEditableElement } from '../utils/keyboard';
 import { groupTransactions, type GroupGranularity } from '../utils/grouping';
 import { Receipt, Trash2, ChatRoundDots, Gallery, Edit, X, Calendar } from 'reicon-react';
 import { Link } from 'react-router-dom';
@@ -10,6 +14,9 @@ import { SectionCard } from '../components/SectionCard';
 import { EmptyState } from '../components/EmptyState';
 import { InlineAlert } from '../components/InlineAlert';
 import { SkeletonCard } from '../components/SkeletonCard';
+import { FormatCheatSheet } from '../components/FormatCheatSheet';
+import { Wordmark } from '../components/Wordmark';
+import { QuickToggles } from '../components/QuickToggles';
 import { Toast, useToast } from '../components/Toast';
 import type { Transaction } from '../db/db';
 import { useFocusTrap } from '../utils/focusTrap';
@@ -17,6 +24,29 @@ import { useTranslation } from '../i18n';
 import type { TranslationKey } from '../i18n/id';
 
 const EMPTY_TXS: Transaction[] = [];
+const QUICK_EXAMPLES = ['Kopi 25rb', 'Makan siang 30rb', 'Transport 15rb'];
+
+/** Highlight case-insensitive dengan <mark> untuk hasil search. */
+export function highlightMatch(text: string, query: string): React.ReactNode {
+  const q = query.trim();
+  if (!q) return text;
+  const lower = text.toLowerCase();
+  const lq = q.toLowerCase();
+  const parts: React.ReactNode[] = [];
+  let i = 0;
+  let k = 0;
+  for (;;) {
+    const idx = lower.indexOf(lq, i);
+    if (idx === -1) {
+      parts.push(text.slice(i));
+      break;
+    }
+    if (idx > i) parts.push(text.slice(i, idx));
+    parts.push(<mark key={k++} className="bg-[var(--warning-soft)] rounded px-0.5">{text.slice(idx, idx + q.length)}</mark>);
+    i = idx + q.length;
+  }
+  return <>{parts}</>;
+}
 
 function addDaysISO(iso: string, days: number): string {
   const [y, m, d] = iso.split('-').map(Number);
@@ -39,6 +69,15 @@ const GRANULARITY_LABEL_KEY: Record<GroupGranularity, TranslationKey> = {
   month: 'home.groupMonth',
 };
 
+type QuickRange = 'today' | 'week' | 'month' | 'all';
+
+const QUICK_LABEL_KEY: Record<QuickRange, TranslationKey> = {
+  today: 'home.quickToday',
+  week: 'home.quick7d',
+  month: 'home.quickMonth',
+  all: 'home.quickAll',
+};
+
 export default function HomeView() {
   const { t } = useTranslation();
   const txsResult = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray(), []);
@@ -50,11 +89,67 @@ export default function HomeView() {
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [granularity, setGranularity] = useState<GroupGranularity>('day');
+  // TASK 4: pencarian deskripsi (debounce) + shortcut "/" + chip cepat.
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebouncedValue(query, 200);
+  const searchRef = useRef<HTMLInputElement>(null);
+  // TASK 3: cheat sheet dari empty state.
+  const [showSheet, setShowSheet] = useState(false);
+  // TASK 9: banner backup sesuai interval (default mingguan).
+  const [lastBackup, setLastBackup] = useState<string | null>(readLastBackup);
+  const backupDue = isBackupDueWithInterval(txs.length, lastBackup, getBackupInterval());
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (isEditableElement(document.activeElement)) return;
+      const ae = document.activeElement as HTMLElement | null;
+      if (ae?.tagName === 'DIALOG' || ae?.closest?.('dialog')) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  const applyQuick = (kind: 'today' | 'week' | 'month' | 'all') => {
+    const today = todayLocalISO();
+    if (kind === 'all') {
+      setFilterFrom('');
+      setFilterTo('');
+    } else if (kind === 'today') {
+      setFilterFrom(today);
+      setFilterTo(today);
+    } else if (kind === 'week') {
+      setFilterFrom(addDaysISO(today, -6));
+      setFilterTo(today);
+    } else {
+      setFilterFrom(`${today.slice(0, 7)}-01`);
+      setFilterTo(today);
+    }
+  };
+
+  const backupNow = async () => {
+    try {
+      const all = await db.transactions.toArray();
+      if (!all.length) return;
+      downloadBlob(jsonBlob(all), exportFilename('json'));
+      setLastBackup(recordBackup());
+      showToast(t('settings.exportJSONSukses', { count: all.length }));
+    } catch {
+      showToast(t('settings.exportJSONError'), 'error');
+    }
+  };
   const rangeErr = validateDateRange(filterFrom || undefined, filterTo || undefined);
   const hasFilter = filterFrom !== '' || filterTo !== '';
-  const filtered = useMemo(
+  const dateFiltered = useMemo(
     () => (rangeErr ? txs : filterByDate(txs, filterFrom || undefined, filterTo || undefined)),
     [txs, filterFrom, filterTo, rangeErr],
+  );
+  const q = debouncedQuery.trim().toLowerCase();
+  const filtered = useMemo(
+    () => (q ? dateFiltered.filter((tx) => tx.description.toLowerCase().includes(q)) : dateFiltered),
+    [dateFiltered, q],
   );
   const total = useMemo(() => filtered.reduce((a, tx) => a + tx.amount, 0), [filtered]);
   const groups = useMemo(() => groupTransactions(filtered, granularity), [filtered, granularity]);
@@ -66,10 +161,13 @@ export default function HomeView() {
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 pt-4 md:pt-0 pb-[calc(60px+env(safe-area-inset-bottom))] space-y-6">
-      <header>
+      <header className="flex items-start gap-3">
         <h1 className="sr-only">Expend</h1>
-        <img src="/Expend-word.svg" alt="Expend" className="h-5 md:h-6 w-auto" />
+        <div className="min-w-0 flex-1">
+        <Wordmark className="h-5 md:h-6 w-auto" />
         <p className="text-sm text-[var(--text-secondary)] mt-1">{t('home.subtitle')}</p>
+        </div>
+        <QuickToggles />
       </header>
 
       {isLoading && <SkeletonCard lines={3} />}
@@ -78,6 +176,19 @@ export default function HomeView() {
         <div role="alert" className="text-xs px-3 py-2.5 rounded-[var(--radius-md)] bg-[var(--danger-bg)] border border-[var(--danger-border)] text-[var(--danger)] flex items-start gap-2">
           <span className="flex-1">{error}</span>
           <button type="button" onClick={() => setError(null)} className="min-w-11 min-h-11 grid place-items-center rounded-[var(--radius-md)] text-[var(--danger-deep)] hover:opacity-70 focus-visible:ring-2 focus-visible:ring-[var(--accent)]" aria-label={t('common.close')}><span aria-hidden className="text-lg leading-none">&times;</span></button>
+        </div>
+      )}
+
+      {!isLoading && txs.length > 0 && backupDue && (
+        <div role="note" className="text-xs px-3 py-2.5 rounded-[var(--radius-md)] bg-[var(--warning-soft)] border border-[var(--border)] text-[var(--text-secondary)] flex items-center gap-2">
+          <span className="flex-1">{t('home.backupRemind')}</span>
+          <button
+            type="button"
+            onClick={() => void backupNow()}
+            className="shrink-0 min-h-11 px-3 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-xs font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+          >
+            {t('home.backupNow')}
+          </button>
         </div>
       )}
 
@@ -101,6 +212,26 @@ export default function HomeView() {
               <Gallery size={16} aria-hidden />
               {t('home.uploadReceipt')}
             </Link>
+            <p className="text-xs font-bold text-[var(--text-secondary)] mt-2">{t('home.tryExamples')}</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {QUICK_EXAMPLES.map((ex) => (
+                <Link
+                  key={ex}
+                  to={`/chat?input=${encodeURIComponent(ex)}`}
+                  aria-label={t('chat.useExample', { example: ex })}
+                  className="min-h-11 inline-flex items-center px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-semibold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                >
+                  {ex}
+                </Link>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSheet(true)}
+              className="text-xs font-semibold text-[var(--accent)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded px-1 min-h-8"
+            >
+              {t('home.learnFormat')}
+            </button>
           </div>
         </EmptyState>
       ) : (
@@ -120,6 +251,33 @@ export default function HomeView() {
 
           <SectionCard>
             <div className="space-y-3">
+              <div>
+                <label htmlFor="home-search" className="sr-only">{t('home.searchLabel')}</label>
+                <input
+                  id="home-search"
+                  ref={searchRef}
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={`${t('home.searchPlaceholder')} ( / )`}
+                  aria-label={t('home.searchLabel')}
+                  autoComplete="off"
+                  className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
+                />
+              </div>
+              <fieldset className="flex flex-wrap gap-2 m-0 p-0 border-0 min-w-0">
+                <legend className="sr-only">{t('home.filterDate')}</legend>
+                {(['today', 'week', 'month', 'all'] as const).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => applyQuick(k)}
+                    className="min-h-11 px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                  >
+                    {t(QUICK_LABEL_KEY[k])}
+                  </button>
+                ))}
+              </fieldset>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
                   <span className="text-xs font-medium text-[var(--text-secondary)]">{t('settings.from')}</span>
@@ -188,7 +346,7 @@ export default function HomeView() {
                   className="list-item flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]/40 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold truncate">{tx.description}</p>
+                    <p className="text-sm font-semibold truncate">{highlightMatch(tx.description, debouncedQuery)}</p>
                     <p className="text-xs text-[var(--text-secondary)] tabular-nums mt-0.5">
                       {fmtDate(tx.date)}
                       {tx.source && <>{' '}&middot;{' '}<span className="text-[var(--text-muted)]">{tx.source}</span></>}
@@ -251,6 +409,7 @@ export default function HomeView() {
           onDismiss={dismissToast}
         />
       )}
+      <FormatCheatSheet open={showSheet} onClose={() => setShowSheet(false)} />
 
       {editing && (
         <EditSheet
@@ -318,7 +477,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
       aria-modal="true"
       aria-label={t('home.editTransaction', { name: tx.description })}
       onCancel={(e) => { e.preventDefault(); onClose(); }}
-      className="fixed inset-0 z-50 m-0 max-w-none max-h-none w-full h-full bg-transparent backdrop:bg-black/50 flex items-end md:items-center justify-center p-0 md:p-4 motion-safe:animate-[in_0.2s_ease-out]"
+      className="fixed inset-0 z-50 m-0 max-w-none max-h-none w-full h-full bg-transparent text-[var(--text-primary)] backdrop:bg-black/50 flex items-end md:items-center justify-center p-0 md:p-4 motion-safe:animate-[in_0.2s_ease-out]"
     >
       <form
         ref={sheetRef}

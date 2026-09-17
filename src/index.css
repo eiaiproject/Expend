@@ -4,6 +4,11 @@
   --color-brand: #264025;
 }
 :root {
+  /* Skema form-control/UA mengikuti TEMA APLIKASI, bukan OS: tanpa ini,
+     <dialog> (color: CanvasText di UA stylesheet) dan input tanggal
+     mewarisi skema OS sehingga teks putih di atas background terang
+     saat OS dark + tema Light. */
+  color-scheme: light;
   --bg: #F7F6F2;
   --bone: #F1F0EA;
   --card: #FFFFFF;
@@ -74,6 +79,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #0a0a0a;
     --bone: #111111;
     --card: #1a1a1a;
@@ -114,6 +120,7 @@
 }
 /* Explicit dark theme via data-theme="dark" (same tokens as system dark above) */
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0a0a0a;
   --bone: #111111;
   --card: #1a1a1a;
@@ -149,11 +156,40 @@
   --elevation-3: 0 8px 24px rgba(0,0,0,0.60);
 }
 * { scrollbar-width: thin; scrollbar-gutter: stable; }
+/* #main-content tidak boleh bergeser: overflow:hidden masih bisa di-scroll
+   programatik/focus-scroll sehingga kolom chat lepas dari docking keyboard.
+   overflow:clip melarang semua scroll (fallback hidden untuk browser lama). */
+#main-content { overflow: hidden; overflow: clip; }
 /* Focus indicator uses solid accent for 3:1 visibility in both themes. */
 *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 h1, h2, h3 { text-wrap: balance; }
 p, li { text-wrap: pretty; }
 html { scrollbar-gutter: stable; font-size: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* TASK 7: skala font pengguna (persist, hormati reduced-motion — hanya ukuran). */
+html[data-fontsize="s"] { font-size: 87.5%; }
+html[data-fontsize="m"] { font-size: 100%; }
+html[data-fontsize="l"] { font-size: 112.5%; }
+/* TASK 7: kontras tinggi — garis & teks sekunder ditegaskan di kedua tema. */
+html[data-contrast="high"] {
+  --border: #8a8a8a;
+  --border-strong: #555;
+  --text-secondary: #111;
+  --text-muted: #333;
+}
+@media (prefers-color-scheme: dark) {
+  html[data-contrast="high"]:not([data-theme="light"]) {
+    --border: #8a8a8a;
+    --border-strong: #bdbdbd;
+    --text-secondary: #f0f0f0;
+    --text-muted: #d6d6d6;
+  }
+}
+html[data-contrast="high"][data-theme="dark"] {
+  --border: #8a8a8a;
+  --border-strong: #bdbdbd;
+  --text-secondary: #f0f0f0;
+  --text-muted: #d6d6d6;
+}
 body { font-family: var(--font-sans); color: var(--text-primary); background: var(--bg); }
 progress { appearance: none; -webkit-appearance: none; }
 progress::-webkit-progress-bar { background: var(--border); border-radius: 9999px; }

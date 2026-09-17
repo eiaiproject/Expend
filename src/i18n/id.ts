@@ -106,7 +106,6 @@ const id = {
   'settings.preferences': 'Preferensi',
   'settings.theme': 'Tema',
   'settings.themeDesc': 'Pilih tampilan aplikasi',
-  'settings.themeSystem': 'Sistem',
   'settings.themeLight': 'Terang',
   'settings.themeDark': 'Gelap',
   'settings.numberFormat': 'Format nominal',
@@ -167,6 +166,80 @@ const id = {
   'export.note': 'Catatan',
   'export.createdAt': 'Dibuat',
   'export.sheetName': 'Transaksi',
+
+  // Onboarding (first-run coach)
+  'onboarding.title': 'Selamat datang di Expend',
+  'onboarding.step1Title': 'Catat pengeluaran lewat chat',
+  'onboarding.step1Desc': 'Ketik seperti ngobrol. Contoh: "kopi 25rb dari BSI". 100% offline, data tersimpan di perangkat.',
+  'onboarding.step2Title': 'Coba contoh ini',
+  'onboarding.step2Desc': 'Ketuk contoh untuk mengisi otomatis di halaman Catat.',
+  'onboarding.step3Title': 'Lihat cara dibaca',
+  'onboarding.step3Desc': 'Deskripsi, nominal, sumber dana, dan tanggal ditandai warna berbeda sebelum disimpan.',
+  'onboarding.step4Title': 'Siap mencatat pertama',
+  'onboarding.step4Desc': 'Tulis pengeluaran pertamamu. Selesai dalam < 60 detik, tanpa baca dokumentasi.',
+  'onboarding.skip': 'Lewati',
+  'onboarding.next': 'Lanjut',
+  'onboarding.back': 'Kembali',
+  'onboarding.done': 'Mulai mencatat',
+  'onboarding.replay': 'Lihat tutorial lagi',
+
+  // Smart input (live parse + cheat sheet)
+  'chat.parseTooSmall': "Nominal terlalu kecil. Coba tulis 'Kopi 50rb' atau 'Kopi Rp500'.",
+  'chat.formatHelp': 'Lihat format input',
+  'chat.sheetTitle': 'Format input yang diterima',
+  'chat.sheetDesc': 'Parser membaca nominal fleksibel. Angka polos di bawah Rp100 tanpa awalan ditolak.',
+  'chat.sheetClose': 'Tutup',
+  'chat.detectedLang': 'Terdeteksi English. Ganti bahasa di Pengaturan?',
+
+  // Home search / empty state edukatif / backup banner
+  'home.searchPlaceholder': 'Cari transaksi...',
+  'home.searchLabel': 'Cari transaksi',
+  'home.quickToday': 'Hari ini',
+  'home.quick7d': '7 hari',
+  'home.quickMonth': 'Bulan ini',
+  'home.quickAll': 'Semua',
+  'home.tryExamples': 'Coba contoh:',
+  'home.learnFormat': 'Pelajari format input',
+  'home.backupRemind': 'Sudah lama tanpa backup. Amankan data dengan ekspor.',
+  'home.backupNow': 'Backup sekarang',
+
+  // OCR guidance
+  'chat.ocrGuideTitle': 'Pastikan struk terlihat penuh',
+  'chat.ocrGuideDesc': 'Cahaya cukup, tidak blur, struk memenuhi bingkai. Kami memakai baris Total jika ada, bukan Tunai/Kembalian.',
+  'chat.ocrGuideGotIt': 'Mengerti',
+  'chat.ocrConfidence': 'Keyakinan {value}%',
+  'chat.ocrPriorityNote': "Kami memakai 'Total' jika ada, bukan 'Tunai/Kembalian'.",
+  'chat.ocrTooLarge': 'File terlalu besar. Kompres di bawah 10 MB atau potong gambar lalu coba lagi.',
+
+  // Export wizard (JSON/CSV saja)
+  'export.wizardTitle': 'Ekspor data',
+  'export.wizardStep1': '1. Pilih format',
+  'export.wizardStep2': '2. Rentang & pratinjau',
+  'export.wizardStep3': '3. Konfirmasi & ekspor',
+  'export.wizardJsonDesc': 'JSON: backup penuh, bisa diimpor lagi.',
+  'export.wizardCsvDesc': 'CSV: dibuka di Excel/Sheets.',
+  'export.wizardPreview': '{count} transaksi akan diekspor.',
+  'export.wizardAll': 'Semua data',
+  'export.wizardBack': 'Kembali',
+  'export.wizardNext': 'Lanjut',
+  'export.wizardExport': 'Ekspor sekarang',
+
+  // Settings a11y + backup interval + tutorial
+  'settings.fontSize': 'Ukuran font',
+  'settings.fontSizeDesc': 'Kecil / Sedang / Besar',
+  'settings.fontSizeS': 'Kecil',
+  'settings.fontSizeM': 'Sedang',
+  'settings.fontSizeL': 'Besar',
+  'settings.contrast': 'Kontras tinggi',
+  'settings.contrastDesc': 'Teks dan garis lebih tegas',
+  'settings.tutorial': 'Tutorial',
+  'settings.tutorialDesc': 'Ulangi panduan awal',
+  'settings.backupInterval': 'Ingatkan saya backup',
+  'settings.backupIntervalDesc': 'Pengingat lokal, tanpa jaringan',
+  'settings.backupWeekly': 'Mingguan',
+  'settings.backupMonthly': 'Bulanan',
+  'settings.backupOff': 'Mati',
+  'settings.backupNow': 'Backup sekarang (JSON)',
 } as const;
 
 export default id;

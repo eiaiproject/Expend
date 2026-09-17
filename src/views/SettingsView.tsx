@@ -5,8 +5,11 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { PageHeader } from '../components/PageHeader';
 import { SectionCard } from '../components/SectionCard';
 import { Toast, useToast } from '../components/Toast';
+import { ExportWizard, type ExportKind } from '../components/ExportWizard';
+import { FormatCheatSheet } from '../components/FormatCheatSheet';
 import { csvBlob, jsonBlob, parseImportJSON, IMPORT_MAX_BYTES, filterByDate, exportFilename, downloadBlob, validateDateRange } from '../utils/export';
-import { isBackupDue, readLastBackup, recordBackup } from '../utils/backup';
+import { isBackupDue, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, type BackupInterval } from '../utils/backup';
+import { getFontSize, setFontSize as persistFontSize, isHighContrast, setHighContrast as persistHighContrast, type FontSize } from '../utils/a11yPrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 const EXPORT_ERROR_KEY = {
@@ -15,8 +18,14 @@ const EXPORT_ERROR_KEY = {
 } as const;
 import { useTranslation } from '../i18n';
 import type { Lang } from '../i18n';
+import type { TranslationKey } from '../i18n/id';
+import { useTheme, type Theme } from '../utils/theme';
 
-type Theme = 'system' | 'light' | 'dark';
+const FONT_SIZE_LABEL_KEY: Record<FontSize, TranslationKey> = {
+  s: 'settings.fontSizeS',
+  m: 'settings.fontSizeM',
+  l: 'settings.fontSizeL',
+};
 
 function SettingsSection({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
   return (
@@ -101,7 +110,7 @@ export default function SettingsView() {
   const { t, lang, setLang } = useTranslation();
   const version: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
   const txs = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
+  const { theme, setTheme } = useTheme();
   const { toast, showToast, dismissToast } = useToast();
   const [confirmSave, setConfirmSave] = useState(() => {
     const v = localStorage.getItem('confirmSave');
@@ -112,27 +121,25 @@ export default function SettingsView() {
   const [lastBackup, setLastBackup] = useState<string | null>(readLastBackup);
   const backupDue = isBackupDue(txs.length, lastBackup);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // TASK 6/7/9: wizard ekspor, cheat sheet, preferensi a11y, interval backup.
+  const [showWizard, setShowWizard] = useState(false);
+  const [showSheet, setShowSheet] = useState(false);
+  const [fontSize, setFontSize] = useState<FontSize>(getFontSize);
+  const [highContrast, setHighContrast] = useState(isHighContrast);
+  const [backupInterval, setBackupInterval] = useState<BackupInterval>(getBackupInterval);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     localStorage.setItem('confirmSave', String(confirmSave));
   }, [confirmSave]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'system') {
-      delete root.dataset.theme;
-      localStorage.removeItem('theme');
-    } else {
-      root.dataset.theme = theme;
-      localStorage.setItem('theme', theme);
-    }
-  }, [theme]);
-
   // Satu jalur ekspor untuk csv/json: validasi range + filter + empty
-  // check hanya sekali agar tidak terduplikasi per format.
-  const handleExport = useCallback(async (kind: 'csv' | 'json') => {
-    const rangeErr = validateDateRange(exportFrom || undefined, exportTo || undefined);
+  // check hanya sekali agar tidak terduplikasi per format. Wizard memanggil
+  // dengan override rentang sendiri; tombol cepat memakai state exportFrom/To.
+  const handleExport = useCallback(async (kind: 'csv' | 'json', fromOverride?: string, toOverride?: string) => {
+    const from = fromOverride ?? exportFrom;
+    const to = toOverride ?? exportTo;
+    const rangeErr = validateDateRange(from || undefined, to || undefined);
     if (rangeErr === 'from-after-to') {
       showToast(t('settings.fromAfterTo'), 'error');
       return;
@@ -143,17 +150,17 @@ export default function SettingsView() {
     }
     try {
       const all = await db.transactions.toArray();
-      const filtered = filterByDate(all, exportFrom || undefined, exportTo || undefined);
+      const filtered = filterByDate(all, from || undefined, to || undefined);
       if (!filtered.length) {
         showToast(t('settings.noExport'), 'error');
         return;
       }
       if (kind === 'csv') {
-        downloadBlob(csvBlob(filtered), exportFilename('csv', exportFrom || undefined, exportTo || undefined));
+        downloadBlob(csvBlob(filtered), exportFilename('csv', from || undefined, to || undefined));
         setLastBackup(recordBackup());
         showToast(t('settings.exportCSVSukses', { count: filtered.length }));
       } else {
-        downloadBlob(jsonBlob(filtered), exportFilename('json', exportFrom || undefined, exportTo || undefined));
+        downloadBlob(jsonBlob(filtered), exportFilename('json', from || undefined, to || undefined));
         setLastBackup(recordBackup());
         showToast(t('settings.exportJSONSukses', { count: filtered.length }));
       }
@@ -161,6 +168,10 @@ export default function SettingsView() {
       showToast(t(EXPORT_ERROR_KEY[kind]), 'error');
     }
   }, [exportFrom, exportTo, showToast, t]);
+
+  const handleWizardExport = useCallback((kind: ExportKind, from: string, to: string) => {
+    void handleExport(kind, from, to);
+  }, [handleExport]);
 
   const handleImportFile = useCallback(async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.json') && file.type !== 'application/json' && file.type !== '') {
@@ -226,7 +237,6 @@ export default function SettingsView() {
                   aria-label={t('settings.theme')}
                   className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
                 >
-                  <option value="system">{t('settings.themeSystem')}</option>
                   <option value="light">{t('settings.themeLight')}</option>
                   <option value="dark">{t('settings.themeDark')}</option>
                 </select>
@@ -246,6 +256,60 @@ export default function SettingsView() {
                 <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.confirmSaveDesc')}</p>
               </div>
               <Toggle checked={confirmSave} onChange={setConfirmSave} label={t('settings.confirmSave')} />
+            </div>
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold">{t('settings.fontSize')}</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.fontSizeDesc')}</p>
+              </div>
+              <fieldset className="flex rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-1 gap-1 m-0 min-w-0">
+                <legend className="sr-only">{t('settings.fontSize')}</legend>
+                {(['s', 'm', 'l'] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    aria-pressed={fontSize === s}
+                    onClick={() => { persistFontSize(s); setFontSize(s); }}
+                    className={`min-h-11 px-3 rounded-[var(--radius-sm)] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${fontSize === s ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
+                  >
+                    {t(FONT_SIZE_LABEL_KEY[s])}
+                  </button>
+                ))}
+              </fieldset>
+            </div>
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold">{t('settings.contrast')}</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.contrastDesc')}</p>
+              </div>
+              <Toggle checked={highContrast} onChange={(v) => { persistHighContrast(v); setHighContrast(v); }} label={t('settings.contrast')} />
+            </div>
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold">{t('settings.tutorial')}</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.tutorialDesc')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event('expend:replay-onboarding'))}
+                className="shrink-0 min-h-11 px-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-xs font-bold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+              >
+                {t('onboarding.replay')}
+              </button>
+            </div>
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold">{t('chat.formatHelp')}</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('chat.sheetDesc')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSheet(true)}
+                aria-label={t('chat.formatHelp')}
+                className="shrink-0 w-11 h-11 grid place-items-center rounded-full border border-[var(--border)] bg-[var(--bg)] text-sm font-bold hover:bg-[var(--bone)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+              >
+                <span aria-hidden>?</span>
+              </button>
             </div>
           </div>
         </SectionCard>
@@ -311,7 +375,37 @@ export default function SettingsView() {
               <button type="button" aria-label={t('settings.importJSON')} onClick={() => importRef.current?.click()} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.importJSON')}
               </button>
+              <button type="button" onClick={() => setShowWizard(true)} disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+                {t('export.wizardTitle')}
+              </button>
             </div>
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <div>
+                <p className="text-sm font-semibold">{t('settings.backupInterval')}</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.backupIntervalDesc')}</p>
+              </div>
+              <div className="relative">
+                <select
+                  value={backupInterval}
+                  onChange={(e) => { const v = e.target.value as BackupInterval; persistBackupInterval(v); setBackupInterval(v); }}
+                  aria-label={t('settings.backupInterval')}
+                  className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
+                >
+                  <option value="weekly">{t('settings.backupWeekly')}</option>
+                  <option value="monthly">{t('settings.backupMonthly')}</option>
+                  <option value="off">{t('settings.backupOff')}</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]" size={16} aria-hidden />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleExport('json')}
+              disabled={txs.length === 0}
+              className="w-full min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40"
+            >
+              <Download size={16} aria-hidden /> {t('settings.backupNow')}
+            </button>
             <input ref={importRef} type="file" accept="application/json,.json" className="hidden" aria-label={t('settings.importJSON')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f); }} />
             {backupDue && (
               <p className="text-xs text-[var(--text-secondary)]" role="note">
@@ -429,6 +523,8 @@ export default function SettingsView() {
         onConfirm={handleDeleteAll}
         onCancel={() => setConfirmDelete(false)}
       />
+      <ExportWizard open={showWizard} transactions={txs} onClose={() => setShowWizard(false)} onExport={handleWizardExport} />
+      <FormatCheatSheet open={showSheet} onClose={() => setShowSheet(false)} />
     </div>
   );
 }

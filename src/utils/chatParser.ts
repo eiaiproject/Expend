@@ -8,6 +8,7 @@ export interface ParsedExpense {
   amount: number;
   source?: string;
   date?: string;
+  note?: string;
 }
 
 // Number normalization
@@ -301,6 +302,37 @@ function formatDescription(raw: string, hasGenericSource: boolean, stripSourceCl
   return titleCasePreserveAcronyms(desc).slice(0, 80);
 }
 
+// Klausa catatan: "note|notes|catatan|keterangan" TANPA titik dua wajib
+// (colon ditoleransi). Tanpa positional guard, kata produk seperti
+// "buku catatan" atau "sticky note" ikut kepotong — jadi klausa hanya
+// diterima bila teks SEBELUM keyword mengandung kandidat nominal,
+// yakni catatan ditulis SETELAH nominal ("kopi 25rb note untuk rapat").
+// "nota" (struk) sengaja tidak termasuk keyword.
+const NOTE_KW_RE = /\b(note|notes|catatan|keterangan)\b/gi; // NOSONAR - input bounded (<500 chars)
+const NOTE_MAX = 200; // selaras limit import (export.ts optText note 200)
+
+export function splitNoteClause(text: string): { head: string; note?: string } {
+  NOTE_KW_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  let bareStripped: string | null = null;
+  while ((m = NOTE_KW_RE.exec(text))) {
+    const kwEnd = m.index + m[0].length;
+    const tail = text.slice(kwEnd).replace(/^[\s:：]+/, '').trim();
+    const head = text.slice(0, m.index).trim();
+    if (!tail) {
+      // Keyword token terakhir tanpa isi ("kopi 25rb catatan") → buang keywordnya.
+      bareStripped = head;
+      continue;
+    }
+    // Terima match pertama yang head-nya memuat nominal.
+    if (extractCandidates(head).length > 0) {
+      return { head, note: tail.slice(0, NOTE_MAX) };
+    }
+  }
+  if (bareStripped !== null) return { head: bareStripped };
+  return { head: text };
+}
+
 // Main export
 export function parseChatInput(input: string): ParsedExpense | null {
   // A2: Batasi panjang input untuk cegah ReDoS - regex kompleks
@@ -308,12 +340,17 @@ export function parseChatInput(input: string): ParsedExpense | null {
   const text = input.trim().slice(0, 500);
   if (!text) return null;
 
+  // 0. Pisah klausa catatan dulu agar angka di catatan tak dihitung nominal.
+  // Tanpa klausa, head === text sehingga perilaku lama identik.
+  const { head, note } = splitNoteClause(text);
+  const base = head || text;
+
   // 1. Extract date from text
-  const date = extractChatDate(text);
+  const date = extractChatDate(base);
 
   // 2. Remove date-related words before amount extraction
   // Normalisasi variasi "R P" menjadi "Rp" agar terdeteksi sebagai sinyal moneter.
-  let cleanText = text
+  let cleanText = base
     .replace(/\bR\s*P\b\.?(?=\s|\d|$)/gi, 'Rp')
     .replace(/\b(?:kemarin|lusa|hari\s*ini)\b/gi, '') // NOSONAR
     .replace(/\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/g, '') // NOSONAR
@@ -354,7 +391,7 @@ export function parseChatInput(input: string): ParsedExpense | null {
   }
   if (!source) {
     // Fallback: scan full text for generic sources (Tunai, Kas) without keyword
-    const generic = detectSource(text);
+    const generic = detectSource(base);
     if (generic === 'Tunai' || generic === 'Kas') source = generic;
   }
 
@@ -365,5 +402,5 @@ export function parseChatInput(input: string): ParsedExpense | null {
     sourceFromClause,
   );
 
-  return { description, amount, source, date };
+  return { description, amount, source, date, ...(note ? { note } : {}) };
 }

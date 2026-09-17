@@ -42,7 +42,7 @@ export function ConfirmDialog({
         open
         aria-modal="true"
         aria-labelledby="dialog-title"
-        className="relative z-10 w-full max-w-sm rounded-[var(--radius-lg)] bg-[var(--card)] border border-[var(--border)] p-5 shadow-lg"
+        className="relative z-10 w-full max-w-sm rounded-[var(--radius-lg)] bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] p-5 shadow-lg"
       >
         <h2 id="dialog-title" className="text-base font-bold leading-snug">{title}</h2>
         <p className="text-sm text-[var(--text-secondary)] mt-2 leading-relaxed">{description}</p>
