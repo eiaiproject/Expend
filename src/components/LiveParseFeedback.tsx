@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
-import { parseChatInput } from '../utils/chatParser';
-import { extractChatDate } from '../utils/chatParser';
-import { todayLocalISO } from '../utils/date';
+import { parseChatInput, extractChatDate } from '../utils/chatParser';
 import { fmtIDR } from '../utils/format';
 import { useTranslation } from '../i18n';
 import { InlineAlert } from './InlineAlert';
@@ -35,8 +33,7 @@ export function getLiveParts(raw: string): Parts | null {
   let dateBadge: string | null = null;
   if (hasDateWord) {
     try {
-      const d = extractChatDate(text);
-      dateBadge = d === todayLocalISO() && !lower.includes('hari ini') ? d : d;
+      dateBadge = extractChatDate(text);
     } catch {
       dateBadge = parsed.date ?? null;
     }

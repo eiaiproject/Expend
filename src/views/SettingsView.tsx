@@ -8,8 +8,8 @@ import { Toast, useToast } from '../components/Toast';
 import { ExportWizard, type ExportKind } from '../components/ExportWizard';
 import { FormatCheatSheet } from '../components/FormatCheatSheet';
 import { csvBlob, jsonBlob, parseImportJSON, IMPORT_MAX_BYTES, filterByDate, exportFilename, downloadBlob, validateDateRange } from '../utils/export';
-import { isBackupDue, readLastBackup, recordBackup, getBackupInterval, setBackupInterval, type BackupInterval } from '../utils/backup';
-import { getFontSize, setFontSize, isHighContrast, setHighContrast, type FontSize } from '../utils/a11yPrefs';
+import { isBackupDue, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, type BackupInterval } from '../utils/backup';
+import { getFontSize, setFontSize as persistFontSize, isHighContrast, setHighContrast as persistHighContrast, type FontSize } from '../utils/a11yPrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 const EXPORT_ERROR_KEY = {
@@ -18,7 +18,14 @@ const EXPORT_ERROR_KEY = {
 } as const;
 import { useTranslation } from '../i18n';
 import type { Lang } from '../i18n';
+import type { TranslationKey } from '../i18n/id';
 import { useTheme, type Theme } from '../utils/theme';
+
+const FONT_SIZE_LABEL_KEY: Record<FontSize, TranslationKey> = {
+  s: 'settings.fontSizeS',
+  m: 'settings.fontSizeM',
+  l: 'settings.fontSizeL',
+};
 
 function SettingsSection({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
   return (
@@ -117,9 +124,9 @@ export default function SettingsView() {
   // TASK 6/7/9: wizard ekspor, cheat sheet, preferensi a11y, interval backup.
   const [showWizard, setShowWizard] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
-  const [fontSize, setFontSizeState] = useState<FontSize>(getFontSize);
-  const [highContrast, setHighContrastState] = useState(isHighContrast);
-  const [backupInterval, setBackupIntervalState] = useState<BackupInterval>(getBackupInterval);
+  const [fontSize, setFontSize] = useState<FontSize>(getFontSize);
+  const [highContrast, setHighContrast] = useState(isHighContrast);
+  const [backupInterval, setBackupInterval] = useState<BackupInterval>(getBackupInterval);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -255,26 +262,27 @@ export default function SettingsView() {
                 <p className="text-sm font-semibold">{t('settings.fontSize')}</p>
                 <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.fontSizeDesc')}</p>
               </div>
-              <div className="flex rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-1 gap-1" role="group" aria-label={t('settings.fontSize')}>
+              <fieldset className="flex rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] p-1 gap-1 m-0 min-w-0">
+                <legend className="sr-only">{t('settings.fontSize')}</legend>
                 {(['s', 'm', 'l'] as const).map((s) => (
                   <button
                     key={s}
                     type="button"
                     aria-pressed={fontSize === s}
-                    onClick={() => { setFontSize(s); setFontSizeState(s); }}
+                    onClick={() => { persistFontSize(s); setFontSize(s); }}
                     className={`min-h-11 px-3 rounded-[var(--radius-sm)] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${fontSize === s ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
                   >
-                    {s === 's' ? t('settings.fontSizeS') : s === 'm' ? t('settings.fontSizeM') : t('settings.fontSizeL')}
+                    {t(FONT_SIZE_LABEL_KEY[s])}
                   </button>
                 ))}
-              </div>
+              </fieldset>
             </div>
             <div className="flex items-center justify-between gap-3 px-4 py-3">
               <div>
                 <p className="text-sm font-semibold">{t('settings.contrast')}</p>
                 <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.contrastDesc')}</p>
               </div>
-              <Toggle checked={highContrast} onChange={(v) => { setHighContrast(v); setHighContrastState(v); }} label={t('settings.contrast')} />
+              <Toggle checked={highContrast} onChange={(v) => { persistHighContrast(v); setHighContrast(v); }} label={t('settings.contrast')} />
             </div>
             <div className="flex items-center justify-between gap-3 px-4 py-3">
               <div>
@@ -379,7 +387,7 @@ export default function SettingsView() {
               <div className="relative">
                 <select
                   value={backupInterval}
-                  onChange={(e) => { const v = e.target.value as BackupInterval; setBackupInterval(v); setBackupIntervalState(v); }}
+                  onChange={(e) => { const v = e.target.value as BackupInterval; persistBackupInterval(v); setBackupInterval(v); }}
                   aria-label={t('settings.backupInterval')}
                   className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
                 >

@@ -32,11 +32,8 @@ export function ThemeCycleButton() {
 export function LangToggle() {
   const { t, lang, setLang } = useTranslation();
   return (
-    <div
-      role="group"
-      aria-label={t('settings.language')}
-      className="flex items-center rounded-full bg-[var(--card)] border border-[var(--border)] p-1 gap-0.5"
-    >
+    <fieldset className="flex items-center rounded-full bg-[var(--card)] border border-[var(--border)] p-1 gap-0.5 m-0 min-w-0">
+      <legend className="sr-only">{t('settings.language')}</legend>
       {(['id', 'en'] as const).map((l: Lang) => (
         <button
           key={l}
@@ -51,7 +48,7 @@ export function LangToggle() {
           {l.toUpperCase()}
         </button>
       ))}
-    </div>
+    </fieldset>
   );
 }
 

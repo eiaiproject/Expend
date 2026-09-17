@@ -15,6 +15,7 @@ import { EmptyState } from '../components/EmptyState';
 import { InlineAlert } from '../components/InlineAlert';
 import { SkeletonCard } from '../components/SkeletonCard';
 import { FormatCheatSheet } from '../components/FormatCheatSheet';
+import { Wordmark } from '../components/Wordmark';
 import { QuickToggles } from '../components/QuickToggles';
 import { Toast, useToast } from '../components/Toast';
 import type { Transaction } from '../db/db';
@@ -66,6 +67,15 @@ const GRANULARITY_LABEL_KEY: Record<GroupGranularity, TranslationKey> = {
   day: 'home.groupDay',
   week: 'home.groupWeek',
   month: 'home.groupMonth',
+};
+
+type QuickRange = 'today' | 'week' | 'month' | 'all';
+
+const QUICK_LABEL_KEY: Record<QuickRange, TranslationKey> = {
+  today: 'home.quickToday',
+  week: 'home.quick7d',
+  month: 'home.quickMonth',
+  all: 'home.quickAll',
 };
 
 export default function HomeView() {
@@ -154,22 +164,7 @@ export default function HomeView() {
       <header className="flex items-start gap-3">
         <h1 className="sr-only">Expend</h1>
         <div className="min-w-0 flex-1">
-        <span
-          role="img"
-          aria-label="Expend"
-          className="block h-5 md:h-6 w-auto bg-[var(--accent)]"
-          style={{
-            aspectRatio: '615 / 119',
-            maskImage: 'url(/Expend-word.svg)',
-            WebkitMaskImage: 'url(/Expend-word.svg)',
-            maskRepeat: 'no-repeat',
-            WebkitMaskRepeat: 'no-repeat',
-            maskSize: 'contain',
-            WebkitMaskSize: 'contain',
-            maskPosition: 'left center',
-            WebkitMaskPosition: 'left center',
-          }}
-        />
+        <Wordmark className="h-5 md:h-6 w-auto" />
         <p className="text-sm text-[var(--text-secondary)] mt-1">{t('home.subtitle')}</p>
         </div>
         <QuickToggles />
@@ -270,7 +265,8 @@ export default function HomeView() {
                   className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
                 />
               </div>
-              <div className="flex flex-wrap gap-2" role="group" aria-label={t('home.filterDate')}>
+              <fieldset className="flex flex-wrap gap-2 m-0 p-0 border-0 min-w-0">
+                <legend className="sr-only">{t('home.filterDate')}</legend>
                 {(['today', 'week', 'month', 'all'] as const).map((k) => (
                   <button
                     key={k}
@@ -278,10 +274,10 @@ export default function HomeView() {
                     onClick={() => applyQuick(k)}
                     className="min-h-11 px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                   >
-                    {k === 'today' ? t('home.quickToday') : k === 'week' ? t('home.quick7d') : k === 'month' ? t('home.quickMonth') : t('home.quickAll')}
+                    {t(QUICK_LABEL_KEY[k])}
                   </button>
                 ))}
-              </div>
+              </fieldset>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
                   <span className="text-xs font-medium text-[var(--text-secondary)]">{t('settings.from')}</span>

@@ -18,11 +18,14 @@ async function openEdit(page: import('@playwright/test').Page) {
 
 async function expectWordmark(page: import('@playwright/test').Page, rgb: string) {
   await page.goto('/');
-  // Scoped ke header Summary (sidebar juga punya img alt="Expend").
-  const mark = page.locator('main header [role="img"][aria-label="Expend"]');
+  // Wordmark = SVG inline currentColor (aria-hidden, nama dari h1 sr-only).
+  // Scoped ke header Summary (sidebar juga punya img alt="Expend",
+  // dan QuickToggles punya ikon svg sendiri).
+  const host = page.locator('main header span[aria-hidden="true"]').first();
+  const mark = host.locator('svg');
   await expect(mark).toBeVisible({ timeout: 5000 });
-  expect(await mark.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(rgb);
-  expect(await mark.evaluate((el) => getComputedStyle(el).maskImage)).toContain('Expend-word.svg');
+  expect(await host.evaluate((el) => getComputedStyle(el).color)).toBe(rgb);
+  expect(await mark.evaluate((el) => (el as SVGElement).innerHTML)).toContain('<path');
 }
 
 test.describe('dark OS emulated', () => {

@@ -43,24 +43,24 @@ export function nextTheme(t: Theme): Theme {
 
 /** State tema bersama agar header cepat & dropdown Settings selalu sinkron. */
 export function useTheme(): { theme: Theme; setTheme: (t: Theme) => void; cycleTheme: () => void } {
-  const [theme, setThemeState] = useState<Theme>(getTheme);
+  const [theme, setTheme] = useState<Theme>(getTheme);
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === null || e.key === THEME_KEY) setThemeState(getTheme());
+      if (e.key === null || e.key === THEME_KEY) setTheme(getTheme());
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
-  const setTheme = useCallback((t: Theme) => {
+  const persistTheme = useCallback((t: Theme) => {
     setStoredTheme(t);
-    setThemeState(t);
+    setTheme(t);
   }, []);
   const cycleTheme = useCallback(() => {
-    setThemeState((prev) => {
+    setTheme((prev) => {
       const n = nextTheme(prev);
       setStoredTheme(n);
       return n;
     });
   }, []);
-  return { theme, setTheme, cycleTheme };
+  return { theme, setTheme: persistTheme, cycleTheme };
 }
