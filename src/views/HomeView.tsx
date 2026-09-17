@@ -152,7 +152,25 @@ export default function HomeView() {
     <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 pt-4 md:pt-0 pb-[calc(60px+env(safe-area-inset-bottom))] space-y-6">
       <header>
         <h1 className="sr-only">Expend</h1>
-        <img src="/Expend-word.svg" alt="Expend" className="h-5 md:h-6 w-auto" />
+        {/* Wordmark sebagai mask + warna token accent: hijau di kedua tema
+            (SVG asli beige untuk bg gelap, pudar di light mode). Logo mark
+            di sidebar tetap <img> karena badge-nya mandiri di semua tema. */}
+        <span
+          role="img"
+          aria-label="Expend"
+          className="block h-5 md:h-6 w-auto bg-[var(--accent)]"
+          style={{
+            aspectRatio: '615 / 119',
+            maskImage: 'url(/Expend-word.svg)',
+            WebkitMaskImage: 'url(/Expend-word.svg)',
+            maskRepeat: 'no-repeat',
+            WebkitMaskRepeat: 'no-repeat',
+            maskSize: 'contain',
+            WebkitMaskSize: 'contain',
+            maskPosition: 'left center',
+            WebkitMaskPosition: 'left center',
+          }}
+        />
         <p className="text-sm text-[var(--text-secondary)] mt-1">{t('home.subtitle')}</p>
       </header>
 
