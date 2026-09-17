@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import { InlineAlert } from '../components/InlineAlert';
 import { Toast, useToast } from '../components/Toast';
 import { LiveParseFeedback } from '../components/LiveParseFeedback';
+import { QuickToggles } from '../components/QuickToggles';
 import { FormatCheatSheet } from '../components/FormatCheatSheet';
 import { OcrGuideOverlay } from '../components/OcrGuideOverlay';
 import { useTranslation } from '../i18n';
@@ -454,13 +455,16 @@ export default function ChatView() {
           <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)] grid place-items-center shrink-0">
             <ChatRoundDots size={18} aria-hidden />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-base font-bold tracking-tight leading-tight">{t('chat.title')}</h1>
             <p className="text-xs text-[var(--text-secondary)] leading-tight mt-0.5">{t('chat.subtitle')}</p>
           </div>
-          <div className="ml-auto hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bone)] text-[var(--text-secondary)] text-[12px] font-semibold border border-[var(--border)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
-            <span>{ocrAvailable ? t('common.ready') : t('common.loadingProcessor')}</span>
+          <div className="ml-auto flex items-center gap-1.5 shrink-0">
+            <QuickToggles />
+            <div className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bone)] text-[var(--text-secondary)] text-[12px] font-semibold border border-[var(--border)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
+              <span>{ocrAvailable ? t('common.ready') : t('common.loadingProcessor')}</span>
+            </div>
           </div>
         </div>
       </div>

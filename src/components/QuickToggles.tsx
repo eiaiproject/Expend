@@ -1,0 +1,67 @@
+import { Moon, Sun, Monitor } from 'reicon-react';
+import { useTranslation } from '../i18n';
+import type { Lang } from '../i18n';
+import { useTheme, type Theme } from '../utils/theme';
+import type { TranslationKey } from '../i18n/id';
+
+const THEME_LABEL_KEY: Record<Theme, TranslationKey> = {
+  system: 'settings.themeSystem',
+  light: 'settings.themeLight',
+  dark: 'settings.themeDark',
+};
+
+/** Satu tombol cycling system → light → dark. Ikon mencerminkan tema aktif. */
+export function ThemeCycleButton() {
+  const { t } = useTranslation();
+  const { theme, cycleTheme } = useTheme();
+  const Icon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor;
+  const label = `${t('settings.theme')}: ${t(THEME_LABEL_KEY[theme])}`;
+  return (
+    <button
+      type="button"
+      onClick={cycleTheme}
+      aria-label={label}
+      title={label}
+      className="min-w-11 min-h-11 w-11 h-11 grid place-items-center rounded-full bg-[var(--card)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+    >
+      <Icon size={18} aria-hidden />
+    </button>
+  );
+}
+
+/** Segmen kompak ID | EN. */
+export function LangToggle() {
+  const { t, lang, setLang } = useTranslation();
+  return (
+    <div
+      role="group"
+      aria-label={t('settings.language')}
+      className="flex items-center rounded-full bg-[var(--card)] border border-[var(--border)] p-1 gap-0.5"
+    >
+      {(['id', 'en'] as const).map((l: Lang) => (
+        <button
+          key={l}
+          type="button"
+          aria-pressed={lang === l}
+          aria-label={`${t('settings.language')}: ${l === 'id' ? 'Bahasa Indonesia' : 'English'}`}
+          onClick={() => setLang(l)}
+          className={`min-w-11 min-h-9 px-2.5 rounded-full text-[11px] font-bold tracking-wide transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${
+            lang === l ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'
+          }`}
+        >
+          {l.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Aksi cepat header: tema + bahasa. Dipakai di Summary & Chat. */
+export function QuickToggles() {
+  return (
+    <div className="flex items-center gap-1.5 shrink-0">
+      <LangToggle />
+      <ThemeCycleButton />
+    </div>
+  );
+}

@@ -15,6 +15,7 @@ import { EmptyState } from '../components/EmptyState';
 import { InlineAlert } from '../components/InlineAlert';
 import { SkeletonCard } from '../components/SkeletonCard';
 import { FormatCheatSheet } from '../components/FormatCheatSheet';
+import { QuickToggles } from '../components/QuickToggles';
 import { Toast, useToast } from '../components/Toast';
 import type { Transaction } from '../db/db';
 import { useFocusTrap } from '../utils/focusTrap';
@@ -150,11 +151,9 @@ export default function HomeView() {
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 pt-4 md:pt-0 pb-[calc(60px+env(safe-area-inset-bottom))] space-y-6">
-      <header>
+      <header className="flex items-start gap-3">
         <h1 className="sr-only">Expend</h1>
-        {/* Wordmark sebagai mask + warna token accent: hijau di kedua tema
-            (SVG asli beige untuk bg gelap, pudar di light mode). Logo mark
-            di sidebar tetap <img> karena badge-nya mandiri di semua tema. */}
+        <div className="min-w-0 flex-1">
         <span
           role="img"
           aria-label="Expend"
@@ -172,6 +171,8 @@ export default function HomeView() {
           }}
         />
         <p className="text-sm text-[var(--text-secondary)] mt-1">{t('home.subtitle')}</p>
+        </div>
+        <QuickToggles />
       </header>
 
       {isLoading && <SkeletonCard lines={3} />}
