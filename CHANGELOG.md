@@ -1,4 +1,26 @@
 # Changelog
+## 0.18.0 - 2026-09-17
+### Added
+
+- Quick theme and language toggles in Summary and Chat
+- Note clause without colon via note/notes/catatan/keterangan
+- Export wizard, accessibility prefs and backup interval
+- Onboarding coach, educational empty state, search and backup banner
+- Live parse feedback, cheat sheet, OCR guidance and language hint
+- Add bilingual strings for UX optimization tasks
+
+### Changed
+
+- Resolve PR 46 code smells and a11y roles
+- Simplify to light-dark with dark default
+
+### Fixed
+
+- Keep composer docked and scroll contained on keyboard
+- Theme-aware green wordmark via SVG mask
+- Follow app theme for color-scheme and dialog text
+
+
 ## 0.17.1 - 2026-09-14
 ### Fixed
 
