@@ -47,7 +47,7 @@ test.describe('user prefs + edit + keyboard', () => {
     await theme.selectOption('light');
     await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('light');
     // Hanya 2 opsi tema (system dihapus).
-    expect(await theme.locator('option').count()).toBe(2);
+    await expect(theme.locator('option')).toHaveCount(2);
 
     const langId = page.getByRole('combobox', { name: 'Bahasa' });
     await langId.selectOption('en');
@@ -64,7 +64,10 @@ test.describe('user prefs + edit + keyboard', () => {
     // "Full Keyboard Access" off), sementara WebKit Linux di CI bisa. Lewati
     // jujur saat engine memang tak mendukung, alih-alih gagal palsu.
     const tabMovesFocus = await page.evaluate(() => document.activeElement !== document.body);
-    test.skip(!tabMovesFocus, 'Engine ini tidak memindahkan fokus lewat tombol Tab');
+    if (!tabMovesFocus) {
+      test.info().annotations.push({ type: 'skip', description: 'Engine ini tidak memindahkan fokus lewat tombol Tab' });
+      return;
+    }
     const skip = page.getByRole('link', { name: /Lewati|Skip/ });
     await expect(skip).toBeFocused();
     await page.keyboard.press('Enter');

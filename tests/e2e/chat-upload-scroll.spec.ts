@@ -1,21 +1,6 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
 import * as fs from 'node:fs';
-
-const MOBILE = { width: 390, height: 844 };
-const KEYBOARD = 300;
-const fold = MOBILE.height - KEYBOARD;
-
-async function simulateKeyboardOpen(page: Page, keyboardPx = 300) {
-  await page.evaluate((px) => {
-    const vv = window.visualViewport as unknown as { dispatchEvent(e: Event): boolean };
-    const proto = Object.getPrototypeOf(vv) as { height?: number; offsetTop?: number };
-    const inner = window.innerHeight;
-    Object.defineProperty(proto, 'height', { configurable: true, get: () => inner - px });
-    Object.defineProperty(proto, 'offsetTop', { configurable: true, get: () => 0 });
-    vv.dispatchEvent(new Event('resize'));
-    window.dispatchEvent(new Event('resize'));
-  }, keyboardPx);
-}
+import { simulateKeyboardOpen, MOBILE, KEYBOARD, fold } from './helpers/keyboard';
 
 async function clearDB(page: Page) {
   await page.goto('/chat');

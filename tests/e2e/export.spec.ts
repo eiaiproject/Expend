@@ -32,6 +32,20 @@ async function openPendingEditor(page: Page) {
   await expect(page.locator('#pending-desc')).toBeVisible({ timeout: 5000 });
 }
 
+// Seed satu transaksi sederhana lewat chat ("kopi 25000" → "Kopi"), lalu
+// kembali ke /settings dengan tombol ekspor siap. Dipakai dua test terakhir
+// yang polanya identik (bedanya hanya tombol yang diklik).
+async function seedSimpleAndGotoSettings(page: Page, exportName: 'Ekspor CSV' | 'Ekspor JSON') {
+  await page.goto('/chat');
+  await page.getByLabel('Tulis pengeluaran').fill('kopi 25000');
+  await page.getByRole('button', { name: 'Kirim transaksi' }).click();
+  await expect(page.getByText('Periksa transaksi')).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: 'Simpan transaksi' }).click();
+  await expect(page.getByText(/Tercatat/)).toBeVisible();
+  await page.goto('/settings');
+  await expect(page.getByRole('button', { name: exportName })).toBeEnabled();
+}
+
 test.describe('export CSV', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -122,14 +136,7 @@ test.describe('export CSV', () => {
   });
 
   test('CSV download filename respects date range', async ({ page }) => {
-    await page.goto('/chat');
-    await page.getByLabel('Tulis pengeluaran').fill('kopi 25000');
-    await page.getByRole('button', { name: 'Kirim transaksi' }).click();
-    await expect(page.getByText('Periksa transaksi')).toBeVisible({ timeout: 5000 });
-    await page.getByRole('button', { name: 'Simpan transaksi' }).click();
-    await expect(page.getByText(/Tercatat/)).toBeVisible();
-    await page.goto('/settings');
-    await expect(page.getByRole('button', { name: 'Ekspor CSV' })).toBeEnabled();
+    await seedSimpleAndGotoSettings(page, 'Ekspor CSV');
     await fillDate(page, '#export-from', '2026-01-01');
     await fillDate(page, '#export-to', '2099-12-31');
     const dlPromise = page.waitForEvent('download');
@@ -139,14 +146,7 @@ test.describe('export CSV', () => {
   });
 
   test('JSON download round-trips version plus rows', async ({ page }) => {
-    await page.goto('/chat');
-    await page.getByLabel('Tulis pengeluaran').fill('kopi 25000');
-    await page.getByRole('button', { name: 'Kirim transaksi' }).click();
-    await expect(page.getByText('Periksa transaksi')).toBeVisible({ timeout: 5000 });
-    await page.getByRole('button', { name: 'Simpan transaksi' }).click();
-    await expect(page.getByText(/Tercatat/)).toBeVisible();
-    await page.goto('/settings');
-    await expect(page.getByRole('button', { name: 'Ekspor JSON' })).toBeEnabled();
+    await seedSimpleAndGotoSettings(page, 'Ekspor JSON');
     const dlPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Ekspor JSON' }).click();
     const dl = await dlPromise;

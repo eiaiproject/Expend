@@ -1,24 +1,5 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
-
-// Mensimulasikan keyboard virtual mobile tanpa perangkat asli:
-// visualViewport.height dikurangi sambil textarea tetap fokus, lalu event
-// resize dikirim. Getter `height`/`offsetTop` adalah atribut WebIDL pada
-// prototype VisualViewport (configurable), jadi aman di-override per-test.
-async function simulateKeyboardOpen(page: Page, keyboardPx = 300) {
-  await page.evaluate((px) => {
-    const vv = window.visualViewport as unknown as { dispatchEvent(e: Event): boolean };
-    const proto = Object.getPrototypeOf(vv) as { height?: number; offsetTop?: number };
-    const inner = window.innerHeight;
-    Object.defineProperty(proto, 'height', { configurable: true, get: () => inner - px });
-    Object.defineProperty(proto, 'offsetTop', { configurable: true, get: () => 0 });
-    vv.dispatchEvent(new Event('resize'));
-    window.dispatchEvent(new Event('resize'));
-  }, keyboardPx);
-}
-
-const MOBILE = { width: 390, height: 844 };
-const KEYBOARD = 300;
-const fold = MOBILE.height - KEYBOARD; // batas atas keyboard simulasi
+import { simulateKeyboardOpen, MOBILE, KEYBOARD, fold } from './helpers/keyboard';
 
 // Isi chat sampai overflow; tiap pesan ditunggu benar-benar masuk
 // (user + balasan asisten "Tercatat") - tanpa fixed wait.
