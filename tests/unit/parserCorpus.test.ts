@@ -148,6 +148,7 @@ describe('corpus/invalid-dates', () => {
 
 describe('corpus/known-issues', () => {
   it('log perilaku yang diduga belum ideal (dokumentasi, tidak di-assert)', () => {
+    expect(KNOWN_ISSUES.length).toBeGreaterThan(0);
     for (const k of KNOWN_ISSUES) {
       const r = parseChatInput(k.input);
       console.log(
