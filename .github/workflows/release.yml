@@ -26,6 +26,9 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:unit
       - run: npm run build
+      # Jangan buat tag rilis bila E2E gagal (deploy sudah ter-gating di ci.yml).
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npx playwright test
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

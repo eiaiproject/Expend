@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "version": "node scripts/sync-version.mjs"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "@vitest/coverage-v8": "^5.0.1",
     "eslint": "^10.10.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "fake-indexeddb": "^6.2.5",
