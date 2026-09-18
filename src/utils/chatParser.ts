@@ -174,8 +174,9 @@ function tryParseMMMDate(text: string): string | undefined {
   // digit/koma sebelumnya: dulu "Total Rp 50.000\nSep 2026" menyerap "00"
   // dari nominal sebagai hari sehingga tanggal dikarang jadi 2026-09-01.
   // Nama bulan dicocokkan longgar lalu divalidasi via MONTH_MAP agar
-  // alternasi 12 bulan tak menaikkan kompleksitas regex (S5843).
-  const mmm = /(?<![\d.,])(\d{1,2})[ \t]*([A-Za-z]{3,9})[ \t]*(\d{4})/i.exec(text);
+  // alternasi 12 bulan tak menaikkan kompleksitas regex (S5843). Kelas
+  // cukup [a-z] karena flag /i sudah mencakup kapital (S5869).
+  const mmm = /(?<![\d.,])(\d{1,2})[ \t]*([a-z]{3,9})[ \t]*(\d{4})/i.exec(text);
   if (!mmm) return undefined;
   const mon = MONTH_MAP[mmm[2]!.toLowerCase().slice(0, 3)];
   if (!mon) return undefined;
