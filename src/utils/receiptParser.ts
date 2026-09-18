@@ -343,13 +343,18 @@ function findHitLine(lines: string[]): string | undefined {
 // ketat untuk kalimat).
 function findMerchantLine(lines: string[], amountIdx: number): string | undefined { // NOSONAR
   // `jam` HANYA dianggap label bila diikuti angka jam ("Jam 08:26") - tanpa ini
-  // merchant bernama "TOKO 24 JAM" tertolak.
-  const labelSkipRe = /tanggal|waktu|\bwib\b|\bjam\s*\d|biaya|gratis|referen|\bstatus\b|metode|rincian|detail|berhasil|failed|sumber\s+transaksi|sumber\s+dana|saldo|kembali|tunai|cash/i;
+  // merchant bernama "TOKO 24 JAM" tertolak. Dipecah tiga agar tiap regex
+  // di bawah ambang S5843 (≤20).
+  const dateTimeSkipRe = /tanggal|waktu|\bwib\b|\bjam\s*\d/i;
+  const statusSkipRe = /biaya|gratis|referen|\bstatus\b|metode|rincian|detail|berhasil|failed/i;
+  const sourceBalanceSkipRe = /sumber\s+transaksi|sumber\s+dana|saldo|kembali|tunai|cash/i;
+  const isSkippedLabel = (t: string): boolean =>
+    dateTimeSkipRe.test(t) || statusSkipRe.test(t) || sourceBalanceSkipRe.test(t);
   const recipientLabelRe = new RegExp(`${PRODUCT_RE.source}|${NAME_CAPTURE_RE.source}|${RECIPIENT_RE.source}|${NOTE_RE.source}`, 'i');
   for (let i = 0; i < amountIdx && i < lines.length; i++) {
     const t = lines[i]!.trim();
     if (!t || t.length < 2 || t.length > 40) continue;
-    if (labelSkipRe.test(t) || ACQUIRER_LABEL_RE.test(t)) continue;
+    if (isSkippedLabel(t) || ACQUIRER_LABEL_RE.test(t)) continue;
     // Baris berlabel penerima ("Beneficiary Name X", "Penerima: Y") bukan
     // merchant - biar jalur hit-line yang menanganinya (nama tepat, bukan
     // label + nama).
@@ -459,7 +464,7 @@ function findFallbackDesc(lines: string[], amountIdxs: Set<number>, src: string 
     // "Nama Acquirer" / "Saldo Awal" sebagai deskripsi.
     return sanitizeDesc(t) !== '';
   };
-  return lines.find(usable)?.trim() ?? '';
+  return lines.find((l, i) => usable(l, i))?.trim() ?? '';
 }
 
 function finalizeDesc(raw: string): string {
