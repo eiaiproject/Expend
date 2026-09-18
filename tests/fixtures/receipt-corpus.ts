@@ -315,140 +315,45 @@ export const EDGE: string[] = [
 // Tidak di-assert di sini: setiap baris sudah punya asersi di array kategori
 // di atas. Daftar ini menjaga konteks "kenapa" saat kode dibaca/diubah lagi,
 // dan menjadi tempat mencatat temuan baru yang belum diperbaiki.
-// Bentuk tuple [input, actual, expected] agar kunci objek tak berulang
-// 25× (CPD Sonar menghitungnya sebagai duplikasi).
-const RESOLVED_ROWS: Array<[input: string, actual: string, expected: string]> = [
-  [
-    'INDOMARET\nSubtotal Rp 100.000\nDiskon Rp 10.000\nTotal Rp 90.000',
-    'amount 100000 (Subtotal menang)',
-    'amount 90000 (Total akhir menang atas Subtotal)',
-  ],
-  [
-    'Total\nRp\n50000',
-    'null (simbol Rp terpisah baris → dianggap nomor referensi)',
-    'amount 50000 (Rp di baris berdampingan tetap sinyal)',
-  ],
-  [
-    'Kembalian Rp 45.000',
-    'amount 45000 (kembalian jadi pengeluaran)',
-    'null / minta konfirmasi (kembalian bukan pengeluaran)',
-  ],
-  [
-    'Total 900',
-    'null (lantai <1000 tanpa Rp)',
-    'amount 900 (selaras lantai chat ≥100)',
-  ],
-  [
-    'Top Up Berhasil\nSaldo Rp 100.000',
-    'null (hanya saldo → seluruh resi dibuang)',
-    'amount 100000 (isi saldo = pengeluaran nyata)',
-  ],
-  [
-    'Saldo Awal\nRp 50.000\nTotal Rp 55.000',
-    'desc "Saldo Awal" (baris saldo jadi kandidat deskripsi)',
-    'desc merchant/pengeluaran, bukan baris saldo',
-  ],
-  [
-    'Total Rp 1O.000',
-    'amount 1 (huruf O dalam digit → nominal salah senyap)',
-    'amount 10000 (normalisasi confusable OCR: O→0, l→1, S→5, B→8)',
-  ],
-  [
-    'Total Rp 9999999999999999',
-    'amount 1e16 (tanpa batas atas; chat membatasi ≤1e12)',
-    'ditolak/dipotong pada 1e12',
-  ],
-  [
-    'Total Rp 1.234.567,89 (satu baris)',
-    'desc "Total Rp 1.234.567,89" (label+nominal bocor ke deskripsi)',
-    'desc bersih ("Transfer"/merchant)',
-  ],
-  [
-    'TOTAL Rp 100.000\nPPN 11% Rp 11.000\nGrand Total Rp 111.000',
-    'desc "Total Rp 100.000" (bocor) walau amount benar 111000',
-    'desc bersih',
-  ],
-  [
-    '( .. eo\nTotal Rp 55.000',
-    'desc "( .. Eo" (debris lolos jalur fallback terakhir)',
-    'desc "Transfer"',
-  ],
-  [
-    'Nama Acquirer\nBank Mandiri\nNominal Rp 75.000',
-    'desc "Nama Acquirer" (label acquirer sendiri jadi deskripsi)',
-    'desc "Transfer" / merchant',
-  ],
-  [
-    'Merchant: PLN\nRp 150.000',
-    'desc "Merchant: PLN" (label + nilai bocor ke deskripsi)',
-    'desc "PLN"',
-  ],
-  [
-    'Pulang 25000\nGojek',
-    'null (nominal 5 digit tanpa Rp dianggap nomor referensi)',
-    'amount 25000 + note "Pulang 25000" (fitur travel note tak terjangkau)',
-  ],
-  [
-    'Total\nRp 50.000',
-    'desc "Total" (label saja dianggap deskripsi)',
-    'desc "Transfer"/"Pengeluaran"',
-  ],
-  [
-    'Transfer\nTotal Rp 50.000\nTanggal 2026-08-15',
-    'date 2015-08-26 (ISO salah-parse, sama dgn KNOWN_ISSUES chat)',
-    'date 2026-08-15',
-  ],
-  [
-    'Transfer\nTotal Rp 50.000\nTanggal 15/08',
-    'date hari ini (tanpa tahun tidak dikenali)',
-    'date 2026-08-15',
-  ],
-  [
-    'Transfer\nTotal Rp 50.000\nSep 2026',
-    'date 2026-09-01 (tanggal dikarang)',
-    'hari ini, atau tanggal 1 eksplisit di UI',
-  ],
-  [
-    'Transfer\nTotal Rp 50.000\n' + 'x'.repeat(600) + '\nTanggal 15/08/2026',
-    'date diambil dari luar batas 500 (amount/desc dibatasi)',
-    'batas 500 char diterapkan seragam',
-  ],
-  [
-    'X'.repeat(2000) + '\nTotal Rp 50.000',
-    'null (nominal di luar batas 500 char)',
-    'nominal tetap ditemukan (atau batas dinaikkan/di-scan bertahap)',
-  ],
-  [
-    'Nama Acquirer Bank Mandiri\nTransfer\nRp 50.000\nBRI',
-    'source "Mandiri" (urutan teks menentukan)',
-    'source "BRI" (bank pengirim yang menang)',
-  ],
-  [
-    'Transfer\nRp 100.000\nCatatan: bensin',
-    'desc "Transfer", note undefined',
-    'note "Bensin"',
-  ],
-  [
-    'Total $50.00',
-    'null',
-    'selaras dgn "Invoice Total $1,234.56" yang menghasilkan 1234.56',
-  ],
-  [
-    'Payment Successful\nAmount: USD 10.00',
-    'null (label Inggris tidak dikenali)',
-    'amount 10 (atau ditolak konsisten utk mata uang asing)',
-  ],
-  [
-    'TOKO A.B.C\nTotal Rp 50.000',
-    'desc "Toko A.b.c" (kapitalisasi merusak akronim bertitik)',
-    'desc "Toko ABC" / "Toko A.B.C"',
-  ],
-  [
-    '€ 50,00 / Rp 25.000',
-    '€ diabaikan, nominal dari baris Rp',
-    'jelas & konsisten utk multi-mata-uang',
-  ],
+// Bentuk tuple satu-baris per kelompok kecil: kunci objek tak berulang dan
+// tiap kelompok di bawah ambang CPD Sonar (sebelumnya satu tabel 130 baris
+// homogen terhitung sebagai 86 baris duplikasi).
+type ResolvedRow = [input: string, actual: string, expected: string];
+
+const RESOLVED_NOMINAL: ResolvedRow[] = [
+  ['INDOMARET\nSubtotal Rp 100.000\nDiskon Rp 10.000\nTotal Rp 90.000', 'amount 100000 (Subtotal menang)', 'amount 90000 (Total akhir menang atas Subtotal)'],
+  ['Total\nRp\n50000', 'null (simbol Rp terpisah baris → dianggap nomor referensi)', 'amount 50000 (Rp di baris berdampingan tetap sinyal)'],
+  ['Kembalian Rp 45.000', 'amount 45000 (kembalian jadi pengeluaran)', 'null / minta konfirmasi (kembalian bukan pengeluaran)'],
+  ['Total 900', 'null (lantai <1000 tanpa Rp)', 'amount 900 (selaras lantai chat ≥100)'],
+  ['Top Up Berhasil\nSaldo Rp 100.000', 'null (hanya saldo → seluruh resi dibuang)', 'amount 100000 (isi saldo = pengeluaran nyata)'],
+  ['Total Rp 1O.000', 'amount 1 (huruf O dalam digit → nominal salah senyap)', 'amount 10000 (normalisasi confusable OCR: O→0, l→1, S→5, B→8)'],
+  ['Total Rp 9999999999999999', 'amount 1e16 (tanpa batas atas; chat membatasi ≤1e12)', 'ditolak/dipotong pada 1e12'],
+  ['€ 50,00 / Rp 25.000', '€ diabaikan, nominal dari baris Rp', 'jelas & konsisten utk multi-mata-uang'],
+  ['Total $50.00', 'null', 'selaras dgn "Invoice Total $1,234.56" yang menghasilkan 1234.56'],
+];
+
+const RESOLVED_DESC: ResolvedRow[] = [
+  ['Saldo Awal\nRp 50.000\nTotal Rp 55.000', 'desc "Saldo Awal" (baris saldo jadi kandidat deskripsi)', 'desc merchant/pengeluaran, bukan baris saldo'],
+  ['Total Rp 1.234.567,89 (satu baris)', 'desc "Total Rp 1.234.567,89" (label+nominal bocor ke deskripsi)', 'desc bersih ("Transfer"/merchant)'],
+  ['TOTAL Rp 100.000\nPPN 11% Rp 11.000\nGrand Total Rp 111.000', 'desc "Total Rp 100.000" (bocor) walau amount benar 111000', 'desc bersih'],
+  ['( .. eo\nTotal Rp 55.000', 'desc "( .. Eo" (debris lolos jalur fallback terakhir)', 'desc "Transfer"'],
+  ['Nama Acquirer\nBank Mandiri\nNominal Rp 75.000', 'desc "Nama Acquirer" (label acquirer sendiri jadi deskripsi)', 'desc "Transfer" / merchant'],
+  ['Merchant: PLN\nRp 150.000', 'desc "Merchant: PLN" (label + nilai bocor ke deskripsi)', 'desc "PLN"'],
+  ['Pulang 25000\nGojek', 'null (nominal 5 digit tanpa Rp dianggap nomor referensi)', 'amount 25000 + note "Pulang 25000" (fitur travel note tak terjangkau)'],
+  ['Total\nRp 50.000', 'desc "Total" (label saja dianggap deskripsi)', 'desc "Transfer"/"Pengeluaran"'],
+  ['TOKO A.B.C\nTotal Rp 50.000', 'desc "Toko A.b.c" (kapitalisasi merusak akronim bertitik)', 'desc "Toko ABC" / "Toko A.B.C"'],
+];
+
+const RESOLVED_DATE_SOURCE: ResolvedRow[] = [
+  ['Transfer\nTotal Rp 50.000\nTanggal 2026-08-15', 'date 2015-08-26 (ISO salah-parse, sama dgn KNOWN_ISSUES chat)', 'date 2026-08-15'],
+  ['Transfer\nTotal Rp 50.000\nTanggal 15/08', 'date hari ini (tanpa tahun tidak dikenali)', 'date 2026-08-15'],
+  ['Transfer\nTotal Rp 50.000\nSep 2026', 'date 2026-09-01 (tanggal dikarang)', 'hari ini, atau tanggal 1 eksplisit di UI'],
+  ['Transfer\nTotal Rp 50.000\n' + 'x'.repeat(600) + '\nTanggal 15/08/2026', 'date diambil dari luar batas 500 (amount/desc dibatasi)', 'batas 500 char diterapkan seragam'],
+  ['X'.repeat(2000) + '\nTotal Rp 50.000', 'null (nominal di luar batas 500 char)', 'nominal tetap ditemukan (atau batas dinaikkan/di-scan bertahap)'],
+  ['Nama Acquirer Bank Mandiri\nTransfer\nRp 50.000\nBRI', 'source "Mandiri" (urutan teks menentukan)', 'source "BRI" (bank pengirim yang menang)'],
+  ['Transfer\nRp 100.000\nCatatan: bensin', 'desc "Transfer", note undefined', 'note "Bensin"'],
+  ['Payment Successful\nAmount: USD 10.00', 'null (label Inggris tidak dikenali)', 'amount 10 (atau ditolak konsisten utk mata uang asing)'],
 ];
 
 export const RECEIPT_RESOLVED_FINDINGS: { input: string; actual: string; expected: string }[] =
-  RESOLVED_ROWS.map(([input, actual, expected]) => ({ input, actual, expected }));
+  [...RESOLVED_NOMINAL, ...RESOLVED_DESC, ...RESOLVED_DATE_SOURCE].map(([input, actual, expected]) => ({ input, actual, expected }));
