@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useEffectEvent, useRef, useState, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { parseChatInput } from '../utils/chatParser';
@@ -220,6 +220,13 @@ export default function ChatView() {
   // Guard pending agar tak ganggu kartu verifikasi.
   const liveDebounced = pending ? '' : debouncedInput;
 
+  // Efek share sengaja hanya berjalan saat mount (membaca params URL sekali,
+  // lalu replaceState menghapusnya). Effect Event memanggil handler/terjemahan
+  // dari render terakhir tanpa menambah dependency array, sehingga perilaku
+  // sekali-mount tetap utuh sekaligus bebas warning exhaustive-deps.
+  const onSharedFile = useEffectEvent((file: File) => handleFile(file));
+  const shareErrorMessage = useEffectEvent(() => t('chat.ocrShareFailed'));
+
   // Handle share target
   useEffect(() => { // NOSONAR - cognitive complexity from share file+text handling
     const params = new URLSearchParams(window.location.search);
@@ -232,7 +239,7 @@ export default function ChatView() {
         // sampai await pertama, jadi urutannya identik.
         const shareError = params.get('error');
         if (shareError) {
-          setOcrError(t('chat.ocrShareFailed'));
+          setOcrError(shareErrorMessage());
           window.history.replaceState({}, '', '/chat');
           return;
         }
@@ -248,7 +255,7 @@ export default function ChatView() {
           const name = decodeURIComponent(fileRes.headers.get('x-file-name') || 'receipt.png');
           const type = fileRes.headers.get('content-type') || 'image/png';
           const file = new File([blob], name, { type });
-          await handleFile(file);
+          await onSharedFile(file);
           await cache.delete('shared-file');
           // Discard share text when image is available
           await cache.delete('shared-meta');
@@ -270,13 +277,13 @@ export default function ChatView() {
               } else {
                 // B3: Cache kosong - kemungkinan iOS Safari atau share gagal.
                 // Minta user upload manual lewat galeri.
-                setOcrError(t('chat.ocrShareFailed'));
+                setOcrError(shareErrorMessage());
               }
         }
         window.history.replaceState({}, '', '/chat');
       } catch {
         // B3: Cache API error (iOS Safari compatibility / quota exceeded)
-        setOcrError(t('chat.ocrShareFailed'));
+        setOcrError(shareErrorMessage());
         window.history.replaceState({}, '', '/chat');
       }
     })();

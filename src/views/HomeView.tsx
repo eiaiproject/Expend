@@ -471,14 +471,23 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
     }
   }
 
+  // `absolute` (bukan `fixed`) agar modal mengikuti Shell yang sudah dipotong
+  // ke visualViewport.height. Di Android keyboard hanya mengecilkan visual
+  // viewport (interactive-widget=resizes-visual), jadi modal `fixed` tetap
+  // menempel ke viewport layout dan berakhir di balik keyboard. Shell
+  // (relative di App.tsx) menjadi containing block-nya, sehingga tak perlu
+  // kompensasi inset ganda.
   return (
     <dialog
       open
       aria-modal="true"
       aria-label={t('home.editTransaction', { name: tx.description })}
       onCancel={(e) => { e.preventDefault(); onClose(); }}
-      className="fixed inset-0 z-50 m-0 max-w-none max-h-none w-full h-full bg-transparent text-[var(--text-primary)] backdrop:bg-black/50 flex items-end md:items-center justify-center p-0 md:p-4 motion-safe:animate-[in_0.2s_ease-out]"
+      className="absolute inset-0 z-50 m-0 max-w-none max-h-none w-full h-full bg-transparent text-[var(--text-primary)] overflow-y-auto overflow-x-hidden p-0 md:p-4 motion-safe:animate-[in_0.2s_ease-out]"
     >
+      {/* min-h-full + scroll: form di dasar layar saat muat, tetapi tetap bisa
+          di-scroll penuh ketika keyboard menyisakan ruang sedikit. */}
+      <div className="min-h-full flex items-end md:items-center justify-center">
       <form
         ref={sheetRef}
         onSubmit={handleSave}
@@ -567,6 +576,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
           </button>
         </div>
       </form>
+      </div>
     </dialog>
   );
 }
