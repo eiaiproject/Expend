@@ -14,6 +14,8 @@ test('CRUD: Chat → Home → delete', async ({ page }) => {
   await page.getByPlaceholder(/Contoh/).fill('beli kopi di Indomaret 50000');
   await page.getByRole('button', { name: 'Kirim transaksi' }).click();
   await expect(page.getByText('Siap dicatat').first()).toBeVisible();
+  // Kartu verifikasi default ringkas sejak 0.17.0: buka form edit dulu.
+  await page.getByRole('button', { name: 'Ubah' }).last().click();
   await expect(page.locator('input[value="Kopi di Indomaret"]')).toBeVisible();
   await page.getByRole('button', { name: 'Simpan transaksi' }).click();
   await expect(page.getByText(/Tercatat/).first()).toBeVisible();
@@ -67,6 +69,7 @@ test('Danger zone: delete all data', async ({ page }) => {
   for (const input of ['kopi 25rb', 'makan 50rb', 'bensin 75k']) {
     await page.getByPlaceholder(/Contoh/).fill(input);
     await page.getByRole('button', { name: 'Kirim transaksi' }).click();
+    await page.getByRole('button', { name: 'Ubah' }).last().click();
     await expect(page.locator('#pending-desc')).toBeVisible({ timeout: 8000 });
     await page.getByRole('button', { name: 'Simpan transaksi' }).click();
     await expect(page.getByText(/Tercatat/).last()).toBeVisible({ timeout: 8000 });

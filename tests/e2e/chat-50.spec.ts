@@ -74,6 +74,10 @@ test('chat 50 variasi transaksi', async ({ page }) => {
     await input.fill(c.input);
     await page.getByRole('button', { name: 'Kirim transaksi' }).click();
 
+    // Kartu verifikasi default ringkas sejak 0.17.0: field hanya dirender
+    // setelah menekan tombol "Ubah".
+    await page.getByRole('button', { name: 'Ubah' }).last().click();
+
     // pending form appears
     const descInput = page.locator('#pending-desc');
     await expect(descInput).toBeVisible({ timeout: 8000 });

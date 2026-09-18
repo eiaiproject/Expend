@@ -24,6 +24,14 @@ async function savePending(page: Page) {
   await expect(page.locator('#pending-desc')).toHaveCount(0, { timeout: 5000 });
 }
 
+// Kartu verifikasi default ringkas sejak 0.17.0: field detail hanya dirender
+// setelah menekan "Ubah", jadi test yang mengubah deskripsi/tanggal harus
+// membuka form edit lebih dulu.
+async function openPendingEditor(page: Page) {
+  await page.getByRole('button', { name: 'Ubah' }).last().click();
+  await expect(page.locator('#pending-desc')).toBeVisible({ timeout: 5000 });
+}
+
 test.describe('export CSV', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -46,6 +54,7 @@ test.describe('export CSV', () => {
     await page.getByPlaceholder(/Contoh/).fill('kopi susu 25000');
     await page.getByRole('button', { name: 'Kirim transaksi' }).click();
     await expect(page.getByText('Siap dicatat').first()).toBeVisible();
+    await openPendingEditor(page);
     await page.locator('#pending-desc').fill('Kopi, "Susu"');
     await savePending(page);
     await page.getByPlaceholder(/Contoh/).fill('nasi goreng 35000');
@@ -68,12 +77,14 @@ test.describe('export CSV', () => {
     await page.getByPlaceholder(/Contoh/).fill('jajan 15000');
     await page.getByRole('button', { name: 'Kirim transaksi' }).click();
     await expect(page.getByText('Siap dicatat').first()).toBeVisible();
+    await openPendingEditor(page);
     await page.locator('#pending-desc').fill('A');
     await page.locator('#pending-date').fill('2026-09-01');
     await savePending(page);
     await page.getByPlaceholder(/Contoh/).fill('jajan 20000');
     await page.getByRole('button', { name: 'Kirim transaksi' }).click();
     await expect(page.getByText('Siap dicatat').last()).toBeVisible();
+    await openPendingEditor(page);
     await page.locator('#pending-desc').fill('B');
     await page.locator('#pending-date').fill('2026-09-02');
     await savePending(page);
@@ -100,6 +111,7 @@ test.describe('export CSV', () => {
     await page.getByPlaceholder(/Contoh/).fill('jajan 15000');
     await page.getByRole('button', { name: 'Kirim transaksi' }).click();
     await expect(page.getByText('Siap dicatat').first()).toBeVisible();
+    await openPendingEditor(page);
     await page.locator('#pending-date').fill('2026-09-01');
     await savePending(page);
     await page.goto('/settings');
