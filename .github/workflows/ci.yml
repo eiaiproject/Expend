@@ -40,10 +40,11 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci --ignore-scripts
       # Proyek `mobile` (Pixel 5) juga berbasis chromium, jadi cukup chromium + webkit.
-      - run: npx playwright install --with-deps chromium webkit
+      # Biner lokal (bukan npx on-demand) agar tak memicu S6505/S8543.
+      - run: ./node_modules/.bin/playwright install --with-deps chromium webkit
       # CI=true otomatis dari GitHub Actions -> playwright.config memakai
       # retries 2 dan 1 worker, sehingga flaky sesekali tidak memblokir rilis.
-      - run: npx playwright test
+      - run: ./node_modules/.bin/playwright test
   deploy:
     needs: [ci, e2e]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
