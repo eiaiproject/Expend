@@ -3,6 +3,11 @@ import * as fs from 'node:fs';
 import { simulateKeyboardOpen, MOBILE, KEYBOARD, fold } from './helpers/keyboard';
 
 const RECEIPT = 'mandiri.webp';
+const HAS_RECEIPT = fs.existsSync(RECEIPT);
+
+// Resi fisik (gitignored) hanya ada lokal. Tanpa fail jujur: anotasi skip
+// beralasan lalu pulang. Bentuk blok multi-statement seperti user-prefs —
+// test.skip di badan test memicu S1607, early-return sebaris memicu S8968.
 
 async function clearDB(page: Page) {
   await page.goto('/chat');
@@ -24,14 +29,6 @@ async function seedMessages(page: Page, count = 8) {
   }
   // Pastikan pesan terakhir ter-render
   await expect(log).toContainText(`nomor ${count - 1}`, { timeout: 5000 });
-}
-
-// Resi fisik (mandiri.webp, gitignored) hanya ada lokal. Tanpafail jujur:
-// tandai skip beralasan lalu pulang, bukan test.skip di badan test (S1607).
-async function requireReceipt(): Promise<boolean> {
-  if (fs.existsSync(RECEIPT)) return true;
-  test.info().annotations.push({ type: 'skip', description: `${RECEIPT} tidak ada di project root (gitignored)` });
-  return false;
 }
 
 // Auto-scroll sudah membawa list ke bawah (toleransi 200px).
@@ -128,7 +125,10 @@ test('keyboard terbuka: kirim pesan dari posisi atas → tidak force-scroll', as
 // ─── Test 3: Upload receipt - pending card should be visible ───────────────────
 
 test('upload bukti: kartu pending terlihat tanpa scroll manual', async ({ page }) => {
-  if (!(await requireReceipt())) return;
+  if (!HAS_RECEIPT) {
+    test.info().annotations.push({ type: 'skip', description: `${RECEIPT} tidak ada di project root (gitignored)` });
+    return;
+  }
   await page.setViewportSize(MOBILE);
   await clearDB(page);
 
@@ -152,7 +152,10 @@ test('upload bukti: kartu pending terlihat tanpa scroll manual', async ({ page }
 // ─── Test 4: Upload receipt then save - scroll to "Tercatat" ──────────────────
 
 test('upload + simpan: pesan "Tercatat" terlihat setelah save', async ({ page }) => {
-  if (!(await requireReceipt())) return;
+  if (!HAS_RECEIPT) {
+    test.info().annotations.push({ type: 'skip', description: `${RECEIPT} tidak ada di project root (gitignored)` });
+    return;
+  }
   await page.setViewportSize(MOBILE);
   await clearDB(page);
 
@@ -182,7 +185,10 @@ test('upload + simpan: pesan "Tercatat" terlihat setelah save', async ({ page })
 // ─── Test 5: Keyboard + upload - keyboard dismisses after OCR ─────────────────
 
 test('keyboard + upload: keyboard tertutup saat upload', async ({ page }) => {
-  if (!(await requireReceipt())) return;
+  if (!HAS_RECEIPT) {
+    test.info().annotations.push({ type: 'skip', description: `${RECEIPT} tidak ada di project root (gitignored)` });
+    return;
+  }
   await page.setViewportSize(MOBILE);
   await clearDB(page);
 
