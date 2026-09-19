@@ -4,19 +4,19 @@ let workerReady = false;
 let currentOnProgress: (n: number) => void = () => {};
 
 async function getWorker(): Promise<any> {
-  if (!workerPromise) {
-    workerPromise = (async () => {
-      const { createWorker } = await import('tesseract.js');
-      const w: any = await createWorker('ind+eng', 1, {
-        logger: (m: any) => {
-          if (m.status === 'recognizing text' && typeof m.progress === 'number') {
-            currentOnProgress(Math.round(m.progress * 100));
-          }
-        },
-      });
-      return w;
-    })();
-  }
+  // `??=` (S6606) sekaligus jadi memo: pemuatan hanya sekali, dan reset di catch
+  // di bawah membuat percobaan ulang berikutnya benar-benar memuat lagi.
+  workerPromise ??= (async () => {
+    const { createWorker } = await import('tesseract.js');
+    const w: any = await createWorker('ind+eng', 1, {
+      logger: (m: any) => {
+        if (m.status === 'recognizing text' && typeof m.progress === 'number') {
+          currentOnProgress(Math.round(m.progress * 100));
+        }
+      },
+    });
+    return w;
+  })();
   try {
     const w = await workerPromise;
     workerReady = true;
