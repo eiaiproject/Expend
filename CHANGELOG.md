@@ -1,4 +1,20 @@
 # Changelog
+## 0.19.0 - 2026-09-19
+### Added
+
+- Harden chat dates and receipt OCR
+
+### Changed
+
+- String.raw Windows paths and shared theme sheet helper
+- Resolve git binary to absolute path for S4036
+- Resolve main-branch S5906, S3358 and S4036
+
+### Fixed
+
+- Restore PATH toolchain in release and migrate deploy to wrangler-action
+
+
 ## 0.18.1 - 2026-09-17
 ### Fixed
 
