@@ -1,4 +1,10 @@
 # Changelog
+## 0.19.1 - 2026-09-19
+### Fixed
+
+- Read image format from content, not the device-reported MIME
+
+
 ## 0.19.0 - 2026-09-19
 ### Added
 
