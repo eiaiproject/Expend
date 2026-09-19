@@ -70,8 +70,8 @@ function resolveBin(name) {
     '/usr/bin',
     '/usr/local/bin',
     '/opt/homebrew/bin',
-    'C:\\Program Files\\Git\\bin',
-    'C:\\Program Files\\Git\\cmd',
+    String.raw`C:\Program Files\Git\bin`,
+    String.raw`C:\Program Files\Git\cmd`,
     dirname(process.execPath),
   ];
   const suffixes = process.platform === 'win32' ? ['.exe', '.cmd', ''] : [''];

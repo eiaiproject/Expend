@@ -28,34 +28,37 @@ async function expectWordmark(page: import('@playwright/test').Page, rgb: string
   expect(await mark.evaluate((el) => (el as SVGElement).innerHTML)).toContain('<path');
 }
 
+async function verifyEditSheetTheme(
+  page: import('@playwright/test').Page,
+  theme: 'light' | 'dark',
+  scheme: 'light' | 'dark',
+  textRgb: string,
+  markRgb: string,
+) {
+  await page.goto('/settings');
+  await page.getByLabel('Tema').selectOption(theme);
+  await seedOne(page, 'kopi 25000');
+  await openEdit(page);
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe(scheme);
+  expect(await page.locator('dialog h2').evaluate((el) => getComputedStyle(el).color)).toBe(textRgb);
+  expect(await page.locator('dialog input').first().evaluate((el) => getComputedStyle(el).color)).toBe(textRgb);
+  await expectWordmark(page, markRgb);
+}
+
 test.describe('dark OS emulated', () => {
   test.use({ colorScheme: 'dark' });
 
   test('dark OS + light theme: edit sheet text stays dark', async ({ page }) => {
-    await page.goto('/settings');
-    await page.getByLabel('Tema').selectOption('light');
-    await seedOne(page, 'kopi 25000');
-    await openEdit(page);
-    expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe('light');
     // #1A1A1A = light theme --text-primary (bukan CanvasText putih dari OS dark).
-    expect(await page.locator('dialog h2').evaluate((el) => getComputedStyle(el).color)).toBe('rgb(26, 26, 26)');
-    expect(await page.locator('dialog input').first().evaluate((el) => getComputedStyle(el).color)).toBe('rgb(26, 26, 26)');
     // Wordmark hijau brand #264025 di light mode.
-    await expectWordmark(page, 'rgb(38, 64, 37)');
+    await verifyEditSheetTheme(page, 'light', 'light', 'rgb(26, 26, 26)', 'rgb(38, 64, 37)');
   });
 });
 
 test.describe('light OS (default)', () => {
   test('light OS + dark theme: edit sheet text stays light', async ({ page }) => {
-    await page.goto('/settings');
-    await page.getByLabel('Tema').selectOption('dark');
-    await seedOne(page, 'kopi 25000');
-    await openEdit(page);
-    expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe('dark');
     // #e8e8e8 = dark theme --text-primary.
-    expect(await page.locator('dialog h2').evaluate((el) => getComputedStyle(el).color)).toBe('rgb(232, 232, 232)');
-    expect(await page.locator('dialog input').first().evaluate((el) => getComputedStyle(el).color)).toBe('rgb(232, 232, 232)');
     // Wordmark hijau #6a9f3e di dark mode.
-    await expectWordmark(page, 'rgb(106, 159, 62)');
+    await verifyEditSheetTheme(page, 'dark', 'dark', 'rgb(232, 232, 232)', 'rgb(106, 159, 62)');
   });
 });
