@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @theme {
   --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --color-brand: #264025;
 }
 :root {
   /* Skema form-control/UA mengikuti TEMA APLIKASI, bukan OS: tanpa ini,
@@ -12,7 +11,6 @@
   --bg: #F7F6F2;
   --bone: #F1F0EA;
   --card: #FFFFFF;
-  --card-elev: #FFFFFF;
   --border: #EBE9E4;
   --border-strong: #D4D1CB;
   --text-primary: #1A1A1A;
@@ -20,9 +18,7 @@
   --text-muted: #6b6962;
   /* Logo palette */
   --accent: #264025;
-  --accent-warm: #ddcbb7;
   --accent-soft: rgba(38, 64, 37, 0.1);
-  --accent-deep: #1a2d19;
   --accent-fill: #264025;
   --accent-ink: #ddcbb7;
   /* Semantic: light text colors darkened for AA on white and soft tint (measured 5.0 or higher) */
@@ -33,49 +29,17 @@
   --danger-soft: rgba(220, 38, 38, 0.08);
   --success: #15803d;
   --success-soft: rgba(21, 128, 61, 0.08);
-  --warning: #b45309;
   --warning-soft: rgba(180, 83, 9, 0.1);
   --info: #1d4ed8;
   --info-soft: rgba(29, 78, 216, 0.1);
-  /* Elevation */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.20);
-  --elevation-0: none;
-  --elevation-1: 0 1px 3px rgba(0,0,0,0.12);
-  --elevation-2: 0 4px 12px rgba(0,0,0,0.15);
-  --elevation-3: 0 8px 24px rgba(0,0,0,0.20);
   /* Radius */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
-  --radius-pill: 9999px;
-  /* Spacing */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --inset-edge: 16px;
-  --hit-min: 48px;
   /* Z-index */
-  --z-nav: 30;
-  --z-dropdown: 40;
   --z-modal: 50;
   --z-toast: 60;
-  /* Animation */
-  --duration-fast: 150ms;
-  --duration-normal: 200ms;
-  --duration-slow: 300ms;
-  --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
-  --easing-in: cubic-bezier(0.4, 0, 1, 1);
-  --easing-out: cubic-bezier(0, 0, 0.2, 1);
-  /* Typography responsive */
-  --text-display-xl: clamp(48px, 8vw, 72px);
-  --text-display-lg: clamp(32px, 5vw, 48px);
-  --text-display-md: clamp(24px, 4vw, 36px);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -83,7 +47,6 @@
     --bg: #0a0a0a;
     --bone: #111111;
     --card: #1a1a1a;
-    --card-elev: #222222;
     --border: #2a2a2a;
     --border-strong: #3a3a3a;
     --text-primary: #e8e8e8;
@@ -91,9 +54,7 @@
     --text-muted: #8a8a8a;
     /* Logo palette dark */
     --accent: #6a9f3e;
-    --accent-warm: #ddcbb7;
     --accent-soft: rgba(106, 159, 62, 0.15);
-    --accent-deep: #264025;
     --accent-fill: #4a7a2a;
     --accent-ink: #FFFFFF;
     /* Semantic dark */
@@ -104,18 +65,9 @@
     --danger-soft: rgba(248, 113, 113, 0.12);
     --success: #34d399;
     --success-soft: rgba(52, 211, 153, 0.12);
-    --warning: #fbbf24;
     --warning-soft: rgba(251, 191, 36, 0.15);
     --info: #60a5fa;
     --info-soft: rgba(96, 165, 250, 0.15);
-    /* Elevation dark */
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.40);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.50);
-    --shadow-lg: 0 8px 24px rgba(0,0,0,0.60);
-    --elevation-0: none;
-    --elevation-1: 0 1px 3px rgba(0,0,0,0.40);
-    --elevation-2: 0 4px 12px rgba(0,0,0,0.50);
-    --elevation-3: 0 8px 24px rgba(0,0,0,0.60);
   }
 }
 /* Explicit dark theme via data-theme="dark" (same tokens as system dark above) */
@@ -124,16 +76,13 @@
   --bg: #0a0a0a;
   --bone: #111111;
   --card: #1a1a1a;
-  --card-elev: #222222;
   --border: #2a2a2a;
   --border-strong: #3a3a3a;
   --text-primary: #e8e8e8;
   --text-secondary: #a0a0a0;
   --text-muted: #8a8a8a;
   --accent: #6a9f3e;
-  --accent-warm: #ddcbb7;
   --accent-soft: rgba(106, 159, 62, 0.15);
-  --accent-deep: #264025;
   --accent-fill: #4a7a2a;
   --accent-ink: #FFFFFF;
   --danger: #F87171;
@@ -143,17 +92,9 @@
   --danger-soft: rgba(248, 113, 113, 0.12);
   --success: #34d399;
   --success-soft: rgba(52, 211, 153, 0.12);
-  --warning: #fbbf24;
   --warning-soft: rgba(251, 191, 36, 0.15);
   --info: #60a5fa;
   --info-soft: rgba(96, 165, 250, 0.15);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.40);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.50);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.60);
-  --elevation-0: none;
-  --elevation-1: 0 1px 3px rgba(0,0,0,0.40);
-  --elevation-2: 0 4px 12px rgba(0,0,0,0.50);
-  --elevation-3: 0 8px 24px rgba(0,0,0,0.60);
 }
 * { scrollbar-width: thin; scrollbar-gutter: stable; }
 /* #main-content tidak boleh bergeser: overflow:hidden masih bisa di-scroll
