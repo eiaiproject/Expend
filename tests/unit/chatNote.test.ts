@@ -60,7 +60,7 @@ describe('chat note clause (tanpa titik dua, positional guard)', () => {
 
   it('note dibatasi 200 char selaras limit import', () => {
     const p = parseChatInput(`kopi 25rb note ${'x'.repeat(250)}`);
-    expect(p!.note!.length).toBe(200);
+    expect(p!.note!).toHaveLength(200);
   });
 
   it('tanpa klausa → perilaku lama identik (tanpa key note)', () => {

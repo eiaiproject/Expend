@@ -25,7 +25,7 @@
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -36,8 +36,10 @@ const PATCH_TYPES = new Set(['fix', 'perf', 'refactor', 'revert']);
  * @param {number} [currentMajor=0] - major of the current package version
  * @returns {'major' | 'minor' | 'patch' | null}
  */
+/** Bobot bump: tanpa ternary bersarang (S3358). */
+const BUMP_RANK = { major: 3, minor: 2, patch: 1 };
 export function determineBump(messages, currentMajor = 0) {
-  const rank = (b) => (b === 'major' ? 3 : b === 'minor' ? 2 : b === 'patch' ? 1 : 0);
+  const rank = (b) => BUMP_RANK[b] ?? 0;
   let bump = null;
   const consider = (b) => {
     if (b && rank(b) > rank(bump)) bump = b;
@@ -59,6 +61,10 @@ export function determineBump(messages, currentMajor = 0) {
   }
   return bump;
 }
+
+// S4036: jangan andalkan resolusi PATH — npm terinstal di direktori yang
+// sama dengan node (setup-node maupun lokal), jadi panggil absolut.
+const NPM_BIN = join(dirname(process.execPath), `npm${process.platform === 'win32' ? '.cmd' : ''}`);
 
 function sh(cmd) {
   // NOSONAR - S4721: no user input; range comes from git history or BASE_REF set in CI
@@ -94,7 +100,7 @@ if (isMain) {
     console.log(`auto-release: would bump ${bump} (current ${pkg.version})`);
     process.exit(0);
   }
-  execSync(`npm version ${bump} -m "chore(release): %s"`, { cwd: root, stdio: 'inherit' });
+  execSync(`"${NPM_BIN}" version ${bump} -m "chore(release): %s"`, { cwd: root, stdio: 'inherit' });
   execSync('git push origin HEAD:refs/heads/main --follow-tags', { cwd: root, stdio: 'inherit' });
   console.log(`auto-release: released with ${bump} bump`);
 }
