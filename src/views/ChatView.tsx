@@ -40,20 +40,6 @@ function scrollToBottom(listRef: React.RefObject<HTMLDivElement | null>, instant
 
 const CHAT_PAGE = 50;
 
-interface LiveDraft { description: string; amount: number }
-
-// Murni + teruji via chatParser: draf valid -> hasil parse, sisanya null.
-// Dipisah dari komponen agar S3776 tidak menghitung cabang guard ini.
-export function previewDraft(raw: string): LiveDraft | null {
-  const text = raw.trim();
-  if (!text) return null;
-  try {
-    return parseChatInput(text);
-  } catch {
-    return null;
-  }
-}
-
 // Timestamp hanya saat ganti hari/role agar list tidak berisik.
 // Dipisah dari komponen agar S3776 tidak menghitung rantai || ini.
 export function shouldShowTime(prev: { createdAt: string; role: string } | undefined, cur: { createdAt: string; role: string }): boolean {
@@ -90,12 +76,6 @@ export default function ChatView() {
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [ocrAvailable, setOcrAvailable] = useState(isOcrReady());
-  const [confirmBeforeSave] = useState(() => {
-    const v = localStorage.getItem('confirmSave');
-    return v === null ? true : v === 'true';
-  });
-  const confirmBeforeSaveRef = useRef(confirmBeforeSave);
-  confirmBeforeSaveRef.current = confirmBeforeSave;
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -866,14 +846,14 @@ export default function ChatView() {
           <input
             ref={fileRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
             className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
           />
           <input
             ref={cameraRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
             capture="environment"
             className="hidden"
             onChange={(e) => {
@@ -958,7 +938,8 @@ export default function ChatView() {
       </div>
 
       <FormatCheatSheet open={showSheet} onClose={() => setShowSheet(false)} />
-      {toast && <Toast message={toast.message} type={toast.type} onDismiss={dismissToast} />}
+      {/* key per pesan agar timer toast baru tidak mewarisi sisa timer lama. */}
+      {toast && <Toast key={toast.message} message={toast.message} type={toast.type} onDismiss={dismissToast} />}
 
       <style>{String.raw`@keyframes in { from { opacity:0; transform: translateY(4px)} to { opacity:1; transform: translateY(0)} } @media (prefers-reduced-motion: reduce) { .motion-safe\:animate-pulse, .motion-safe\:animate-\[in_0\.2s_ease-out\] { animation: none !important; } }`}</style>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useEffectEvent, useRef } from 'react';
 import type { RefObject } from 'react';
 
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -38,22 +38,25 @@ export function useFocusTrap<T extends HTMLElement>(
   { onClose, initialFocusRef, restoreFocusRef, active = true }: FocusTrapOptions,
 ): void {
   const previousFocus = useRef<HTMLElement | null>(null);
-  const onCloseRef = useRef(onClose);
+  // Effect Event: handler memakai versi `onClose` terbaru TANPA membuat effect
+  // ikut re-run. Sebelumnya `onClose` ada di dependency array padahal handler-nya
+  // sudah lewat ref, sehingga setiap render induk (callback inline) membuat
+  // effect teardown + re-run: cleanup mengembalikan fokus KE LUAR dialog, lalu
+  // fokus ditarik lagi ke elemen pertama - fokus meloncat saat dialog terbuka.
+  const closeDialog = useEffectEvent(onClose);
   useEffect(() => {
     if (!active) return;
-    // Tulis ref di dalam effect, bukan saat render (react-hooks/refs).
-    onCloseRef.current = onClose;
     const restoreEl = restoreFocusRef?.current;
     previousFocus.current = document.activeElement as HTMLElement | null;
     const initial =
       initialFocusRef?.current ??
       (containerRef.current?.querySelector<HTMLElement>(FOCUSABLE) ?? null);
     initial?.focus?.();
-    const onKey = (e: KeyboardEvent) => trapTabKey(e, containerRef.current, () => onCloseRef.current());
+    const onKey = (e: KeyboardEvent) => trapTabKey(e, containerRef.current, () => closeDialog());
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
       (restoreEl ?? previousFocus.current)?.focus?.();
     };
-  }, [active, containerRef, initialFocusRef, restoreFocusRef, onClose]);
+  }, [active, containerRef, initialFocusRef, restoreFocusRef]);
 }

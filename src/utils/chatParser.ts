@@ -104,12 +104,40 @@ function parseRelativeDate(term: string): string | undefined {
     now.setDate(now.getDate() - 1);
     return todayLocalISO(now);
   }
+  if (lower === 'besok' || lower === 'esok') {
+    now.setDate(now.getDate() + 1);
+    return todayLocalISO(now);
+  }
   if (lower === 'lusa') {
     now.setDate(now.getDate() + 2);
     return todayLocalISO(now);
   }
   if (lower === 'hari ini' || lower === 'hariini') {
     return todayLocalISO(now);
+  }
+  return undefined;
+}
+
+/**
+ * "2 hari lalu" / "3 hari yang lalu" / "minggu lalu" → H-N.
+ * Dicek sebelum kata relatif tunggal supaya angkanya tidak jatuh ke hari ini.
+ * Batas 365 hari menolak angka ngawur ("999 hari lalu") alih-alih menggeser
+ * tanggal ke luar rentang yang masuk akal.
+ */
+function parseDaysAgoDate(text: string): string | undefined {
+  const m = /\b(\d{1,2})\s+hari(?:\s+yang)?\s+lalu\b/i.exec(text);
+  if (m) {
+    const n = Number(m[1]);
+    if (n >= 1 && n <= 365) {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return todayLocalISO(d);
+    }
+  }
+  if (/\bminggu\s+lalu\b/i.test(text)) {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return todayLocalISO(d);
   }
   return undefined;
 }
@@ -214,7 +242,13 @@ function parseExplicitDate(text: string): string | undefined {
 export function extractChatDate(text: string): string {
   // Check relative dates first
   const lower = text.toLowerCase();
-  for (const term of ['hari ini', 'kemarin', 'lusa']) {
+  // "2 hari lalu" lebih spesifik dari kata tunggal - dicek lebih dulu.
+  const daysAgo = parseDaysAgoDate(text);
+  if (daysAgo) return daysAgo;
+  // 'kemaren' ikut didaftarkan: sebelumnya hanya 'kemarin' yang dicek sehingga
+  // "kemaren" tidak pernah sampai ke parseRelativeDate (selalu jatuh ke hari ini).
+  // 'besok' didaftarkan sebelum 'esok' karena 'esok' adalah substring 'besok'.
+  for (const term of ['hari ini', 'kemarin', 'kemaren', 'besok', 'esok', 'lusa']) {
     if (lower.includes(term)) {
       const d = parseRelativeDate(term);
       if (d) return d;
@@ -240,6 +274,19 @@ interface AmountCandidate extends RankedAmount {
 // Pembayaran: 12345678" > 20 char), dan token ditambah referensi/nomor/nomer.
 // Catatan: "rekening" TIDAK masuk pola label-lanjutan di bawah karena dalam
 // chat "bayar rekening listrik 50000" justru nominal (rekening = tagihan).
+// Sumber "kata umum": namanya sendiri tidak perlu ikut ke deskripsi.
+const GENERIC_DESC_SOURCES = new Set(['Tunai', 'Kas', 'Dana']);
+// Sumber kata umum yang boleh dikenali tanpa klausa "dari/via" eksplisit.
+// "Dana" hanya lolos bila ditulis kapital (lihat isGenericWordIntentional di
+// sources.ts), sehingga "dana darurat" tetap tidak pernah jadi sumber dana.
+const BARE_SOURCE_FALLBACK = new Set(['Tunai', 'Kas', 'Dana']);
+
+// Deskripsi yang HANYA berisi SINGKATAN verba tanpa objek: bukan nama transaksi.
+// Hanya "tf" - kata utuh seperti "bayar"/"beli"/"transfer"/"jajan" tetap
+// dipertahankan karena menandai kategori (e2e chat-50 meng-assert "bayar 125.000"
+// → "Bayar"), sedangkan "tf" sendirian tidak bermakna apa pun.
+const BARE_VERB_RE = /^tf\.?$/i;
+
 const REF_LOOKBACK_RE = /\b(?:ref|referensi|resi|trace|rekening|account|akun|no\.?|nomor|nomer|id|pembayaran)\b\s*[:#]?\s*$/i; // NOSONAR - anchored ($), input bounded to 80-char lookback slice
 // Klausa label panjang: "Referensi Pembayaran: 123" → izinkan ≤2 kata sisipan
 // setelah kata kunci sebelum tanda titik dua/akhir. Khusus label non-rekening
@@ -328,18 +375,27 @@ function formatDescription(raw: string, hasGenericSource: boolean, stripSourceCl
   if (hasGenericSource) desc = desc.replace(/\s+(?:bayar|pakai|pake|dari|via)\s*$/i, '').replace(/\s{2,}/g, ' ').trim(); // NOSONAR
   // Remove trailing words + number HANYA untuk kata lokasi (lantai/lt/meja/dll)
   desc = desc.replace(TRAILING_LOCATION_RE, '').trim(); // NOSONAR - bounded, anchored
-  // Remove dangling trailing preposition/conjunction left by cleanup above
-  // (e.g. "Parkir di" → "Parkir"). Mid-sentence ones are kept.
-  desc = desc.replace(/\s+(?:di|ke|dari|untuk|dengan|dan|atau|yang)[,.]?\s*$/i, '').trim(); // NOSONAR
-  // Remove leading preposition left after verb stripping ("jajan di kantin"
-  // → "di kantin" → "Kantin"). Mid-sentence ones are kept.
-  desc = desc.replace(/^(?:di|ke|dari|untuk|dengan|dan|atau|yang)\s+/i, '').trim();
+  // Angka & nomor referensi dibuang LEBIH DULU daripada preposisi menggantung.
+  // Urutan lama (preposisi dulu) meninggalkan "Kopi dari" pada
+  // "kopi 50rb dari 1234567890": preposisi tidak cocok saat masih ada angka,
+  // lalu angkanya hilang belakangan dan tidak ada yang membersihkan sisa itu.
   // Remove trailing standalone numbers (3+ digit; angka 1-2 digit di akhir bisa
   // bagian nama produk seperti "Level 5" / "Pak 2")
   desc = desc.replace(/\s\d{3,}\s*$/, '').trim(); // NOSONAR
   // Remove nomor referensi/rekening yang tersisa ("ref 123456" -> buang)
   desc = desc.replace(/\s*\b(ref|resi|trace|rekening|account|ID)\s*[:#]?\s*[\w\d#:.=-]*$/i, '').trim(); // NOSONAR - anchored ($), input bounded desc (<80 chars)
+  // Remove dangling trailing preposition/conjunction left by cleanup above
+  // (e.g. "Parkir di" → "Parkir"). Mid-sentence ones are kept. `(?:^|\s+)`
+  // juga menangani deskripsi yang seluruhnya preposisi ("dari" -> "").
+  desc = desc.replace(/(?:^|\s+)(?:di|ke|dari|untuk|dengan|dan|atau|yang)[,.]?\s*$/i, '').trim(); // NOSONAR
+  // Remove leading preposition left after verb stripping ("jajan di kantin"
+  // → "di kantin" → "Kantin"). Mid-sentence ones are kept.
+  desc = desc.replace(/^(?:di|ke|dari|untuk|dengan|dan|atau|yang)\s+/i, '').trim();
+  // Sisa tanda baca/simbol menggantung ("kopi -50000" → "Kopi -").
+  desc = desc.replace(/^[\s+\-–—]+|[\s+\-–—]+$/g, '').trim(); // NOSONAR - anchored
   if (/^(ref|resi|trace|no|id)$/i.test(desc)) return 'Pengeluaran';
+  // Verba tanpa objek bukan nama transaksi ("tf 50rb" → "Pengeluaran").
+  if (BARE_VERB_RE.test(desc)) return 'Pengeluaran';
 
   if (!desc) return 'Pengeluaran';
   return titleCasePreserveAcronyms(desc).slice(0, 80);
@@ -380,7 +436,9 @@ export function splitNoteClause(text: string): { head: string; note?: string } {
 export function parseChatInput(input: string): ParsedExpense | null {
   // A2: Batasi panjang input untuk cegah ReDoS - regex kompleks
   // (sumber dana, amount candidate) aman pada input terbatas (<500 char).
-  const text = input.trim().slice(0, 500);
+  // NFKC menyeragamkan lebar penuh (２５ｒｂ → 25rb) dan NBSP → spasi biasa,
+  // sehingga angka hasil salin-tempel dari app bank/WhatsApp tetap terbaca.
+  const text = input.normalize('NFKC').trim().slice(0, 500);
   if (!text) return null;
 
   // 0. Pisah klausa catatan dulu agar angka di catatan tak dihitung nominal.
@@ -395,7 +453,10 @@ export function parseChatInput(input: string): ParsedExpense | null {
   // Normalisasi variasi "R P" menjadi "Rp" agar terdeteksi sebagai sinyal moneter.
   let cleanText = base
     .replace(/\bR\s*P\b\.?(?=\s|\d|$)/gi, 'Rp')
-    .replace(/\b(?:kemarin|lusa|hari\s*ini)\b/gi, '') // NOSONAR
+    // Frasa relatif dibuang lebih dulu agar sisa katanya tidak bocor ke deskripsi.
+    .replace(/\b\d{1,2}\s+hari(?:\s+yang)?\s+lalu\b/gi, '') // NOSONAR
+    .replace(/\bminggu\s+lalu\b/gi, '') // NOSONAR
+    .replace(/\b(?:kemarin|kemaren|lusa|besok|esok|hari\s*ini)\b/gi, '') // NOSONAR
     // ISO dicek sebelum dd/mm/yyyy: tanpa ini "2026-08-15" hanya terpotong
     // "26-08-15" sehingga sisa "20" bocor ke deskripsi ("20 Kopi").
     .replace(/(?<!\d)\d{4}[/.-]\d{1,2}[/.-]\d{1,2}(?!\d)/g, '') // NOSONAR
@@ -443,15 +504,17 @@ export function parseChatInput(input: string): ParsedExpense | null {
     }
   }
   if (!source) {
-    // Fallback: scan full text for generic sources (Tunai, Kas) without keyword
+    // Fallback: scan full text for generic sources without keyword. Hanya nama
+    // yang aman sebagai kata umum yang diterima ("Dana" tetap dijaga kapitalnya
+    // oleh isGenericWordIntentional sehingga "dana darurat" tidak ikut).
     const generic = detectSource(base);
-    if (generic === 'Tunai' || generic === 'Kas') source = generic;
+    if (generic && BARE_SOURCE_FALLBACK.has(generic)) source = generic;
   }
 
   // 7. Format description
   const description = formatDescription(
     rawDesc,
-    !!source && (source === 'Tunai' || source === 'Kas'),
+    !!source && GENERIC_DESC_SOURCES.has(source),
     sourceFromClause,
   );
 

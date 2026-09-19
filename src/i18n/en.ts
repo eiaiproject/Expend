@@ -105,8 +105,6 @@ const en: Record<TranslationKey, string> = {
   'settings.themeDark': 'Dark',
   'settings.numberFormat': 'Number format',
   'settings.numberFormatDesc': 'Rupiah currency',
-  'settings.confirmSave': 'Confirm before saving',
-  'settings.confirmSaveDesc': 'Review details before saving',
   'settings.language': 'Language',
   'settings.languageDesc': 'Choose display language',
   'settings.data': 'Data',

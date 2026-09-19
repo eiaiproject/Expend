@@ -119,8 +119,11 @@ writeFileSync(changelogPath, changelog);
 console.log(`sync-version: CHANGELOG entry -> ${version} (${fromTag || 'initial'}..HEAD)`);
 
 // Stage synced files so `npm version` includes them in the release commit.
+// Path WAJIB dikutip dan didahului `--`: tanpa itu `git add` memecah path pada
+// spasi (mis. folder "My Documents") sehingga README/CHANGELOG hasil sinkronisasi
+// tidak ikut ter-stage - kegagalannya senyap karena catch di bawah.
 try {
-  execSync(`git add ${readmePath} ${changelogPath}`, { cwd: root, stdio: 'ignore' });
+  execSync(`git add -- "${readmePath}" "${changelogPath}"`, { cwd: root, stdio: 'ignore' });
 } catch {
   /* non-fatal: caller may stage manually */
 }
