@@ -26,9 +26,15 @@ export function getLiveParts(raw: string): Parts | null {
   }
   if (!parsed) return null;
   const lower = text.toLowerCase();
+  // Daftar ini wajib sejalan dengan extractChatDate: frasa relatif yang sudah
+  // dikenali parser tapi tidak ada di sini akan tampil tanpa badge tanggal
+  // (dulu "besok"/"2 hari lalu"/"minggu lalu" tidak pernah menampilkan badge).
   const hasDateWord =
     lower.includes('kemarin') || lower.includes('kemaren') || lower.includes('lusa') ||
-    lower.includes('hari ini') || /\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/.test(text) ||
+    lower.includes('hari ini') || lower.includes('hariini') ||
+    lower.includes('besok') || lower.includes('esok') ||
+    /\d{1,2}\s+hari(?:\s+yang)?\s+lalu/.test(lower) || lower.includes('minggu lalu') ||
+    /\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/.test(text) ||
     /(?:tgl|tanggal)\s+\d{1,2}/i.test(text);
   let dateBadge: string | null = null;
   if (hasDateWord) {

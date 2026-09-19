@@ -93,6 +93,9 @@ export const AMOUNT_SUFFIX: ChatCase[] = [
   { input: 'kopi 1M' },
   { input: 'kopi 1 m' },
   { input: 'kopi 1 miliar' },
+  // Salin-tempel dari app bank/WhatsApp sering memakai huruf lebar penuh;
+  // NFKC di parseChatInput menormalkannya menjadi ASCII.
+  { input: 'kopi ２５ｒｂ', expect: { amount: 25000 } },
 ];
 
 // ── 4. Nominal: penanda mata uang ────────────────────────────────────────────
@@ -118,8 +121,9 @@ export const AMOUNT_BOUNDS: ChatCase[] = [
   { input: 'kopi 9999999999999999', expect: { nullResult: true } },
   { input: 'kopi 1e12', expect: { nullResult: true } },
   { input: 'kopi 1E12', expect: { nullResult: true } },
-  { input: 'kopi -50000' },
-  { input: 'kopi +50000' },
+  // Tanda +/- tidak boleh menggantung di deskripsi ("Kopi -" → "Kopi").
+  { input: 'kopi -50000', expect: { description: 'Kopi' } },
+  { input: 'kopi +50000', expect: { description: 'Kopi' } },
   { input: 'kopi 50rb kembali 20rb', expect: { amount: 50000 } },
   { input: 'bayar 50rb, kembali 50rb', expect: { amount: 50000 } },
 ];
@@ -131,10 +135,14 @@ export const DATES_RELATIVE: ChatCase[] = [
   { input: 'bayar kopi lusa 25rb' },
   { input: 'bayar kopi hari ini 25rb' },
   { input: 'bayar kopi hariini 25rb' },
-  // belum didukung (deskripsi tetap memuat kata tanggal)
-  { input: 'kopi 25rb besok' },
-  { input: 'kopi 25rb 2 hari lalu' },
-  { input: 'kopi 25rb minggu lalu' },
+  // Dulu belum didukung (kata tanggal bocor ke deskripsi); sekarang frasa ini
+  // dikenali sebagai tanggal sehingga sisanya bersih. Nilai tanggalnya
+  // bergantung hari berjalan, jadi yang di-assert di sini deskripsinya saja
+  // (tanggal relatifnya diuji dengan fake timers di tests/unit/chatParser.test.ts).
+  { input: 'kopi 25rb besok', expect: { description: 'Kopi' } },
+  { input: 'kopi 25rb 2 hari lalu', expect: { description: 'Kopi' } },
+  { input: 'kopi 25rb 3 hari yang lalu', expect: { description: 'Kopi' } },
+  { input: 'kopi 25rb minggu lalu', expect: { description: 'Kopi' } },
 ];
 
 // ── 7. Tanggal eksplisit ─────────────────────────────────────────────────────
@@ -203,9 +211,10 @@ export const SOURCES_BARE: ChatCase[] = [
   { input: 'kopi 20rb cash', expect: { source: 'Tunai' } },
   { input: 'kopi 20rb kas', expect: { source: 'Kas' } },
   { input: 'kopi 50rb', expect: { source: undefined } },
-  { input: 'kopi 25rb dana' },
-  { input: 'kopi 25rb Dana' },
-  { input: 'kopi 25rb DANA' },
+  // "Dana" kapital = e-wallet resmi; huruf kecil adalah kata benda umum.
+  { input: 'kopi 25rb dana', expect: { source: undefined } },
+  { input: 'kopi 25rb Dana', expect: { source: 'Dana' } },
+  { input: 'kopi 25rb DANA', expect: { source: 'Dana' } },
   { input: 'belanja 50rb bca' },
 ];
 
@@ -215,7 +224,8 @@ export const SOURCES_FALSE_POSITIVE: ChatCase[] = [
   { input: 'kopi 50rb dari jagonya' },
   { input: 'kopi 50rb dari dana darurat' },
   { input: 'kopi 50rb dari briefing' },
-  { input: 'kopi 50rb dari 1234567890' },
+  // Nomor rekening menggantung: angka dibuang lebih dulu, baru preposisinya.
+  { input: 'kopi 50rb dari 1234567890', expect: { description: 'Kopi', source: undefined } },
   { input: 'kopi 50rb dari bapak Budi' },
   { input: 'bayar kos 1,5 juta', expect: { amount: 1500000 } },
   { input: 'transfer ke Budi 50rb', expect: { amount: 50000 } },
@@ -250,7 +260,7 @@ export const DESCRIPTION_FORMAT: ChatCase[] = [
   { input: 'top up OVO 100rb', expect: { description: 'OVO' } },
   { input: 'topup 50rb' },
   { input: 'top-up 50rb' },
-  { input: 'tf 50rb', expect: { description: 'Tf' } },
+  { input: 'tf 50rb', expect: { description: 'Pengeluaran' } },
   { input: 'tf kopi 50rb', expect: { description: 'Kopi' } },
   { input: 'beliin baju 100rb', expect: { description: 'Baju' } },
   { input: 'buy coffee 25rb' },
@@ -408,21 +418,23 @@ export const INVALID_DATES: string[] = [
   'bayar kopi 00/00/00 25rb',
 ];
 
-// Perilaku diduga belum ideal (dokumentasi, tidak di-assert).
-// Sudah diperbaiki & di-assert: tanggal ISO ("2026-08-15"), tanggal tanpa
-// tahun ("15/08"/"15/8"), dan tanggal mustahil ("00/00/0000").
+// Perilaku yang SENGAJA belum didukung (dokumentasi, tidak di-assert).
+// Sudah diperbaiki & di-assert: tanggal ISO, tanpa tahun, mustahil, frasa
+// relatif ("besok"/"N hari lalu"/"minggu lalu"), lebar penuh, preposisi
+// menggantung, tanda menggantung, sumber "Dana" kapital, dan verba tanpa objek.
 export const KNOWN_ISSUES: { input: string; actual: string; expected: string }[] = [
   {
-    input: 'kopi 50rb dari 1234567890',
-    actual: 'desc "Kopi dari" (preposisi menggantung)',
-    expected: 'desc "Kopi"',
+    input: 'kopi 1M',
+    actual: 'null',
+    expected:
+      'SENGAJA tidak didukung: "M" ambigu (miliar di ID vs million di EN). ' +
+      'Menebak berisiko menyimpan nominal salah; gunakan "miliar"/"milyar".',
   },
-  { input: 'kopi 25rb besok', actual: 'desc memuat "Besok"', expected: 'tanggal besok (relatif)' },
-  { input: 'kopi 25rb 2 hari lalu', actual: 'desc memuat "2 Hari Lalu"', expected: 'tanggal H-2' },
-  { input: 'kopi 1M', actual: 'null', expected: 'Rp 1.000.000.000 (miliar) bila didukung' },
-  { input: 'kopi 50\u00a0000', actual: 'null', expected: 'nbsp diperlakukan seperti spasi' },
-  { input: 'kopi ２５ｒｂ', actual: 'null', expected: 'digit/lebar penuh dinormalisasi (opsional)' },
-  { input: 'kopi -50000', actual: 'desc "Kopi -"', expected: 'tanda diabaikan dari deskripsi' },
-  { input: 'kopi 25rb Dana', actual: 'tidak ada source', expected: 'source "Dana" (kapital = e-wallet)' },
-  { input: 'tf 50rb', actual: 'desc "Tf"', expected: 'verba tanpa objek → "Pengeluaran"' },
+  {
+    input: 'kopi 50\u00a0000',
+    actual: 'null',
+    expected:
+      'nbsp sudah dinormalisasi jadi spasi (konsisten), tetapi pemisah ribuan ' +
+      'ber-spasi tidak didukung - pakai "50.000"/"50rb".',
+  },
 ];

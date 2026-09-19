@@ -22,6 +22,18 @@ describe('LiveParseFeedback parts (presentation only, parser untouched)', () => 
     expect(p!.dateBadge).not.toBeNull();
   });
 
+  // Frasa relatif yang dikenali parser harus ikut menampilkan badge; dulu
+  // daftar kata di sini tertinggal sehingga "besok"/"minggu lalu" tak berbadge.
+  it.each(['kopi 25rb besok', 'kopi 25rb 2 hari lalu', 'kopi 25rb minggu lalu'])(
+    'flags date badge for %s',
+    (input) => {
+      const p = getLiveParts(input);
+      expect(p).not.toBeNull();
+      expect(p!.dateBadge).not.toBeNull();
+      expect(p!.description).toBe('Kopi');
+    },
+  );
+
   it('hasDigits gates the actionable InlineAlert', () => {
     expect(hasDigits('Kopi 50')).toBe(true);
     expect(hasDigits('halo')).toBe(false);

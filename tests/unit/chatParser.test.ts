@@ -159,8 +159,14 @@ describe('extractChatDate', () => {
 
   it.each([
     ['kemarin', 'bayar kopi kemarin', '2026-09-14', 'extract'],
+    ['kemaren (varian ejaan)', 'bayar kopi kemaren', '2026-09-14', 'extract'],
+    ['besok', 'bayar kopi besok', '2026-09-16', 'extract'],
+    ['esok', 'bayar kopi esok', '2026-09-16', 'extract'],
     ['lusa', 'bayar kopi lusa', '2026-09-17', 'extract'],
     ['hari ini', 'bayar kopi hari ini', '2026-09-15', 'extract'],
+    ['2 hari lalu', 'kopi 25rb 2 hari lalu', '2026-09-13', 'parse'],
+    ['3 hari yang lalu', 'kopi 25rb 3 hari yang lalu', '2026-09-12', 'parse'],
+    ['minggu lalu', 'kopi 25rb minggu lalu', '2026-09-08', 'parse'],
     ['tgl 15', 'bayar kopi 20rb tgl 15', '2026-09-15', 'parse'],
   ] as const)('%s', (_, input, expected, mode) => {
     vi.useFakeTimers();
