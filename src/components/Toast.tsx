@@ -14,7 +14,7 @@ export function useToast() {
     setToast({ message, type });
   }, []);
   const dismissToast = useCallback(() => setToast(null), []);
-  return { toast, showToast, dismissToast, setToast };
+  return { toast, showToast, dismissToast };
 }
 
 interface ToastProps {
