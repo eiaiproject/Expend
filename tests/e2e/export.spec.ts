@@ -24,6 +24,28 @@ async function savePending(page: Page) {
   await expect(page.locator('#pending-desc')).toHaveCount(0, { timeout: 5000 });
 }
 
+// Kartu verifikasi default ringkas sejak 0.17.0: field detail hanya dirender
+// setelah menekan "Ubah", jadi test yang mengubah deskripsi/tanggal harus
+// membuka form edit lebih dulu.
+async function openPendingEditor(page: Page) {
+  await page.getByRole('button', { name: 'Ubah' }).last().click();
+  await expect(page.locator('#pending-desc')).toBeVisible({ timeout: 5000 });
+}
+
+// Seed satu transaksi sederhana lewat chat ("kopi 25000" → "Kopi"), lalu
+// kembali ke /settings dengan tombol ekspor siap. Dipakai dua test terakhir
+// yang polanya identik (bedanya hanya tombol yang diklik).
+async function seedSimpleAndGotoSettings(page: Page, exportName: 'Ekspor CSV' | 'Ekspor JSON') {
+  await page.goto('/chat');
+  await page.getByLabel('Tulis pengeluaran').fill('kopi 25000');
+  await page.getByRole('button', { name: 'Kirim transaksi' }).click();
+  await expect(page.getByText('Periksa transaksi')).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: 'Simpan transaksi' }).click();
+  await expect(page.getByText(/Tercatat/)).toBeVisible();
+  await page.goto('/settings');
+  await expect(page.getByRole('button', { name: exportName })).toBeEnabled();
+}
+
 test.describe('export CSV', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -46,6 +68,7 @@ test.describe('export CSV', () => {
     await page.getByPlaceholder(/Contoh/).fill('kopi susu 25000');
     await page.getByRole('button', { name: 'Kirim transaksi' }).click();
     await expect(page.getByText('Siap dicatat').first()).toBeVisible();
+    await openPendingEditor(page);
     await page.locator('#pending-desc').fill('Kopi, "Susu"');
     await savePending(page);
     await page.getByPlaceholder(/Contoh/).fill('nasi goreng 35000');
@@ -68,12 +91,14 @@ test.describe('export CSV', () => {
     await page.getByPlaceholder(/Contoh/).fill('jajan 15000');
     await page.getByRole('button', { name: 'Kirim transaksi' }).click();
     await expect(page.getByText('Siap dicatat').first()).toBeVisible();
+    await openPendingEditor(page);
     await page.locator('#pending-desc').fill('A');
     await page.locator('#pending-date').fill('2026-09-01');
     await savePending(page);
     await page.getByPlaceholder(/Contoh/).fill('jajan 20000');
     await page.getByRole('button', { name: 'Kirim transaksi' }).click();
     await expect(page.getByText('Siap dicatat').last()).toBeVisible();
+    await openPendingEditor(page);
     await page.locator('#pending-desc').fill('B');
     await page.locator('#pending-date').fill('2026-09-02');
     await savePending(page);
@@ -100,6 +125,7 @@ test.describe('export CSV', () => {
     await page.getByPlaceholder(/Contoh/).fill('jajan 15000');
     await page.getByRole('button', { name: 'Kirim transaksi' }).click();
     await expect(page.getByText('Siap dicatat').first()).toBeVisible();
+    await openPendingEditor(page);
     await page.locator('#pending-date').fill('2026-09-01');
     await savePending(page);
     await page.goto('/settings');
@@ -110,14 +136,7 @@ test.describe('export CSV', () => {
   });
 
   test('CSV download filename respects date range', async ({ page }) => {
-    await page.goto('/chat');
-    await page.getByLabel('Tulis pengeluaran').fill('kopi 25000');
-    await page.getByRole('button', { name: 'Kirim transaksi' }).click();
-    await expect(page.getByText('Periksa transaksi')).toBeVisible({ timeout: 5000 });
-    await page.getByRole('button', { name: 'Simpan transaksi' }).click();
-    await expect(page.getByText(/Tercatat/)).toBeVisible();
-    await page.goto('/settings');
-    await expect(page.getByRole('button', { name: 'Ekspor CSV' })).toBeEnabled();
+    await seedSimpleAndGotoSettings(page, 'Ekspor CSV');
     await fillDate(page, '#export-from', '2026-01-01');
     await fillDate(page, '#export-to', '2099-12-31');
     const dlPromise = page.waitForEvent('download');
@@ -127,14 +146,7 @@ test.describe('export CSV', () => {
   });
 
   test('JSON download round-trips version plus rows', async ({ page }) => {
-    await page.goto('/chat');
-    await page.getByLabel('Tulis pengeluaran').fill('kopi 25000');
-    await page.getByRole('button', { name: 'Kirim transaksi' }).click();
-    await expect(page.getByText('Periksa transaksi')).toBeVisible({ timeout: 5000 });
-    await page.getByRole('button', { name: 'Simpan transaksi' }).click();
-    await expect(page.getByText(/Tercatat/)).toBeVisible();
-    await page.goto('/settings');
-    await expect(page.getByRole('button', { name: 'Ekspor JSON' })).toBeEnabled();
+    await seedSimpleAndGotoSettings(page, 'Ekspor JSON');
     const dlPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Ekspor JSON' }).click();
     const dl = await dlPromise;

@@ -125,27 +125,70 @@ export function clampDayISO(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
+function isValidYMD(y: number, mo: number, d: number): boolean {
+  return y >= 1900 && y <= 2099 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31;
+}
+
+function tryParseISODate(text: string): string | undefined {
+  // ISO "2026-08-15" WAJIB dicek sebelum dmy: tanpa ini "2026-08-15" terbaca
+  // sebagai 26-08-2015 (hari dari tahun, tahun dari tanggal). Tahun dibatasi
+  // 1900-2099 dan bentuknya tidak boleh menempel pada deret digit lain
+  // ("260911-0310-3748" tetap nomor referensi, bukan tanggal).
+  const iso = /(?<!\d)(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})(?!\d)/.exec(text);
+  if (!iso) return undefined;
+  const y = Number(iso[1]);
+  const mo = Number(iso[2]);
+  const d = Number(iso[3]);
+  return isValidYMD(y, mo, d) ? clampDayISO(y, mo, d) : undefined;
+}
+
+function tryParseDMYDate(text: string): string | undefined {
+  // "15/08/2026" or "15-08-2026" or "15.08.2026"
+  const dmy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text);
+  if (!dmy) return undefined;
+  let y = Number(dmy[3]);
+  if (dmy[3]!.length === 2) y += 2000;
+  const d = Number(dmy[1]);
+  const mo = Number(dmy[2]);
+  // "00/00/0000" bukan tanggal: tanpa validasi ini clampDayISO menghasilkan
+  // ISO tak valid seperti "0-00-01".
+  return isValidYMD(y, mo, d) ? clampDayISO(y, mo, d) : undefined;
+}
+
+function tryParseDMNoYearDate(text: string): string | undefined {
+  // "15/08" / "15/8" (tanpa tahun) → tahun berjalan. Hanya pemisah "/"
+  // (desimal "."/"," bukan tanggal), dan bentuk yang ambigu dengan pecahan
+  // ("1/2", "3/4": hari & bulan ≤12 tanpa angka 0 di depan) ditolak.
+  const dm = /(?<![\d.,/])(\d{1,2})\/(\d{1,2})(?![\d.]|\/)/.exec(text);
+  if (!dm) return undefined;
+  const d = Number(dm[1]);
+  const mo = Number(dm[2]);
+  const ambiguous = d <= 12 && mo <= 12 && !dm[1]!.startsWith('0') && !dm[2]!.startsWith('0');
+  if (ambiguous || !isValidYMD(2000, mo, d)) return undefined;
+  return clampDayISO(new Date().getFullYear(), mo, d);
+}
+
+function tryParseMMMDate(text: string): string | undefined {
+  // "15 Aug 2026", "15 Agustus 2026", or OCR-glued "01Sep2026".
+  // Spasi dibatasi [ \t] (bukan \s) dan hari tidak boleh menempel pada
+  // digit/koma sebelumnya: dulu "Total Rp 50.000\nSep 2026" menyerap "00"
+  // dari nominal sebagai hari sehingga tanggal dikarang jadi 2026-09-01.
+  // Nama bulan dicocokkan longgar lalu divalidasi via MONTH_MAP agar
+  // alternasi 12 bulan tak menaikkan kompleksitas regex (S5843). Kelas
+  // cukup [a-z] karena flag /i sudah mencakup kapital (S5869).
+  const mmm = /(?<![\d.,])(\d{1,2})[ \t]*([a-z]{3,9})[ \t]*(\d{4})/i.exec(text);
+  if (!mmm) return undefined;
+  const mon = MONTH_MAP[mmm[2]!.toLowerCase().slice(0, 3)];
+  if (!mon) return undefined;
+  return clampDayISO(Number(mmm[3]), Number(mon), Number(mmm[1]));
+}
+
 /**
  * Shared dmy + month-name date parsing (chat + receipt).
  * Permissive `\s*` before the year: OCR often glues it ("01Sep2026").
  */
 export function parseDMYDate(text: string): string | undefined {
-  // "15/08/2026" or "15-08-2026" or "15.08.2026"
-  const dmy = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/.exec(text);
-  if (dmy) {
-    let y = Number(dmy[3]);
-    if (dmy[3]!.length === 2) y += 2000;
-    return clampDayISO(y, Number(dmy[2]), Number(dmy[1]));
-  }
-
-  // "15 Aug 2026", "15 Agustus 2026", or OCR-glued "01Sep2026"
-  const mmm = /(\d{1,2})\s*(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)\w*\s*(\d{4})/i.exec(text);
-  if (mmm) {
-    const mon = MONTH_MAP[mmm[2]!.toLowerCase().slice(0, 3)];
-    if (mon) return clampDayISO(Number(mmm[3]), Number(mon), Number(mmm[1]));
-  }
-
-  return undefined;
+  return tryParseISODate(text) ?? tryParseDMYDate(text) ?? tryParseDMNoYearDate(text) ?? tryParseMMMDate(text);
 }
 
 function parseExplicitDate(text: string): string | undefined {
@@ -353,7 +396,17 @@ export function parseChatInput(input: string): ParsedExpense | null {
   let cleanText = base
     .replace(/\bR\s*P\b\.?(?=\s|\d|$)/gi, 'Rp')
     .replace(/\b(?:kemarin|lusa|hari\s*ini)\b/gi, '') // NOSONAR
+    // ISO dicek sebelum dd/mm/yyyy: tanpa ini "2026-08-15" hanya terpotong
+    // "26-08-15" sehingga sisa "20" bocor ke deskripsi ("20 Kopi").
+    .replace(/(?<!\d)\d{4}[/.-]\d{1,2}[/.-]\d{1,2}(?!\d)/g, '') // NOSONAR
     .replace(/\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/g, '') // NOSONAR
+    // "15/08" (tanpa tahun) dibuang hanya bila bukan bentuk ambigu pecahan
+    // ("1/2") - selaras dengan aturan di parseDMYDate.
+    .replace(/\d{1,2}\/\d{1,2}(?![\d/])/g, (mm) => {
+      const [dd = '', mo = ''] = mm.split('/');
+      const ambiguous = Number(dd) <= 12 && Number(mo) <= 12 && !dd.startsWith('0') && !mo.startsWith('0');
+      return ambiguous ? mm : '';
+    })
     .replace(/\d{1,2}\s+(?:Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Aug|Sep|Okt|Oct|Nov|Des|Dec)\w*\s+\d{4}/gi, '') // NOSONAR
     .replace(/\s{2,}/g, ' ')
     .trim();

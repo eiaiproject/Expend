@@ -10,20 +10,18 @@ coverage/
 *.tsbuildinfo
 .eslintcache
 .wrangler
+.vitest/
 test-results/
 playwright-report/
 /audit-output/
 *.traineddata
 
-# Dev tools & generated files
-docs/
-scripts/gen-og-image.mjs
+# Dev tools & generated files (local-only)
+# Catatan: tests/, scripts/, dan docs/ SENGAJA tidak di-ignore - isinya
+# ter-track (suite unit/E2E, skrip rilis, migrasi Dexie), sehingga file baru
+# di dalamnya otomatis ikut git.
 public/test-receipt.png
 rules.md
-
-# Ignore tests and scripts folders
-tests/
-scripts/
 
 # Local-only: audit output and agent design docs
 anti-slop/

@@ -52,7 +52,10 @@ function Shell() {
       : undefined;
 
   return (
-    <div className="bg-[var(--bg)] text-[var(--text-primary)] flex overflow-hidden" style={containerStyle ?? { height: '100dvh' }}>
+    // `relative` menjadikan Shell containing block bagi modal yang memakai
+    // `absolute`. Karena Shell sudah dipotong ke visualViewport.height, modal
+    // ikut keyboard; `fixed` TIDAK (patokannya viewport layout).
+    <div className="relative bg-[var(--bg)] text-[var(--text-primary)] flex overflow-hidden" style={containerStyle ?? { height: '100dvh' }}>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-[var(--radius-md)] focus:bg-[var(--accent-fill)] focus:text-[var(--accent-ink)] focus:text-sm focus:font-bold focus:shadow-lg"

@@ -1,24 +1,5 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
-
-// Mensimulasikan keyboard virtual mobile tanpa perangkat asli:
-// visualViewport.height dikurangi sambil textarea tetap fokus, lalu event
-// resize dikirim. Getter `height`/`offsetTop` adalah atribut WebIDL pada
-// prototype VisualViewport (configurable), jadi aman di-override per-test.
-async function simulateKeyboardOpen(page: Page, keyboardPx = 300) {
-  await page.evaluate((px) => {
-    const vv = window.visualViewport as unknown as { dispatchEvent(e: Event): boolean };
-    const proto = Object.getPrototypeOf(vv) as { height?: number; offsetTop?: number };
-    const inner = window.innerHeight;
-    Object.defineProperty(proto, 'height', { configurable: true, get: () => inner - px });
-    Object.defineProperty(proto, 'offsetTop', { configurable: true, get: () => 0 });
-    vv.dispatchEvent(new Event('resize'));
-    window.dispatchEvent(new Event('resize'));
-  }, keyboardPx);
-}
-
-const MOBILE = { width: 390, height: 844 };
-const KEYBOARD = 300;
-const fold = MOBILE.height - KEYBOARD; // batas atas keyboard simulasi
+import { simulateKeyboardOpen, MOBILE, KEYBOARD, fold } from './helpers/keyboard';
 
 // Isi chat sampai overflow; tiap pesan ditunggu benar-benar masuk
 // (user + balasan asisten "Tercatat") - tanpa fixed wait.
@@ -135,7 +116,9 @@ test('pesan terbaru tetap terlihat di atas composer saat keyboard terbuka', asyn
 
 // Regresi landscape: md:pt-6 di main mendorong composer ke bawah viewport
 // saat keyboard terbuka (tombol kirim terpotong ~27px). Dasar composer harus
-// merapat ke vv.height + vv.offsetTop (toleransi 5px, guard DEV memakai 4px).
+// merapat ke vv.height + vv.offsetTop. Toleransi 8px: lokal stabil 0, tetapi
+// Chromium Ubuntu CI (metrik font fallback lebih tinggi) menetap di 6 —
+// regresi asli 27px tetap tertangkap, guard DEV memakai 4px.
 test('composer tetap docked saat landscape + keyboard terbuka', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
   await page.goto('/chat');
@@ -153,7 +136,7 @@ test('composer tetap docked saat landscape + keyboard terbuka', async ({ page })
       if (!box) return 999;
       return Math.abs(box.y + box.height - (vv.h + vv.t));
     }, { timeout: 5000 })
-    .toBeLessThanOrEqual(5);
+    .toBeLessThanOrEqual(8);
   // Tombol kirim terlihat penuh (tidak terpotong keyboard).
   await expect(page.getByRole('button', { name: 'Kirim transaksi' })).toBeVisible();
 });
