@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar } from 'reicon-react';
 import { db } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -8,7 +8,7 @@ import { Toast, useToast } from '../components/Toast';
 import { ExportWizard, type ExportKind } from '../components/ExportWizard';
 import { FormatCheatSheet } from '../components/FormatCheatSheet';
 import { csvBlob, jsonBlob, parseImportJSON, IMPORT_MAX_BYTES, filterByDate, exportFilename, downloadBlob, validateDateRange } from '../utils/export';
-import { isBackupDue, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, type BackupInterval } from '../utils/backup';
+import { isBackupDueWithInterval, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, type BackupInterval } from '../utils/backup';
 import { getFontSize, setFontSize as persistFontSize, isHighContrast, setHighContrast as persistHighContrast, type FontSize } from '../utils/a11yPrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
@@ -112,14 +112,9 @@ export default function SettingsView() {
   const txs = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
   const { theme, setTheme } = useTheme();
   const { toast, showToast, dismissToast } = useToast();
-  const [confirmSave, setConfirmSave] = useState(() => {
-    const v = localStorage.getItem('confirmSave');
-    return v === null ? true : v === 'true';
-  });
   const [exportFrom, setExportFrom] = useState('');
   const [exportTo, setExportTo] = useState('');
   const [lastBackup, setLastBackup] = useState<string | null>(readLastBackup);
-  const backupDue = isBackupDue(txs.length, lastBackup);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // TASK 6/7/9: wizard ekspor, cheat sheet, preferensi a11y, interval backup.
   const [showWizard, setShowWizard] = useState(false);
@@ -127,11 +122,11 @@ export default function SettingsView() {
   const [fontSize, setFontSize] = useState<FontSize>(getFontSize);
   const [highContrast, setHighContrast] = useState(isHighContrast);
   const [backupInterval, setBackupInterval] = useState<BackupInterval>(getBackupInterval);
+  // Harus mengikuti interval yang dipilih user (sama seperti banner di Summary).
+  // Sebelumnya di sini selalu 30 hari, sehingga status "backup jatuh tempo" di
+  // halaman tempat interval diatur justru tidak sinkron dengan pengaturannya.
+  const backupDue = isBackupDueWithInterval(txs.length, lastBackup, backupInterval);
   const importRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    localStorage.setItem('confirmSave', String(confirmSave));
-  }, [confirmSave]);
 
   // Satu jalur ekspor untuk csv/json: validasi range + filter + empty
   // check hanya sekali agar tidak terduplikasi per format. Wizard memanggil
@@ -249,13 +244,6 @@ export default function SettingsView() {
                 <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.numberFormatDesc')}</p>
               </div>
               <span className="text-sm font-medium text-[var(--text-muted)]">Rp</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 px-4 py-3">
-              <div>
-                <p className="text-sm font-semibold">{t('settings.confirmSave')}</p>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.confirmSaveDesc')}</p>
-              </div>
-              <Toggle checked={confirmSave} onChange={setConfirmSave} label={t('settings.confirmSave')} />
             </div>
             <div className="flex items-center justify-between gap-3 px-4 py-3">
               <div>
@@ -503,9 +491,10 @@ export default function SettingsView() {
         <p className="text-[11px] text-[var(--text-muted)] font-mono">expend.pages.dev</p>
       </div>
 
-      {/* Toast */}
+      {/* Toast - key per pesan agar timer toast baru tidak mewarisi sisa timer lama. */}
       {toast && (
         <Toast
+          key={toast.message}
           message={toast.message}
           type={toast.type}
           onDismiss={dismissToast}

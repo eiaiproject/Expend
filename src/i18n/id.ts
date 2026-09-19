@@ -103,8 +103,6 @@ const id = {
   'settings.themeDark': 'Gelap',
   'settings.numberFormat': 'Format nominal',
   'settings.numberFormatDesc': 'Mata uang Rupiah',
-  'settings.confirmSave': 'Konfirmasi sebelum menyimpan',
-  'settings.confirmSaveDesc': 'Periksa detail sebelum disimpan',
   'settings.language': 'Bahasa',
   'settings.languageDesc': 'Pilih bahasa tampilan',
   'settings.data': 'Data',
