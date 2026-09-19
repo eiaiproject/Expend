@@ -403,7 +403,11 @@ export default function HomeView() {
       )}
 
       {toast && (
+        // key per pesan: tanpa ini instance Toast tidak remount saat pesan baru
+        // muncul, sehingga timer pesan lama tetap jalan dan toast baru hilang
+        // terlalu cepat.
         <Toast
+          key={toast.message}
           message={toast.message}
           type={toast.type}
           onDismiss={dismissToast}
