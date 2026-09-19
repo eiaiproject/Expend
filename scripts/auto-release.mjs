@@ -23,9 +23,9 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -62,31 +62,6 @@ export function determineBump(messages, currentMajor = 0) {
   return bump;
 }
 
-// S4036: utamakan path absolut agar perintah OS tak bergantung pada resolusi
-// PATH (risiko hijack). Kandidat mencakup lokasi umum Unix/Windows plus
-// direktori node (npm selalu di sebelah node).
-function resolveBin(name) {
-  const dirs = [
-    '/usr/bin',
-    '/usr/local/bin',
-    '/opt/homebrew/bin',
-    String.raw`C:\Program Files\Git\bin`,
-    String.raw`C:\Program Files\Git\cmd`,
-    dirname(process.execPath),
-  ];
-  const suffixes = process.platform === 'win32' ? ['.exe', '.cmd', ''] : [''];
-  for (const dir of dirs) {
-    for (const suffix of suffixes) {
-      const candidate = join(dir, name + suffix);
-      if (existsSync(candidate)) return candidate;
-    }
-  }
-  return name;
-}
-
-const NPM_BIN = resolveBin('npm');
-const GIT_BIN = resolveBin('git');
-
 function sh(cmd) {
   // NOSONAR - S4721: no user input; range comes from git history or BASE_REF set in CI
   return execSync(cmd, { cwd: root, encoding: 'utf8' }).trim();
@@ -121,7 +96,9 @@ if (isMain) {
     console.log(`auto-release: would bump ${bump} (current ${pkg.version})`);
     process.exit(0);
   }
-  execSync(`"${NPM_BIN}" version ${bump} -m "chore(release): %s"`, { cwd: root, stdio: 'inherit' });
-  execSync(`"${GIT_BIN}" push origin HEAD:refs/heads/main --follow-tags`, { cwd: root, stdio: 'inherit' });
+  // Runner GH-hosted terkontrol (toolchain setup-node); resolusi absolut
+  // justru memilih npm lain yang git-nya gagal (exit 128 di CI).
+  execSync(`npm version ${bump} -m "chore(release): %s"`, { cwd: root, stdio: 'inherit' }); // NOSONAR - S4036 intentional PATH use
+  execSync('git push origin HEAD:refs/heads/main --follow-tags', { cwd: root, stdio: 'inherit' }); // NOSONAR - S4036 intentional PATH use
   console.log(`auto-release: released with ${bump} bump`);
 }
