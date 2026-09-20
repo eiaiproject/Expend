@@ -10,7 +10,7 @@ const THEME_LABEL_KEY: Record<Theme, TranslationKey> = {
 };
 
 /** Toggle biner light ↔ dark. Ikon mencerminkan tema aktif. */
-export function ThemeCycleButton() {
+function ThemeCycleButton() {
   const { t } = useTranslation();
   const { theme, cycleTheme } = useTheme();
   const Icon = theme === 'light' ? Sun : Moon;
@@ -21,7 +21,7 @@ export function ThemeCycleButton() {
       onClick={cycleTheme}
       aria-label={label}
       title={label}
-      className="min-w-11 min-h-11 w-11 h-11 grid place-items-center rounded-full bg-[var(--card)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+      className="min-w-12 min-h-12 w-12 h-12 grid place-items-center rounded-full bg-[var(--card)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
     >
       <Icon size={18} aria-hidden />
     </button>
@@ -29,7 +29,7 @@ export function ThemeCycleButton() {
 }
 
 /** Segmen kompak ID | EN. */
-export function LangToggle() {
+function LangToggle() {
   const { t, lang, setLang } = useTranslation();
   return (
     <fieldset className="flex items-center rounded-full bg-[var(--card)] border border-[var(--border)] p-1 gap-0.5 m-0 min-w-0">
@@ -41,7 +41,7 @@ export function LangToggle() {
           aria-pressed={lang === l}
           aria-label={`${t('settings.language')}: ${l === 'id' ? 'Bahasa Indonesia' : 'English'}`}
           onClick={() => setLang(l)}
-          className={`min-w-11 min-h-9 px-2.5 rounded-full text-[11px] font-bold tracking-wide transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${
+          className={`min-w-12 min-h-12 px-2.5 rounded-full text-[11px] font-bold tracking-wide transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${
             lang === l ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'
           }`}
         >

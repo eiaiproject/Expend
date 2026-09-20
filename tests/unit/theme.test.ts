@@ -47,4 +47,24 @@ describe('theme prefs (light/dark, default dark)', () => {
     localStorage.setItem('theme', 'neon');
     expect(getTheme()).toBe('dark');
   });
+
+  it('menyelaraskan meta theme-color dengan tema aktif', () => {
+    // Sebelumnya meta selalu #264025, sehingga tema terang tampil dengan
+    // bilah browser gelap di atas halaman hampir putih.
+    const meta = document.createElement('meta');
+    meta.name = 'theme-color';
+    document.head.appendChild(meta);
+    try {
+      setStoredTheme('light');
+      expect(meta.content).toBe('#F7F6F2');
+      setStoredTheme('dark');
+      expect(meta.content).toBe('#0a0a0a');
+    } finally {
+      meta.remove();
+    }
+  });
+
+  it('tidak melempar bila meta theme-color tidak ada', () => {
+    expect(() => applyTheme()).not.toThrow();
+  });
 });

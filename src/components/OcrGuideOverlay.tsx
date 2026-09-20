@@ -19,7 +19,7 @@ export function OcrGuideOverlay({ onDismiss }: { readonly onDismiss: () => void 
       <button
         type="button"
         onClick={onDismiss}
-        className="mt-3 w-full min-h-11 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] text-xs font-bold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+        className="mt-3 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] text-xs font-bold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
       >
         {t('chat.ocrGuideGotIt')}
       </button>
