@@ -1,9 +1,10 @@
 import { useEffect, useEffectEvent, useRef, useState, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
+import { addChatMessage } from '../utils/chatHistory';
 import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
-import { recognizeImageDetailed, isOcrReady, validateImageFile, validateFileMagic } from '../utils/ocr';
+import { recognizeImageDetailed, isOcrReady, validateImageFile, validateFileMagic, OcrModelError } from '../utils/ocr';
 import { fmtIDR } from '../utils/format';
 import { todayLocalISO } from '../utils/date';
 import { useKeyboardInset } from '../utils/keyboard';
@@ -42,10 +43,33 @@ const CHAT_PAGE = 50;
 
 // Timestamp hanya saat ganti hari/role agar list tidak berisik.
 // Dipisah dari komponen agar S3776 tidak menghitung rantai || ini.
-export function shouldShowTime(prev: { createdAt: string; role: string } | undefined, cur: { createdAt: string; role: string }): boolean {
+function shouldShowTime(prev: { createdAt: string; role: string } | undefined, cur: { createdAt: string; role: string }): boolean {
   if (!prev) return true;
   return prev.createdAt.slice(0, 10) !== cur.createdAt.slice(0, 10) || cur.role !== prev.role;
 }
+
+/**
+ * Validasi berkas bukti sebelum OCR. Dipisah dari handleFile supaya rantai
+ * cabangnya tidak menambah kompleksitas kognitif fungsi yang mengurus state UI
+ * (Sonar S3776), dan supaya urutan validasi tetap terbaca sebagai satu daftar.
+ */
+async function ocrFileErrorKey(file: File): Promise<'chat.ocrFormatError' | 'chat.ocrTooLarge' | null> {
+  const fileErr = validateImageFile(file);
+  if (fileErr === 'format' || fileErr === 'empty') return 'chat.ocrFormatError';
+  if (fileErr === 'too-large') return 'chat.ocrTooLarge';
+  // A7: Validasi magic number untuk cegah polyglot file
+  const magicErr = await validateFileMagic(file);
+  return magicErr === 'magic' ? 'chat.ocrFormatError' : null;
+}
+
+/**
+ * Model OCR yang gagal dimuat (asetnya ~8 MB, di-cache setelah pemakaian
+ * pertama) butuh saran berbeda dari foto yang memang tidak terbaca.
+ */
+function ocrFailureKey(e: unknown): 'chat.ocrModelError' | 'chat.ocrReadError' {
+  return e instanceof OcrModelError ? 'chat.ocrModelError' : 'chat.ocrReadError';
+}
+
 export default function ChatView() {
   const { t, lang } = useTranslation();
   // TASK 3: prefill dari contoh one-tap (?input=...) — baca saat init.
@@ -304,7 +328,7 @@ export default function ChatView() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     const now = new Date().toISOString();
-    await db.chatMessages.add({ role: 'user', text, createdAt: now });
+    await addChatMessage({ role: 'user', text, createdAt: now });
 
     // TASK 8: deteksi bahasa per-input (parse tetap jalan; toast sekali per session).
     const detected = detectInputLang(text);
@@ -315,7 +339,7 @@ export default function ChatView() {
 
     const parsed = parseChatInput(text);
     if (!parsed) {
-      await db.chatMessages.add({
+      await addChatMessage({
         role: 'assistant',
         text: t('chat.noAmount'),
         createdAt: new Date().toISOString(),
@@ -328,7 +352,7 @@ export default function ChatView() {
     setPending(p);
     setOcrConfidence(null);
     setPendingEditable(false);
-    await db.chatMessages.add({
+    await addChatMessage({
       role: 'assistant',
       text: t('chat.recorded', { desc: p.description, amount: fmtIDR(p.amount) }),
       createdAt: new Date().toISOString(),
@@ -344,57 +368,54 @@ export default function ChatView() {
     }
   }
 
+  /** Foto terbaca tapi tidak ada nominal yang bisa dipercaya: minta isi manual. */
+  async function handleUnparsedReceipt() {
+    setPending({ description: 'Transfer', amount: 0, date: todayLocalISO() });
+    setPendingEditable(false);
+    setOcrError(t('chat.ocrReadError'));
+    await addChatMessage({
+      role: 'assistant',
+      text: t('chat.ocrClearPhoto'),
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   async function handleFile(file: File) {
     if (ocrInFlight.current) return;
     captureSendAnchor();
-    const fileErr = validateImageFile(file);
-    if (fileErr === 'format' || fileErr === 'empty') {
-      setOcrError(t('chat.ocrFormatError'));
-      return;
-    }
-    if (fileErr === 'too-large') {
-      setOcrError(t('chat.ocrTooLarge'));
-      return;
-    }
-    // A7: Validasi magic number untuk cegah polyglot file
-    const magicErr = await validateFileMagic(file);
-    if (magicErr === 'magic') {
-      setOcrError(t('chat.ocrFormatError'));
+    const fileErrKey = await ocrFileErrorKey(file);
+    if (fileErrKey) {
+      setOcrError(t(fileErrKey));
       return;
     }
     ocrInFlight.current = true;
     setOcrError(null);
     const url = URL.createObjectURL(file);
-    if (mountedRef.current) setPreviewUrl(url);
-    if (mountedRef.current) setOcrProgress(0);
+    if (mountedRef.current) {
+      setPreviewUrl(url);
+      setOcrProgress(0);
+    }
     try {
       const { text, confidence } = await recognizeImageDetailed(file, (n) => {
         if (mountedRef.current) setOcrProgress(n);
       });
       if (!mountedRef.current) return;
-      if (mountedRef.current) setOcrConfidence(confidence);
+      setOcrConfidence(confidence);
       const parsed = parseReceiptText(text);
       if (!parsed) {
-        setPending({ description: 'Transfer', amount: 0, date: todayLocalISO() });
-        setPendingEditable(false);
-        setOcrError(t('chat.ocrReadError'));
-        await db.chatMessages.add({
-          role: 'assistant',
-          text: t('chat.ocrClearPhoto'),
-          createdAt: new Date().toISOString(),
-        });
+        await handleUnparsedReceipt();
         return;
       }
       setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date, note: parsed.note, source: parsed.source });
       setPendingEditable(false);
-      await db.chatMessages.add({
+      await addChatMessage({
         role: 'assistant',
         text: t('chat.recorded', { desc: parsed.description, amount: fmtIDR(parsed.amount) }),
         createdAt: new Date().toISOString(),
         parsed: { description: parsed.description, amount: parsed.amount },
       });
-    } catch {
-      if (mountedRef.current) setOcrError(t('chat.ocrNetworkError'));
+    } catch (e) {
+      if (mountedRef.current) setOcrError(t(ocrFailureKey(e)));
     } finally {
       ocrInFlight.current = false;
       URL.revokeObjectURL(url);
@@ -424,13 +445,13 @@ export default function ChatView() {
         note: p.note || undefined,
         source: p.source || undefined,
       })) as number;
-      await db.chatMessages.add({
+      await addChatMessage({
         role: 'assistant',
         text: t('chat.saved', { desc: p.description, amount: fmtIDR(p.amount) }),
         createdAt: new Date().toISOString(),
         txId,
       });
-      await db.chatMessages.add({
+      await addChatMessage({
         role: 'assistant',
         text: '__LINK_RINGKASAN__',
         createdAt: new Date().toISOString(),
@@ -472,12 +493,14 @@ export default function ChatView() {
             <ChatRoundDots size={18} aria-hidden />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-base font-bold tracking-tight leading-tight">{t('chat.title')}</h1>
-            <p className="text-xs text-[var(--text-secondary)] leading-tight mt-0.5">{t('chat.subtitle')}</p>
+            <h1 className="text-base font-bold tracking-tight leading-tight truncate">{t('chat.title')}</h1>
+            <p className="text-xs text-[var(--text-secondary)] leading-tight mt-0.5 truncate">{t('chat.subtitle')}</p>
           </div>
           <div className="ml-auto flex items-center gap-1.5 shrink-0">
             <QuickToggles />
-            <div className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bone)] text-[var(--text-secondary)] text-[12px] font-semibold border border-[var(--border)]">
+            {/* Status OCR dekoratif: baru tampil di layar lebar. Di bawah lg
+                label ini memotong judul header sampai ter-truncate. */}
+            <div className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bone)] text-[var(--text-secondary)] text-[12px] font-semibold border border-[var(--border)]">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
               <span>{ocrAvailable ? t('common.ready') : t('common.loadingProcessor')}</span>
             </div>
@@ -530,7 +553,7 @@ export default function ChatView() {
                         setInput('kopi 25rb dari BSI');
                         textareaRef.current?.focus();
                       }}
-                      className="text-left rounded-[8px] px-2 py-1.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                      className="text-left flex items-center min-h-12 rounded-[8px] px-2 py-1.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                     >
                       <span>kopi <span className="text-[var(--accent)] font-medium">25rb</span> <span className="text-[var(--text-muted)]">dari BSI</span></span>
                     </button>
@@ -541,7 +564,7 @@ export default function ChatView() {
                         setInput('bayar listrik 200rb via GoPay');
                         textareaRef.current?.focus();
                       }}
-                      className="text-left rounded-[8px] px-2 py-1.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                      className="text-left flex items-center min-h-12 rounded-[8px] px-2 py-1.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                     >
                       <span>bayar listrik <span className="text-[var(--accent)] font-medium">200rb</span> <span className="text-[var(--text-muted)]">via GoPay</span></span>
                     </button>
@@ -552,7 +575,7 @@ export default function ChatView() {
                         setInput('belanja indomaret 50000');
                         textareaRef.current?.focus();
                       }}
-                      className="text-left rounded-[8px] px-2 py-1.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                      className="text-left flex items-center min-h-12 rounded-[8px] px-2 py-1.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                     >
                       <span>belanja indomaret <span className="text-[var(--accent)] font-medium">50000</span></span>
                     </button>
@@ -674,7 +697,7 @@ export default function ChatView() {
           )}
 
           {pending && (
-            <div className="rounded-[var(--radius-lg)] border border-[var(--accent)] bg-[var(--card)] p-5 motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--accent)] bg-[var(--card)] p-5 overflow-clip motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full bg-[var(--accent-fill)] text-[var(--accent-ink)] grid place-items-center">
                   <Check size={14} aria-hidden />

@@ -2,7 +2,7 @@ import type { Transaction } from '../db/db';
 
 export type GroupGranularity = 'day' | 'week' | 'month';
 
-export interface TxGroup {
+interface TxGroup {
   key: string;
   total: number;
   count: number;

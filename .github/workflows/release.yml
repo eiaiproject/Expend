@@ -1,35 +1,37 @@
 name: Release
+
+# Dipanggil sebagai reusable workflow dari ci.yml setelah job test hijau
+# (`needs: [ci, e2e]`), jadi tidak ada suite yang dijalankan dua kali dan tidak
+# ada tag rilis kalau CI merah.
+#
+# Sebelumnya workflow ini berdiri sendiri dengan pemicu `workflow_run`. Pola itu
+# berjalan di konteks ber-privilese sambil men-checkout commit dari run pemicu,
+# sehingga Sonar menandainya S7631 ("forked repository code should not be checked
+# out in privileged workflow contexts"). Karena kini dipanggil dari run yang
+# sama, checkout-nya selalu commit yang sudah lulus CI di repo ini - tidak ada
+# lagi tebakan soal asal event.
 on:
-  push: { branches: [main] }
+  workflow_call:
+
 permissions:
   contents: read
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
+
 jobs:
   release:
-    # The version commit this workflow pushes must not trigger itself again.
-    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          # Riwayat penuh: auto-release menghitung rentang commit sejak rilis
+          # terakhir (entri CHANGELOG teratas) untuk menentukan bump semver.
           fetch-depth: 0
           persist-credentials: true
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --ignore-scripts
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test:unit
-      - run: npm run build
-      # Jangan buat tag rilis bila E2E gagal (deploy sudah ter-gating di ci.yml).
-      # Biner lokal (bukan npx on-demand) agar tak memicu S6505/S8543.
-      - run: ./node_modules/.bin/playwright install --with-deps chromium webkit
-      - run: ./node_modules/.bin/playwright test
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

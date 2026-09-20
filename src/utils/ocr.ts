@@ -3,12 +3,47 @@ let workerPromise: Promise<any> | null = null;
 let workerReady = false;
 let currentOnProgress: (n: number) => void = () => {};
 
+/**
+ * Gagal memuat worker/core/model - BUKAN "foto tidak terbaca". UI memisahkan
+ * keduanya karena saran yang benar berbeda: model yang belum ada perlu diunduh
+ * sekali (asetnya ~8 MB), sedangkan foto buram perlu difoto ulang.
+ */
+export class OcrModelError extends Error {
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : 'model OCR gagal dimuat');
+    this.name = 'OcrModelError';
+  }
+}
+
+/**
+ * Worker + core dari origin sendiri bila `scripts/vendor-tesseract.mjs` sudah
+ * jalan (prebuild). Model bahasa ikut lokal hanya kalau unduhannya berhasil;
+ * kalau tidak `langPath` dibiarkan kosong agar tesseract.js memakai CDN.
+ *
+ * `corePath` sengaja berupa NAMA FILE (bukan direktori): dengan begitu kita yang
+ * memilih varian core lewat deteksi SIMD, sehingga cukup dua varian yang perlu
+ * di-vendor - browser dengan relaxed SIMD tetap memakai varian SIMD.
+ */
+async function ocrAssetOptions(): Promise<{ workerPath?: string; corePath?: string; langPath?: string }> {
+  if (!(typeof __OCR_CORE_LOCAL__ !== 'undefined' && __OCR_CORE_LOCAL__)) return {};
+  const { simd } = await import('wasm-feature-detect');
+  const core = (await simd()) ? 'tesseract-core-simd-lstm.wasm.js' : 'tesseract-core-lstm.wasm.js';
+  const opts: { workerPath: string; corePath: string; langPath?: string } = {
+    workerPath: '/tesseract/worker.min.js',
+    corePath: `/tesseract/${core}`,
+  };
+  if (typeof __OCR_LANG_LOCAL__ !== 'undefined' && __OCR_LANG_LOCAL__) opts.langPath = '/tesseract/lang';
+  return opts;
+}
+
 async function getWorker(): Promise<any> {
   // `??=` (S6606) sekaligus jadi memo: pemuatan hanya sekali, dan reset di catch
   // di bawah membuat percobaan ulang berikutnya benar-benar memuat lagi.
   workerPromise ??= (async () => {
     const { createWorker } = await import('tesseract.js');
+    const assets = await ocrAssetOptions();
     const w: any = await createWorker('ind+eng', 1, {
+      ...assets,
       logger: (m: any) => {
         if (m.status === 'recognizing text' && typeof m.progress === 'number') {
           currentOnProgress(Math.round(m.progress * 100));
@@ -62,9 +97,9 @@ async function preprocess(file: File): Promise<Blob | File> {
   }
 }
 
-export const OCR_MAX_BYTES = 10 * 1024 * 1024;
+const OCR_MAX_BYTES = 10 * 1024 * 1024;
 /** Format gambar yang benar-benar bisa didekode + dibaca Tesseract. */
-export type OcrImageType = 'image/jpeg' | 'image/png' | 'image/webp';
+type OcrImageType = 'image/jpeg' | 'image/png' | 'image/webp';
 
 /**
  * Alias MIME yang sah di perangkat nyata. Android file manager kerap menulis
@@ -78,7 +113,7 @@ const MIME_TO_TYPE: Readonly<Record<string, OcrImageType>> = {
   'image/webp': 'image/webp',
 };
 
-export type OcrFileError = 'format' | 'empty' | 'too-large' | 'magic';
+type OcrFileError = 'format' | 'empty' | 'too-large' | 'magic';
 
 /**
  * Validasi awal file gambar bukti (murni, testable). Return null jika lolos,
@@ -143,7 +178,7 @@ export async function validateFileMagic(file: File): Promise<OcrFileError | null
   }
 }
 
-export interface OcrResult {
+interface OcrResult {
   text: string;
   /** Keyakinan 0-100 dari Tesseract; null bila worker tidak melaporkannya. */
   confidence: number | null;
@@ -152,7 +187,12 @@ export interface OcrResult {
 export async function recognizeImageDetailed(file: File, onProgress: (n: number) => void): Promise<OcrResult> {
   onProgress(5);
   const input = await preprocess(file);
-  const worker = await getWorker();
+  let worker: any;
+  try {
+    worker = await getWorker();
+  } catch (e) {
+    throw new OcrModelError(e);
+  }
   currentOnProgress = onProgress;
   const { data } = await worker.recognize(input as any);
   onProgress(100);
@@ -170,7 +210,7 @@ export function isOcrReady(): boolean {
   return workerReady;
 }
 
-export async function terminateOcr() {
+async function terminateOcr() {
   if (workerPromise) {
     const w = await workerPromise;
     await w.terminate?.();

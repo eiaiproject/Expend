@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle, AlertCircle, X } from 'reicon-react';
 import { useTranslation } from '../i18n';
 
-export interface ToastData {
+interface ToastData {
   message: string;
   type: 'success' | 'error';
 }

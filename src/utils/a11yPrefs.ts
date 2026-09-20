@@ -1,6 +1,6 @@
 export type FontSize = 's' | 'm' | 'l';
-export const FONTSIZE_KEY = 'expend_fontsize';
-export const CONTRAST_KEY = 'expend_contrast';
+const FONTSIZE_KEY = 'expend_fontsize';
+const CONTRAST_KEY = 'expend_contrast';
 
 export function getFontSize(): FontSize {
   try {

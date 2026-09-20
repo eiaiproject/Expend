@@ -39,12 +39,33 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --ignore-scripts
+      # Dev server yang dipakai Playwright harus punya aset OCR lokal, kalau tidak
+      # spec ocr-offline-assets di-skip dan ketergantungan ke CDN lolos diam-diam.
+      - run: npm run vendor:ocr
+      # Biner browser jarang berubah: cache menghemat ~40-60 s tiap run.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
       # Proyek `mobile` (Pixel 5) juga berbasis chromium, jadi cukup chromium + webkit.
       # Biner lokal (bukan npx on-demand) agar tak memicu S6505/S8543.
       - run: ./node_modules/.bin/playwright install --with-deps chromium webkit
       # CI=true otomatis dari GitHub Actions -> playwright.config memakai
       # retries 2 dan 1 worker, sehingga flaky sesekali tidak memblokir rilis.
       - run: ./node_modules/.bin/playwright test
+  release:
+    # Rilis berjalan di run yang sama setelah seluruh test hijau, bukan lewat
+    # `workflow_run` terpisah: tidak ada suite yang dijalankan dua kali, tidak
+    # ada kode dari konteks luar yang di-checkout di workflow ber-privilese
+    # (Sonar S7631), dan tidak ada tag rilis kalau CI merah.
+    needs: [ci, e2e]
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      !startsWith(github.event.head_commit.message, 'chore(release):')
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
   deploy:
     needs: [ci, e2e]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'

@@ -31,18 +31,39 @@ async function clearDB(page: Page) {
   await expect(page.locator('h1')).toBeVisible({ timeout: 10000 });
 }
 
+/**
+ * Isi log dengan N pasang pesan (user + balasan) langsung di IndexedDB.
+ *
+ * Sebelumnya helper ini mengetik lewat UI dan menunggu tiap pesan muncul dalam
+ * 5 detik. Di bawah beban paralel (spec OCR WASM dan spec skala ringkasan
+ * berjalan bersamaan) webkit bisa melewati batas itu, sehingga test scroll yang
+ * justru jadi subjek spec ini ikut merah. Yang diuji di sini perilaku
+ * scroll/composer, bukan kecepatan mengetik.
+ */
 async function seedMessages(page: Page, count = 8) {
-  const ta = page.locator('main textarea');
-  const log = page.locator('main [role="log"]');
-  await ta.click();
-  for (let i = 0; i < count; i++) {
-    await ta.fill(`pesan uji nomor ${i} kopi 25rb`);
-    await page.keyboard.press('Enter');
-    // Tunggu pesan user + assistant reply muncul
-    await expect(log).toContainText(`pesan uji nomor ${i}`, { timeout: 5000 });
-  }
+  await page.evaluate(async (n) => {
+    const db = await new Promise<IDBDatabase>((res, rej) => {
+      const rq = indexedDB.open('ExpendDB');
+      rq.onsuccess = () => res(rq.result);
+      rq.onerror = () => rej(rq.error);
+    });
+    const tx = db.transaction('chatMessages', 'readwrite');
+    const store = tx.objectStore('chatMessages');
+    const base = Date.UTC(2026, 8, 20, 10, 0, 0);
+    for (let i = 0; i < n; i++) {
+      const at = new Date(base + i * 2000).toISOString();
+      store.add({ role: 'user', text: `pesan uji nomor ${i} kopi 25rb`, createdAt: at });
+      store.add({ role: 'assistant', text: 'Siap dicatat: Kopi - Rp25.000', createdAt: at });
+    }
+    await new Promise<void>((res, rej) => {
+      tx.oncomplete = () => res();
+      tx.onerror = () => rej(tx.error);
+    });
+    db.close();
+  }, count);
+  await page.reload();
   // Pastikan pesan terakhir ter-render
-  await expect(log).toContainText(`nomor ${count - 1}`, { timeout: 5000 });
+  await expect(page.locator('main [role="log"]')).toContainText(`nomor ${count - 1}`, { timeout: 10000 });
 }
 
 // Auto-scroll sudah membawa list ke bawah (toleransi 200px).
@@ -74,16 +95,21 @@ test('keyboard terbuka: composer tidak menutupi pesan terbaru', async ({ page })
   await ta.click();
   await simulateKeyboardOpen(page, KEYBOARD);
 
-  // Tunggu composer naik
+  // Tunggu composer naik. Timeout eksplisit: transisi ini digerakkan event
+  // visualViewport, dan di bawah beban paralel (spec OCR WASM + spec skala)
+  // browser bisa butuh waktu lebih dari default 5 detik untuk menyelesaikannya.
   await expect
-    .poll(async () => (await composer.boundingBox())?.y ?? -1)
+    .poll(async () => (await composer.boundingBox())?.y ?? -1, { timeout: 15_000 })
     .toBeLessThan(fold);
 
-  // Cek: list harus berakhir di sekitar fold (batas keyboard)
-  const listBox = await list.boundingBox();
-  if (listBox) {
-    expect(listBox.y + listBox.height).toBeLessThanOrEqual(fold + 60);
-  }
+  // Cek: list harus berakhir di sekitar fold (batas keyboard). Di-poll supaya
+  // tidak membaca layout di tengah transisi.
+  await expect
+    .poll(async () => {
+      const box = await list.boundingBox();
+      return box ? box.y + box.height : Number.POSITIVE_INFINITY;
+    }, { timeout: 15_000 })
+    .toBeLessThanOrEqual(fold + 60);
 
   // Cek: composer harus di atas fold
   const compBox = await composer.boundingBox();
@@ -123,8 +149,8 @@ test('keyboard terbuka: kirim pesan dari posisi atas → tidak force-scroll', as
   await ta.fill('pesan terakhir kopi 50rb');
   await page.keyboard.press('Enter');
 
-  // Tunggu pesan muncul
-  await expect(page.locator('main [role="log"]')).toContainText('pesan terakhir', { timeout: 5000 });
+  // Tunggu pesan muncul (timeout longgar: parse + render di bawah beban)
+  await expect(page.locator('main [role="log"]')).toContainText('pesan terakhir', { timeout: 15_000 });
 
   // By design: user di posisi atas TIDAK di-force scroll ke bawah
   // (nearBottom = false → auto-scroll tidak trigger)

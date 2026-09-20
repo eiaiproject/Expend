@@ -3,7 +3,7 @@ import { titleCasePreserveAcronyms } from './textFormat';
 import { pickBestAmount, type RankedAmount } from './amountRank';
 import { todayLocalISO } from './date';
 
-export interface ParsedExpense {
+interface ParsedExpense {
   description: string;
   amount: number;
   source?: string;
@@ -91,7 +91,7 @@ export function parseAmountWithSuffix(raw: string): number | null {
 }
 
 // Date parsing
-export const MONTH_MAP: Record<string, string> = {
+const MONTH_MAP: Record<string, string> = {
   jan: '01', feb: '02', mar: '03', apr: '04', mei: '05', jun: '06',
   jul: '07', agu: '08', aug: '08', sep: '09', okt: '10', oct: '10',
   nov: '11', des: '12', dec: '12',
@@ -147,7 +147,7 @@ function parseDaysAgoDate(text: string): string | undefined {
  * di-clamp ke hari terakhir bulan tersebut, bukan menghasilkan ISO tak valid
  * seperti `2026-02-31`. Berlaku untuk tgl/tanggal, dd/mm/yyyy, dan "15 Agustus".
  */
-export function clampDayISO(year: number, month: number, day: number): string {
+function clampDayISO(year: number, month: number, day: number): string {
   const lastDay = new Date(year, month, 0).getDate(); // hari terakhir bulan (1-12)
   const d = Math.min(Math.max(1, day), lastDay);
   return `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;

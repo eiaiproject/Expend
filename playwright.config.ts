@@ -5,7 +5,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // CI memakai 1 worker (retries 2). Lokal dibatasi 4: spec OCR (WASM) dan spec
+  // skala ringkasan cukup berat, dan menjalankannya bersamaan dengan seluruh
+  // project lain membuat test webkit yang sensitif waktu jadi flaky di laptop.
+  workers: process.env.CI ? 1 : 4,
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:3000',

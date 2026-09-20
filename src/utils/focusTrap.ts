@@ -4,7 +4,7 @@ import type { RefObject } from 'react';
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /** Shared Escape-to-close + Tab-cycling for modal dialogs/sheets. */
-export function trapTabKey(e: KeyboardEvent, container: HTMLElement | null, onClose: () => void): void {
+function trapTabKey(e: KeyboardEvent, container: HTMLElement | null, onClose: () => void): void {
   if (e.key === 'Escape') {
     e.preventDefault();
     onClose();

@@ -19,6 +19,12 @@ export function I18nProvider({ children }: { readonly children: React.ReactNode 
     try { localStorage.setItem(STORAGE_KEY, lang); } catch {}
   }, [lang]);
 
+  // <html lang> harus mengikuti bahasa aktif: pembaca layar memilih pengucapan
+  // dari sini, dan sebelumnya selalu "id" walau UI-nya sudah Inggris.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
   const t = useCallback((key: TranslationKey, params?: Record<string, string | number>) => translate(lang, key, params), [lang]);
 
   const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);

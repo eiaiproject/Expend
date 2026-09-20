@@ -15,17 +15,5 @@ root.render(
 
 logPerf('startup', Math.round(performance.now() - bootT0));
 
-// Dismiss splash screen after React has mounted.
-// pointer-events:none immediately - the overlay must never swallow the
-// user's first tap while it fades out (master.md 3.19).
-const splashScreen = document.getElementById('splash-screen');
-if (splashScreen) {
-  splashScreen.style.pointerEvents = 'none';
-  splashScreen.style.opacity = '0';
-  setTimeout(() => {
-    splashScreen.remove();
-  }, 500);
-}
-
-// Service worker registration is handled by vite-plugin-pwa via UpdatePrompt
-// using virtual:pwa-register/react. Do not register manually here.
+// Service worker didaftarkan vite-plugin-pwa (registerType: 'autoUpdate'), yang
+// menyuntik /registerSW.js ke index.html. Jangan daftarkan manual di sini.

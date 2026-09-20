@@ -19,7 +19,7 @@
  * this module back into two scorers.
  */
 
-export interface AmountSignals {
+interface AmountSignals {
   /** Explicit suffix: jt/juta/rb/ribu/k - always monetary. */
   hasSuffix: boolean;
   /** `Rp`/`IDR` marker near the number - strong monetary signal. */
