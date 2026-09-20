@@ -1,8 +1,9 @@
+import { APP_VERSION, EXPORT_FORMAT_VERSION } from '../config/version';
 import type { Transaction } from '../db/db';
 import { t } from '../i18n/shared';
 import { todayLocalISO } from './date';
 
-export type ExportRow = { [key: string]: string | number };
+type ExportRow = { [key: string]: string | number };
 
 export function toExportRows(txs: Transaction[]): ExportRow[] {
   return txs.map((tx) => ({
@@ -21,7 +22,7 @@ export function toExportRows(txs: Transaction[]): ExportRow[] {
  * memperlakukannya sebagai teks, bukan formula. Data asli tidak diubah di DB,
  * hanya representasi ekspor. Angka (amount) tidak disentuh agar tetap numerik.
  */
-export function sanitizeExportString(s: string): string {
+function sanitizeExportString(s: string): string {
   if (s.startsWith("'")) return s;
   const trimmed = s.replace(/^[\s\uFEFF]+/, '');
   if (/^[=+\-@]/.test(trimmed)) return `'${s}`;
@@ -52,7 +53,7 @@ export function csvBlob(txs: Transaction[]): Blob {
 
 const DATE_ISO_RE = /^\d{4}-\d{2}-\d{2}$/; // NOSONAR - anchored date check
 
-export type DateRangeError = 'invalid-date' | 'from-after-to';
+type DateRangeError = 'invalid-date' | 'from-after-to';
 
 function isValidISODate(d: string): boolean {
   if (!DATE_ISO_RE.test(d)) return false;
@@ -81,7 +82,7 @@ export function validateDateRange(from?: string, to?: string): DateRangeError | 
   return null;
 }
 
-export function exportHeaders(): string[] {
+function exportHeaders(): string[] {
   return [t('export.date'), t('export.description'), t('export.amount'), t('export.source'), t('export.note'), t('export.createdAt')];
 }
 
@@ -95,10 +96,10 @@ export function filterByDate(txs: Transaction[], from?: string, to?: string): Tr
 }
 
 export const IMPORT_MAX_BYTES = 5 * 1024 * 1024;
-export const IMPORT_MAX_ITEMS = 10_000;
+const IMPORT_MAX_ITEMS = 10_000;
 export const MAX_AMOUNT = 1_000_000_000_000;
 
-export interface ImportedTransaction {
+interface ImportedTransaction {
   description: string;
   amount: number;
   date: string;
@@ -108,7 +109,7 @@ export interface ImportedTransaction {
   rawText?: string;
 }
 
-export interface ImportParseResult {
+interface ImportParseResult {
   ok: boolean;
   transactions: ImportedTransaction[];
   skipped: number;
@@ -178,7 +179,7 @@ function extractImportList(parsed: unknown): { list?: unknown[]; error?: string 
   if (Array.isArray(parsed)) return { list: parsed };
   if (typeof parsed !== 'object' || parsed === null) return { error: 'struktur tidak dikenal' };
   const o = parsed as Record<string, unknown>;
-  if (o.version !== undefined && o.version !== 1) return { error: 'versi tidak dikenal' };
+  if (o.version !== undefined && o.version !== EXPORT_FORMAT_VERSION) return { error: 'versi tidak dikenal' };
   if (!Array.isArray(o.transactions)) return { error: 'struktur tidak dikenal' };
   return { list: o.transactions };
 }
@@ -218,7 +219,7 @@ export function parseImportJSON(raw: string): ImportParseResult {
 }
 
 export function toJSON(txs: Transaction[]): string {
-  return JSON.stringify({ version: 1, app: 'expend', exportedAt: new Date().toISOString(), count: txs.length, transactions: txs.map((tx) => ({ description: tx.description, amount: tx.amount, date: tx.date, source: tx.source, note: tx.note, createdAt: tx.createdAt, rawText: tx.rawText })) }, null, 2);
+  return JSON.stringify({ version: EXPORT_FORMAT_VERSION, app: 'expend', appVersion: APP_VERSION, exportedAt: new Date().toISOString(), count: txs.length, transactions: txs.map((tx) => ({ description: tx.description, amount: tx.amount, date: tx.date, source: tx.source, note: tx.note, createdAt: tx.createdAt, rawText: tx.rawText })) }, null, 2);
 }
 
 export function jsonBlob(txs: Transaction[]): Blob {
