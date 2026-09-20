@@ -1,4 +1,10 @@
 # Changelog
+## 0.19.2 - 2026-09-20
+### Changed
+
+- Remove exports used only inside their modules
+
+
 ## 0.19.1 - 2026-09-19
 ### Fixed
 
