@@ -65,7 +65,7 @@ npx playwright test  # E2E (needs dev server, auto-started on :3000)
 
 ## Versioning
 
-Semver + Conventional Commits per commit. Merges to `main` cut a release automatically once CI for that commit is green (`release.yml` runs on `workflow_run`, then `scripts/auto-release.mjs`): highest bump wins (breaking to MAJOR once 1.0 ships, MINOR while on 0.x; `feat` to MINOR; `fix`/`perf`/`refactor`/`revert` to PATCH).
+Semver + Conventional Commits per commit. Merges to `main` cut a release automatically once CI for that commit is green (the `release` job in `ci.yml` calls `release.yml` as a reusable workflow, then `scripts/auto-release.mjs`): highest bump wins (breaking to MAJOR once 1.0 ships, MINOR while on 0.x; `feat` to MINOR; `fix`/`perf`/`refactor`/`revert` to PATCH).
 
 `package.json` is the only version written by hand. Everything else is derived, so there is nothing to bump manually:
 

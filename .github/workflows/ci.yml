@@ -53,6 +53,19 @@ jobs:
       # CI=true otomatis dari GitHub Actions -> playwright.config memakai
       # retries 2 dan 1 worker, sehingga flaky sesekali tidak memblokir rilis.
       - run: ./node_modules/.bin/playwright test
+  release:
+    # Rilis berjalan di run yang sama setelah seluruh test hijau, bukan lewat
+    # `workflow_run` terpisah: tidak ada suite yang dijalankan dua kali, tidak
+    # ada kode dari konteks luar yang di-checkout di workflow ber-privilese
+    # (Sonar S7631), dan tidak ada tag rilis kalau CI merah.
+    needs: [ci, e2e]
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      !startsWith(github.event.head_commit.message, 'chore(release):')
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
   deploy:
     needs: [ci, e2e]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'

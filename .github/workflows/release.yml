@@ -1,31 +1,23 @@
 name: Release
 
-# Sebelumnya workflow ini dipicu `push: main` dan mengulang lint + typecheck +
-# unit + build + Playwright yang sudah dijalankan ci.yml untuk commit yang sama
-# (~5 menit per merge). Sekarang rilis hanya jalan setelah CI untuk commit itu
-# SUKSES, sehingga tidak ada suite yang dijalankan dua kali dan garis pemisahnya
-# tetap jelas: tidak ada tag rilis bila CI merah.
+# Dipanggil sebagai reusable workflow dari ci.yml setelah job test hijau
+# (`needs: [ci, e2e]`), jadi tidak ada suite yang dijalankan dua kali dan tidak
+# ada tag rilis kalau CI merah.
+#
+# Sebelumnya workflow ini berdiri sendiri dengan pemicu `workflow_run`. Pola itu
+# berjalan di konteks ber-privilese sambil men-checkout commit dari run pemicu,
+# sehingga Sonar menandainya S7631 ("forked repository code should not be checked
+# out in privileged workflow contexts"). Karena kini dipanggil dari run yang
+# sama, checkout-nya selalu commit yang sudah lulus CI di repo ini - tidak ada
+# lagi tebakan soal asal event.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  workflow_call:
 
 permissions:
   contents: read
 
-concurrency:
-  group: release-${{ github.event.workflow_run.head_branch }}
-  cancel-in-progress: false
-
 jobs:
   release:
-    # Hanya push ke main yang sukses, dan commit rilis tidak boleh memicu dirinya
-    # sendiri (push commit `chore(release): ...` akan menjalankan CI lagi).
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      !startsWith(github.event.workflow_run.head_commit.message, 'chore(release):')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -33,9 +25,8 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          # workflow_run berjalan di konteks default branch; yang dirilis harus
-          # commit yang sudah lulus CI, bukan ujung default branch saat itu.
-          ref: ${{ github.event.workflow_run.head_sha }}
+          # Riwayat penuh: auto-release menghitung rentang commit sejak rilis
+          # terakhir (entri CHANGELOG teratas) untuk menentukan bump semver.
           fetch-depth: 0
           persist-credentials: true
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
