@@ -14,8 +14,8 @@ tidak memuatnya.
 Prasyarat: Python 3 + Pillow (`python3 -m pip install --user Pillow`).
 Jalankan setelah membuat ulang kartu dari `scripts/og-card.html`:
 
-    python3 scripts/optimize-og.py            # tulis di tempat
-    python3 scripts/optimize-og.py --check     # hanya lapor ukuran, tidak menulis
+    python3 scripts/optimize-og.py            # tulis di tempat (exit 0)
+    python3 scripts/optimize-og.py --check     # tidak menulis; exit 1 bila masih bisa diperkecil
 """
 
 from __future__ import annotations
@@ -35,6 +35,9 @@ SRC = os.path.join('public', 'og-image.png')
 EXPECTED_SIZE = (1200, 630)
 # Di bawah ~40 dB artefak palet mulai terlihat pada gradien halus.
 MIN_PSNR_DB = 42.0
+# Encode ulang berkas yang sudah dioptimalkan bisa berbeda beberapa byte antar
+# versi Pillow. Selisih sekecil itu bukan alasan menggagalkan --check.
+SAVINGS_TOLERANCE_BYTES = 4096
 
 
 def psnr(a: Image.Image, b: Image.Image) -> float:
@@ -76,13 +79,20 @@ def main() -> int:
 
     if quality < MIN_PSNR_DB:
         sys.exit(f'kualitas turun di bawah {MIN_PSNR_DB} dB - kartu terlalu detail untuk palet 256 warna')
-    if len(data) >= before:
-        print('tidak ada penghematan; berkas dibiarkan apa adanya')
+    saved = before - len(data)
+    if saved < SAVINGS_TOLERANCE_BYTES:
+        print('tidak ada penghematan berarti; berkas dibiarkan apa adanya')
         return 0
-    if not args.check:
-        with open(SRC, 'wb') as f:
-            f.write(data)
-        print(f'tertulis: {SRC}')
+    # --check dipakai sebagai penjaga: berkas di repo yang masih bisa diperkecil
+    # secara berarti adalah kegagalan (exit 1), bukan sekadar laporan. Dua nilai
+    # kembalian ini juga yang membuat main() tidak lagi "selalu mengembalikan
+    # nilai yang sama" (Sonar S3516).
+    if args.check:
+        print(f'--check: {SRC} masih bisa diperkecil ke {len(data)/1024:.0f} KB (hemat {saved/1024:.0f} KB); jalankan tanpa --check')
+        return 1
+    with open(SRC, 'wb') as f:
+        f.write(data)
+    print(f'tertulis: {SRC}')
     return 0
 
 
