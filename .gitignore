@@ -16,6 +16,10 @@ playwright-report/
 /audit-output/
 *.traineddata
 
+# Aset OCR hasil `npm run vendor:ocr` (worker + core + model, ~8 MB).
+# Dibuat saat build, tidak di-track, dan tidak di-precache Service Worker.
+public/tesseract/
+
 # Dev tools & generated files (local-only)
 # Catatan: tests/, scripts/, dan docs/ SENGAJA tidak di-ignore - isinya
 # ter-track (suite unit/E2E, skrip rilis, migrasi Dexie), sehingga file baru
