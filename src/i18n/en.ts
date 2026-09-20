@@ -88,7 +88,7 @@ const en: Record<TranslationKey, string> = {
   'chat.ocrReadError': 'Receipt cannot be read. Try a clearer photo or enter the transaction manually.',
   'chat.ocrClearPhoto': 'Photo is unclear. Please edit the details below or re-enter.',
   'chat.ocrShareFailed': 'Failed to process shared file. Please take a photo or upload the receipt image manually.',
-  'chat.ocrNetworkError': 'Failed to read receipt. Connect to the internet once to download the OCR model.',
+  'chat.ocrModelError': 'OCR engine failed to load. Connect to the internet once (model ~8 MB) then retry.',
   'chat.ocrCameraDenied': 'Camera access denied. Open Settings > Safari > Camera to enable, or upload from gallery.',
   'chat.recorded': 'Ready to record: {desc} - {amount}',
   'chat.saved': 'Recorded. {desc} - {amount}',
@@ -189,6 +189,7 @@ const en: Record<TranslationKey, string> = {
   'home.quickAll': 'All',
   'home.tryExamples': 'Try examples:',
   'home.learnFormat': 'Learn input formats',
+  'home.showMore': 'Show {count} more',
   'home.backupRemind': 'No backup for a while. Export to keep data safe.',
   'home.backupNow': 'Back up now',
 

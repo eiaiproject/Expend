@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar } from 'reicon-react';
-import { db } from '../db/db';
+import { db, type Transaction } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { PageHeader } from '../components/PageHeader';
 import { SectionCard } from '../components/SectionCard';
@@ -11,6 +11,7 @@ import { csvBlob, jsonBlob, parseImportJSON, IMPORT_MAX_BYTES, filterByDate, exp
 import { isBackupDueWithInterval, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, type BackupInterval } from '../utils/backup';
 import { getFontSize, setFontSize as persistFontSize, isHighContrast, setHighContrast as persistHighContrast, type FontSize } from '../utils/a11yPrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { APP_VERSION } from '../config/version';
 
 const EXPORT_ERROR_KEY = {
   csv: 'settings.exportCSVError',
@@ -20,6 +21,9 @@ import { useTranslation } from '../i18n';
 import type { Lang } from '../i18n';
 import type { TranslationKey } from '../i18n/id';
 import { useTheme, type Theme } from '../utils/theme';
+
+/** Array stabil untuk state "wizard tertutup" - hindari alokasi baru tiap render. */
+const WIZARD_TXS_EMPTY: Transaction[] = [];
 
 const FONT_SIZE_LABEL_KEY: Record<FontSize, TranslationKey> = {
   s: 'settings.fontSizeS',
@@ -108,8 +112,10 @@ function Toggle({
 
 export default function SettingsView() {
   const { t, lang, setLang } = useTranslation();
-  const version: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
-  const txs = useLiveQuery(() => db.transactions.toArray(), []) ?? [];
+  const version = APP_VERSION;
+  // Halaman ini cuma butuh jumlah baris; tabel penuh dimuat hanya saat wizard
+  // ekspor dibuka (sebelumnya seluruh transaksi dibaca setiap kali Settings dibuka).
+  const txCount = useLiveQuery(() => db.transactions.count(), []) ?? 0;
   const { theme, setTheme } = useTheme();
   const { toast, showToast, dismissToast } = useToast();
   const [exportFrom, setExportFrom] = useState('');
@@ -118,6 +124,12 @@ export default function SettingsView() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   // TASK 6/7/9: wizard ekspor, cheat sheet, preferensi a11y, interval backup.
   const [showWizard, setShowWizard] = useState(false);
+  // Wizard butuh seluruh baris (untuk preview + rentang tanggal), jadi tabel
+  // penuh baru dibaca saat wizard terbuka - bukan setiap Settings dibuka.
+  const wizardTxs = useLiveQuery(
+    () => (showWizard ? db.transactions.orderBy('date').reverse().toArray() : Promise.resolve(WIZARD_TXS_EMPTY)),
+    [showWizard],
+  ) ?? WIZARD_TXS_EMPTY;
   const [showSheet, setShowSheet] = useState(false);
   const [fontSize, setFontSize] = useState<FontSize>(getFontSize);
   const [highContrast, setHighContrast] = useState(isHighContrast);
@@ -125,7 +137,7 @@ export default function SettingsView() {
   // Harus mengikuti interval yang dipilih user (sama seperti banner di Summary).
   // Sebelumnya di sini selalu 30 hari, sehingga status "backup jatuh tempo" di
   // halaman tempat interval diatur justru tidak sinkron dengan pengaturannya.
-  const backupDue = isBackupDueWithInterval(txs.length, lastBackup, backupInterval);
+  const backupDue = isBackupDueWithInterval(txCount, lastBackup, backupInterval);
   const importRef = useRef<HTMLInputElement>(null);
 
   // Satu jalur ekspor untuk csv/json: validasi range + filter + empty
@@ -258,7 +270,7 @@ export default function SettingsView() {
                     type="button"
                     aria-pressed={fontSize === s}
                     onClick={() => { persistFontSize(s); setFontSize(s); }}
-                    className={`min-h-11 px-2 rounded-[var(--radius-sm)] text-xs font-bold text-center truncate transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${fontSize === s ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
+                    className={`min-h-12 px-2 rounded-[var(--radius-sm)] text-xs font-bold text-center truncate transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${fontSize === s ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
                   >
                     {t(FONT_SIZE_LABEL_KEY[s])}
                   </button>
@@ -280,7 +292,7 @@ export default function SettingsView() {
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new Event('expend:replay-onboarding'))}
-                className="shrink-0 min-h-11 px-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-xs font-bold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                className="shrink-0 min-h-12 px-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-xs font-bold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
               >
                 {t('onboarding.replay')}
               </button>
@@ -294,7 +306,7 @@ export default function SettingsView() {
                 type="button"
                 onClick={() => setShowSheet(true)}
                 aria-label={t('chat.formatHelp')}
-                className="shrink-0 w-11 h-11 grid place-items-center rounded-full border border-[var(--border)] bg-[var(--bg)] text-sm font-bold hover:bg-[var(--bone)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                className="shrink-0 w-12 h-12 grid place-items-center rounded-full border border-[var(--border)] bg-[var(--bg)] text-sm font-bold hover:bg-[var(--bone)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
               >
                 <span aria-hidden>?</span>
               </button>
@@ -354,16 +366,16 @@ export default function SettingsView() {
               </label>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <button type="button" aria-label={t('settings.exportCSV')} onClick={() => void handleExport('csv')} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+              <button type="button" aria-label={t('settings.exportCSV')} onClick={() => void handleExport('csv')} disabled={txCount === 0} aria-disabled={txCount === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.exportCSV')}
               </button>
-              <button type="button" aria-label={t('settings.exportJSON')} onClick={() => void handleExport('json')} disabled={txs.length === 0} aria-disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+              <button type="button" aria-label={t('settings.exportJSON')} onClick={() => void handleExport('json')} disabled={txCount === 0} aria-disabled={txCount === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.exportJSON')}
               </button>
               <button type="button" aria-label={t('settings.importJSON')} onClick={() => importRef.current?.click()} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.importJSON')}
               </button>
-              <button type="button" onClick={() => setShowWizard(true)} disabled={txs.length === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+              <button type="button" onClick={() => setShowWizard(true)} disabled={txCount === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 {t('export.wizardTitle')}
               </button>
             </div>
@@ -389,7 +401,7 @@ export default function SettingsView() {
             <button
               type="button"
               onClick={() => void handleExport('json')}
-              disabled={txs.length === 0}
+              disabled={txCount === 0}
               className="w-full min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40"
             >
               <Download size={16} aria-hidden /> {t('settings.backupNow')}
@@ -471,12 +483,12 @@ export default function SettingsView() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-[var(--danger-deep)]">{t('settings.deleteAll')}</p>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.deleteAllDesc', { count: txs.length })}</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.deleteAllDesc', { count: txCount })}</p>
             </div>
             <button
               type="button"
               aria-label={t('settings.deleteAll')}
-              disabled={txs.length === 0}
+              disabled={txCount === 0}
               onClick={() => setConfirmDelete(true)}
               className="shrink-0 min-h-12 px-4 rounded-[var(--radius-md)] bg-[var(--danger)] text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--danger)]/50 disabled:opacity-40 disabled:active:scale-100"
             >
@@ -505,14 +517,14 @@ export default function SettingsView() {
       <ConfirmDialog
         open={confirmDelete}
         title={t('settings.deleteAllConfirm')}
-        description={t('settings.deleteAllConfirmDesc', { count: txs.length })}
+        description={t('settings.deleteAllConfirmDesc', { count: txCount })}
         confirmLabel={t('settings.deleteAllButton')}
         cancelLabel={t('common.cancel')}
         destructive
         onConfirm={handleDeleteAll}
         onCancel={() => setConfirmDelete(false)}
       />
-      <ExportWizard open={showWizard} transactions={txs} onClose={() => setShowWizard(false)} onExport={handleWizardExport} />
+      <ExportWizard open={showWizard} transactions={wizardTxs} onClose={() => setShowWizard(false)} onExport={handleWizardExport} />
       <FormatCheatSheet open={showSheet} onClose={() => setShowSheet(false)} />
     </div>
   );

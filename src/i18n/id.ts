@@ -86,7 +86,7 @@ const id = {
   'chat.ocrReadError': 'Bukti tidak dapat dibaca. Coba gunakan foto yang lebih jelas atau masukkan transaksi secara manual.',
   'chat.ocrClearPhoto': 'Foto kurang jelas. Silakan edit detail di bawah atau masukkan ulang.',
   'chat.ocrShareFailed': 'Gagal memproses file share. Silakan ambil foto atau upload gambar bukti secara manual.',
-  'chat.ocrNetworkError': 'Gagal membaca bukti. Sambungkan internet sekali untuk mengunduh model OCR.',
+  'chat.ocrModelError': 'Pemindai OCR gagal dimuat. Sambungkan internet sekali (model ~8 MB) lalu coba lagi.',
   'chat.ocrCameraDenied': 'Izin kamera ditolak. Buka Pengaturan > Safari > Kamera untuk mengaktifkan, atau upload gambar dari galeri.',
   'chat.recorded': 'Siap dicatat: {desc} - {amount}',
   'chat.saved': 'Tercatat. {desc} - {amount}',
@@ -187,6 +187,7 @@ const id = {
   'home.quickAll': 'Semua',
   'home.tryExamples': 'Coba contoh:',
   'home.learnFormat': 'Pelajari format input',
+  'home.showMore': 'Tampilkan {count} berikutnya',
   'home.backupRemind': 'Sudah lama tanpa backup. Amankan data dengan ekspor.',
   'home.backupNow': 'Backup sekarang',
 

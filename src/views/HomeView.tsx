@@ -24,10 +24,12 @@ import { useTranslation } from '../i18n';
 import type { TranslationKey } from '../i18n/id';
 
 const EMPTY_TXS: Transaction[] = [];
+/** Jumlah grup (hari/minggu/bulan) yang dirender sekaligus. */
+const GROUP_PAGE = 30;
 const QUICK_EXAMPLES = ['Kopi 25rb', 'Makan siang 30rb', 'Transport 15rb'];
 
 /** Highlight case-insensitive dengan <mark> untuk hasil search. */
-export function highlightMatch(text: string, query: string): React.ReactNode {
+function highlightMatch(text: string, query: string): React.ReactNode {
   const q = query.trim();
   if (!q) return text;
   const lower = text.toLowerCase();
@@ -95,6 +97,10 @@ export default function HomeView() {
   const searchRef = useRef<HTMLInputElement>(null);
   // TASK 3: cheat sheet dari empty state.
   const [showSheet, setShowSheet] = useState(false);
+  // Paging daftar disimpan bersama "sidik jari" filternya: begitu filter atau
+  // granularitas berubah, sidik jari tidak cocok dan daftar otomatis mulai lagi
+  // dari grup terbaru - tanpa setState di dalam effect (react-hooks/set-state-in-effect).
+  const [paging, setPaging] = useState({ key: '', count: GROUP_PAGE });
   // TASK 9: banner backup sesuai interval (default mingguan).
   const [lastBackup, setLastBackup] = useState<string | null>(readLastBackup);
   const backupDue = isBackupDueWithInterval(txs.length, lastBackup, getBackupInterval());
@@ -153,6 +159,13 @@ export default function HomeView() {
   );
   const total = useMemo(() => filtered.reduce((a, tx) => a + tx.amount, 0), [filtered]);
   const groups = useMemo(() => groupTransactions(filtered, granularity), [filtered, granularity]);
+  // Daftar dibatasi per grup: 1.000 transaksi dengan rentang tanggal lebar
+  // sebelumnya merender ribuan baris sekaligus. Grup yang tersembunyi dibuka
+  // lewat tombol, jadi header grup yang tampil tetap melaporkan total aslinya.
+  const filterKey = `${filterFrom}|${filterTo}|${q}|${granularity}`;
+  const visibleGroups = paging.key === filterKey ? paging.count : GROUP_PAGE;
+  const shownGroups = useMemo(() => groups.slice(0, visibleGroups), [groups, visibleGroups]);
+  const hiddenGroups = groups.length - shownGroups.length;
   const groupLabel = (key: string) => {
     if (granularity === 'month') return monthLabel(key);
     if (granularity === 'week') return `${fmtDate(key)} - ${fmtDate(addDaysISO(key, 6))}`;
@@ -175,7 +188,7 @@ export default function HomeView() {
       {error && (
         <div role="alert" className="text-xs px-3 py-2.5 rounded-[var(--radius-md)] bg-[var(--danger-bg)] border border-[var(--danger-border)] text-[var(--danger)] flex items-start gap-2">
           <span className="flex-1">{error}</span>
-          <button type="button" onClick={() => setError(null)} className="min-w-11 min-h-11 grid place-items-center rounded-[var(--radius-md)] text-[var(--danger-deep)] hover:opacity-70 focus-visible:ring-2 focus-visible:ring-[var(--accent)]" aria-label={t('common.close')}><span aria-hidden className="text-lg leading-none">&times;</span></button>
+          <button type="button" onClick={() => setError(null)} className="min-w-12 min-h-12 grid place-items-center rounded-[var(--radius-md)] text-[var(--danger-deep)] hover:opacity-70 focus-visible:ring-2 focus-visible:ring-[var(--accent)]" aria-label={t('common.close')}><span aria-hidden className="text-lg leading-none">&times;</span></button>
         </div>
       )}
 
@@ -228,7 +241,7 @@ export default function HomeView() {
             <button
               type="button"
               onClick={() => setShowSheet(true)}
-              className="text-xs font-semibold text-[var(--accent)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded px-1 min-h-8"
+              className="text-xs font-semibold text-[var(--accent)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded px-1 min-h-12 inline-flex items-center"
             >
               {t('home.learnFormat')}
             </button>
@@ -333,7 +346,7 @@ export default function HomeView() {
           <section aria-label="Transaksi terbaru">
             <h2 className="sr-only">Transaksi terbaru</h2>
             <div className="space-y-5">
-            {groups.map((g) => (
+            {shownGroups.map((g) => (
               <div key={g.key}>
                 <div className="flex items-baseline gap-2 px-1 mb-2">
                   <h3 className="text-xs font-bold tracking-wide uppercase text-[var(--text-secondary)]">{groupLabel(g.key)}</h3>
@@ -343,6 +356,8 @@ export default function HomeView() {
               {g.txs.map((tx) => (
                 <li
                   key={tx.id}
+                  // content-visibility: baris di luar viewport dilewati saat layout/paint.
+                  style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 76px' } as React.CSSProperties}
                   className="list-item flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]/40 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
@@ -388,6 +403,17 @@ export default function HomeView() {
             </ul>
               </div>
             ))}
+            {hiddenGroups > 0 && (
+              <div className="flex justify-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => setPaging({ key: filterKey, count: visibleGroups + GROUP_PAGE })}
+                  className="min-h-12 px-4 rounded-full bg-[var(--card)] border border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                >
+                  {t('home.showMore', { count: hiddenGroups })}
+                </button>
+              </div>
+            )}
             </div>
           </section>
           )}
