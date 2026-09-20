@@ -3,7 +3,7 @@
  * Digunakan oleh receiptParser dan chatParser untuk mendeteksi sumber dana.
  */
 
-export interface SourceEntry {
+interface SourceEntry {
   /** Nama tampil */
   name: string;
   /** Pola regex untuk mencocokkan di teks OCR/chat (case-insensitive) */

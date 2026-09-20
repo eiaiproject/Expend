@@ -10,7 +10,7 @@ export const ACRONYMS = new Set([
  * Kata depan/penghubung yang tetap lowercase di tengah kalimat.
  * "kopi di Indomaret" → "Kopi di Indomaret" (bukan "Kopi Di Indomaret").
  */
-export const LOWERCASE_WORDS = new Set([
+const LOWERCASE_WORDS = new Set([
   'di', 'ke', 'dari', 'untuk', 'dengan', 'dan', 'atau', 'yang',
 ]);
 

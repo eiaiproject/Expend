@@ -1,4 +1,4 @@
-export interface PerfEntry {
+interface PerfEntry {
   name: string;
   ms: number;
   at: string;

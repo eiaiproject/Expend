@@ -4,7 +4,7 @@ import type { TranslationKey } from './id';
 
 export type Lang = 'id' | 'en';
 export const STORAGE_KEY = 'expend_lang';
-export const dictionaries: Record<Lang, Record<TranslationKey, string>> = { id, en };
+const dictionaries: Record<Lang, Record<TranslationKey, string>> = { id, en };
 
 export function getStoredLang(): Lang {
   try {
