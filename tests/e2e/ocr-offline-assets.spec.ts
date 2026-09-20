@@ -13,10 +13,9 @@ import { test, expect, type Page } from '@playwright/test';
  *     dan OCR tetap harus selesai - ini yang membuktikan klaim "offline-first"
  *     bukan hanya "kebetulan tidak ada request ke luar".
  *
- * Pemblokiran aktif tidak dijalankan di webkit: route interception Playwright
- * mengganggu subresource yang di-`importScripts` dari worker blob di webkit
- * (terverifikasi: OCR gagal dengan pesan model, padahal aset 200). Klaimnya tetap
- * terjaga karena poin 1 berjalan di webkit juga.
+ * Setiap `test.skip` di bawah diberi komentar alasannya tepat di atasnya
+ * (Sonar S1607: test yang dilewati harus punya alasan), sama seperti
+ * tests/e2e/receipt.spec.ts.
  */
 
 const REQUIRED_ASSETS = [
@@ -63,6 +62,8 @@ async function uploadReceipt(page: Page) {
 }
 
 test('OCR memakai aset lokal dan tidak menyentuh host pihak ketiga', async ({ page }) => {
+  // Dilewati hanya bila aset OCR belum di-vendor di checkout ini (mis. clone
+  // segar tanpa `npm run vendor:ocr`); CI selalu menjalankannya lebih dulu.
   test.skip(
     !REQUIRED_ASSETS.every((p) => existsSync(p)),
     'aset OCR belum di-vendor - jalankan `npm run vendor:ocr` lebih dulu',
@@ -97,10 +98,15 @@ test('OCR memakai aset lokal dan tidak menyentuh host pihak ketiga', async ({ pa
 });
 
 test('OCR tetap selesai saat semua host pihak ketiga diblokir', async ({ page, context }) => {
+  // Alasan yang sama seperti test di atas: tanpa aset lokal, memblokir host luar
+  // tidak membuktikan apa pun karena OCR memang belum bisa dijalankan.
   test.skip(
     !REQUIRED_ASSETS.every((p) => existsSync(p)),
     'aset OCR belum di-vendor - jalankan `npm run vendor:ocr` lebih dulu',
   );
+  // Route interception Playwright mengganggu subresource yang di-`importScripts`
+  // dari worker blob di webkit (asetnya 200, tetapi OCR gagal dengan pesan
+  // model). Klaimnya tetap terjaga karena test di atas berjalan di webkit juga.
   test.skip(test.info().project.name === 'webkit', 'route interception mengganggu worker blob di webkit');
   test.setTimeout(180_000);
 
