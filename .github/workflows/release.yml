@@ -1,35 +1,46 @@
 name: Release
+
+# Sebelumnya workflow ini dipicu `push: main` dan mengulang lint + typecheck +
+# unit + build + Playwright yang sudah dijalankan ci.yml untuk commit yang sama
+# (~5 menit per merge). Sekarang rilis hanya jalan setelah CI untuk commit itu
+# SUKSES, sehingga tidak ada suite yang dijalankan dua kali dan garis pemisahnya
+# tetap jelas: tidak ada tag rilis bila CI merah.
 on:
-  push: { branches: [main] }
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
 permissions:
   contents: read
+
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: false
+
 jobs:
   release:
-    # The version commit this workflow pushes must not trigger itself again.
-    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
+    # Hanya push ke main yang sukses, dan commit rilis tidak boleh memicu dirinya
+    # sendiri (push commit `chore(release): ...` akan menjalankan CI lagi).
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      !startsWith(github.event.workflow_run.head_commit.message, 'chore(release):')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          # workflow_run berjalan di konteks default branch; yang dirilis harus
+          # commit yang sudah lulus CI, bukan ujung default branch saat itu.
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
           persist-credentials: true
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --ignore-scripts
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test:unit
-      - run: npm run build
-      # Jangan buat tag rilis bila E2E gagal (deploy sudah ter-gating di ci.yml).
-      # Biner lokal (bukan npx on-demand) agar tak memicu S6505/S8543.
-      - run: ./node_modules/.bin/playwright install --with-deps chromium webkit
-      - run: ./node_modules/.bin/playwright test
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

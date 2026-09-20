@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
-async function freshDB(page) {
+async function freshDB(page: Page) {
   await page.goto('/');
   await page.evaluate(
     () =>
