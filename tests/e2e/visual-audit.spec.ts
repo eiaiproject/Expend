@@ -11,6 +11,22 @@ const routes = ['/', '/chat', '/settings'] as const;
 
 const issues: { vp: string; route: string; rule: string; detail: string }[] = [];
 
+/**
+ * Deviasi yang disengaja, satu-satunya alasan sebuah temuan boleh lolos.
+ * Setiap entri wajib punya `why`; daftar ini sengaja sempit supaya audit tetap
+ * bisa GAGAL saat ada regresi baru (sebelumnya semua temuan hanya di-log).
+ */
+const INTENTIONAL: readonly { route: string; rule: string; why: string }[] = [
+  {
+    route: '/chat',
+    rule: 'main-pb',
+    why: 'Composer /chat berada di flow normal (lihat komentar di ChatView); padding bawah di <main> justru mendorong composer keluar layar di viewport pendek.',
+  },
+];
+
+const isIntentional = (i: (typeof issues)[number]) =>
+  INTENTIONAL.some((k) => k.route === i.route && k.rule === i.rule);
+
 for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
   test.describe(`${vp}`, () => {
     test.use({ viewport: viewports[vp] });
@@ -70,8 +86,9 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
           if (pb === 0 && main.firstElementChild) {
             const children = [...main.firstElementChild.children];
             for (let i = children.length - 1; i >= 0; i--) {
-              const cs = getComputedStyle(children[i]);
-              const cpb = parseFloat(cs.paddingBottom);
+              const child = children[i];
+              if (!child) continue;
+              const cpb = parseFloat(getComputedStyle(child).paddingBottom);
               if (cpb > 0) { pb = cpb; break; }
             }
           }
@@ -154,7 +171,7 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
             // Check element's own background first, then walk up parents
             let bg = [255, 255, 255, 1];
             const ownBg = parseColor(s.backgroundColor);
-            if (ownBg.length >= 3 && ownBg[3] >= 0.15) {
+            if (ownBg.length >= 3 && (ownBg[3] ?? 0) >= 0.15) {
               bg = ownBg;
             } else {
               let bgEl = el.parentElement;
@@ -197,12 +214,13 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
 
 test.afterAll(() => {
   console.log('\n=== PIXEL-PERFECT AUDIT ===');
-  if (issues.length === 0) {
-    console.log('✓ All rules pass on all 4 viewports x 3 routes');
-    return;
-  }
+  const unexpected = issues.filter((i) => !isIntentional(i));
   for (const i of issues) {
-    console.log(`[${i.vp} ${i.route}] ${i.rule}: ${i.detail}`);
+    console.log(`${isIntentional(i) ? '[known]' : '[FAIL]'} [${i.vp} ${i.route}] ${i.rule}: ${i.detail}`);
   }
-  console.log(`\nTotal issues: ${issues.length}`);
+  console.log(`\nTotal issues: ${issues.length} (disengaja: ${issues.length - unexpected.length})`);
+  expect(
+    unexpected.map((i) => `[${i.vp} ${i.route}] ${i.rule}: ${i.detail}`),
+    'Temuan audit baru di luar daftar INTENTIONAL',
+  ).toEqual([]);
 });
