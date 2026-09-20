@@ -47,6 +47,29 @@ function shouldShowTime(prev: { createdAt: string; role: string } | undefined, c
   if (!prev) return true;
   return prev.createdAt.slice(0, 10) !== cur.createdAt.slice(0, 10) || cur.role !== prev.role;
 }
+
+/**
+ * Validasi berkas bukti sebelum OCR. Dipisah dari handleFile supaya rantai
+ * cabangnya tidak menambah kompleksitas kognitif fungsi yang mengurus state UI
+ * (Sonar S3776), dan supaya urutan validasi tetap terbaca sebagai satu daftar.
+ */
+async function ocrFileErrorKey(file: File): Promise<'chat.ocrFormatError' | 'chat.ocrTooLarge' | null> {
+  const fileErr = validateImageFile(file);
+  if (fileErr === 'format' || fileErr === 'empty') return 'chat.ocrFormatError';
+  if (fileErr === 'too-large') return 'chat.ocrTooLarge';
+  // A7: Validasi magic number untuk cegah polyglot file
+  const magicErr = await validateFileMagic(file);
+  return magicErr === 'magic' ? 'chat.ocrFormatError' : null;
+}
+
+/**
+ * Model OCR yang gagal dimuat (asetnya ~8 MB, di-cache setelah pemakaian
+ * pertama) butuh saran berbeda dari foto yang memang tidak terbaca.
+ */
+function ocrFailureKey(e: unknown): 'chat.ocrModelError' | 'chat.ocrReadError' {
+  return e instanceof OcrModelError ? 'chat.ocrModelError' : 'chat.ocrReadError';
+}
+
 export default function ChatView() {
   const { t, lang } = useTranslation();
   // TASK 3: prefill dari contoh one-tap (?input=...) — baca saat init.
@@ -345,45 +368,42 @@ export default function ChatView() {
     }
   }
 
+  /** Foto terbaca tapi tidak ada nominal yang bisa dipercaya: minta isi manual. */
+  async function handleUnparsedReceipt() {
+    setPending({ description: 'Transfer', amount: 0, date: todayLocalISO() });
+    setPendingEditable(false);
+    setOcrError(t('chat.ocrReadError'));
+    await addChatMessage({
+      role: 'assistant',
+      text: t('chat.ocrClearPhoto'),
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   async function handleFile(file: File) {
     if (ocrInFlight.current) return;
     captureSendAnchor();
-    const fileErr = validateImageFile(file);
-    if (fileErr === 'format' || fileErr === 'empty') {
-      setOcrError(t('chat.ocrFormatError'));
-      return;
-    }
-    if (fileErr === 'too-large') {
-      setOcrError(t('chat.ocrTooLarge'));
-      return;
-    }
-    // A7: Validasi magic number untuk cegah polyglot file
-    const magicErr = await validateFileMagic(file);
-    if (magicErr === 'magic') {
-      setOcrError(t('chat.ocrFormatError'));
+    const fileErrKey = await ocrFileErrorKey(file);
+    if (fileErrKey) {
+      setOcrError(t(fileErrKey));
       return;
     }
     ocrInFlight.current = true;
     setOcrError(null);
     const url = URL.createObjectURL(file);
-    if (mountedRef.current) setPreviewUrl(url);
-    if (mountedRef.current) setOcrProgress(0);
+    if (mountedRef.current) {
+      setPreviewUrl(url);
+      setOcrProgress(0);
+    }
     try {
       const { text, confidence } = await recognizeImageDetailed(file, (n) => {
         if (mountedRef.current) setOcrProgress(n);
       });
       if (!mountedRef.current) return;
-      if (mountedRef.current) setOcrConfidence(confidence);
+      setOcrConfidence(confidence);
       const parsed = parseReceiptText(text);
       if (!parsed) {
-        setPending({ description: 'Transfer', amount: 0, date: todayLocalISO() });
-        setPendingEditable(false);
-        setOcrError(t('chat.ocrReadError'));
-        await addChatMessage({
-          role: 'assistant',
-          text: t('chat.ocrClearPhoto'),
-          createdAt: new Date().toISOString(),
-        });
+        await handleUnparsedReceipt();
         return;
       }
       setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date, note: parsed.note, source: parsed.source });
@@ -395,11 +415,7 @@ export default function ChatView() {
         parsed: { description: parsed.description, amount: parsed.amount },
       });
     } catch (e) {
-      if (mountedRef.current) {
-        // Model belum ada (asetnya ~8 MB, di-cache setelah pemakaian pertama)
-        // butuh saran berbeda dari "foto tidak terbaca".
-        setOcrError(t(e instanceof OcrModelError ? 'chat.ocrModelError' : 'chat.ocrReadError'));
-      }
+      if (mountedRef.current) setOcrError(t(ocrFailureKey(e)));
     } finally {
       ocrInFlight.current = false;
       URL.revokeObjectURL(url);
