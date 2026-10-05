@@ -430,31 +430,36 @@ export default function ChatView() {
   }
 
   async function saveNow(p: Pending) {
-    if (!p.amount || !Number.isFinite(p.amount) || p.amount <= 0 || p.amount > 1_000_000_000_000) return;
+    if (!p.amount || !Number.isFinite(p.amount) || p.amount <= 0 || p.amount > 1_000_000_000_000) {
+      if (mountedRef.current) setOcrError(t('chat.saveInvalid'));
+      return;
+    }
     if (saveInFlight.current) return;
     saveInFlight.current = true;
     if (mountedRef.current) setIsSaving(true);
     try {
       const now = new Date().toISOString();
-      const txId = (await db.transactions.add({
-        description: p.description,
-        amount: p.amount,
-        date: p.date,
-        createdAt: now,
-        rawText: p.description,
-        note: p.note || undefined,
-        source: p.source || undefined,
-      })) as number;
-      await addChatMessage({
-        role: 'assistant',
-        text: t('chat.saved', { desc: p.description, amount: fmtIDR(p.amount) }),
-        createdAt: new Date().toISOString(),
-        txId,
-      });
-      await addChatMessage({
-        role: 'assistant',
-        text: '__LINK_RINGKASAN__',
-        createdAt: new Date().toISOString(),
+      await db.transaction('rw', [db.transactions, db.chatMessages], async () => {
+        const txId = (await db.transactions.add({
+          description: p.description,
+          amount: p.amount,
+          date: p.date,
+          createdAt: now,
+          rawText: p.description,
+          note: p.note || undefined,
+          source: p.source || undefined,
+        })) as number;
+        await addChatMessage({
+          role: 'assistant',
+          text: t('chat.saved', { desc: p.description, amount: fmtIDR(p.amount) }),
+          createdAt: new Date().toISOString(),
+          txId,
+        });
+        await addChatMessage({
+          role: 'assistant',
+          text: '__LINK_RINGKASAN__',
+          createdAt: new Date().toISOString(),
+        });
       });
       if (mountedRef.current) {
         setPending(null);

@@ -29,6 +29,10 @@ const en: Record<TranslationKey, string> = {
   'home.deleteTransaction': 'Delete transaction {name}',
   'home.transactionDeleted': 'Transaction deleted.',
   'home.deleteFailed': 'Failed to delete transaction. Try again.',
+  'home.deleteConfirmTitle': 'Delete this transaction?',
+  'home.deleteConfirmDesc': '{name} - {amount} will be permanently deleted.',
+  'home.invalidAmount': 'Invalid amount.',
+  'home.invalidDate': 'Invalid date. Use YYYY-MM-DD.',
   'home.recordNew': 'Record new expense',
   'home.editTransaction': 'Edit transaction {name}',
   'home.transactionUpdated': 'Transaction updated.',
@@ -90,9 +94,11 @@ const en: Record<TranslationKey, string> = {
   'chat.ocrShareFailed': 'Failed to process shared file. Please take a photo or upload the receipt image manually.',
   'chat.ocrModelError': 'OCR engine failed to load. Connect to the internet once (model ~8 MB) then retry.',
   'chat.ocrCameraDenied': 'Camera access denied. Open Settings > Safari > Camera to enable, or upload from gallery.',
+  'chat.ocrBusy': 'Still reading the previous receipt. Please wait.',
   'chat.recorded': 'Ready to record: {desc} - {amount}',
   'chat.saved': 'Recorded. {desc} - {amount}',
   'chat.saveError': 'Failed to save transaction. Try again.',
+  'chat.saveInvalid': 'Invalid amount (1 - 1,000,000,000,000).',
   'chat.loadOlder': 'Load 50 older messages',
 
   // Settings

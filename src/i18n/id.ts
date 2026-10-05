@@ -27,6 +27,10 @@ const id = {
   'home.deleteTransaction': 'Hapus transaksi {name}',
   'home.transactionDeleted': 'Transaksi dihapus.',
   'home.deleteFailed': 'Gagal menghapus transaksi. Coba lagi.',
+  'home.deleteConfirmTitle': 'Hapus transaksi ini?',
+  'home.deleteConfirmDesc': '{name} - {amount} akan dihapus permanen.',
+  'home.invalidAmount': 'Nominal tidak valid.',
+  'home.invalidDate': 'Tanggal tidak valid. Gunakan YYYY-MM-DD.',
   'home.recordNew': 'Catat pengeluaran baru',
   'home.editTransaction': 'Edit transaksi {name}',
   'home.transactionUpdated': 'Transaksi diperbarui.',
@@ -88,9 +92,11 @@ const id = {
   'chat.ocrShareFailed': 'Gagal memproses file share. Silakan ambil foto atau upload gambar bukti secara manual.',
   'chat.ocrModelError': 'Pemindai OCR gagal dimuat. Sambungkan internet sekali (model ~8 MB) lalu coba lagi.',
   'chat.ocrCameraDenied': 'Izin kamera ditolak. Buka Pengaturan > Safari > Kamera untuk mengaktifkan, atau upload gambar dari galeri.',
+  'chat.ocrBusy': 'Masih membaca bukti sebelumnya. Tunggu selesai dulu.',
   'chat.recorded': 'Siap dicatat: {desc} - {amount}',
   'chat.saved': 'Tercatat. {desc} - {amount}',
   'chat.saveError': 'Gagal menyimpan transaksi. Coba lagi.',
+  'chat.saveInvalid': 'Nominal tidak valid (1 - 1.000.000.000.000).',
   'chat.loadOlder': 'Muat 50 pesan lama',
 
   // Settings

@@ -163,11 +163,19 @@ export default function SettingsView() {
         return;
       }
       if (kind === 'csv') {
-        downloadBlob(csvBlob(filtered), exportFilename('csv', from || undefined, to || undefined));
+        const ok = downloadBlob(csvBlob(filtered), exportFilename('csv', from || undefined, to || undefined));
+        if (!ok) {
+          showToast(t('settings.exportCSVError'), 'error');
+          return;
+        }
         setLastBackup(recordBackup());
         showToast(t('settings.exportCSVSukses', { count: filtered.length }));
       } else {
-        downloadBlob(jsonBlob(filtered), exportFilename('json', from || undefined, to || undefined));
+        const ok = downloadBlob(jsonBlob(filtered), exportFilename('json', from || undefined, to || undefined));
+        if (!ok) {
+          showToast(t('settings.exportJSONError'), 'error');
+          return;
+        }
         setLastBackup(recordBackup());
         showToast(t('settings.exportJSONSukses', { count: filtered.length }));
       }
@@ -200,7 +208,19 @@ export default function SettingsView() {
       const existing = await db.transactions.toArray();
       const existingKeys = new Set(existing.map((tx) => `${tx.description}|${tx.amount}|${tx.date}|${tx.source ?? ''}|${tx.note ?? ''}`));
       const fresh = res.transactions.filter((tx) => !existingKeys.has(`${tx.description}|${tx.amount}|${tx.date}|${tx.source ?? ''}|${tx.note ?? ''}`));
-      if (fresh.length) await db.transactions.bulkAdd(fresh.map((tx) => ({ ...tx })));
+      if (fresh.length) {
+        try {
+          await db.transaction('rw', db.transactions, async () => {
+            await db.transactions.bulkAdd(fresh.map((tx) => ({ ...tx })));
+          });
+        } catch (e) {
+          if ((e as Error)?.name === 'QuotaExceededError' || /quota/i.test((e as Error)?.message ?? '')) {
+            showToast(t('settings.importJSONError'), 'error');
+            return;
+          }
+          throw e;
+        }
+      }
       const skippedTotal = res.skipped + (res.transactions.length - fresh.length);
       showToast(skippedTotal > 0 ? `${t('settings.importJSONSukses', { count: fresh.length })} ${t('settings.importJSONSkipped', { count: skippedTotal })}` : t('settings.importJSONSukses', { count: fresh.length }));
     } catch {
@@ -208,11 +228,14 @@ export default function SettingsView() {
     } finally {
       if (importRef.current) importRef.current.value = '';
     }
-  }, [showToast, t]);
+  }, [showToast, t, handleImportSheetsCSV]);
 
   const handleDeleteAll = useCallback(async () => {
     try {
-      await db.transactions.clear();
+      await db.transaction('rw', [db.transactions, db.chatMessages], async () => {
+        await db.transactions.clear();
+        await db.chatMessages.clear();
+      });
       showToast(t('settings.deleteSuccess'));
     } catch {
       showToast(t('settings.deleteError'), 'error');
