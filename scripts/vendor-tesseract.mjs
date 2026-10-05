@@ -62,12 +62,12 @@ copy(join(tesseractDir, 'dist/worker.min.js'), join(outDir, 'worker.min.js'));
 for (const file of CORE_FILES) copy(join(coreDir, file), join(outDir, file));
 console.log(`vendor-tesseract: worker + ${CORE_FILES.length} varian core -> public/tesseract/`);
 
-for (const lang of LANGS) {
+/** Unduh satu model bahasa; kembalian byte yang ditambahkan ke total. */
+async function fetchLang(lang) {
   const dest = join(langDir, `${lang}.traineddata.gz`);
   if (existsSync(dest) && statSync(dest).size >= MIN_LANG_BYTES) {
-    bytes += statSync(dest).size;
     console.log(`vendor-tesseract: ${lang} sudah ada (${(statSync(dest).size / 1024).toFixed(0)} KB), dilewati`);
-    continue;
+    return statSync(dest).size;
   }
   try {
     const res = await fetch(`${LANG_CDN}/${lang}/4.0.0_best_int/${lang}.traineddata.gz`);
@@ -75,11 +75,16 @@ for (const lang of LANGS) {
     const buf = Buffer.from(await res.arrayBuffer());
     if (buf.byteLength < MIN_LANG_BYTES) throw new Error(`ukuran ${buf.byteLength} B tidak wajar`);
     await writeFile(dest, buf);
-    bytes += buf.byteLength;
     console.log(`vendor-tesseract: ${lang}.traineddata.gz -> ${(buf.byteLength / 1024).toFixed(0)} KB`);
+    return buf.byteLength;
   } catch (e) {
     console.warn(`vendor-tesseract: gagal mengunduh model ${lang} (${e.message}) - OCR akan memakai langPath CDN`);
+    return 0;
   }
 }
+
+// Paralel (bukan await sekuensial di loop): 2 bahasa independen, total
+// dijumlah dari hasil masing-masing agar tanpa mutasi bersamaan.
+for (const n of await Promise.all(LANGS.map(fetchLang))) bytes += n;
 
 console.log(`vendor-tesseract: total ${(bytes / 1024 / 1024).toFixed(1)} MB di public/tesseract/ (tidak di-precache)`);
