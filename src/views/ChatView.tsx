@@ -41,6 +41,21 @@ function scrollToBottom(listRef: React.RefObject<HTMLDivElement | null>, instant
 
 const CHAT_PAGE = 50;
 
+/**
+ * Bangun File dari entri `shared-file` di share-cache (null bila tak ada).
+ * Gambar diprioritaskan atas teks share: pesan perbankan (mis. SeaBank
+ * "Halo, aku sudah kirim Rp...") adalah noise percakapan - screenshot
+ * adalah struk yang sebenarnya.
+ */
+async function readSharedFile(cache: Cache): Promise<File | null> {
+  const fileRes = await cache.match('shared-file');
+  if (!fileRes) return null;
+  const blob = await fileRes.blob();
+  const name = decodeURIComponent(fileRes.headers.get('x-file-name') || 'receipt.png');
+  const type = fileRes.headers.get('content-type') || 'image/png';
+  return new File([blob], name, { type });
+}
+
 // Timestamp hanya saat ganti hari/role agar list tidak berisik.
 // Dipisah dari komponen agar S3776 tidak menghitung rantai || ini.
 function shouldShowTime(prev: { createdAt: string; role: string } | undefined, cur: { createdAt: string; role: string }): boolean {
@@ -239,13 +254,49 @@ export default function ChatView() {
   const onSharedFile = useEffectEvent((file: File) => handleFile(file));
   const shareErrorMessage = useEffectEvent(() => t('chat.ocrShareFailed'));
 
+  const handleSharedImage = useEffectEvent(async (file: File, cache: Cache): Promise<void> => {
+    if (ocrInFlight.current) {
+      showToast(t('chat.ocrBusy'), 'error');
+      await cache.delete('shared-file');
+      await cache.delete('shared-meta');
+      window.history.replaceState({}, '', '/chat');
+      return;
+    }
+    await onSharedFile(file);
+    await cache.delete('shared-file');
+    // Discard share text when image is available
+    await cache.delete('shared-meta');
+  });
+
+  const handleSharedTextFallback = useEffectEvent(async (cache: Cache): Promise<void> => {
+    const metaRes = await cache.match('shared-meta');
+    if (!metaRes) {
+      // B3: Cache kosong - kemungkinan iOS Safari atau share gagal.
+      // Minta user upload manual lewat galeri.
+      setOcrError(shareErrorMessage());
+      return;
+    }
+    const meta = await metaRes.json();
+    const sharedText = [meta.text, meta.url].filter(Boolean).join(' ').trim();
+    if (sharedText) {
+      const parsed = parseChatInput(sharedText);
+      if (parsed) {
+        setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || todayLocalISO(), source: parsed.source, note: parsed.note });
+        setPendingEditable(false);
+      } else {
+        setInput(sharedText.slice(0, 500));
+      }
+    }
+    await cache.delete('shared-meta');
+  });
+
   // Handle share target
-  useEffect(() => { // NOSONAR - cognitive complexity from share file+text handling
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (!params.has('share')) return;
     if (shareProcessedRef.current) return;
     shareProcessedRef.current = true;
-    (async () => {
+    void (async () => {
       try {
         // B2/B3: Cek error param dari share-handler.js (cache gagal).
         // setState di dalam callback async, bukan body effect langsung
@@ -258,48 +309,11 @@ export default function ChatView() {
           return;
         }
         const cache = await caches.open('share-cache');
-
-        // Prioritize image OCR over share text.
-        // Share messages from banking apps (e.g. SeaBank "Halo, aku sudah
-        // kirim Rp...") are conversational noise - the screenshot is the
-        // real receipt. If we have an image, use OCR only and discard text.
-        const fileRes = await cache.match('shared-file');
-        if (fileRes) {
-          if (ocrInFlight.current) {
-            showToast(t('chat.ocrBusy'), 'error');
-            await cache.delete('shared-file');
-            await cache.delete('shared-meta');
-            window.history.replaceState({}, '', '/chat');
-            return;
-          }
-          const blob = await fileRes.blob();
-          const name = decodeURIComponent(fileRes.headers.get('x-file-name') || 'receipt.png');
-          const type = fileRes.headers.get('content-type') || 'image/png';
-          const file = new File([blob], name, { type });
-          await onSharedFile(file);
-          await cache.delete('shared-file');
-          // Discard share text when image is available
-          await cache.delete('shared-meta');
-        } else {              // No image - use share text as chat input fallback
-              const metaRes = await cache.match('shared-meta');
-              if (metaRes) {
-                const meta = await metaRes.json();
-                const sharedText = [meta.text, meta.url].filter(Boolean).join(' ').trim();
-                if (sharedText) {
-                  const parsed = parseChatInput(sharedText);
-                  if (parsed) {
-                    setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || todayLocalISO(), source: parsed.source, note: parsed.note });
-                    setPendingEditable(false);
-                  } else {
-                    setInput(sharedText.slice(0, 500));
-                  }
-                }
-                await cache.delete('shared-meta');
-              } else {
-                // B3: Cache kosong - kemungkinan iOS Safari atau share gagal.
-                // Minta user upload manual lewat galeri.
-                setOcrError(shareErrorMessage());
-              }
+        const file = await readSharedFile(cache);
+        if (file) {
+          await handleSharedImage(file, cache);
+        } else {
+          await handleSharedTextFallback(cache);
         }
         window.history.replaceState({}, '', '/chat');
       } catch {
@@ -396,7 +410,7 @@ export default function ChatView() {
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     }
   }
 
@@ -525,7 +539,7 @@ export default function ChatView() {
         dragCounter.current = 0;
         setIsDragging(false);
         const f = e.dataTransfer.files?.[0];
-        if (f) handleFile(f);
+        if (f) void handleFile(f);
       }}
     >
       {/* Header */}
@@ -913,7 +927,7 @@ export default function ChatView() {
             type="file"
             accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
             className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); }}
           />
           <input
             ref={cameraRef}
@@ -927,7 +941,7 @@ export default function ChatView() {
               // Hanya permission-denied nyata yang ditangani browser via
               // file kosong; tanpa sinyal itu jangan tuduh kamera ditolak.
               if (f) {
-                handleFile(f);
+                void handleFile(f);
               }
               e.target.value = '';
             }}

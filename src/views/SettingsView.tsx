@@ -9,6 +9,7 @@ import { ExportWizard, type ExportKind } from '../components/ExportWizard';
 import { FormatCheatSheet } from '../components/FormatCheatSheet';
 import { csvBlob, jsonBlob, parseImportJSON, IMPORT_MAX_BYTES, filterByDate, exportFilename, downloadBlob, validateDateRange } from '../utils/export';
 import { parseSheetsCSV, SHEETS_IMPORT_MAX_BYTES } from '../utils/sheetsImport';
+import { persistFreshTransactions, type StorableTransaction } from '../utils/importStore';
 import { isBackupDueWithInterval, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, BACKUP_KEY, BACKUP_INTERVAL_KEY, type BackupInterval } from '../utils/backup';
 import { getFontSize, setFontSize as persistFontSize, isHighContrast, setHighContrast as persistHighContrast, type FontSize } from '../utils/a11yPrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -203,40 +204,52 @@ export default function SettingsView() {
   // Impor CSV hasil download Google Sheets: hanya 5 kolom yang dipakai
   // (Tanggal, Penerima, Nominal, Sumber Dana, Catatan); ID/Input/Status/
   // Dicatat Pada dibuang di parser. Append-only + dedupe eksak vs DB.
+  // Jalur persist bersama impor JSON dan CSV Sheets: parse → dedupe vs DB
+  // → bulkAdd atomik → toast. Satu tempat agar pesan dan kebijakan identik.
+  const persistParsedImport = useCallback(async (
+    file: File,
+    parse: (raw: string) => { ok: boolean; transactions: StorableTransaction[]; skipped: number; errors: string[] },
+    msg: { ok: TranslationKey; skipped: TranslationKey; fail: TranslationKey },
+  ) => {
+    let res;
+    try {
+      res = parse(await file.text());
+    } catch {
+      showToast(t(msg.fail), 'error');
+      return;
+    }
+    if (!res.ok || res.transactions.length === 0) {
+      showToast(res.errors[0] ?? t(msg.fail), 'error');
+      return;
+    }
+    let outcome;
+    try {
+      outcome = await persistFreshTransactions(res.transactions);
+    } catch {
+      showToast(t(msg.fail), 'error');
+      return;
+    }
+    if (outcome.status === 'quota') {
+      showToast(t(msg.fail), 'error');
+      return;
+    }
+    const skippedTotal = res.skipped + outcome.skippedInDb;
+    showToast(skippedTotal > 0
+      ? `${t(msg.ok, { count: outcome.fresh })} ${t(msg.skipped, { count: skippedTotal })}`
+      : t(msg.ok, { count: outcome.fresh }));
+  }, [showToast, t]);
+
   const handleImportSheetsCSV = useCallback(async (file: File) => {
     if (file.size > SHEETS_IMPORT_MAX_BYTES || file.size === 0) {
       showToast(t('settings.importSheetsError'), 'error');
       return;
     }
-    try {
-      const raw = await file.text();
-      const res = parseSheetsCSV(raw);
-      if (!res.ok || res.transactions.length === 0) {
-        showToast(res.errors[0] ?? t('settings.importSheetsError'), 'error');
-        return;
-      }
-      const existing = await db.transactions.toArray();
-      const existingKeys = new Set(existing.map((tx) => `${tx.description}|${tx.amount}|${tx.date}|${tx.source ?? ''}|${tx.note ?? ''}`));
-      const fresh = res.transactions.filter((tx) => !existingKeys.has(`${tx.description}|${tx.amount}|${tx.date}|${tx.source ?? ''}|${tx.note ?? ''}`));
-      if (fresh.length) {
-        try {
-          await db.transaction('rw', db.transactions, async () => {
-            await db.transactions.bulkAdd(fresh.map((tx) => ({ ...tx })));
-          });
-        } catch (e) {
-          if ((e as Error)?.name === 'QuotaExceededError' || /quota/i.test((e as Error)?.message ?? '')) {
-            showToast(t('settings.importSheetsError'), 'error');
-            return;
-          }
-          throw e;
-        }
-      }
-      const skippedTotal = res.skipped + (res.transactions.length - fresh.length);
-      showToast(skippedTotal > 0 ? `${t('settings.importSheetsSukses', { count: fresh.length })} ${t('settings.importSheetsSkipped', { count: skippedTotal })}` : t('settings.importSheetsSukses', { count: fresh.length }));
-    } catch {
-      showToast(t('settings.importSheetsError'), 'error');
-    }
-  }, [showToast, t]);
+    await persistParsedImport(
+      file,
+      parseSheetsCSV,
+      { ok: 'settings.importSheetsSukses', skipped: 'settings.importSheetsSkipped', fail: 'settings.importSheetsError' },
+    );
+  }, [showToast, t, persistParsedImport]);
 
   const handleImportFile = useCallback(async (file: File) => {
     const lower = file.name.toLowerCase();
@@ -256,37 +269,15 @@ export default function SettingsView() {
       return;
     }
     try {
-      const raw = await file.text();
-      const res = parseImportJSON(raw);
-      if (!res.ok || res.transactions.length === 0) {
-        showToast(res.errors[0] ?? t('settings.importJSONError'), 'error');
-        return;
-      }
-      // Append-only: jangan hapus data lama. Dedupe eksak terhadap DB.
-      const existing = await db.transactions.toArray();
-      const existingKeys = new Set(existing.map((tx) => `${tx.description}|${tx.amount}|${tx.date}|${tx.source ?? ''}|${tx.note ?? ''}`));
-      const fresh = res.transactions.filter((tx) => !existingKeys.has(`${tx.description}|${tx.amount}|${tx.date}|${tx.source ?? ''}|${tx.note ?? ''}`));
-      if (fresh.length) {
-        try {
-          await db.transaction('rw', db.transactions, async () => {
-            await db.transactions.bulkAdd(fresh.map((tx) => ({ ...tx })));
-          });
-        } catch (e) {
-          if ((e as Error)?.name === 'QuotaExceededError' || /quota/i.test((e as Error)?.message ?? '')) {
-            showToast(t('settings.importJSONError'), 'error');
-            return;
-          }
-          throw e;
-        }
-      }
-      const skippedTotal = res.skipped + (res.transactions.length - fresh.length);
-      showToast(skippedTotal > 0 ? `${t('settings.importJSONSukses', { count: fresh.length })} ${t('settings.importJSONSkipped', { count: skippedTotal })}` : t('settings.importJSONSukses', { count: fresh.length }));
-    } catch {
-      showToast(t('settings.importJSONError'), 'error');
+      await persistParsedImport(
+        file,
+        parseImportJSON,
+        { ok: 'settings.importJSONSukses', skipped: 'settings.importJSONSkipped', fail: 'settings.importJSONError' },
+      );
     } finally {
       if (importRef.current) importRef.current.value = '';
     }
-  }, [showToast, t, handleImportSheetsCSV]);
+  }, [showToast, t, handleImportSheetsCSV, persistParsedImport]);
 
   const handleDeleteAll = useCallback(async () => {
     try {

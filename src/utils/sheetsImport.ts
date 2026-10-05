@@ -116,6 +116,15 @@ export function parseSheetsDateCell(raw: string): string | null {
   return parseDMYDate(s) ?? null;
 }
 
+/** Samakan varian pemisah ribuan/desimal ID ke bentuk `Number`-able. */
+function stripThousandSeparators(s: string): string {
+  if (/^\d{1,3}(\.\d{3})+$/.test(s)) return s.replaceAll('.', '');
+  if (/^\d{1,3}(,\d{3})+$/.test(s)) return s.replaceAll(',', '');
+  if (s.includes('.') && s.includes(',')) return s.replaceAll('.', '').replace(',', '.');
+  if (/,\d{1,2}$/.test(s)) return s.replace(',', '.');
+  return s.replaceAll(',', '');
+}
+
 /**
  * Nominal sel Sheets → rupiah bulat.
  * Menerima `14603`, `14.603` (ribu ID), `14,603` (ribu koma), `14603,0`
@@ -128,18 +137,7 @@ export function parseSheetsAmountCell(raw: string): number | null {
     .replace(/^(?:rp|idr)\.?\s*/i, '')
     .replace(/[\s\u00A0\uFEFF]/g, '');
   if (!/^[\d.,]+$/.test(s)) return null;
-  if (/^\d{1,3}(\.\d{3})+$/.test(s)) {
-    s = s.replaceAll('.', '');
-  } else if (/^\d{1,3}(,\d{3})+$/.test(s)) {
-    s = s.replaceAll(',', '');
-  } else if (s.includes('.') && s.includes(',')) {
-    s = s.replaceAll('.', '').replace(',', '.');
-  } else if (/,\d{1,2}$/.test(s)) {
-    s = s.replace(',', '.');
-  } else {
-    s = s.replaceAll(',', '');
-  }
-  const n = Number(s);
+  const n = Number(stripThousandSeparators(s));
   if (!Number.isFinite(n)) return null;
   const rounded = Math.round(n);
   if (rounded <= 0 || rounded > MAX_AMOUNT) return null;
