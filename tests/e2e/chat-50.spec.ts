@@ -66,17 +66,17 @@ test('chat 50 variasi transaksi', async ({ page }) => {
   await page.goto('/chat');
   await page.reload();
   await page.goto('/chat');
-  await expect(page.getByPlaceholder(/Contoh/)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByLabel(/Tulis pengeluaran|Write expense/)).toBeVisible({ timeout: 15000 });
 
   let idx = 0;
   for (const c of CASES) {
-    const input = page.getByPlaceholder(/Contoh/);
+    const input = page.getByLabel(/Tulis pengeluaran|Write expense/);
     await input.fill(c.input);
-    await page.getByRole('button', { name: 'Kirim transaksi' }).click();
+    await page.getByRole('button', { name: /Kirim transaksi|Send transaction/ }).click();
 
     // Kartu verifikasi default ringkas sejak 0.17.0: field hanya dirender
     // setelah menekan tombol "Ubah".
-    await page.getByRole('button', { name: 'Ubah' }).last().click();
+    await page.getByRole('button', { name: /^(Ubah|Edit)$/ }).last().click();
 
     // pending form appears
     const descInput = page.locator('#pending-desc');
@@ -87,12 +87,12 @@ test('chat 50 variasi transaksi', async ({ page }) => {
       await expect(page.locator('#pending-source')).toHaveValue(c.source);
     }
     // verify assistant preview
-    await expect(page.getByText('Siap dicatat').last()).toBeVisible();
+    await expect(page.getByText(/Siap dicatat|Ready to record/).last()).toBeVisible();
 
-    await page.getByRole('button', { name: 'Simpan transaksi' }).click();
+    await page.getByRole('button', { name: /Simpan transaksi|Save transaction/ }).click();
 
     // saved: pending disappears, Tercatat appears
-    await expect(page.getByText(/Tercatat/).last()).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText(/Tercatat|Recorded/).last()).toBeVisible({ timeout: 8000 });
     await expect(descInput).toHaveCount(0, { timeout: 5000 });
 
     idx++;
@@ -104,7 +104,7 @@ test('chat 50 variasi transaksi', async ({ page }) => {
 
   // verify via DB count and total
   await page.goto('/');
-  await expect(page.getByText('Total pengeluaran')).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText(/Total pengeluaran|Total expenses/)).toBeVisible({ timeout: 10000 });
 
   const total = CASES.reduce((a, c) => a + c.amount, 0);
   const totalDigits = String(total);
@@ -112,10 +112,10 @@ test('chat 50 variasi transaksi', async ({ page }) => {
   // total displayed contains Rp formatted sum - check digits only
   await expect.poll(async () => (await page.locator('.tabular-nums').first().textContent())?.replace(/\D/g, ''), { timeout: 15000 }).toBe(totalDigits);
 
-  await expect(page.getByText(`${CASES.length} transaksi`)).toBeVisible();
+  await expect(page.getByText(new RegExp(`${CASES.length} (transaksi|transactions)`))).toBeVisible();
 
   // check count via delete buttons (50 rows)
-  await expect(page.locator('button[aria-label^="Hapus transaksi"]')).toHaveCount(50, { timeout: 10000 });
+  await expect(page.locator('button[aria-label^="Hapus transaksi"], button[aria-label^="Delete transaction"]')).toHaveCount(50, { timeout: 10000 });
 
   // spot-check a few descriptions exist in Home list
   for (const spot of ['Nasi Goreng', 'Motor Bekas', 'Kopi di Indomaret', 'Bensin', 'Gaji Flex']) {

@@ -37,10 +37,12 @@ test('CRUD: Chat → Home → delete', async ({ page }) => {
   await page.goto('/');
   await expect.poll(async () => (await page.locator('.tabular-nums').first().textContent())?.replace(/\D/g, ''), { timeout: 10000 }).toBe('1550000');
 
-  // Delete first
+  // Delete first (with confirm dialog since P0-A fix)
   const before = await page.locator('button[aria-label^="Hapus transaksi"]').count();
   expect(before).toBe(2);
   await page.locator('button[aria-label^="Hapus transaksi"]').first().click();
+  await expect(page.getByText(/Hapus transaksi ini\?|Delete this transaction\?/)).toBeVisible();
+  await page.getByRole('button', { name: 'Hapus', exact: true }).click();
   await expect(page.locator('button[aria-label^="Hapus transaksi"]')).toHaveCount(1);
 
   // Invalid + Batal

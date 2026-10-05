@@ -17,7 +17,7 @@ const MAX_AMOUNT = 1_000_000_000_000;
 const MAX_DESC = 80;
 const MAX_NOTE = 80;
 const MAX_SOURCE = 80;
-const MAX_RAW = 4000;
+const MAX_RAW = 8000;
 
 const GROUPS: Record<string, ReceiptCase[]> = {
   'amount-labels': AMOUNT_LABELS,

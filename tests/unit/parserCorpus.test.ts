@@ -130,8 +130,8 @@ describe('corpus/receipt', () => {
     expect(r.description.length).toBeGreaterThan(0);
     expect(r.description.length).toBeLessThanOrEqual(MAX_DESC);
     expect(typeof r.date === 'string' && r.date.length > 0).toBe(true);
-    // Jendela scan receipt kini 4000 char (dulu 500) - lihat MAX_SCAN.
-    expect(r.rawText.length).toBeLessThanOrEqual(4000);
+    // Jendela scan receipt kini 8000 char (dulu 500) - lihat MAX_SCAN.
+    expect(r.rawText.length).toBeLessThanOrEqual(8000);
     if (r.note !== undefined) expect(r.note.length).toBeLessThanOrEqual(MAX_DESC);
     if (r.source !== undefined) expect(r.source.length).toBeLessThanOrEqual(MAX_SOURCE);
   });
