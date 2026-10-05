@@ -4,7 +4,9 @@ export function isOnboarded(): boolean {
   try {
     return localStorage.getItem(ONBOARDED_KEY) === '1';
   } catch {
-    return true;
+    // Fail-open: storage tak terbaca (private mode) → tampilkan coach agar
+    // first-run tetap dapat panduan, bukan dianggap sudah onboard.
+    return false;
   }
 }
 

@@ -116,6 +116,16 @@ export default function HomeView() {
   const backupDue = isBackupDueWithInterval(txs.length, lastBackup, getBackupInterval());
 
   useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === BACKUP_KEY || e.key === BACKUP_INTERVAL_KEY) {
+        setLastBackup(readLastBackup());
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
       if (isEditableElement(document.activeElement)) return;

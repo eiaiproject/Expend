@@ -185,6 +185,7 @@ const en: Record<TranslationKey, string> = {
   'chat.sheetDesc': 'The parser reads flexible amounts. Plain numbers below Rp100 without a prefix are rejected.',
   'chat.sheetClose': 'Close',
   'chat.detectedLang': 'Detected English. Change language in Settings?',
+  'chat.detectedLangId': 'Detected Bahasa Indonesia. Change language in Settings?',
 
   // Home search / educational empty state / backup banner
   'home.searchPlaceholder': 'Search transactions...',

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar } from 'reicon-react';
 import { db, type Transaction } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -8,7 +8,7 @@ import { Toast, useToast } from '../components/Toast';
 import { ExportWizard, type ExportKind } from '../components/ExportWizard';
 import { FormatCheatSheet } from '../components/FormatCheatSheet';
 import { csvBlob, jsonBlob, parseImportJSON, IMPORT_MAX_BYTES, filterByDate, exportFilename, downloadBlob, validateDateRange } from '../utils/export';
-import { isBackupDueWithInterval, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, type BackupInterval } from '../utils/backup';
+import { isBackupDueWithInterval, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, BACKUP_KEY, BACKUP_INTERVAL_KEY, type BackupInterval } from '../utils/backup';
 import { getFontSize, setFontSize as persistFontSize, isHighContrast, setHighContrast as persistHighContrast, type FontSize } from '../utils/a11yPrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { APP_VERSION } from '../config/version';
@@ -139,6 +139,17 @@ export default function SettingsView() {
   // halaman tempat interval diatur justru tidak sinkron dengan pengaturannya.
   const backupDue = isBackupDueWithInterval(txCount, lastBackup, backupInterval);
   const importRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === BACKUP_KEY || e.key === BACKUP_INTERVAL_KEY) {
+        setLastBackup(readLastBackup());
+        setBackupInterval(getBackupInterval());
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   // Satu jalur ekspor untuk csv/json: validasi range + filter + empty
   // check hanya sekali agar tidak terduplikasi per format. Wizard memanggil

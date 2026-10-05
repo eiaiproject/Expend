@@ -183,6 +183,7 @@ const id = {
   'chat.sheetDesc': 'Parser membaca nominal fleksibel. Angka polos di bawah Rp100 tanpa awalan ditolak.',
   'chat.sheetClose': 'Tutup',
   'chat.detectedLang': 'Terdeteksi English. Ganti bahasa di Pengaturan?',
+  'chat.detectedLangId': 'Terdeteksi Bahasa Indonesia. Ganti bahasa di Pengaturan?',
 
   // Home search / empty state edukatif / backup banner
   'home.searchPlaceholder': 'Cari transaksi...',
