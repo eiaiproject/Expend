@@ -1,4 +1,10 @@
 # Changelog
+## 0.20.0 - 2026-10-05
+### Added
+
+- Index amount, source and txId in schema v3
+- Import Google Sheets CSV export
+
 ## 0.19.3 - 2026-10-05
 ### Fixed
 
