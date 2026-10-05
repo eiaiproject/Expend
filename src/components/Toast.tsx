@@ -3,15 +3,19 @@ import { CheckCircle, AlertCircle, X } from 'reicon-react';
 import { useTranslation } from '../i18n';
 
 interface ToastData {
+  id: number;
   message: string;
   type: 'success' | 'error';
 }
+
+let toastSeq = 0;
 
 /** Shared toast state for views (replaces per-view useState+showToast). */
 export function useToast() {
   const [toast, setToast] = useState<ToastData | null>(null);
   const showToast = useCallback((message: string, type: ToastData['type'] = 'success') => {
-    setToast({ message, type });
+    toastSeq += 1;
+    setToast({ id: toastSeq, message, type });
   }, []);
   const dismissToast = useCallback(() => setToast(null), []);
   return { toast, showToast, dismissToast };

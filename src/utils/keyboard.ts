@@ -63,14 +63,22 @@ export function useVisualViewport(): { vvHeight: number; vvTop: number; keyboard
     const vv = window.visualViewport;
     if (!vv) return;
     const threshold = 60;
-    const initialHeight = vv.height;
+    // Baseline di-update saat keyboard tertutup (rotasi tanpa keyboard tidak
+    // lagi dikira keyboard terbuka). Portrait 844 → landscape 390 tanpa
+    // fokus editable memperbarui baseline, bukan keyboardOpen=true.
+    let baseline = vv.height;
     return trackViewport(() => {
       const h = vv.height;
       setVvTop(vv.offsetTop);
       const editing = isEditableElement(document.activeElement);
-      if (!editing) { setVvHeight(h); setKeyboardOpen(false); return; }
+      if (!editing) {
+        baseline = h;
+        setVvHeight(h);
+        setKeyboardOpen(false);
+        return;
+      }
       setVvHeight(h);
-      setKeyboardOpen(Math.max(initialHeight, h) - h > threshold);
+      setKeyboardOpen(Math.max(baseline, h) - h > threshold);
     });
   }, []);
   return { vvHeight, vvTop, keyboardOpen };

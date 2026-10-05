@@ -529,7 +529,7 @@ export default function SettingsView() {
       {/* Toast - key per pesan agar timer toast baru tidak mewarisi sisa timer lama. */}
       {toast && (
         <Toast
-          key={toast.message}
+          key={toast.id}
           message={toast.message}
           type={toast.type}
           onDismiss={dismissToast}

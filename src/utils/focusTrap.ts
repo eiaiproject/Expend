@@ -1,7 +1,10 @@
 import { useEffect, useEffectEvent, useRef } from 'react';
 import type { RefObject } from 'react';
 
-const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+// Hitung modal aktif agar satu Escape hanya menutup yang paling atas.
+let openTraps = 0;
 
 /** Shared Escape-to-close + Tab-cycling for modal dialogs/sheets. */
 function trapTabKey(e: KeyboardEvent, container: HTMLElement | null, onClose: () => void): void {
@@ -46,16 +49,23 @@ export function useFocusTrap<T extends HTMLElement>(
   const closeDialog = useEffectEvent(onClose);
   useEffect(() => {
     if (!active) return;
+    openTraps += 1;
+    const myLevel = openTraps;
     const restoreEl = restoreFocusRef?.current;
     previousFocus.current = document.activeElement as HTMLElement | null;
     const initial =
       initialFocusRef?.current ??
       (containerRef.current?.querySelector<HTMLElement>(FOCUSABLE) ?? null);
     initial?.focus?.();
-    const onKey = (e: KeyboardEvent) => trapTabKey(e, containerRef.current, () => closeDialog());
+    const onKey = (e: KeyboardEvent) => {
+      // Hanya trap paling atas yang merespons Escape.
+      if (e.key === 'Escape' && myLevel !== openTraps) return;
+      trapTabKey(e, containerRef.current, () => closeDialog());
+    };
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
+      openTraps = Math.max(0, openTraps - 1);
       (restoreEl ?? previousFocus.current)?.focus?.();
     };
   }, [active, containerRef, initialFocusRef, restoreFocusRef]);

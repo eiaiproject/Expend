@@ -1000,7 +1000,7 @@ export default function ChatView() {
 
       <FormatCheatSheet open={showSheet} onClose={() => setShowSheet(false)} />
       {/* key per pesan agar timer toast baru tidak mewarisi sisa timer lama. */}
-      {toast && <Toast key={toast.message} message={toast.message} type={toast.type} onDismiss={dismissToast} />}
+      {toast && <Toast key={toast.id} message={toast.message} type={toast.type} onDismiss={dismissToast} />}
 
       <style>{String.raw`@keyframes in { from { opacity:0; transform: translateY(4px)} to { opacity:1; transform: translateY(0)} } @media (prefers-reduced-motion: reduce) { .motion-safe\:animate-pulse, .motion-safe\:animate-\[in_0\.2s_ease-out\] { animation: none !important; } }`}</style>
     </div>

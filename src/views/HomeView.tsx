@@ -63,7 +63,15 @@ function addDaysISO(iso: string, days: number): string {
 
 function monthLabel(key: string): string {
   const [y, m] = key.split('-').map(Number);
-  return new Date(y!, m! - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  const lang = (() => {
+    try {
+      const v = localStorage.getItem('expend_lang');
+      return v === 'en' ? 'en' : 'id';
+    } catch {
+      return 'id';
+    }
+  })() as 'id' | 'en';
+  return monthLabelFor(`${y}-${String(m).padStart(2, '0')}`, lang);
 }
 
 const GRANULARITY_LABEL_KEY: Record<GroupGranularity, TranslationKey> = {
@@ -430,7 +438,7 @@ export default function HomeView() {
         // muncul, sehingga timer pesan lama tetap jalan dan toast baru hilang
         // terlalu cepat.
         <Toast
-          key={toast.message}
+          key={toast.id}
           message={toast.message}
           type={toast.type}
           onDismiss={dismissToast}
