@@ -3,6 +3,7 @@ import { useTranslation } from '../i18n';
 /** Overlay panduan visual sebelum capture/upload OCR (frame struk + tips). */
 export function OcrGuideOverlay({ onDismiss }: { readonly onDismiss: () => void }) {
   const { t } = useTranslation();
+  // Ilustrasi mock struk: contoh visual foto yang baik (R-22, terhubung produk).
   return (
     <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--accent)] bg-[var(--accent-soft)]/40 p-4">
       <div
