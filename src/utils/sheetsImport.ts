@@ -99,9 +99,16 @@ function csvFeedPlain(acc: CsvAcc, c: string): void {
 /** Parser CSV RFC4180 minimal: hormati quote `"`, escape `""`, CRLF. */
 export function parseCSVRows(text: string): string[][] {
   const acc: CsvAcc = { rows: [], row: [], cell: '', inQuotes: false };
-  for (let i = 0; i < text.length; i++) {
-    if (acc.inQuotes) i = csvFeedQuoted(acc, text, i);
-    else csvFeedPlain(acc, text[i]!);
+  // `while` (bukan `for`): indeks maju bervariasi (`""` = 2 char) sehingga
+  // counter di-update manual di body tanpa melanggar S2310.
+  let i = 0;
+  while (i < text.length) {
+    if (acc.inQuotes) {
+      i = csvFeedQuoted(acc, text, i) + 1;
+    } else {
+      csvFeedPlain(acc, text[i]!);
+      i += 1;
+    }
   }
   csvEndRow(acc);
   return acc.rows;
