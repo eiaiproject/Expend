@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { resetDatabase, gotoSettings } from './helpers/setup';
 
 const SHEETS_CSV = [
   'Tanggal,Penerima,Nominal,Sumber Dana,Catatan,ID,Input,Status',
@@ -7,18 +8,8 @@ const SHEETS_CSV = [
 ].join('\n');
 
 test('impor CSV Sheets: 5 kolom masuk, ID/Status dibuang, Perlu dicek ikut', async ({ page }) => {
-  await page.goto('/');
-  await page.evaluate(
-    () =>
-      new Promise<void>((res, rej) => {
-        const r = indexedDB.deleteDatabase('ExpendDB');
-        r.onsuccess = () => res();
-        r.onerror = () => rej(r.error);
-        r.onblocked = () => res();
-      }),
-  );
-  await page.goto('/settings');
-  await expect(page.getByRole('heading', { name: /Pengaturan|Settings/ })).toBeVisible();
+  await resetDatabase(page);
+  await gotoSettings(page);
 
   await page.locator('input[type="file"]').setInputFiles({
     name: 'sheets.csv',

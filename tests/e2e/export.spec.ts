@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import fs from 'node:fs';
+import { resetDatabase, gotoSettings } from './helpers/setup';
 
 // Isi input tanggal terkontrol React: set value lewat native setter + reset
 // valueTracker agar event input selalu terdeteksi (fill programmatik bisa
@@ -48,18 +49,8 @@ async function seedSimpleAndGotoSettings(page: Page, exportName: 'Ekspor CSV' | 
 
 test.describe('export CSV', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(
-      () =>
-        new Promise<void>((res, rej) => {
-          const r = indexedDB.deleteDatabase('ExpendDB');
-          r.onsuccess = () => res();
-          r.onerror = () => rej(r.error);
-          r.onblocked = () => res();
-        }),
-    );
-    await page.goto('/settings');
-    await expect(page.getByRole('heading', { name: /Pengaturan|Settings/ })).toBeVisible();
+    await resetDatabase(page);
+    await gotoSettings(page);
   });
 
   test('CSV download contains header + rows', async ({ page }) => {
