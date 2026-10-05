@@ -22,7 +22,7 @@
     "version": "node scripts/sync-version.mjs"
   },
   "dependencies": {
-    "dexie": "^4.4.5",
+    "dexie": "^4.4.6",
     "dexie-react-hooks": "^4.4.0",
     "react": "^19.0.1",
     "react-dom": "^19.3.0",
