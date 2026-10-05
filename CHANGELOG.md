@@ -1,4 +1,10 @@
 # Changelog
+## 0.19.3 - 2026-10-05
+### Fixed
+
+- Download language models in parallel
+
+
 ## 0.19.2 - 2026-09-20
 ### Changed
 
