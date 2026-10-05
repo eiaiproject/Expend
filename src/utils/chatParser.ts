@@ -382,6 +382,8 @@ function formatDescription(raw: string, hasGenericSource: boolean, stripSourceCl
   // Remove trailing standalone numbers (3+ digit; angka 1-2 digit di akhir bisa
   // bagian nama produk seperti "Level 5" / "Pak 2")
   desc = desc.replace(/\s\d{3,}\s*$/, '').trim(); // NOSONAR
+  // Sisa pecahan ambigu ("150/2" → nominal 150, sisa "/2" bukan deskripsi).
+  desc = desc.replace(/\s*\/\s*\d+\s*$/, '').trim();
   // Remove nomor referensi/rekening yang tersisa ("ref 123456" -> buang)
   desc = desc.replace(/\s*\b(ref|resi|trace|rekening|account|ID)\s*[:#]?\s*[\w\d#:.=-]*$/i, '').trim(); // NOSONAR - anchored ($), input bounded desc (<80 chars)
   // Remove dangling trailing preposition/conjunction left by cleanup above

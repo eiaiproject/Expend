@@ -9,10 +9,11 @@ import { pickBestAmount, type RankedAmount } from './amountRank';
  * TANPA batas untuk tanggal - artinya satu resi diparse dari dua panjang
  * berbeda (dan nominal di ekor resi panjang hilang). Sekarang satu jendela
  * dipakai seragam oleh nominal, deskripsi, catatan, tanggal, dan sumber.
- * Anti-ReDoS tetap terjaga: 50.000 char diparse <100ms
+ * 8000 char menutup resi QRIS panjang tanpa memotong Total/tanggal di ekor;
+ * Anti-ReDoS tetap terjaga: 50.000 char diparse <200ms
  * (tests/unit/receiptCorpus.test.ts).
  */
-const MAX_SCAN = 4000;
+const MAX_SCAN = 8000;
 
 /** Batas nominal, selaras dengan chatParser (MAX_AMOUNT di korpus). */
 const MAX_AMOUNT = 1_000_000_000_000;
