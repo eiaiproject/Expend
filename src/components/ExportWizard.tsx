@@ -26,7 +26,17 @@ export function ExportWizard({
   const [to, setTo] = useState('');
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  useFocusTrap(dialogRef, { onClose, initialFocusRef: closeRef, active: open });
+
+  // Reset ke langkah awal di setiap penutupan (bukan di effect agar
+  // react-hooks/set-state-in-effect tetap hijau): semua jalur tutup lewat sini.
+  const handleClose = () => {
+    setStep(1);
+    setKind('json');
+    setFrom('');
+    setTo('');
+    onClose();
+  };
+  useFocusTrap(dialogRef, { onClose: handleClose, initialFocusRef: closeRef, active: open });
 
   const rangeErr = validateDateRange(from || undefined, to || undefined);
   const filtered = useMemo(
@@ -37,7 +47,7 @@ export function ExportWizard({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <div className="fixed inset-0 bg-black/40 cursor-pointer" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/40 cursor-pointer" onClick={handleClose} aria-hidden="true" />
       <dialog
         ref={dialogRef}
         open
@@ -50,7 +60,7 @@ export function ExportWizard({
           <button
             ref={closeRef}
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label={t('common.close')}
             className="min-w-11 min-h-11 grid place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
@@ -147,7 +157,7 @@ export function ExportWizard({
             <button
               type="button"
               disabled={filtered.length === 0}
-              onClick={() => { onExport(kind, from, to); onClose(); }}
+              onClick={() => { onExport(kind, from, to); handleClose(); }}
               className="flex-1 min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold hover:opacity-90 active:scale-[0.98] disabled:opacity-40 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
             >
               {t('export.wizardExport')}

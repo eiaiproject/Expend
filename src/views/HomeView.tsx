@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { fmtIDR, fmtDate } from '../utils/format';
-import { filterByDate, validateDateRange, jsonBlob, exportFilename, downloadBlob } from '../utils/export';
+import { fmtIDR, fmtDate, monthLabelFor } from '../utils/format';
+import { filterByDate, validateDateRange, jsonBlob, exportFilename, downloadBlob, isValidISODate } from '../utils/export';
 import { todayLocalISO } from '../utils/date';
-import { isBackupDueWithInterval, getBackupInterval, readLastBackup, recordBackup } from '../utils/backup';
+import { isBackupDueWithInterval, getBackupInterval, readLastBackup, recordBackup, BACKUP_KEY, BACKUP_INTERVAL_KEY } from '../utils/backup';
 import { useDebouncedValue } from '../utils/useDebouncedValue';
 import { isEditableElement } from '../utils/keyboard';
 import { groupTransactions, type GroupGranularity } from '../utils/grouping';
@@ -18,6 +18,7 @@ import { FormatCheatSheet } from '../components/FormatCheatSheet';
 import { Wordmark } from '../components/Wordmark';
 import { QuickToggles } from '../components/QuickToggles';
 import { Toast, useToast } from '../components/Toast';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { Transaction } from '../db/db';
 import { useFocusTrap } from '../utils/focusTrap';
 import { useTranslation } from '../i18n';
@@ -62,7 +63,15 @@ function addDaysISO(iso: string, days: number): string {
 
 function monthLabel(key: string): string {
   const [y, m] = key.split('-').map(Number);
-  return new Date(y!, m! - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  const lang = (() => {
+    try {
+      const v = localStorage.getItem('expend_lang');
+      return v === 'en' ? 'en' : 'id';
+    } catch {
+      return 'id';
+    }
+  })() as 'id' | 'en';
+  return monthLabelFor(`${y}-${String(m).padStart(2, '0')}`, lang);
 }
 
 const GRANULARITY_LABEL_KEY: Record<GroupGranularity, TranslationKey> = {
@@ -88,6 +97,7 @@ export default function HomeView() {
   const [error, setError] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const [confirmDeleteTx, setConfirmDeleteTx] = useState<Transaction | null>(null);
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [granularity, setGranularity] = useState<GroupGranularity>('day');
@@ -104,6 +114,16 @@ export default function HomeView() {
   // TASK 9: banner backup sesuai interval (default mingguan).
   const [lastBackup, setLastBackup] = useState<string | null>(readLastBackup);
   const backupDue = isBackupDueWithInterval(txs.length, lastBackup, getBackupInterval());
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === BACKUP_KEY || e.key === BACKUP_INTERVAL_KEY) {
+        setLastBackup(readLastBackup());
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -139,7 +159,11 @@ export default function HomeView() {
     try {
       const all = await db.transactions.toArray();
       if (!all.length) return;
-      downloadBlob(jsonBlob(all), exportFilename('json'));
+      const ok = downloadBlob(jsonBlob(all), exportFilename('json'));
+      if (!ok) {
+        showToast(t('settings.exportJSONError'), 'error');
+        return;
+      }
       setLastBackup(recordBackup());
       showToast(t('settings.exportJSONSukses', { count: all.length }));
     } catch {
@@ -384,16 +408,7 @@ export default function HomeView() {
                   <button
                     type="button"
                     aria-label={t('home.deleteTransaction', { name: tx.description })}
-                    onClick={async () => {
-                      try {
-                        if (tx.id) {
-                          await db.transactions.delete(tx.id);
-                          showToast(t('home.transactionDeleted')); 
-                        }
-                      } catch {
-                        setError(t('home.deleteFailed'));
-                      }
-                    }}
+                    onClick={() => setConfirmDeleteTx(tx)}
                     className="min-w-12 min-h-12 -mr-2 grid place-items-center rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg)] active:scale-95 transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                   >
                     <Trash2 size={18} aria-hidden />
@@ -433,13 +448,36 @@ export default function HomeView() {
         // muncul, sehingga timer pesan lama tetap jalan dan toast baru hilang
         // terlalu cepat.
         <Toast
-          key={toast.message}
+          key={toast.id}
           message={toast.message}
           type={toast.type}
           onDismiss={dismissToast}
         />
       )}
       <FormatCheatSheet open={showSheet} onClose={() => setShowSheet(false)} />
+
+      <ConfirmDialog
+        open={confirmDeleteTx !== null}
+        title={t('home.deleteConfirmTitle')}
+        description={confirmDeleteTx ? t('home.deleteConfirmDesc', { name: confirmDeleteTx.description, amount: fmtIDR(confirmDeleteTx.amount) }) : ''}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('home.cancel')}
+        destructive
+        onCancel={() => setConfirmDeleteTx(null)}
+        onConfirm={() => {
+          const tx = confirmDeleteTx;
+          setConfirmDeleteTx(null);
+          if (!tx?.id) return;
+          void (async () => {
+            try {
+              await db.transactions.delete(tx.id!);
+              showToast(t('home.transactionDeleted'));
+            } catch {
+              setError(t('home.deleteFailed'));
+            }
+          })();
+        }}
+      />
 
       {editing && (
         <EditSheet
@@ -474,6 +512,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
   const [source, setSource] = useState(tx.source ?? '');
   const [note, setNote] = useState(tx.note ?? '');
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const sheetRef = useRef<HTMLFormElement>(null);
 
@@ -483,7 +522,15 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
     e.preventDefault();
     if (saving || !tx.id) return;
     const parsedAmount = Number(amount.replaceAll(/\D/g, ''));
-    if (!parsedAmount || parsedAmount <= 0) return;
+    if (!parsedAmount || parsedAmount <= 0 || parsedAmount > 1_000_000_000_000) {
+      setFormError(t('home.invalidAmount'));
+      return;
+    }
+    if (!isValidISODate(date)) {
+      setFormError(t('home.invalidDate'));
+      return;
+    }
+    setFormError(null);
     setSaving(true);
     try {
       await db.transactions.update(tx.id, {
@@ -534,6 +581,8 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
             <X size={18} aria-hidden />
           </button>
         </div>
+
+        {formError && <InlineAlert>{formError}</InlineAlert>}
 
         <label className="block">
           <span className="text-xs font-medium text-[var(--text-secondary)]">{t('home.editDescription')}</span>

@@ -27,6 +27,10 @@ const id = {
   'home.deleteTransaction': 'Hapus transaksi {name}',
   'home.transactionDeleted': 'Transaksi dihapus.',
   'home.deleteFailed': 'Gagal menghapus transaksi. Coba lagi.',
+  'home.deleteConfirmTitle': 'Hapus transaksi ini?',
+  'home.deleteConfirmDesc': '{name} - {amount} akan dihapus permanen.',
+  'home.invalidAmount': 'Nominal tidak valid.',
+  'home.invalidDate': 'Tanggal tidak valid. Gunakan YYYY-MM-DD.',
   'home.recordNew': 'Catat pengeluaran baru',
   'home.editTransaction': 'Edit transaksi {name}',
   'home.transactionUpdated': 'Transaksi diperbarui.',
@@ -88,9 +92,11 @@ const id = {
   'chat.ocrShareFailed': 'Gagal memproses file share. Silakan ambil foto atau upload gambar bukti secara manual.',
   'chat.ocrModelError': 'Pemindai OCR gagal dimuat. Sambungkan internet sekali (model ~8 MB) lalu coba lagi.',
   'chat.ocrCameraDenied': 'Izin kamera ditolak. Buka Pengaturan > Safari > Kamera untuk mengaktifkan, atau upload gambar dari galeri.',
+  'chat.ocrBusy': 'Masih membaca bukti sebelumnya. Tunggu selesai dulu.',
   'chat.recorded': 'Siap dicatat: {desc} - {amount}',
   'chat.saved': 'Tercatat. {desc} - {amount}',
   'chat.saveError': 'Gagal menyimpan transaksi. Coba lagi.',
+  'chat.saveInvalid': 'Nominal tidak valid (1 - 1.000.000.000.000).',
   'chat.loadOlder': 'Muat 50 pesan lama',
 
   // Settings
@@ -113,6 +119,7 @@ const id = {
   'settings.exportCSV': 'Ekspor CSV',
   'settings.exportJSON': 'Ekspor JSON',
   'settings.importJSON': 'Impor JSON',
+  'settings.importFile': 'Impor file',
   'settings.noExport': 'Tidak ada transaksi untuk diekspor.',
   'settings.invalidDate': 'Format tanggal tidak valid. Gunakan YYYY-MM-DD.',
   'settings.fromAfterTo': 'Tanggal Dari tidak boleh setelah Sampai.',
@@ -125,6 +132,9 @@ const id = {
   'settings.importJSONSukses': 'Berhasil mengimpor {count} transaksi.',
   'settings.importJSONSkipped': '{count} item dilewati.',
   'settings.importJSONError': 'Gagal mengimpor JSON.',
+  'settings.importSheetsSukses': 'Berhasil mengimpor {count} transaksi (Sheets).',
+  'settings.importSheetsSkipped': '{count} baris dilewati.',
+  'settings.importSheetsError': 'Gagal mengimpor CSV Sheets.',
   'settings.privacy': 'Privasi',
   'settings.localStorage': 'Penyimpanan lokal',
   'settings.localStorageDesc': 'Data transaksi disimpan di perangkat ini. Menghapus data situs atau aplikasi dapat menghapus seluruh transaksi.',
@@ -177,6 +187,7 @@ const id = {
   'chat.sheetDesc': 'Parser membaca nominal fleksibel. Angka polos di bawah Rp100 tanpa awalan ditolak.',
   'chat.sheetClose': 'Tutup',
   'chat.detectedLang': 'Terdeteksi English. Ganti bahasa di Pengaturan?',
+  'chat.detectedLangId': 'Terdeteksi Bahasa Indonesia. Ganti bahasa di Pengaturan?',
 
   // Home search / empty state edukatif / backup banner
   'home.searchPlaceholder': 'Cari transaksi...',

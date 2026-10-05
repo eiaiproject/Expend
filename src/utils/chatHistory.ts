@@ -30,9 +30,24 @@ async function pruneChatHistory(): Promise<void> {
 
 /**
  * Satu-satunya jalur tulis pesan chat, supaya kebijakan retensi tidak bisa
- * terlupa di satu call site pun.
+ * terlupa di satu call site pun. Tulis + prune dalam satu transaksi agar
+ * batas 500 deterministik di bawah konkurensi (dua add paralel tak lagi
+ * menghitung excess yang sama lalu menghapus id yang sama).
  */
 export async function addChatMessage(msg: Omit<ChatMessage, 'id'>): Promise<void> {
-  await db.chatMessages.add(msg as ChatMessage);
-  await pruneChatHistory();
+  await db.transaction('rw', db.chatMessages, async () => {
+    await db.chatMessages.add(msg as ChatMessage);
+    const total = await db.chatMessages.count();
+    const excess = total - MAX_CHAT_MESSAGES;
+    if (excess <= 0) return;
+    const oldest = await db.chatMessages.orderBy('createdAt').limit(excess).toArray();
+    const ids = oldest.map((m) => m.id).filter((id): id is number => typeof id === 'number');
+    if (ids.length > 0) {
+      try {
+        await db.chatMessages.bulkDelete(ids);
+      } catch {
+        // Housekeeping: kegagalan memangkas tidak boleh menggagalkan penyimpanan.
+      }
+    }
+  });
 }

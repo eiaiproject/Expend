@@ -17,7 +17,17 @@ async function handlePost(event) {
     const text = formData.get('text') || formData.get('title') || '';
     const sharedUrl = formData.get('url') || '';
     const cache = await caches.open('share-cache');
+    const OCR_MAX_BYTES = 10 * 1024 * 1024;
     if (file && typeof file === 'object' && 'arrayBuffer' in file && file.size > 0) {
+      if (file.size > OCR_MAX_BYTES) {
+        await cache.delete('shared-file');
+        return Response.redirect(`/chat?share=1&error=${encodeURIComponent('file too large')}`, 303);
+      }
+      const mime = (file.type || '').toLowerCase();
+      if (mime && !mime.startsWith('image/')) {
+        await cache.delete('shared-file');
+        return Response.redirect(`/chat?share=1&error=${encodeURIComponent('not an image')}`, 303);
+      }
       const buf = await file.arrayBuffer();
       const headers = { 'content-type': file.type || 'image/png', 'x-file-name': encodeURIComponent(file.name || 'receipt.png') };
       await cache.put('shared-file', new Response(buf, { headers }));

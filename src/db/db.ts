@@ -30,4 +30,12 @@ db.version(2).stores({
   chatMessages: '++id, role, createdAt',
 });
 
+// v3 additive: index baru untuk query balik tanpa mengubah bentuk baris.
+// amount/source memungkinkan filter nominal/sumber tanpa full-scan;
+// txId memungkinkan "pesan untuk transaksi X". Upgrade no-op (index otomatis).
+db.version(3).stores({
+  transactions: '++id, date, createdAt, amount, source',
+  chatMessages: '++id, role, createdAt, txId',
+});
+
 export { db };

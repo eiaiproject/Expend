@@ -2,6 +2,7 @@ let workerPromise: Promise<any> | null = null;
 /** True hanya setelah worker SELESAI dimuat - dipakai badge "Siap" di header. */
 let workerReady = false;
 let currentOnProgress: (n: number) => void = () => {};
+let progressToken = 0;
 
 /**
  * Gagal memuat worker/core/model - BUKAN "foto tidak terbaca". UI memisahkan
@@ -185,7 +186,11 @@ interface OcrResult {
 }
 
 export async function recognizeImageDetailed(file: File, onProgress: (n: number) => void): Promise<OcrResult> {
-  onProgress(5);
+  const myToken = ++progressToken;
+  const guarded = (n: number) => {
+    if (myToken === progressToken) onProgress(n);
+  };
+  guarded(5);
   const input = await preprocess(file);
   let worker: any;
   try {
@@ -193,12 +198,17 @@ export async function recognizeImageDetailed(file: File, onProgress: (n: number)
   } catch (e) {
     throw new OcrModelError(e);
   }
-  currentOnProgress = onProgress;
-  const { data } = await worker.recognize(input as any);
-  onProgress(100);
-  const raw = typeof data?.confidence === 'number' ? data.confidence : null;
-  const confidence = raw === null ? null : Math.max(0, Math.min(100, Math.round(raw)));
-  return { text: (data.text ?? '') as string, confidence };
+  currentOnProgress = guarded;
+  try {
+    const { data } = await worker.recognize(input as any);
+    guarded(100);
+    const raw = typeof data?.confidence === 'number' ? data.confidence : null;
+    const confidence = raw === null ? null : Math.max(0, Math.min(100, Math.round(raw)));
+    return { text: (data.text ?? '') as string, confidence };
+  } finally {
+    // Hanya reset bila masih pemilik token — panggilan lebih baru menang.
+    if (myToken === progressToken) currentOnProgress = () => {};
+  }
 }
 
 export async function recognizeImage(file: File, onProgress: (n: number) => void): Promise<string> {
@@ -219,10 +229,13 @@ async function terminateOcr() {
   }
 }
 
-// Bebaskan worker saat halaman ditutup/disembunyikan permanen (pagehide).
+// Bebaskan worker saat halaman ditutup permanen (pagehide non-persisted).
 // Navigasi antar-route tidak terminate (reuse disengaja agar OCR kedua cepat).
+// bfcache (persisted=true) jangan terminate: OCR tengah jalan akan throw dan
+// worker 8MB harus reload sia-sia saat user kembali.
 if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
-  window.addEventListener('pagehide', () => {
+  window.addEventListener('pagehide', (e) => {
+    if ((e as PageTransitionEvent).persisted) return;
     void terminateOcr().catch(() => {});
   });
 }

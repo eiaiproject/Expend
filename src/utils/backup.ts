@@ -1,6 +1,7 @@
 const BACKUP_KEY = 'expend_last_backup';
 const BACKUP_DUE_DAYS = 30;
 const BACKUP_INTERVAL_KEY = 'expend_backup_interval';
+export { BACKUP_KEY, BACKUP_INTERVAL_KEY };
 export type BackupInterval = 'off' | 'weekly' | 'monthly';
 const DAY_MS = 86_400_000;
 

@@ -29,6 +29,10 @@ const en: Record<TranslationKey, string> = {
   'home.deleteTransaction': 'Delete transaction {name}',
   'home.transactionDeleted': 'Transaction deleted.',
   'home.deleteFailed': 'Failed to delete transaction. Try again.',
+  'home.deleteConfirmTitle': 'Delete this transaction?',
+  'home.deleteConfirmDesc': '{name} - {amount} will be permanently deleted.',
+  'home.invalidAmount': 'Invalid amount.',
+  'home.invalidDate': 'Invalid date. Use YYYY-MM-DD.',
   'home.recordNew': 'Record new expense',
   'home.editTransaction': 'Edit transaction {name}',
   'home.transactionUpdated': 'Transaction updated.',
@@ -90,9 +94,11 @@ const en: Record<TranslationKey, string> = {
   'chat.ocrShareFailed': 'Failed to process shared file. Please take a photo or upload the receipt image manually.',
   'chat.ocrModelError': 'OCR engine failed to load. Connect to the internet once (model ~8 MB) then retry.',
   'chat.ocrCameraDenied': 'Camera access denied. Open Settings > Safari > Camera to enable, or upload from gallery.',
+  'chat.ocrBusy': 'Still reading the previous receipt. Please wait.',
   'chat.recorded': 'Ready to record: {desc} - {amount}',
   'chat.saved': 'Recorded. {desc} - {amount}',
   'chat.saveError': 'Failed to save transaction. Try again.',
+  'chat.saveInvalid': 'Invalid amount (1 - 1,000,000,000,000).',
   'chat.loadOlder': 'Load 50 older messages',
 
   // Settings
@@ -115,6 +121,7 @@ const en: Record<TranslationKey, string> = {
   'settings.exportCSV': 'Export CSV',
   'settings.exportJSON': 'Export JSON',
   'settings.importJSON': 'Import JSON',
+  'settings.importFile': 'Import file',
   'settings.noExport': 'No transactions to export.',
   'settings.invalidDate': 'Invalid date format. Use YYYY-MM-DD.',
   'settings.fromAfterTo': 'From date must not be after To date.',
@@ -127,6 +134,9 @@ const en: Record<TranslationKey, string> = {
   'settings.importJSONSukses': 'Successfully imported {count} transactions.',
   'settings.importJSONSkipped': '{count} items skipped.',
   'settings.importJSONError': 'Failed to import JSON.',
+  'settings.importSheetsSukses': 'Successfully imported {count} transactions (Sheets).',
+  'settings.importSheetsSkipped': '{count} rows skipped.',
+  'settings.importSheetsError': 'Failed to import Sheets CSV.',
   'settings.privacy': 'Privacy',
   'settings.localStorage': 'Local storage',
   'settings.localStorageDesc': 'Transaction data is stored on this device. Deleting site or app data may remove all transactions.',
@@ -179,6 +189,7 @@ const en: Record<TranslationKey, string> = {
   'chat.sheetDesc': 'The parser reads flexible amounts. Plain numbers below Rp100 without a prefix are rejected.',
   'chat.sheetClose': 'Close',
   'chat.detectedLang': 'Detected English. Change language in Settings?',
+  'chat.detectedLangId': 'Detected Bahasa Indonesia. Change language in Settings?',
 
   // Home search / educational empty state / backup banner
   'home.searchPlaceholder': 'Search transactions...',

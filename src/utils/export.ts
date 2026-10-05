@@ -66,6 +66,8 @@ function isValidISODate(d: string): boolean {
   return dd <= new Date(y, m, 0).getDate();
 }
 
+export { isValidISODate };
+
 /**
  * Validasi rentang From/To untuk ekspor (inklusif, YYYY-MM-DD).
  * Return null jika valid/kosong, kode error jika tidak.
@@ -233,11 +235,20 @@ export function exportFilename(ext: 'csv' | 'json', from?: string, to?: string):
   return `expend-${d}.${ext}`;
 }
 
-export function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+export function downloadBlob(blob: Blob, filename: string): boolean {
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    // iOS Safari mengabaikan click pada anchor detached — harus menempel ke DOM.
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  } catch {
+    return false;
+  }
 }

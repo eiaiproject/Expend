@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar } from 'reicon-react';
 import { db, type Transaction } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -8,7 +8,9 @@ import { Toast, useToast } from '../components/Toast';
 import { ExportWizard, type ExportKind } from '../components/ExportWizard';
 import { FormatCheatSheet } from '../components/FormatCheatSheet';
 import { csvBlob, jsonBlob, parseImportJSON, IMPORT_MAX_BYTES, filterByDate, exportFilename, downloadBlob, validateDateRange } from '../utils/export';
-import { isBackupDueWithInterval, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, type BackupInterval } from '../utils/backup';
+import { parseSheetsCSV, SHEETS_IMPORT_MAX_BYTES } from '../utils/sheetsImport';
+import { persistFreshTransactions, type StorableTransaction } from '../utils/importStore';
+import { isBackupDueWithInterval, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, BACKUP_KEY, BACKUP_INTERVAL_KEY, type BackupInterval } from '../utils/backup';
 import { getFontSize, setFontSize as persistFontSize, isHighContrast, setHighContrast as persistHighContrast, type FontSize } from '../utils/a11yPrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { APP_VERSION } from '../config/version';
@@ -140,6 +142,17 @@ export default function SettingsView() {
   const backupDue = isBackupDueWithInterval(txCount, lastBackup, backupInterval);
   const importRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === BACKUP_KEY || e.key === BACKUP_INTERVAL_KEY) {
+        setLastBackup(readLastBackup());
+        setBackupInterval(getBackupInterval());
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   // Satu jalur ekspor untuk csv/json: validasi range + filter + empty
   // check hanya sekali agar tidak terduplikasi per format. Wizard memanggil
   // dengan override rentang sendiri; tombol cepat memakai state exportFrom/To.
@@ -163,11 +176,19 @@ export default function SettingsView() {
         return;
       }
       if (kind === 'csv') {
-        downloadBlob(csvBlob(filtered), exportFilename('csv', from || undefined, to || undefined));
+        const ok = downloadBlob(csvBlob(filtered), exportFilename('csv', from || undefined, to || undefined));
+        if (!ok) {
+          showToast(t('settings.exportCSVError'), 'error');
+          return;
+        }
         setLastBackup(recordBackup());
         showToast(t('settings.exportCSVSukses', { count: filtered.length }));
       } else {
-        downloadBlob(jsonBlob(filtered), exportFilename('json', from || undefined, to || undefined));
+        const ok = downloadBlob(jsonBlob(filtered), exportFilename('json', from || undefined, to || undefined));
+        if (!ok) {
+          showToast(t('settings.exportJSONError'), 'error');
+          return;
+        }
         setLastBackup(recordBackup());
         showToast(t('settings.exportJSONSukses', { count: filtered.length }));
       }
@@ -180,9 +201,67 @@ export default function SettingsView() {
     void handleExport(kind, from, to);
   }, [handleExport]);
 
+  // Impor CSV hasil download Google Sheets: hanya 5 kolom yang dipakai
+  // (Tanggal, Penerima, Nominal, Sumber Dana, Catatan); ID/Input/Status/
+  // Dicatat Pada dibuang di parser. Append-only + dedupe eksak vs DB.
+  // Jalur persist bersama impor JSON dan CSV Sheets: parse → dedupe vs DB
+  // → bulkAdd atomik → toast. Satu tempat agar pesan dan kebijakan identik.
+  const persistParsedImport = useCallback(async (
+    file: File,
+    parse: (raw: string) => { ok: boolean; transactions: StorableTransaction[]; skipped: number; errors: string[] },
+    msg: { ok: TranslationKey; skipped: TranslationKey; fail: TranslationKey },
+  ) => {
+    let res;
+    try {
+      res = parse(await file.text());
+    } catch {
+      showToast(t(msg.fail), 'error');
+      return;
+    }
+    if (!res.ok || res.transactions.length === 0) {
+      showToast(res.errors[0] ?? t(msg.fail), 'error');
+      return;
+    }
+    let outcome;
+    try {
+      outcome = await persistFreshTransactions(res.transactions);
+    } catch {
+      showToast(t(msg.fail), 'error');
+      return;
+    }
+    if (outcome.status === 'quota') {
+      showToast(t(msg.fail), 'error');
+      return;
+    }
+    const skippedTotal = res.skipped + outcome.skippedInDb;
+    showToast(skippedTotal > 0
+      ? `${t(msg.ok, { count: outcome.fresh })} ${t(msg.skipped, { count: skippedTotal })}`
+      : t(msg.ok, { count: outcome.fresh }));
+  }, [showToast, t]);
+
+  const handleImportSheetsCSV = useCallback(async (file: File) => {
+    if (file.size > SHEETS_IMPORT_MAX_BYTES || file.size === 0) {
+      showToast(t('settings.importSheetsError'), 'error');
+      return;
+    }
+    await persistParsedImport(
+      file,
+      parseSheetsCSV,
+      { ok: 'settings.importSheetsSukses', skipped: 'settings.importSheetsSkipped', fail: 'settings.importSheetsError' },
+    );
+  }, [showToast, t, persistParsedImport]);
+
   const handleImportFile = useCallback(async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.json') && file.type !== 'application/json' && file.type !== '') {
+    const lower = file.name.toLowerCase();
+    const isCsv = lower.endsWith('.csv');
+    const isJson = lower.endsWith('.json');
+    if (!isCsv && !isJson) {
       showToast(t('settings.importJSONError'), 'error');
+      return;
+    }
+    if (isCsv) {
+      await handleImportSheetsCSV(file);
+      if (importRef.current) importRef.current.value = '';
       return;
     }
     if (file.size > IMPORT_MAX_BYTES || file.size === 0) {
@@ -190,29 +269,22 @@ export default function SettingsView() {
       return;
     }
     try {
-      const raw = await file.text();
-      const res = parseImportJSON(raw);
-      if (!res.ok || res.transactions.length === 0) {
-        showToast(res.errors[0] ?? t('settings.importJSONError'), 'error');
-        return;
-      }
-      // Append-only: jangan hapus data lama. Dedupe eksak terhadap DB.
-      const existing = await db.transactions.toArray();
-      const existingKeys = new Set(existing.map((tx) => `${tx.description}|${tx.amount}|${tx.date}|${tx.source ?? ''}|${tx.note ?? ''}`));
-      const fresh = res.transactions.filter((tx) => !existingKeys.has(`${tx.description}|${tx.amount}|${tx.date}|${tx.source ?? ''}|${tx.note ?? ''}`));
-      if (fresh.length) await db.transactions.bulkAdd(fresh.map((tx) => ({ ...tx })));
-      const skippedTotal = res.skipped + (res.transactions.length - fresh.length);
-      showToast(skippedTotal > 0 ? `${t('settings.importJSONSukses', { count: fresh.length })} ${t('settings.importJSONSkipped', { count: skippedTotal })}` : t('settings.importJSONSukses', { count: fresh.length }));
-    } catch {
-      showToast(t('settings.importJSONError'), 'error');
+      await persistParsedImport(
+        file,
+        parseImportJSON,
+        { ok: 'settings.importJSONSukses', skipped: 'settings.importJSONSkipped', fail: 'settings.importJSONError' },
+      );
     } finally {
       if (importRef.current) importRef.current.value = '';
     }
-  }, [showToast, t]);
+  }, [showToast, t, handleImportSheetsCSV, persistParsedImport]);
 
   const handleDeleteAll = useCallback(async () => {
     try {
-      await db.transactions.clear();
+      await db.transaction('rw', [db.transactions, db.chatMessages], async () => {
+        await db.transactions.clear();
+        await db.chatMessages.clear();
+      });
       showToast(t('settings.deleteSuccess'));
     } catch {
       showToast(t('settings.deleteError'), 'error');
@@ -372,8 +444,8 @@ export default function SettingsView() {
               <button type="button" aria-label={t('settings.exportJSON')} onClick={() => void handleExport('json')} disabled={txCount === 0} aria-disabled={txCount === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 <Download size={16} aria-hidden /> {t('settings.exportJSON')}
               </button>
-              <button type="button" aria-label={t('settings.importJSON')} onClick={() => importRef.current?.click()} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
-                <Download size={16} aria-hidden /> {t('settings.importJSON')}
+              <button type="button" aria-label={t('settings.importFile')} onClick={() => importRef.current?.click()} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
+                <Download size={16} aria-hidden /> {t('settings.importFile')}
               </button>
               <button type="button" onClick={() => setShowWizard(true)} disabled={txCount === 0} className="min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 disabled:opacity-40 disabled:active:scale-100">
                 {t('export.wizardTitle')}
@@ -406,7 +478,7 @@ export default function SettingsView() {
             >
               <Download size={16} aria-hidden /> {t('settings.backupNow')}
             </button>
-            <input ref={importRef} type="file" accept="application/json,.json" className="hidden" aria-label={t('settings.importJSON')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f); }} />
+            <input ref={importRef} type="file" accept="application/json,.json,text/csv,.csv" className="hidden" aria-label={t('settings.importFile')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f); }} />
             {backupDue && (
               <p className="text-xs text-[var(--text-secondary)]" role="note">
                 {t('settings.backupDue')}
@@ -506,7 +578,7 @@ export default function SettingsView() {
       {/* Toast - key per pesan agar timer toast baru tidak mewarisi sisa timer lama. */}
       {toast && (
         <Toast
-          key={toast.message}
+          key={toast.id}
           message={toast.message}
           type={toast.type}
           onDismiss={dismissToast}
