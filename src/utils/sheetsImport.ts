@@ -56,44 +56,55 @@ function normalizeHeader(s: string): string {
     .trim();
 }
 
+interface CsvAcc {
+  rows: string[][];
+  row: string[];
+  cell: string;
+  inQuotes: boolean;
+}
+
+function csvPushCell(acc: CsvAcc): void {
+  acc.row.push(acc.cell);
+  acc.cell = '';
+}
+
+function csvEndRow(acc: CsvAcc): void {
+  csvPushCell(acc);
+  acc.rows.push(acc.row);
+  acc.row = [];
+}
+
+/** Satu karakter dalam mode quote. Kembalian: indeks baru (maju 1 bila `""`). */
+function csvFeedQuoted(acc: CsvAcc, text: string, i: number): number {
+  const c = text[i]!;
+  if (c !== '"') {
+    acc.cell += c;
+    return i;
+  }
+  if (text[i + 1] === '"') {
+    acc.cell += '"';
+    return i + 1;
+  }
+  acc.inQuotes = false;
+  return i;
+}
+
+function csvFeedPlain(acc: CsvAcc, c: string): void {
+  if (c === '"') acc.inQuotes = true;
+  else if (c === ',') csvPushCell(acc);
+  else if (c === '\n') csvEndRow(acc);
+  else if (c !== '\r') acc.cell += c;
+}
+
 /** Parser CSV RFC4180 minimal: hormati quote `"`, escape `""`, CRLF. */
 export function parseCSVRows(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let cell = '';
-  let inQuotes = false;
+  const acc: CsvAcc = { rows: [], row: [], cell: '', inQuotes: false };
   for (let i = 0; i < text.length; i++) {
-    const c = text[i]!;
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') {
-          cell += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        cell += c;
-      }
-    } else if (c === '"') {
-      inQuotes = true;
-    } else if (c === ',') {
-      row.push(cell);
-      cell = '';
-    } else if (c === '\n') {
-      row.push(cell);
-      rows.push(row);
-      row = [];
-      cell = '';
-    } else if (c === '\r') {
-      // Abaikan; `\n` yang mengakhiri baris.
-    } else {
-      cell += c;
-    }
+    if (acc.inQuotes) i = csvFeedQuoted(acc, text, i);
+    else csvFeedPlain(acc, text[i]!);
   }
-  row.push(cell);
-  rows.push(row);
-  return rows;
+  csvEndRow(acc);
+  return acc.rows;
 }
 
 /**
