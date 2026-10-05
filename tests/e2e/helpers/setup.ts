@@ -8,7 +8,7 @@ export async function resetDatabase(page: Page): Promise<void> {
       new Promise<void>((res, rej) => {
         const r = indexedDB.deleteDatabase('ExpendDB');
         r.onsuccess = () => res();
-        r.onerror = () => rej(r.error);
+        r.onerror = () => rej(r.error ?? new Error('deleteDatabase failed'));
         r.onblocked = () => res();
       }),
   );
