@@ -94,9 +94,12 @@ export default function ChatView() {
     }
   });
   const { toast, showToast, dismissToast } = useToast();
-  const langHintShown = useRef(false);
+  const LANG_HINT_KEY = 'expend_lang_hint';
   const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
   const [isSending, setIsSending] = useState(false);
+  const isSendingRef = useRef(false);
+  const shareProcessedRef = useRef(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [ocrAvailable, setOcrAvailable] = useState(isOcrReady());
@@ -123,9 +126,9 @@ export default function ChatView() {
     loaded: false,
   });
   // Cache snapshot Dexie saat render, bukan di effect (react-hooks/set-state-in-effect).
-  // Semantik sama: pesan lama tetap tampil saat reload transien agar wadah
-  // scroll tidak remount (itu yang melempar ke atas), dan loading awal
-  // tetap dibedakan dari empty (R-27).
+  // Semantik: pesan lama tetap tampil saat reload transien agar wadah scroll
+  // tidak remount (itu yang melempar ke atas); loading awal dibedakan dari
+  // empty (R-27). Guard perbandingan referensi mencegah loop render.
   if (messagesResult !== undefined && messagesResult !== messageCache.snapshot) {
     setMessageCache({ snapshot: messagesResult, loaded: true });
   }
@@ -189,16 +192,21 @@ export default function ChatView() {
     }
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
     const anchor = sendAnchorRef.current;
-    const forceSend = !!anchor && anchor.atBottom && anchor.kb === keyboardInset;
+    // Inset keyboard berubah async (animasi + debounce blur) — toleransi 40px
+    // agar pesan sendiri tetap terlihat walau inset bergeser saat kirim.
+    const sameKb = !anchor || Math.abs(anchor.kb - keyboardInset) < 40;
+    const forceSend = !!anchor && anchor.atBottom && sameKb;
     if (firstRenderRef.current) {
       firstRenderRef.current = false;
       scrollToBottom(listRef, true);
+      sendAnchorRef.current = null;
     } else if (nearBottom || forceSend) {
       // Selalu instant: smooth scrollIntoView di-interupsi setiap ada
       // mutasi layout (progress OCR, kartu pending, gambar) sehingga
       // berhenti di tengah - user harus klik panah bawah manual.
       // Smooth hanya untuk ketukan eksplisit tombol panah (scrollToBottom).
       el.scrollTop = el.scrollHeight;
+      sendAnchorRef.current = null;
     }
   }, [messages.length, pending, ocrProgress, keyboardInset]);
 
@@ -235,6 +243,8 @@ export default function ChatView() {
   useEffect(() => { // NOSONAR - cognitive complexity from share file+text handling
     const params = new URLSearchParams(window.location.search);
     if (!params.has('share')) return;
+    if (shareProcessedRef.current) return;
+    shareProcessedRef.current = true;
     (async () => {
       try {
         // B2/B3: Cek error param dari share-handler.js (cache gagal).
@@ -255,6 +265,13 @@ export default function ChatView() {
         // real receipt. If we have an image, use OCR only and discard text.
         const fileRes = await cache.match('shared-file');
         if (fileRes) {
+          if (ocrInFlight.current) {
+            showToast(t('chat.ocrBusy'), 'error');
+            await cache.delete('shared-file');
+            await cache.delete('shared-meta');
+            window.history.replaceState({}, '', '/chat');
+            return;
+          }
           const blob = await fileRes.blob();
           const name = decodeURIComponent(fileRes.headers.get('x-file-name') || 'receipt.png');
           const type = fileRes.headers.get('content-type') || 'image/png';
@@ -274,7 +291,7 @@ export default function ChatView() {
                     setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || todayLocalISO(), source: parsed.source, note: parsed.note });
                     setPendingEditable(false);
                   } else {
-                    setInput(sharedText.slice(0, 80));
+                    setInput(sharedText.slice(0, 500));
                   }
                 }
                 await cache.delete('shared-meta');
@@ -291,7 +308,9 @@ export default function ChatView() {
         window.history.replaceState({}, '', '/chat');
       }
     })();
-  }, []);
+    // showToast/t di deps untuk exhaustive-deps: aman karena guard
+    // shareProcessedRef membuat eksekusi ulang jadi no-op.
+  }, [showToast, t]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -321,44 +340,57 @@ export default function ChatView() {
   async function handleSend(e?: React.FormEvent) {
     e?.preventDefault();
     const text = input.trim();
-    if (!text || isSending) return;
+    if (!text || isSendingRef.current) return;
+    isSendingRef.current = true;
     captureSendAnchor();
     setIsSending(true);
     setInput('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     const now = new Date().toISOString();
-    await addChatMessage({ role: 'user', text, createdAt: now });
+    try {
+      await addChatMessage({ role: 'user', text, createdAt: now });
 
-    // TASK 8: deteksi bahasa per-input (parse tetap jalan; toast sekali per session).
-    const detected = detectInputLang(text);
-    if (detected && detected !== lang && !langHintShown.current) {
-      langHintShown.current = true;
-      showToast(t('chat.detectedLang'));
-    }
+      // Deteksi bahasa per-input; toast sekali per session (sessionStorage),
+      // bukan per-mount, dengan arah pesan yang benar (id↔en).
+      const detected = detectInputLang(text);
+      if (detected && detected !== lang) {
+        let shown = false;
+        try {
+          shown = sessionStorage.getItem(LANG_HINT_KEY) === '1';
+        } catch {}
+        if (!shown) {
+          try {
+            sessionStorage.setItem(LANG_HINT_KEY, '1');
+          } catch {}
+          showToast(t(detected === 'en' ? 'chat.detectedLang' : 'chat.detectedLangId'));
+        }
+      }
 
-    const parsed = parseChatInput(text);
-    if (!parsed) {
+      const parsed = parseChatInput(text);
+      if (!parsed) {
+        await addChatMessage({
+          role: 'assistant',
+          text: t('chat.noAmount'),
+          createdAt: new Date().toISOString(),
+        });
+        return;
+      }
+      const today = now.slice(0, 10);
+      const p: Pending = { description: parsed.description, amount: parsed.amount, date: parsed.date || today, source: parsed.source, note: parsed.note };
+      setPending(p);
+      setOcrConfidence(null);
+      setPendingEditable(false);
       await addChatMessage({
         role: 'assistant',
-        text: t('chat.noAmount'),
+        text: t('chat.recorded', { desc: p.description, amount: fmtIDR(p.amount) }),
         createdAt: new Date().toISOString(),
+        parsed: p,
       });
+    } finally {
+      isSendingRef.current = false;
       setIsSending(false);
-      return;
     }
-    const today = now.slice(0, 10);
-    const p: Pending = { description: parsed.description, amount: parsed.amount, date: parsed.date || today, source: parsed.source, note: parsed.note };
-    setPending(p);
-    setOcrConfidence(null);
-    setPendingEditable(false);
-    await addChatMessage({
-      role: 'assistant',
-      text: t('chat.recorded', { desc: p.description, amount: fmtIDR(p.amount) }),
-      createdAt: new Date().toISOString(),
-      parsed: p,
-    });
-    setIsSending(false);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -381,7 +413,10 @@ export default function ChatView() {
   }
 
   async function handleFile(file: File) {
-    if (ocrInFlight.current) return;
+    if (ocrInFlight.current) {
+      showToast(t('chat.ocrBusy'), 'error');
+      return;
+    }
     captureSendAnchor();
     const fileErrKey = await ocrFileErrorKey(file);
     if (fileErrKey) {
@@ -482,10 +517,12 @@ export default function ChatView() {
   return (
     <div
       className="flex flex-col h-full min-h-0"
-      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-      onDragLeave={() => setIsDragging(false)}
+      onDragEnter={(e) => { e.preventDefault(); dragCounter.current += 1; setIsDragging(true); }}
+      onDragOver={(e) => { e.preventDefault(); }}
+      onDragLeave={(e) => { e.preventDefault(); dragCounter.current = Math.max(0, dragCounter.current - 1); if (dragCounter.current === 0) setIsDragging(false); }}
       onDrop={(e) => {
         e.preventDefault();
+        dragCounter.current = 0;
         setIsDragging(false);
         const f = e.dataTransfer.files?.[0];
         if (f) handleFile(f);
@@ -886,17 +923,13 @@ export default function ChatView() {
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
+              // User sengaja batal (Cancel picker) → diam, bukan error.
+              // Hanya permission-denied nyata yang ditangani browser via
+              // file kosong; tanpa sinyal itu jangan tuduh kamera ditolak.
               if (f) {
                 handleFile(f);
-              } else {
-                // B7: Jika tidak ada file dipilih (permission ditolak di iOS Safari)
-                // tampilkan pesan error setelah delay singkat
-                setTimeout(() => {
-                  if (mountedRef.current && !ocrInFlight.current) {
-                    setOcrError(t('chat.ocrCameraDenied'));
-                  }
-                }, 500);
               }
+              e.target.value = '';
             }}
           />
           <button
