@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useId } from 'react';
 import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar } from 'reicon-react';
 import { db, type Transaction } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -35,9 +35,12 @@ const FONT_SIZE_LABEL_KEY: Record<FontSize, TranslationKey> = {
 };
 
 function SettingsSection({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
+  // useId memberi id stabil dan unik, termasuk saat judul section diterjemahkan
+  // atau memuat spasi dan tanda baca.
+  const headingId = useId();
   return (
-    <section aria-labelledby={`section-${title.toLowerCase().replace(/\s/g, '-')}`} className="space-y-2">
-      <h2 id={`section-${title.toLowerCase().replace(/\s/g, '-')}`} className="text-xs font-bold tracking-wide uppercase text-[var(--text-secondary)] px-1">{title}</h2>
+    <section aria-labelledby={headingId} className="space-y-2">
+      <h2 id={headingId} className="text-xs font-bold tracking-wide uppercase text-[var(--text-secondary)] px-1">{title}</h2>
       {children}
     </section>
   );
@@ -137,7 +140,7 @@ export default function SettingsView() {
   const [exportTo, setExportTo] = useState('');
   const [lastBackup, setLastBackup] = useState<string | null>(readLastBackup);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  // TASK 6/7/9: wizard ekspor, cheat sheet, preferensi a11y, interval backup.
+  // wizard ekspor, cheat sheet, preferensi a11y, interval backup.
   const [showWizard, setShowWizard] = useState(false);
   // Wizard butuh seluruh baris (untuk preview + rentang tanggal), jadi tabel
   // penuh baru dibaca saat wizard terbuka - bukan setiap Settings dibuka.
@@ -537,7 +540,7 @@ export default function SettingsView() {
               title={t('settings.receiptData')}
               description={t('settings.receiptDataDesc')}
             />
-            {/* A6: Peringatan data tidak terenkripsi */}
+            {/* Peringatan data tidak terenkripsi */}
             <SettingsRow
               icon={<Lock size={18} />}
               iconBg="bg-[var(--danger-soft)]"
@@ -599,7 +602,7 @@ export default function SettingsView() {
 
       {/* Footer */}
       <div className="text-center pt-2 pb-4">
-        <p className="text-[11px] text-[var(--text-muted)] font-mono">expend.pages.dev</p>
+        <p className="text-xs text-[var(--text-muted)] font-mono">expend.pages.dev</p>
       </div>
 
       {/* Toast - key per pesan agar timer toast baru tidak mewarisi sisa timer lama. */}

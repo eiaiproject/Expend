@@ -40,7 +40,7 @@ export function FormatCheatSheet({ open, onClose }: { readonly open: boolean; re
           {FORMATS.map((f) => (
             <li key={f.sample} className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2">
               <p className="font-mono text-xs font-semibold break-words">{f.sample}</p>
-              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{t(f.noteKey)}</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t(f.noteKey)}</p>
             </li>
           ))}
         </ul>

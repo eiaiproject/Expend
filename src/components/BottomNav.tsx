@@ -16,7 +16,7 @@ export function BottomNav({ hidden = false }: { readonly hidden?: boolean }) {
           end={item.href === '/'}
           className={({ isActive }) => {
             const active = isActive || isActivePath(item.href, location.pathname);
-            return `flex-1 flex flex-col items-center justify-center gap-1.5 min-h-13 py-2 text-[12px] font-medium transition-colors relative ${
+            return `flex-1 flex flex-col items-center justify-center gap-1.5 min-h-13 py-2 text-xs font-medium transition-colors relative ${
               active
                 ? 'text-[var(--accent)] font-semibold'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'

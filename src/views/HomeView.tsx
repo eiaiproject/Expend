@@ -115,17 +115,17 @@ export default function HomeView() {
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [granularity, setGranularity] = useState<GroupGranularity>('day');
-  // TASK 4: pencarian deskripsi (debounce) + shortcut "/" + chip cepat.
+  // pencarian deskripsi (debounce) + shortcut "/" + chip cepat.
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query, 200);
   const searchRef = useRef<HTMLInputElement>(null);
-  // TASK 3: cheat sheet dari empty state.
+  // cheat sheet dari empty state.
   const [showSheet, setShowSheet] = useState(false);
   // Paging daftar disimpan bersama "sidik jari" filternya: begitu filter atau
   // granularitas berubah, sidik jari tidak cocok dan daftar otomatis mulai lagi
   // dari grup terbaru - tanpa setState di dalam effect (react-hooks/set-state-in-effect).
   const [paging, setPaging] = useState({ key: '', count: GROUP_PAGE });
-  // TASK 9: banner backup sesuai interval (default mingguan).
+  // banner backup sesuai interval (default mingguan).
   const [lastBackup, setLastBackup] = useState<string | null>(readLastBackup);
   const backupDue = isBackupDueWithInterval(txs.length, lastBackup, getBackupInterval());
 

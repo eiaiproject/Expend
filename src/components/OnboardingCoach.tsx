@@ -38,7 +38,7 @@ export function OnboardingCoach({
         className="relative z-10 w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] p-5 shadow-lg motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none"
       >
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-bold tracking-wide uppercase text-[var(--text-muted)] tabular-nums">
+          <p className="text-xs font-bold tracking-wide uppercase text-[var(--text-muted)] tabular-nums">
             {t('onboarding.stepOf', { current: step + 1, total: 4 })}
           </p>
           <button
@@ -89,7 +89,7 @@ export function OnboardingCoach({
               <span className="rounded-full bg-[var(--success-soft)] text-[var(--success)] px-2.5 py-1 font-bold tabular-nums">{fmtIDR(25000)}</span>
               <span className="rounded-full bg-[var(--info-soft)] text-[var(--info)] px-2.5 py-1 font-semibold">BSI</span>
             </div>
-            <p className="font-mono text-[11px] text-[var(--text-muted)] mt-2">kopi 25rb dari BSI</p>
+            <p className="font-mono text-xs text-[var(--text-muted)] mt-2">kopi 25rb dari BSI</p>
           </div>
         )}
         {step === 3 && (
