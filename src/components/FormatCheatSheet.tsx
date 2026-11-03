@@ -1,20 +1,21 @@
 import { useRef } from 'react';
 import { useTranslation } from '../i18n';
 import { useFocusTrap } from '../utils/focusTrap';
+import type { TranslationKey } from '../i18n/id';
 
-const FORMATS: ReadonlyArray<{ sample: string; note: string }> = [
-  { sample: 'kopi 25000', note: 'angka polos' },
-  { sample: 'kopi 50.000 / 50,000', note: 'pemisah ribu ID/EN' },
-  { sample: 'kopi 50rb / 50k', note: '×1.000' },
-  { sample: 'kopi 1.5jt / 1.5 juta', note: '×1.000.000' },
-  { sample: 'kopi Rp50.000', note: 'prefix Rp/R P/IDR' },
-  { sample: 'kopi 20rb dari BSI / via GoPay / from BCA', note: 'sumber dana hanya bila dikenal' },
-  { sample: 'nasi goreng dari warung Pak Eko 20rb', note: 'penjual tetap di deskripsi' },
-  { sample: 'kopi 20rb kemarin / lusa / hari ini', note: 'tanggal relatif' },
-  { sample: 'kopi 25rb note untuk rapat', note: 'catatan (note/notes/catatan/keterangan, tulis di akhir)' },
-  { sample: 'kopi 20rb tgl 15 / 15/08/2026', note: 'tanggal eksplisit' },
-  { sample: 'Kopi 50 ✗ ditolak', note: 'angka < Rp100 tanpa awalan = noise' },
-  { sample: 'maks Rp1.000.000.000.000', note: 'overflow ditolak' },
+const FORMATS: ReadonlyArray<{ sample: string; noteKey: TranslationKey }> = [
+  { sample: 'kopi 25000', noteKey: 'chat.fmtPlain' },
+  { sample: 'kopi 50.000 / 50,000', noteKey: 'chat.fmtThousands' },
+  { sample: 'kopi 50rb / 50k', noteKey: 'chat.fmtK' },
+  { sample: 'kopi 1.5jt / 1.5 juta', noteKey: 'chat.fmtM' },
+  { sample: 'kopi Rp50.000', noteKey: 'chat.fmtPrefix' },
+  { sample: 'kopi 20rb dari BSI / via GoPay / from BCA', noteKey: 'chat.fmtSource' },
+  { sample: 'nasi goreng dari warung Pak Eko 20rb', noteKey: 'chat.fmtSeller' },
+  { sample: 'kopi 20rb kemarin / lusa / hari ini', noteKey: 'chat.fmtRelativeDate' },
+  { sample: 'kopi 25rb note untuk rapat', noteKey: 'chat.fmtNote' },
+  { sample: 'kopi 20rb tgl 15 / 15/08/2026', noteKey: 'chat.fmtExplicitDate' },
+  { sample: 'Kopi 50 ✗ ditolak', noteKey: 'chat.fmtFloor' },
+  { sample: 'maks Rp1.000.000.000.000', noteKey: 'chat.fmtMax' },
 ];
 
 export function FormatCheatSheet({ open, onClose }: { readonly open: boolean; readonly onClose: () => void }) {
@@ -39,7 +40,7 @@ export function FormatCheatSheet({ open, onClose }: { readonly open: boolean; re
           {FORMATS.map((f) => (
             <li key={f.sample} className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2">
               <p className="font-mono text-xs font-semibold break-words">{f.sample}</p>
-              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{f.note}</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t(f.noteKey)}</p>
             </li>
           ))}
         </ul>

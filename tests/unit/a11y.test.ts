@@ -21,7 +21,11 @@ describe('a11y contrast (WCAG AA 4.5 teks utama)', () => {
     expect(ratio('#3D3D2B', '#F7F6F2')).toBeGreaterThanOrEqual(4.5);
     expect(ratio('#6b6962', '#F7F6F2')).toBeGreaterThanOrEqual(4.5);
     expect(ratio('#ddcbb7', '#264025')).toBeGreaterThanOrEqual(4.5);
-    expect(ratio('#FFFFFF', '#DC2626')).toBeGreaterThanOrEqual(4.5);
+    // Tombol destruktif memakai fill yang lebih gelap daripada teks danger.
+    expect(ratio('#FFFFFF', '#B91C1C')).toBeGreaterThanOrEqual(4.5);
+    expect(ratio('#B91C1C', '#FEF2F2')).toBeGreaterThanOrEqual(4.5);
+    // Chip nominal: --success di atas --success-soft yang di-blend ke --bg.
+    expect(ratio('#166534', '#e5ede4')).toBeGreaterThanOrEqual(4.5);
   });
   it('dark: primer/sekunder/muted + tombol aksen-fill lolos', () => {
     expect(ratio('#e8e8e8', '#0a0a0a')).toBeGreaterThanOrEqual(4.5);

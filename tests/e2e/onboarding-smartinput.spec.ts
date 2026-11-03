@@ -41,8 +41,16 @@ test.describe('onboarding + smart input', () => {
     // Gagal parse → pesan actionable.
     await ta.fill('Kopi 50');
     await expect(page.getByText(/Nominal terlalu kecil/)).toBeVisible({ timeout: 5000 });
-    // Cheat sheet dari tombol ?.
-    await page.getByRole('button', { name: 'Lihat format input' }).click();
+    // Cheat sheet: tombol ? di composer hanya tampil mulai sm. Di layar kecil
+    // tombol itu disembunyikan agar composer lapang, jadi buka dari empty state
+    // Summary yang memang menyediakan tautan format untuk mobile.
+    const narrow = (page.viewportSize()?.width ?? 0) < 640;
+    if (narrow) {
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Pelajari format input' }).click();
+    } else {
+      await page.getByRole('button', { name: 'Lihat format input' }).click();
+    }
     await expect(page.getByText('Format input yang diterima')).toBeVisible();
     await page.getByRole('button', { name: 'Tutup' }).click();
   });

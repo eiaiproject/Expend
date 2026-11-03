@@ -21,13 +21,15 @@
   --accent-soft: rgba(38, 64, 37, 0.1);
   --accent-fill: #264025;
   --accent-ink: #ddcbb7;
-  /* Semantic: light text colors darkened for AA on white and soft tint (measured 5.0 or higher) */
-  --danger: #DC2626;
+  /* Semantic: light text colors darkened for AA on white and soft tint (measured 5.9 or higher) */
+  --danger: #B91C1C;
+  --danger-fill: #B91C1C;
+  --danger-fill-ink: #FFFFFF;
   --danger-deep: #991B1B;
   --danger-bg: #FEF2F2;
   --danger-border: #FECACA;
   --danger-soft: rgba(220, 38, 38, 0.08);
-  --success: #15803d;
+  --success: #166534;
   --success-soft: rgba(21, 128, 61, 0.08);
   --warning-soft: rgba(180, 83, 9, 0.1);
   --info: #1d4ed8;
@@ -59,6 +61,8 @@
     --accent-ink: #FFFFFF;
     /* Semantic dark */
     --danger: #F87171;
+    --danger-fill: #991B1B;
+    --danger-fill-ink: #FFFFFF;
     --danger-deep: #F87171;
     --danger-bg: #2a0a0a;
     --danger-border: #5a1a1a;
@@ -86,6 +90,8 @@
   --accent-fill: #4a7a2a;
   --accent-ink: #FFFFFF;
   --danger: #F87171;
+  --danger-fill: #991B1B;
+  --danger-fill-ink: #FFFFFF;
   --danger-deep: #F87171;
   --danger-bg: #2a0a0a;
   --danger-border: #5a1a1a;
@@ -106,11 +112,11 @@
 h1, h2, h3 { text-wrap: balance; }
 p, li { text-wrap: pretty; }
 html { scrollbar-gutter: stable; font-size: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-/* TASK 7: skala font pengguna (persist, hormati reduced-motion — hanya ukuran). */
+/* skala font pengguna (persist, hormati reduced-motion, hanya ukuran). */
 html[data-fontsize="s"] { font-size: 87.5%; }
 html[data-fontsize="m"] { font-size: 100%; }
 html[data-fontsize="l"] { font-size: 112.5%; }
-/* TASK 7: kontras tinggi — garis & teks sekunder ditegaskan di kedua tema. */
+/* kontras tinggi, garis & teks sekunder ditegaskan di kedua tema. */
 html[data-contrast="high"] {
   --border: #8a8a8a;
   --border-strong: #555;
@@ -136,8 +142,9 @@ progress { appearance: none; -webkit-appearance: none; }
 progress::-webkit-progress-bar { background: var(--border); border-radius: 9999px; }
 progress::-webkit-progress-value { background: var(--accent); border-radius: 9999px; transition: width 0.2s ease-out; }
 progress::-moz-progress-bar { background: var(--accent); border-radius: 9999px; }
+/* Unlayered, jadi menang atas utility Tailwind tanpa perlu !important. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  *, *::before, *::after { animation-duration: 0.01ms; transition-duration: 0.01ms; }
 }
 @media (prefers-contrast: more) {
   :root { --border: #C9C9C9; --text-secondary: #2A2A2A; --accent: #1a2d19; }

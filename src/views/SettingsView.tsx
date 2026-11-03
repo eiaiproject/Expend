@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useId } from 'react';
 import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar } from 'reicon-react';
 import { db, type Transaction } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -13,6 +13,7 @@ import { persistFreshTransactions, type StorableTransaction } from '../utils/imp
 import { isBackupDueWithInterval, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, BACKUP_KEY, BACKUP_INTERVAL_KEY, type BackupInterval } from '../utils/backup';
 import { getFontSize, setFontSize as persistFontSize, isHighContrast, setHighContrast as persistHighContrast, type FontSize } from '../utils/a11yPrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { DbErrorNotice } from '../components/DbErrorNotice';
 import { APP_VERSION } from '../config/version';
 
 const EXPORT_ERROR_KEY = {
@@ -34,9 +35,12 @@ const FONT_SIZE_LABEL_KEY: Record<FontSize, TranslationKey> = {
 };
 
 function SettingsSection({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
+  // useId memberi id stabil dan unik, termasuk saat judul section diterjemahkan
+  // atau memuat spasi dan tanda baca.
+  const headingId = useId();
   return (
-    <section aria-labelledby={`section-${title.toLowerCase().replace(/\s/g, '-')}`} className="space-y-2">
-      <h2 id={`section-${title.toLowerCase().replace(/\s/g, '-')}`} className="text-xs font-bold tracking-wide uppercase text-[var(--text-secondary)] px-1">{title}</h2>
+    <section aria-labelledby={headingId} className="space-y-2">
+      <h2 id={headingId} className="text-xs font-bold tracking-wide uppercase text-[var(--text-secondary)] px-1">{title}</h2>
       {children}
     </section>
   );
@@ -117,14 +121,32 @@ export default function SettingsView() {
   const version = APP_VERSION;
   // Halaman ini cuma butuh jumlah baris; tabel penuh dimuat hanya saat wizard
   // ekspor dibuka (sebelumnya seluruh transaksi dibaca setiap kali Settings dibuka).
-  const txCount = useLiveQuery(() => db.transactions.count(), []) ?? 0;
+  const [dbRetry, setDbRetry] = useState(0);
+  const txCountResult = useLiveQuery(() => db.transactions.count().catch(() => null), [dbRetry]);
+  const txCount = txCountResult ?? 0;
+  const countLoading = txCountResult === undefined;
+  const countFailed = txCountResult === null;
+  // Tiga keadaan saling eksklusif; fungsi kecil menjaga JSX bebas ternary bersarang.
+  const deleteAllDescription = () => {
+    if (countLoading) return t('common.loadingData');
+    if (countFailed) return t('settings.countError');
+    return t('settings.deleteAllDesc', { count: txCount });
+  };
+  const retryDb = async () => {
+    try {
+      await db.open();
+    } catch {
+      // Query berikutnya menampilkan notice yang sama bila DB masih gagal.
+    }
+    setDbRetry((n) => n + 1);
+  };
   const { theme, setTheme } = useTheme();
   const { toast, showToast, dismissToast } = useToast();
   const [exportFrom, setExportFrom] = useState('');
   const [exportTo, setExportTo] = useState('');
   const [lastBackup, setLastBackup] = useState<string | null>(readLastBackup);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  // TASK 6/7/9: wizard ekspor, cheat sheet, preferensi a11y, interval backup.
+  // wizard ekspor, cheat sheet, preferensi a11y, interval backup.
   const [showWizard, setShowWizard] = useState(false);
   // Wizard butuh seluruh baris (untuk preview + rentang tanggal), jadi tabel
   // penuh baru dibaca saat wizard terbuka - bukan setiap Settings dibuka.
@@ -300,6 +322,14 @@ export default function SettingsView() {
         description={t('settings.subtitle')}
       />
 
+      {countFailed && (
+        <DbErrorNotice
+          message={t('settings.countError')}
+          retryLabel={t('common.retry')}
+          onRetry={() => void retryDb()}
+        />
+      )}
+
       {/* Preferences */}
       <SettingsSection title={t('settings.preferences')}>
         <SectionCard padding="sm">
@@ -314,7 +344,7 @@ export default function SettingsView() {
                   value={theme}
                   onChange={(e) => setTheme(e.target.value as Theme)}
                   aria-label={t('settings.theme')}
-                  className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
+                  className="h-12 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
                 >
                   <option value="light">{t('settings.themeLight')}</option>
                   <option value="dark">{t('settings.themeDark')}</option>
@@ -402,7 +432,7 @@ export default function SettingsView() {
                   value={lang}
                   onChange={(e) => setLang(e.target.value as Lang)}
                   aria-label={t('settings.language')}
-                  className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
+                  className="h-12 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
                 >
                   <option value="id">Bahasa Indonesia</option>
                   <option value="en">English</option>
@@ -461,7 +491,7 @@ export default function SettingsView() {
                   value={backupInterval}
                   onChange={(e) => { const v = e.target.value as BackupInterval; persistBackupInterval(v); setBackupInterval(v); }}
                   aria-label={t('settings.backupInterval')}
-                  className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
+                  className="h-12 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
                 >
                   <option value="weekly">{t('settings.backupWeekly')}</option>
                   <option value="monthly">{t('settings.backupMonthly')}</option>
@@ -516,7 +546,7 @@ export default function SettingsView() {
               title={t('settings.receiptData')}
               description={t('settings.receiptDataDesc')}
             />
-            {/* A6: Peringatan data tidak terenkripsi */}
+            {/* Peringatan data tidak terenkripsi */}
             <SettingsRow
               icon={<Lock size={18} />}
               iconBg="bg-[var(--danger-soft)]"
@@ -555,14 +585,16 @@ export default function SettingsView() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-[var(--danger-deep)]">{t('settings.deleteAll')}</p>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.deleteAllDesc', { count: txCount })}</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                {deleteAllDescription()}
+              </p>
             </div>
             <button
               type="button"
               aria-label={t('settings.deleteAll')}
               disabled={txCount === 0}
               onClick={() => setConfirmDelete(true)}
-              className="shrink-0 min-h-12 px-4 rounded-[var(--radius-md)] bg-[var(--danger)] text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--danger)]/50 disabled:opacity-40 disabled:active:scale-100"
+              className="shrink-0 min-h-12 px-4 rounded-[var(--radius-md)] bg-[var(--danger-fill)] text-[var(--danger-fill-ink)] text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--danger)]/50 disabled:opacity-40 disabled:active:scale-100"
             >
               {t('common.delete')}
             </button>
@@ -572,7 +604,7 @@ export default function SettingsView() {
 
       {/* Footer */}
       <div className="text-center pt-2 pb-4">
-        <p className="text-[11px] text-[var(--text-muted)] font-mono">expend.pages.dev</p>
+        <p className="text-xs text-[var(--text-muted)] font-mono">expend.pages.dev</p>
       </div>
 
       {/* Toast - key per pesan agar timer toast baru tidak mewarisi sisa timer lama. */}

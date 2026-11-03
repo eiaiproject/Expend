@@ -7,7 +7,7 @@ const HAS_RECEIPT = fs.existsSync(RECEIPT);
 
 // Pembuka bersama test 3-4: viewport + DB bersih + upload resi + tunggu OCR.
 // Tanpa fail jujur bila berkas gitignored tak ada: anotasi skip lalu null
-// agar pemanggil melewati sisa test — tanpa test.skip (S1607) maupun
+// agar pemanggil melewati sisa test, tanpa test.skip (S1607) maupun
 // return dini di badan test (S8968); tidak ada yang diduplikasi.
 async function uploadReceiptAndWaitOCR(page: Page): Promise<Locator | null> {
   if (!HAS_RECEIPT) {

@@ -28,7 +28,7 @@ type SheetField = 'date' | 'description' | 'amount' | 'source' | 'note';
 /**
  * Header yang dikenali, dinormalisasi (lowercase, tanpa tanda baca).
  * Mencakup CSV `/export` bot, CSV Download Sheets, dan CSV ekspor Expend
- * sendiri (id/en) — posisi kolom bebas, hanya nama yang dicocokkan.
+ * sendiri (id/en), posisi kolom bebas, hanya nama yang dicocokkan.
  */
 const HEADER_MAP: Record<string, SheetField> = {
   tanggal: 'date',
@@ -180,7 +180,7 @@ export function parseSheetsNoteCell(raw: string): string | undefined {
 
 /**
  * Parse CSV hasil download Google Sheets (atau CSV `/export` bot) menjadi
- * transaksi. Hanya 5 kolom yang dipakai — `ID`, `Input`, `Status`,
+ * transaksi. Hanya 5 kolom yang dipakai, `ID`, `Input`, `Status`,
  * `Dicatat Pada` diabaikan di titik pemetaan header. Baris `Perlu dicek`
  * ikut masuk (tanpa filter status) dengan `source` kosong.
  */

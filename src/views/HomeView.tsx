@@ -14,6 +14,7 @@ import { SectionCard } from '../components/SectionCard';
 import { EmptyState } from '../components/EmptyState';
 import { InlineAlert } from '../components/InlineAlert';
 import { SkeletonCard } from '../components/SkeletonCard';
+import { DbErrorNotice } from '../components/DbErrorNotice';
 import { FormatCheatSheet } from '../components/FormatCheatSheet';
 import { Wordmark } from '../components/Wordmark';
 import { QuickToggles } from '../components/QuickToggles';
@@ -91,9 +92,22 @@ const QUICK_LABEL_KEY: Record<QuickRange, TranslationKey> = {
 
 export default function HomeView() {
   const { t } = useTranslation();
-  const txsResult = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray(), []);
+  const [dbRetry, setDbRetry] = useState(0);
+  const txsResult = useLiveQuery(
+    () => db.transactions.orderBy('date').reverse().toArray().catch(() => null),
+    [dbRetry],
+  );
   const txs = txsResult ?? EMPTY_TXS;
   const isLoading = txsResult === undefined;
+  const loadFailed = txsResult === null;
+  const retryDb = async () => {
+    try {
+      await db.open();
+    } catch {
+      // Query berikutnya tetap menampilkan notice yang sama bila DB masih gagal.
+    }
+    setDbRetry((n) => n + 1);
+  };
   const [error, setError] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
   const [editing, setEditing] = useState<Transaction | null>(null);
@@ -101,17 +115,17 @@ export default function HomeView() {
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [granularity, setGranularity] = useState<GroupGranularity>('day');
-  // TASK 4: pencarian deskripsi (debounce) + shortcut "/" + chip cepat.
+  // pencarian deskripsi (debounce) + shortcut "/" + chip cepat.
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query, 200);
   const searchRef = useRef<HTMLInputElement>(null);
-  // TASK 3: cheat sheet dari empty state.
+  // cheat sheet dari empty state.
   const [showSheet, setShowSheet] = useState(false);
   // Paging daftar disimpan bersama "sidik jari" filternya: begitu filter atau
   // granularitas berubah, sidik jari tidak cocok dan daftar otomatis mulai lagi
   // dari grup terbaru - tanpa setState di dalam effect (react-hooks/set-state-in-effect).
   const [paging, setPaging] = useState({ key: '', count: GROUP_PAGE });
-  // TASK 9: banner backup sesuai interval (default mingguan).
+  // banner backup sesuai interval (default mingguan).
   const [lastBackup, setLastBackup] = useState<string | null>(readLastBackup);
   const backupDue = isBackupDueWithInterval(txs.length, lastBackup, getBackupInterval());
 
@@ -209,6 +223,14 @@ export default function HomeView() {
 
       {isLoading && <SkeletonCard lines={3} />}
 
+      {loadFailed && (
+        <DbErrorNotice
+          message={t('home.loadError')}
+          retryLabel={t('common.retry')}
+          onRetry={() => void retryDb()}
+        />
+      )}
+
       {error && (
         <div role="alert" className="text-xs px-3 py-2.5 rounded-[var(--radius-md)] bg-[var(--danger-bg)] border border-[var(--danger-border)] text-[var(--danger)] flex items-start gap-2">
           <span className="flex-1">{error}</span>
@@ -222,14 +244,14 @@ export default function HomeView() {
           <button
             type="button"
             onClick={() => void backupNow()}
-            className="shrink-0 min-h-11 px-3 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-xs font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+            className="shrink-0 min-h-12 px-3 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-xs font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
           >
             {t('home.backupNow')}
           </button>
         </div>
       )}
 
-      {!isLoading && txs.length === 0 ? (
+      {!isLoading && !loadFailed && (txs.length === 0 ? (
         <EmptyState
           title={t('home.emptyTitle')}
           description={t('home.emptyDesc')}
@@ -256,7 +278,7 @@ export default function HomeView() {
                   key={ex}
                   to={`/chat?input=${encodeURIComponent(ex)}`}
                   aria-label={t('chat.useExample', { example: ex })}
-                  className="min-h-11 inline-flex items-center px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-semibold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                  className="min-h-12 inline-flex items-center px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-semibold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 >
                   {ex}
                 </Link>
@@ -309,7 +331,7 @@ export default function HomeView() {
                     key={k}
                     type="button"
                     onClick={() => applyQuick(k)}
-                    className="min-h-11 px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                    className="min-h-12 px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                   >
                     {t(QUICK_LABEL_KEY[k])}
                   </button>
@@ -340,7 +362,7 @@ export default function HomeView() {
                       type="button"
                       aria-pressed={granularity === g}
                       onClick={() => setGranularity(g)}
-                      className={`flex-1 min-h-11 rounded-[var(--radius-sm)] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${granularity === g ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
+                      className={`flex-1 min-h-12 rounded-[var(--radius-sm)] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${granularity === g ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
                     >
                       {t(GRANULARITY_LABEL_KEY[g])}
                     </button>
@@ -441,7 +463,7 @@ export default function HomeView() {
             {t('home.recordNew')}
           </Link>
         </>
-      )}
+      ))}
 
       {toast && (
         // key per pesan: tanpa ini instance Toast tidak remount saat pesan baru
@@ -576,7 +598,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
             type="button"
             onClick={onClose}
             aria-label={t('home.cancel')}
-            className="min-w-11 min-h-11 grid place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="min-w-12 min-h-12 grid place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <X size={18} aria-hidden />
           </button>

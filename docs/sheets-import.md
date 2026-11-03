@@ -1,6 +1,6 @@
 # Impor CSV Google Sheets (Expend)
 
-Sumber yang didukung: **CSV hasil download Google Sheets** — Sheets
+Sumber yang didukung: **CSV hasil download Google Sheets**, Sheets
 `File → Download → CSV`, atau file CSV dari perintah `/export` bot Telegram
 (`pengeluaran-*.csv`). File `.xlsx` tidak didukung (tanpa dependensi baru).
 
@@ -37,4 +37,4 @@ id/en) juga diterima.
   Itu harga dari kolom ID yang dibuang.
 - 100% offline: parsing di memori perangkat (chunk async),
   tidak ada data yang keluar. Perhatian: CSV berisi nama/penerima
-  asli — jangan commit file CSV ke repo.
+  asli, jangan commit file CSV ke repo.

@@ -409,7 +409,7 @@ function formatDescription(raw: string, hasGenericSource: boolean, stripSourceCl
 
 // Klausa catatan: "note|notes|catatan|keterangan" TANPA titik dua wajib
 // (colon ditoleransi). Tanpa positional guard, kata produk seperti
-// "buku catatan" atau "sticky note" ikut kepotong — jadi klausa hanya
+// "buku catatan" atau "sticky note" ikut kepotong, jadi klausa hanya
 // diterima bila teks SEBELUM keyword mengandung kandidat nominal,
 // yakni catatan ditulis SETELAH nominal ("kopi 25rb note untuk rapat").
 // "nota" (struk) sengaja tidak termasuk keyword.

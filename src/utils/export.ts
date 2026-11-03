@@ -241,7 +241,7 @@ export function downloadBlob(blob: Blob, filename: string): boolean {
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
-    // iOS Safari mengabaikan click pada anchor detached — harus menempel ke DOM.
+    // iOS Safari mengabaikan click pada anchor detached, harus menempel ke DOM.
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();

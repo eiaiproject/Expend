@@ -67,7 +67,7 @@ export function Toast({ message, type = 'success', onDismiss, duration = 4000 }:
         type="button"
         onClick={() => { setVisible(false); onDismiss?.(); }}
         aria-label={t('common.close')}
-        className="shrink-0 min-w-11 min-h-11 -mt-1 -mr-1 grid place-items-center rounded-full hover:bg-[var(--bg)] transition-colors"
+        className="shrink-0 min-w-12 min-h-12 -mt-1 -mr-1 grid place-items-center rounded-full hover:bg-[var(--bg)] transition-colors"
       >
         <X size={14} aria-hidden />
       </button>

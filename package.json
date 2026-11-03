@@ -15,6 +15,7 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "preview": "vite preview",
     "lint": "eslint .",
+    "lint:prose": "node scripts/check-prose.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:unit": "vitest run",
@@ -26,7 +27,7 @@
     "dexie-react-hooks": "^4.4.0",
     "react": "^19.0.1",
     "react-dom": "^19.3.0",
-    "react-router-dom": "^7.18.3",
+    "react-router-dom": "^7.18.4",
     "reicon-react": "^1.2.5",
     "tesseract.js": "^7.0.0",
     "wasm-feature-detect": "^1.9.0"
@@ -37,16 +38,16 @@
     "@types/node": "^26.6.1",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.1",
-    "@vitest/coverage-v8": "^5.0.1",
-    "eslint": "^10.10.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "@vitest/coverage-v8": "^5.0.3",
+    "eslint": "^10.12.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^30.1.0",
     "tailwindcss": "^4.3.3",
     "typescript-eslint": "^8.70.0",
     "vite": "^8.3.0",
-    "vite-plugin-pwa": "^1.3.0",
+    "vite-plugin-pwa": "^2.0.0",
     "vitest": "^5.0.0"
   }
 }
