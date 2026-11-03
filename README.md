@@ -1,6 +1,6 @@
 # Expend
 
-![version](https://img.shields.io/badge/version-0.20.0-teal)
+![version](https://img.shields.io/badge/version-0.20.1-teal)
 
 **Expend is an offline-first expense tracker that runs entirely in your browser.** Type an expense the way you would say it (`kopi 25rb dari BSI`), or upload a receipt photo, and Expend turns it into a structured transaction. There is no account, no server, and no analytics: every transaction stays in IndexedDB on your device.
 

@@ -1,4 +1,10 @@
 # Changelog
+## 0.20.1 - 2026-11-03
+### Fixed
+
+- Close audit findings and fold in dependabot bumps (#67)
+
+
 ## 0.20.0 - 2026-10-05
 ### Added
 
