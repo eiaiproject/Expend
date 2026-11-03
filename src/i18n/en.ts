@@ -11,6 +11,7 @@ const en: Record<TranslationKey, string> = {
   'common.confirm': 'Confirm',
   'common.delete': 'Delete',
   'common.skipToContent': 'Skip to main content',
+  'common.retry': 'Try again',
 
   // Navigation
   'nav.main': 'Main navigation',
@@ -50,6 +51,7 @@ const en: Record<TranslationKey, string> = {
   'home.groupWeek': 'Week',
   'home.groupMonth': 'Month',
   'home.noMatch': 'No transactions in this range.',
+  'home.loadError': 'Transactions could not be loaded. Check browser storage, then try again.',
 
   // Chat
   'chat.title': 'Record expense',
@@ -157,6 +159,7 @@ const en: Record<TranslationKey, string> = {
   'settings.deleteAllButton': 'Delete all',
   'settings.deleteSuccess': 'All transaction data deleted successfully.',
   'settings.deleteError': 'Failed to delete data. Try again.',
+  'settings.countError': 'Transaction count could not be read.',
 
   // Export columns
   'export.date': 'Date',

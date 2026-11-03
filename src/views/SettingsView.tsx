@@ -13,6 +13,7 @@ import { persistFreshTransactions, type StorableTransaction } from '../utils/imp
 import { isBackupDueWithInterval, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, BACKUP_KEY, BACKUP_INTERVAL_KEY, type BackupInterval } from '../utils/backup';
 import { getFontSize, setFontSize as persistFontSize, isHighContrast, setHighContrast as persistHighContrast, type FontSize } from '../utils/a11yPrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { DbErrorNotice } from '../components/DbErrorNotice';
 import { APP_VERSION } from '../config/version';
 
 const EXPORT_ERROR_KEY = {
@@ -117,7 +118,19 @@ export default function SettingsView() {
   const version = APP_VERSION;
   // Halaman ini cuma butuh jumlah baris; tabel penuh dimuat hanya saat wizard
   // ekspor dibuka (sebelumnya seluruh transaksi dibaca setiap kali Settings dibuka).
-  const txCount = useLiveQuery(() => db.transactions.count(), []) ?? 0;
+  const [dbRetry, setDbRetry] = useState(0);
+  const txCountResult = useLiveQuery(() => db.transactions.count().catch(() => null), [dbRetry]);
+  const txCount = txCountResult ?? 0;
+  const countLoading = txCountResult === undefined;
+  const countFailed = txCountResult === null;
+  const retryDb = async () => {
+    try {
+      await db.open();
+    } catch {
+      // Query berikutnya menampilkan notice yang sama bila DB masih gagal.
+    }
+    setDbRetry((n) => n + 1);
+  };
   const { theme, setTheme } = useTheme();
   const { toast, showToast, dismissToast } = useToast();
   const [exportFrom, setExportFrom] = useState('');
@@ -299,6 +312,14 @@ export default function SettingsView() {
         title={t('settings.title')}
         description={t('settings.subtitle')}
       />
+
+      {countFailed && (
+        <DbErrorNotice
+          message={t('settings.countError')}
+          retryLabel={t('common.retry')}
+          onRetry={() => void retryDb()}
+        />
+      )}
 
       {/* Preferences */}
       <SettingsSection title={t('settings.preferences')}>
@@ -555,7 +576,13 @@ export default function SettingsView() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-[var(--danger-deep)]">{t('settings.deleteAll')}</p>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.deleteAllDesc', { count: txCount })}</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                {countLoading
+                  ? t('common.loadingData')
+                  : countFailed
+                    ? t('settings.countError')
+                    : t('settings.deleteAllDesc', { count: txCount })}
+              </p>
             </div>
             <button
               type="button"
