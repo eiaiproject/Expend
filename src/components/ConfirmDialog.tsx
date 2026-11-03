@@ -51,16 +51,16 @@ export function ConfirmDialog({
             ref={cancelRef}
             type="button"
             onClick={onCancel}
-            className="min-h-11 px-4 rounded-[var(--radius-md)] bg-[var(--bg)] border border-[var(--border)] text-sm font-semibold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+            className="min-h-12 px-4 rounded-[var(--radius-md)] bg-[var(--bg)] border border-[var(--border)] text-sm font-semibold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
           >
             {cancelLabel ?? t('common.cancel')}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className={`min-h-11 px-4 rounded-[var(--radius-md)] text-sm font-bold active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${
+            className={`min-h-12 px-4 rounded-[var(--radius-md)] text-sm font-bold active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${
               destructive
-                ? 'bg-[var(--danger)] text-white hover:opacity-90'
+                ? 'bg-[var(--danger-fill)] text-[var(--danger-fill-ink)] hover:opacity-90'
                 : 'bg-[var(--accent-fill)] text-[var(--accent-ink)] hover:opacity-90'
             }`}
           >

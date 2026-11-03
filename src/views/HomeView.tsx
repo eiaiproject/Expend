@@ -222,7 +222,7 @@ export default function HomeView() {
           <button
             type="button"
             onClick={() => void backupNow()}
-            className="shrink-0 min-h-11 px-3 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-xs font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+            className="shrink-0 min-h-12 px-3 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-xs font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
           >
             {t('home.backupNow')}
           </button>
@@ -256,7 +256,7 @@ export default function HomeView() {
                   key={ex}
                   to={`/chat?input=${encodeURIComponent(ex)}`}
                   aria-label={t('chat.useExample', { example: ex })}
-                  className="min-h-11 inline-flex items-center px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-semibold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                  className="min-h-12 inline-flex items-center px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-semibold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 >
                   {ex}
                 </Link>
@@ -309,7 +309,7 @@ export default function HomeView() {
                     key={k}
                     type="button"
                     onClick={() => applyQuick(k)}
-                    className="min-h-11 px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                    className="min-h-12 px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                   >
                     {t(QUICK_LABEL_KEY[k])}
                   </button>
@@ -340,7 +340,7 @@ export default function HomeView() {
                       type="button"
                       aria-pressed={granularity === g}
                       onClick={() => setGranularity(g)}
-                      className={`flex-1 min-h-11 rounded-[var(--radius-sm)] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${granularity === g ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
+                      className={`flex-1 min-h-12 rounded-[var(--radius-sm)] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${granularity === g ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'}`}
                     >
                       {t(GRANULARITY_LABEL_KEY[g])}
                     </button>
@@ -576,7 +576,7 @@ function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
             type="button"
             onClick={onClose}
             aria-label={t('home.cancel')}
-            className="min-w-11 min-h-11 grid place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="min-w-12 min-h-12 grid place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <X size={18} aria-hidden />
           </button>
