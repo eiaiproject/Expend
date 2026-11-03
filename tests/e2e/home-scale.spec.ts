@@ -27,11 +27,24 @@ async function seedTransactions(page: Page, count: number) {
   await expect(page.locator('h1')).toBeVisible({ timeout: 10000 });
 
   await page.evaluate(async (n) => {
-    const db = await new Promise<IDBDatabase>((res, rej) => {
-      const rq = indexedDB.open('ExpendDB');
-      rq.onsuccess = () => res(rq.result);
-      rq.onerror = () => rej(rq.error);
-    });
+    // Reload tadi memicu Dexie membuka DB, tetapi di WebKit yang sibuk skema
+    // bisa belum siap saat evaluate berjalan. Tunggu store muncul, bukan
+    // berasumsi urutannya sudah pasti.
+    const openWithStore = async (): Promise<IDBDatabase> => {
+      const deadline = Date.now() + 5000;
+      for (;;) {
+        const db = await new Promise<IDBDatabase>((res, rej) => {
+          const rq = indexedDB.open('ExpendDB');
+          rq.onsuccess = () => res(rq.result);
+          rq.onerror = () => rej(rq.error);
+        });
+        if (db.objectStoreNames.contains('transactions')) return db;
+        db.close();
+        if (Date.now() > deadline) throw new Error('object store transactions tidak muncul');
+        await new Promise((res) => setTimeout(res, 50));
+      }
+    };
+    const db = await openWithStore();
     const tx = db.transaction('transactions', 'readwrite');
     const store = tx.objectStore('transactions');
     const base = Date.UTC(2026, 0, 1);
