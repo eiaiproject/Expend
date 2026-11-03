@@ -142,8 +142,9 @@ progress { appearance: none; -webkit-appearance: none; }
 progress::-webkit-progress-bar { background: var(--border); border-radius: 9999px; }
 progress::-webkit-progress-value { background: var(--accent); border-radius: 9999px; transition: width 0.2s ease-out; }
 progress::-moz-progress-bar { background: var(--accent); border-radius: 9999px; }
+/* Unlayered, jadi menang atas utility Tailwind tanpa perlu !important. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  *, *::before, *::after { animation-duration: 0.01ms; transition-duration: 0.01ms; }
 }
 @media (prefers-contrast: more) {
   :root { --border: #C9C9C9; --text-secondary: #2A2A2A; --accent: #1a2d19; }

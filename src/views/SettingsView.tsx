@@ -126,6 +126,12 @@ export default function SettingsView() {
   const txCount = txCountResult ?? 0;
   const countLoading = txCountResult === undefined;
   const countFailed = txCountResult === null;
+  // Tiga keadaan saling eksklusif; fungsi kecil menjaga JSX bebas ternary bersarang.
+  const deleteAllDescription = () => {
+    if (countLoading) return t('common.loadingData');
+    if (countFailed) return t('settings.countError');
+    return t('settings.deleteAllDesc', { count: txCount });
+  };
   const retryDb = async () => {
     try {
       await db.open();
@@ -580,11 +586,7 @@ export default function SettingsView() {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-[var(--danger-deep)]">{t('settings.deleteAll')}</p>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                {countLoading
-                  ? t('common.loadingData')
-                  : countFailed
-                    ? t('settings.countError')
-                    : t('settings.deleteAllDesc', { count: txCount })}
+                {deleteAllDescription()}
               </p>
             </div>
             <button

@@ -15,7 +15,7 @@ const DIRS = ['src', 'tests', 'docs', 'scripts', '.github'];
 const FILES = ['README.md', 'CHANGELOG.md', 'index.html'];
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'coverage', 'test-results', 'playwright-report', '.git', 'public']);
 const TEXT_FILE = /\.(?:[cm]?[jt]sx?|css|md|json|ya?ml|html)$/;
-const REGEX_CHAR_CLASS = new RegExp(`\\[[^\\]\\n]*${EM_DASH}[^\\]\\n]*\\]`);
+const REGEX_CHAR_CLASS = new RegExp(String.raw`\[[^\]\n]*${EM_DASH}[^\]\n]*\]`);
 
 const files = [];
 function walk(dir) {
