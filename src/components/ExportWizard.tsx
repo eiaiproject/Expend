@@ -62,7 +62,7 @@ export function ExportWizard({
             type="button"
             onClick={handleClose}
             aria-label={t('common.close')}
-            className="min-w-11 min-h-11 grid place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="min-w-12 min-h-12 grid place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <span aria-hidden className="text-lg leading-none">&times;</span>
           </button>

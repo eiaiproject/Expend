@@ -693,7 +693,7 @@ export default function ChatView() {
                   if (el) adjustRef.current = { h: el.scrollHeight, top: el.scrollTop };
                   setVisibleLimit((v) => v + CHAT_PAGE);
                 }}
-                className="min-h-11 px-4 rounded-full bg-[var(--card)] border border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                className="min-h-12 px-4 rounded-full bg-[var(--card)] border border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
               >
                 {t('chat.loadOlder')}
               </button>
@@ -982,7 +982,7 @@ export default function ChatView() {
             aria-label={t('chat.inputLabel')}
             autoComplete="off"
             enterKeyHint="send"
-            className="flex-1 min-w-0 min-h-[44px] max-h-32 bg-transparent px-2 py-2.5 text-sm outline-none placeholder:text-[var(--text-muted)] resize-none leading-snug"
+            className="flex-1 min-w-0 min-h-12 max-h-32 bg-transparent px-2 py-2.5 text-sm outline-none placeholder:text-[var(--text-muted)] resize-none leading-snug"
           />
           {input.length > 400 && (
             <span className={`text-[10px] tabular-nums self-end mb-2.5 ${input.length >= 500 ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'}`} aria-live="polite">

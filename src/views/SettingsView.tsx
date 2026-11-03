@@ -314,7 +314,7 @@ export default function SettingsView() {
                   value={theme}
                   onChange={(e) => setTheme(e.target.value as Theme)}
                   aria-label={t('settings.theme')}
-                  className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
+                  className="h-12 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
                 >
                   <option value="light">{t('settings.themeLight')}</option>
                   <option value="dark">{t('settings.themeDark')}</option>
@@ -402,7 +402,7 @@ export default function SettingsView() {
                   value={lang}
                   onChange={(e) => setLang(e.target.value as Lang)}
                   aria-label={t('settings.language')}
-                  className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
+                  className="h-12 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
                 >
                   <option value="id">Bahasa Indonesia</option>
                   <option value="en">English</option>
@@ -461,7 +461,7 @@ export default function SettingsView() {
                   value={backupInterval}
                   onChange={(e) => { const v = e.target.value as BackupInterval; persistBackupInterval(v); setBackupInterval(v); }}
                   aria-label={t('settings.backupInterval')}
-                  className="h-10 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
+                  className="h-12 pl-3 pr-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] appearance-none"
                 >
                   <option value="weekly">{t('settings.backupWeekly')}</option>
                   <option value="monthly">{t('settings.backupMonthly')}</option>
@@ -562,7 +562,7 @@ export default function SettingsView() {
               aria-label={t('settings.deleteAll')}
               disabled={txCount === 0}
               onClick={() => setConfirmDelete(true)}
-              className="shrink-0 min-h-12 px-4 rounded-[var(--radius-md)] bg-[var(--danger)] text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--danger)]/50 disabled:opacity-40 disabled:active:scale-100"
+              className="shrink-0 min-h-12 px-4 rounded-[var(--radius-md)] bg-[var(--danger-fill)] text-[var(--danger-fill-ink)] text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--danger)]/50 disabled:opacity-40 disabled:active:scale-100"
             >
               {t('common.delete')}
             </button>

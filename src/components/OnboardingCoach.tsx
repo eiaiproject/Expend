@@ -39,7 +39,7 @@ export function OnboardingCoach({
             ref={skipRef}
             type="button"
             onClick={onClose}
-            className="min-h-11 px-3 rounded-[var(--radius-md)] text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bone)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+            className="min-h-12 px-3 rounded-[var(--radius-md)] text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bone)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
           >
             {t('onboarding.skip')}
           </button>
@@ -63,7 +63,7 @@ export function OnboardingCoach({
                   type="button"
                   aria-label={t('chat.useExample', { example: ex })}
                   onClick={() => onTryExample(ex)}
-                  className="w-full text-left font-mono text-xs rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                  className="w-full min-h-12 text-left font-mono text-xs rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 >
                   {ex}
                 </button>

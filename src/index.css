@@ -21,13 +21,15 @@
   --accent-soft: rgba(38, 64, 37, 0.1);
   --accent-fill: #264025;
   --accent-ink: #ddcbb7;
-  /* Semantic: light text colors darkened for AA on white and soft tint (measured 5.0 or higher) */
-  --danger: #DC2626;
+  /* Semantic: light text colors darkened for AA on white and soft tint (measured 5.9 or higher) */
+  --danger: #B91C1C;
+  --danger-fill: #B91C1C;
+  --danger-fill-ink: #FFFFFF;
   --danger-deep: #991B1B;
   --danger-bg: #FEF2F2;
   --danger-border: #FECACA;
   --danger-soft: rgba(220, 38, 38, 0.08);
-  --success: #15803d;
+  --success: #166534;
   --success-soft: rgba(21, 128, 61, 0.08);
   --warning-soft: rgba(180, 83, 9, 0.1);
   --info: #1d4ed8;
@@ -59,6 +61,8 @@
     --accent-ink: #FFFFFF;
     /* Semantic dark */
     --danger: #F87171;
+    --danger-fill: #991B1B;
+    --danger-fill-ink: #FFFFFF;
     --danger-deep: #F87171;
     --danger-bg: #2a0a0a;
     --danger-border: #5a1a1a;
@@ -86,6 +90,8 @@
   --accent-fill: #4a7a2a;
   --accent-ink: #FFFFFF;
   --danger: #F87171;
+  --danger-fill: #991B1B;
+  --danger-fill-ink: #FFFFFF;
   --danger-deep: #F87171;
   --danger-bg: #2a0a0a;
   --danger-border: #5a1a1a;

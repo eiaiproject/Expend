@@ -20,7 +20,7 @@ export function SidebarNav() {
             // agar /chat?mode=upload tetap highlight "Chat"
             className={({ isActive }) => {
               const active = isActive || isActivePath(item.href, location.pathname);
-              return `flex items-center gap-3 px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium transition-colors ${
+              return `flex items-center gap-3 min-h-12 px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium transition-colors ${
                 active
                   ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg)]'
