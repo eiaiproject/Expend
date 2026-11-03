@@ -131,7 +131,7 @@ const en: Record<TranslationKey, string> = {
   'settings.exportCSVError': 'Failed to export CSV.',
   'settings.exportJSONSukses': 'Successfully exported {count} transactions (JSON).',
   'settings.exportJSONError': 'Failed to export JSON.',
-  'settings.backupDue': 'No backup for 30 days. Export CSV or JSON to keep data safe.',
+  'settings.backupDue': 'Time to make a copy. Download JSON to keep data safe.',
   'settings.backupLast': 'Last backup: {date}.',
   'settings.importJSONSukses': 'Successfully imported {count} transactions.',
   'settings.importJSONSkipped': '{count} items skipped.',
@@ -172,7 +172,7 @@ const en: Record<TranslationKey, string> = {
   // Onboarding (first-run coach)
   'onboarding.title': 'Welcome to Expend',
   'onboarding.step1Title': 'Log expenses via chat',
-  'onboarding.step1Desc': 'Type like chatting. Example: "coffee 25rb from BSI". 100% offline, data stays on device.',
+  'onboarding.step1Desc': 'Type like chatting. Example: "coffee 25rb from BSI". Data stays on device.',
   'onboarding.step2Title': 'Try this example',
   'onboarding.step2Desc': 'Tap an example to autofill it on the Record page.',
   'onboarding.step3Title': 'See how it is read',
@@ -184,6 +184,10 @@ const en: Record<TranslationKey, string> = {
   'onboarding.back': 'Back',
   'onboarding.done': 'Start recording',
   'onboarding.replay': 'View tutorial again',
+  'onboarding.example1': 'coffee 25rb from BSI',
+  'onboarding.example2': 'electricity bill 200rb via GoPay',
+  'onboarding.example3': 'lunch 30rb',
+  'onboarding.stepOf': 'Step {current} of {total}',
 
   // Smart input (live parse + cheat sheet)
   'chat.parseTooSmall': "Amount too small. Try 'Kopi 50rb' or 'Kopi Rp500'.",
@@ -191,6 +195,18 @@ const en: Record<TranslationKey, string> = {
   'chat.sheetTitle': 'Accepted input formats',
   'chat.sheetDesc': 'The parser reads flexible amounts. Plain numbers below Rp100 without a prefix are rejected.',
   'chat.sheetClose': 'Close',
+  'chat.fmtPlain': 'plain number',
+  'chat.fmtThousands': 'ID/EN thousands separator',
+  'chat.fmtK': '×1,000',
+  'chat.fmtM': '×1,000,000',
+  'chat.fmtPrefix': 'Rp/R P/IDR prefix',
+  'chat.fmtSource': 'source only when recognized',
+  'chat.fmtSeller': 'seller stays in the description',
+  'chat.fmtRelativeDate': 'relative date',
+  'chat.fmtNote': 'note (note/notes/catatan/keterangan, put it last)',
+  'chat.fmtExplicitDate': 'explicit date',
+  'chat.fmtFloor': 'amount < Rp100 without prefix = noise',
+  'chat.fmtMax': 'overflow rejected',
   'chat.detectedLang': 'Detected English. Change language in Settings?',
   'chat.detectedLangId': 'Detected Bahasa Indonesia. Change language in Settings?',
 
@@ -204,8 +220,8 @@ const en: Record<TranslationKey, string> = {
   'home.tryExamples': 'Try examples:',
   'home.learnFormat': 'Learn input formats',
   'home.showMore': 'Show {count} more',
-  'home.backupRemind': 'No backup for a while. Export to keep data safe.',
-  'home.backupNow': 'Back up now',
+  'home.backupRemind': 'No recent copy. Download JSON to keep data safe.',
+  'home.backupNow': 'Download JSON',
 
   // OCR guidance
   'chat.ocrGuideTitle': 'Make sure the receipt is fully visible',
@@ -239,11 +255,11 @@ const en: Record<TranslationKey, string> = {
   'settings.tutorial': 'Tutorial',
   'settings.tutorialDesc': 'Replay the intro guide',
   'settings.backupInterval': 'Remind me to back up',
-  'settings.backupIntervalDesc': 'Local reminder, no network',
+  'settings.backupIntervalDesc': 'Local reminder, your own file, no cloud',
   'settings.backupWeekly': 'Weekly',
   'settings.backupMonthly': 'Monthly',
   'settings.backupOff': 'Off',
-  'settings.backupNow': 'Back up now (JSON)',
+  'settings.backupNow': 'Download JSON backup',
 };
 
 export default en;

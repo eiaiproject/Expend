@@ -129,7 +129,7 @@ const id = {
   'settings.exportCSVError': 'Gagal mengekspor CSV.',
   'settings.exportJSONSukses': 'Berhasil mengekspor {count} transaksi (JSON).',
   'settings.exportJSONError': 'Gagal mengekspor JSON.',
-  'settings.backupDue': 'Sudah 30 hari tanpa backup. Ekspor CSV atau JSON agar data aman.',
+  'settings.backupDue': 'Sudah waktunya membuat salinan. Unduh JSON agar data aman.',
   'settings.backupLast': 'Backup terakhir: {date}.',
   'settings.importJSONSukses': 'Berhasil mengimpor {count} transaksi.',
   'settings.importJSONSkipped': '{count} item dilewati.',
@@ -170,7 +170,7 @@ const id = {
   // Onboarding (first-run coach)
   'onboarding.title': 'Selamat datang di Expend',
   'onboarding.step1Title': 'Catat pengeluaran lewat chat',
-  'onboarding.step1Desc': 'Ketik seperti ngobrol. Contoh: "kopi 25rb dari BSI". 100% offline, data tersimpan di perangkat.',
+  'onboarding.step1Desc': 'Ketik seperti ngobrol. Contoh: "kopi 25rb dari BSI". Data tersimpan di perangkat.',
   'onboarding.step2Title': 'Coba contoh ini',
   'onboarding.step2Desc': 'Ketuk contoh untuk mengisi otomatis di halaman Catat.',
   'onboarding.step3Title': 'Lihat cara dibaca',
@@ -182,6 +182,10 @@ const id = {
   'onboarding.back': 'Kembali',
   'onboarding.done': 'Mulai mencatat',
   'onboarding.replay': 'Lihat tutorial lagi',
+  'onboarding.example1': 'kopi 25rb dari BSI',
+  'onboarding.example2': 'bayar listrik 200rb via GoPay',
+  'onboarding.example3': 'makan siang 30rb kemarin',
+  'onboarding.stepOf': 'Langkah {current} dari {total}',
 
   // Smart input (live parse + cheat sheet)
   'chat.parseTooSmall': "Nominal terlalu kecil. Coba tulis 'Kopi 50rb' atau 'Kopi Rp500'.",
@@ -189,6 +193,18 @@ const id = {
   'chat.sheetTitle': 'Format input yang diterima',
   'chat.sheetDesc': 'Parser membaca nominal fleksibel. Angka polos di bawah Rp100 tanpa awalan ditolak.',
   'chat.sheetClose': 'Tutup',
+  'chat.fmtPlain': 'angka polos',
+  'chat.fmtThousands': 'pemisah ribu ID/EN',
+  'chat.fmtK': '×1.000',
+  'chat.fmtM': '×1.000.000',
+  'chat.fmtPrefix': 'awalan Rp/R P/IDR',
+  'chat.fmtSource': 'sumber dana hanya bila dikenal',
+  'chat.fmtSeller': 'penjual tetap di deskripsi',
+  'chat.fmtRelativeDate': 'tanggal relatif',
+  'chat.fmtNote': 'catatan (note/notes/catatan/keterangan, tulis di akhir)',
+  'chat.fmtExplicitDate': 'tanggal eksplisit',
+  'chat.fmtFloor': 'angka < Rp100 tanpa awalan = noise',
+  'chat.fmtMax': 'overflow ditolak',
   'chat.detectedLang': 'Terdeteksi English. Ganti bahasa di Pengaturan?',
   'chat.detectedLangId': 'Terdeteksi Bahasa Indonesia. Ganti bahasa di Pengaturan?',
 
@@ -202,8 +218,8 @@ const id = {
   'home.tryExamples': 'Coba contoh:',
   'home.learnFormat': 'Pelajari format input',
   'home.showMore': 'Tampilkan {count} berikutnya',
-  'home.backupRemind': 'Sudah lama tanpa backup. Amankan data dengan ekspor.',
-  'home.backupNow': 'Backup sekarang',
+  'home.backupRemind': 'Belum ada salinan terbaru. Unduh JSON agar data aman.',
+  'home.backupNow': 'Unduh JSON',
 
   // OCR guidance
   'chat.ocrGuideTitle': 'Pastikan struk terlihat penuh',
@@ -237,11 +253,11 @@ const id = {
   'settings.tutorial': 'Tutorial',
   'settings.tutorialDesc': 'Ulangi panduan awal',
   'settings.backupInterval': 'Ingatkan saya backup',
-  'settings.backupIntervalDesc': 'Pengingat lokal, tanpa jaringan',
+  'settings.backupIntervalDesc': 'Pengingat lokal, berkas milik Anda, tanpa cloud',
   'settings.backupWeekly': 'Mingguan',
   'settings.backupMonthly': 'Bulanan',
   'settings.backupOff': 'Mati',
-  'settings.backupNow': 'Backup sekarang (JSON)',
+  'settings.backupNow': 'Unduh salinan JSON',
 } as const;
 
 export default id;
