@@ -114,5 +114,6 @@ Expend uses semver and Conventional Commits. A merge to `main` cuts a release af
 
 ## More documentation
 
+- [Design notes](docs/DESIGN.md)
 - [Dexie migrations](docs/dexie-migrations.md)
 - [Google Sheets CSV import](docs/sheets-import.md)

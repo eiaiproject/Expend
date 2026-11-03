@@ -41,7 +41,7 @@ function LangToggle() {
           aria-pressed={lang === l}
           aria-label={`${t('settings.language')}: ${l === 'id' ? 'Bahasa Indonesia' : 'English'}`}
           onClick={() => setLang(l)}
-          className={`min-w-12 min-h-12 px-2.5 rounded-full text-[11px] font-bold tracking-wide transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${
+          className={`min-w-12 min-h-12 px-2.5 rounded-full text-xs font-bold tracking-wide transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 ${
             lang === l ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bone)]'
           }`}
         >

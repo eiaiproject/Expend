@@ -67,7 +67,7 @@ export function ExportWizard({
             <span aria-hidden className="text-lg leading-none">&times;</span>
           </button>
         </div>
-        <p className="text-[11px] font-bold tracking-wide uppercase text-[var(--text-muted)] mt-1 tabular-nums">{step} / 3</p>
+        <p className="text-xs font-bold tracking-wide uppercase text-[var(--text-muted)] mt-1 tabular-nums">{step} / 3</p>
 
         {step === 1 && (
           <div className="mt-3 space-y-2">

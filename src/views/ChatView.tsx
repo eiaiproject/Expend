@@ -87,7 +87,7 @@ function ocrFailureKey(e: unknown): 'chat.ocrModelError' | 'chat.ocrReadError' {
 
 export default function ChatView() {
   const { t, lang } = useTranslation();
-  // TASK 3: prefill dari contoh one-tap (?input=...), baca saat init.
+  // prefill dari contoh one-tap (?input=...), baca saat init.
   const [input, setInput] = useState(() => {
     try {
       return (new URLSearchParams(window.location.search).get('input') ?? '').slice(0, 500);
@@ -243,7 +243,7 @@ export default function ChatView() {
     ta.style.height = `${Math.min(ta.scrollHeight, 128)}px`;
   }, [input]);
 
-  // TASK 2: live parse feedback dengan debounce 300ms (via useDebouncedValue).
+  // live parse feedback dengan debounce 300ms (via useDebouncedValue).
   // Guard pending agar tak ganggu kartu verifikasi.
   const liveDebounced = pending ? '' : debouncedInput;
 
@@ -334,7 +334,7 @@ export default function ChatView() {
     }
   }, []);
 
-  // TASK 3: fokus + bersihkan param setelah prefill (sinkron DOM, tanpa setState).
+  // fokus + bersihkan param setelah prefill (sinkron DOM, tanpa setState).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('input')) {
@@ -343,7 +343,7 @@ export default function ChatView() {
     }
   }, []);
 
-  // TASK 5: panduan visual pra-capture (dismiss persist lokal).
+  // panduan visual pra-capture (dismiss persist lokal).
   const dismissGuide = useCallback(() => {
     setShowOcrGuide(false);
     try {
@@ -556,7 +556,7 @@ export default function ChatView() {
             <QuickToggles />
             {/* Status OCR dekoratif: baru tampil di layar lebar. Di bawah lg
                 label ini memotong judul header sampai ter-truncate. */}
-            <div className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bone)] text-[var(--text-secondary)] text-[12px] font-semibold border border-[var(--border)]">
+            <div className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bone)] text-[var(--text-secondary)] text-xs font-semibold border border-[var(--border)]">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
               <span>{ocrAvailable ? t('common.ready') : t('common.loadingProcessor')}</span>
             </div>
@@ -592,16 +592,16 @@ export default function ChatView() {
                 <Receipt size={18} className="text-[var(--accent)]" aria-hidden />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-bold tracking-tight leading-none">{t('chat.startRecording')}</p>
-                <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">{t('chat.startDesc')}</p>
+                <p className="text-sm font-bold tracking-tight leading-none">{t('chat.startRecording')}</p>
+                <p className="text-sm text-[var(--text-secondary)] mt-1.5 leading-relaxed">{t('chat.startDesc')}</p>
                 <div className="mt-3 rounded-[10px] border border-[var(--border)] bg-[var(--bg)] overflow-hidden">
                   <div className="px-3 py-1.5 border-b border-[var(--border)]/60 bg-[var(--card)] flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" aria-hidden />
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" aria-hidden />
-                    <span className="text-[11px] font-mono tracking-wide text-[var(--text-muted)] uppercase">{t('chat.example')}</span>
-                    <span className="ml-auto text-[11px] font-sans normal-case tracking-normal text-[var(--text-muted)]">{t('chat.tapExample')}</span>
+                    <span className="text-xs font-mono tracking-wide text-[var(--text-muted)] uppercase">{t('chat.example')}</span>
+                    <span className="ml-auto text-xs font-sans normal-case tracking-normal text-[var(--text-muted)]">{t('chat.tapExample')}</span>
                   </div>
-                  <div className="px-3 py-2.5 flex flex-col gap-1 font-mono text-[12px] leading-5 text-[var(--text-secondary)]">
+                  <div className="px-3 py-2.5 flex flex-col gap-1 font-mono text-xs leading-5 text-[var(--text-secondary)]">
                     <button
                       type="button"
                       aria-label={t('chat.useExample', { example: 'kopi 25rb dari BSI' })}
@@ -721,7 +721,7 @@ export default function ChatView() {
                       )}
                     </div>
                     {showTime && (
-                      <p className={`mt-1 text-[12px] tabular-nums ${m.role === 'user' ? 'text-right text-[var(--text-muted)]' : 'text-[var(--text-muted)]'}`}>
+                      <p className={`mt-1 text-xs tabular-nums ${m.role === 'user' ? 'text-right text-[var(--text-muted)]' : 'text-[var(--text-muted)]'}`}>
                         {fmtTime(m.createdAt)}
                       </p>
                     )}
@@ -745,10 +745,10 @@ export default function ChatView() {
                 <p className="text-xs font-semibold" aria-live="polite">
                   {t('chat.readingReceipt')} {ocrProgress}%
                 </p>
-                <span className="ml-auto text-[12px] text-[var(--text-muted)]">{t('chat.offline')}</span>
+                <span className="ml-auto text-xs text-[var(--text-muted)]">{t('chat.offline')}</span>
               </div>
               <progress value={ocrProgress} max={100} aria-label="Memindai bukti" aria-valuetext={`${ocrProgress}%`} className="mt-3 h-1.5 w-full rounded-full overflow-hidden" />
-              <p className="text-[12px] text-[var(--text-muted)] mt-2">{t('chat.stayOnPage')}</p>
+              <p className="text-xs text-[var(--text-muted)] mt-2">{t('chat.stayOnPage')}</p>
             </div>
           )}
 
@@ -781,10 +781,10 @@ export default function ChatView() {
               )}
               {ocrConfidence !== null && (
                 <div className="mt-2 space-y-1">
-                  <p className="text-[11px] font-semibold text-[var(--text-secondary)] tabular-nums" aria-live="polite">
+                  <p className="text-xs font-semibold text-[var(--text-secondary)] tabular-nums" aria-live="polite">
                     {t('chat.ocrConfidence', { value: ocrConfidence })}
                   </p>
-                  <p className="text-[11px] text-[var(--text-muted)]">{t('chat.ocrPriorityNote')}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{t('chat.ocrPriorityNote')}</p>
                 </div>
               )}
               {(pendingEditable || !pending.amount) && (
@@ -985,7 +985,7 @@ export default function ChatView() {
             className="flex-1 min-w-0 min-h-12 max-h-32 bg-transparent px-2 py-2.5 text-sm outline-none placeholder:text-[var(--text-muted)] resize-none leading-snug"
           />
           {input.length > 400 && (
-            <span className={`text-[10px] tabular-nums self-end mb-2.5 ${input.length >= 500 ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'}`} aria-live="polite">
+            <span className={`text-xs tabular-nums self-end mb-2.5 ${input.length >= 500 ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'}`} aria-live="polite">
               {input.length}/500
             </span>
           )}
@@ -1006,7 +1006,7 @@ export default function ChatView() {
         {/* Hint hanya relevan saat keyboard tertutup - sembunyikan saat
             mengetik agar layar mobile tidak terbuang. */}
         {keyboardInset === 0 && (
-          <p className="hidden md:block text-[11px] tracking-wide text-[var(--text-secondary)] text-center mt-2.5">
+          <p className="hidden md:block text-xs tracking-wide text-[var(--text-secondary)] text-center mt-2.5">
             <span>{t('chat.shortcutsDesktop')}</span>
           </p>
         )}

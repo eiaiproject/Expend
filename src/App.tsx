@@ -20,7 +20,7 @@ function Shell() {
   const navigate = useNavigate();
   const { vvHeight, vvTop, keyboardOpen } = useVisualViewport();
   const isChat = location.pathname === '/chat';
-  // TASK 1: coach saat first-run, baca flag saat init (bukan setState di effect).
+  // coach saat first-run, baca flag saat init (bukan setState di effect).
   const [showCoach, setShowCoach] = useState<boolean>(() => !isOnboarded());
 
   useEffect(() => {
@@ -29,7 +29,7 @@ function Shell() {
     applyA11yPrefs();
   }, []);
 
-  // TASK 1: replay dari Settings ("Lihat tutorial lagi") via event lokal.
+  // replay dari Settings ("Lihat tutorial lagi") via event lokal.
   useEffect(() => {
     const onReplay = () => setShowCoach(true);
     window.addEventListener('expend:replay-onboarding', onReplay);

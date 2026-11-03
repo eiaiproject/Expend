@@ -9,7 +9,7 @@ interface EmptyStateProps {
 export function EmptyState({ title, description, children }: EmptyStateProps) {
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] px-6 py-8 text-center">
-      <h2 className="text-[15px] font-bold leading-snug">{title}</h2>
+      <h2 className="text-base font-bold leading-snug">{title}</h2>
       <p className="text-sm text-[var(--text-secondary)] mt-1.5 max-w-[36ch] mx-auto leading-relaxed">{description}</p>
       {children && <div className="mt-5">{children}</div>}
     </div>
