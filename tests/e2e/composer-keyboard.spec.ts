@@ -117,7 +117,7 @@ test('pesan terbaru tetap terlihat di atas composer saat keyboard terbuka', asyn
 // Regresi landscape: md:pt-6 di main mendorong composer ke bawah viewport
 // saat keyboard terbuka (tombol kirim terpotong ~27px). Dasar composer harus
 // merapat ke vv.height + vv.offsetTop. Toleransi 8px: lokal stabil 0, tetapi
-// Chromium Ubuntu CI (metrik font fallback lebih tinggi) menetap di 6 —
+// Chromium Ubuntu CI (metrik font fallback lebih tinggi) menetap di 6 ,
 // regresi asli 27px tetap tertangkap, guard DEV memakai 4px.
 test('composer tetap docked saat landscape + keyboard terbuka', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });

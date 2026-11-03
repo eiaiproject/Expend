@@ -87,7 +87,7 @@ function ocrFailureKey(e: unknown): 'chat.ocrModelError' | 'chat.ocrReadError' {
 
 export default function ChatView() {
   const { t, lang } = useTranslation();
-  // TASK 3: prefill dari contoh one-tap (?input=...) — baca saat init.
+  // TASK 3: prefill dari contoh one-tap (?input=...), baca saat init.
   const [input, setInput] = useState(() => {
     try {
       return (new URLSearchParams(window.location.search).get('input') ?? '').slice(0, 500);
@@ -186,7 +186,7 @@ export default function ChatView() {
   // terlihat. Jangkar mencatat posisi & inset keyboard SAAT menekan kirim:
   // commit-commit berikutnya dipaksa scroll hanya bila user memang di bawah
   // dengan inset yang sama. Ganti inset (buka/tutup keyboard) atau baca atas
-  // otomatis membatalkan — anti-rebut utuh, tanpa timestamp/window.
+  // otomatis membatalkan, anti-rebut utuh, tanpa timestamp/window.
   const sendAnchorRef = useRef<{ atBottom: boolean; kb: number } | null>(null);
   const captureSendAnchor = () => {
     const el = listRef.current;
@@ -207,7 +207,7 @@ export default function ChatView() {
     }
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
     const anchor = sendAnchorRef.current;
-    // Inset keyboard berubah async (animasi + debounce blur) — toleransi 40px
+    // Inset keyboard berubah async (animasi + debounce blur), toleransi 40px
     // agar pesan sendiri tetap terlihat walau inset bergeser saat kirim.
     const sameKb = !anchor || Math.abs(anchor.kb - keyboardInset) < 40;
     const forceSend = !!anchor && anchor.atBottom && sameKb;

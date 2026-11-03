@@ -20,7 +20,7 @@ function Shell() {
   const navigate = useNavigate();
   const { vvHeight, vvTop, keyboardOpen } = useVisualViewport();
   const isChat = location.pathname === '/chat';
-  // TASK 1: coach saat first-run — baca flag saat init (bukan setState di effect).
+  // TASK 1: coach saat first-run, baca flag saat init (bukan setState di effect).
   const [showCoach, setShowCoach] = useState<boolean>(() => !isOnboarded());
 
   useEffect(() => {

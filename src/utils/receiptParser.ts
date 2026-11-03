@@ -63,7 +63,7 @@ function isSaldoAmtLine(line: string): boolean {
   return SALDO_RE.test(line) && /\d/.test(line);
 }
 
-// Amount parsing — shared with chatParser (suffix + ID thousand/decimal rules).
+// Amount parsing, shared with chatParser (suffix + ID thousand/decimal rules).
 function parseAmt(s: string): number | null {
   return parseAmountWithSuffix(s);
 }
@@ -266,7 +266,7 @@ function extractAmount(hits: ReceiptHit[], text: string): number | null {
   return null;
 }
 
-// Date extraction — shared dmy/mmm parsing with chatParser.
+// Date extraction, shared dmy/mmm parsing with chatParser.
 function extractDate(text: string): string {
   return parseDMYDate(text) ?? todayLocalISO();
 }

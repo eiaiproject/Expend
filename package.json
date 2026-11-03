@@ -15,6 +15,7 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "preview": "vite preview",
     "lint": "eslint .",
+    "lint:prose": "node scripts/check-prose.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:unit": "vitest run",
