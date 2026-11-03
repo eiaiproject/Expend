@@ -1,5 +1,5 @@
 /**
- * Korpus input struk/resi untuk `parseReceiptText` — melengkapi
+ * Korpus input struk/resi untuk `parseReceiptText`, melengkapi
  * `ocr-receipts.ts` (yang menguji format bank nyata) dengan **ruang input**:
  * anotasi nominal, label, saldo/tunai/kembalian, tanggal, kerusakan OCR,
  * posisi merchant, catatan, mata uang lain, dan input tepi/adversarial.
@@ -7,7 +7,7 @@
  * Konvensi:
  * - Entri dengan `expect` mengunci perilaku yang **sudah benar** (regresi).
  * - Entri tanpa `expect` hanya diuji invariant (tidak throw, batas panjang,
- *   performance) — aman untuk semua kemungkinan input.
+ *   performance), aman untuk semua kemungkinan input.
  * - Temuan yang sudah diperbaiki disimpan sebagai jejak audit di
  *   `RECEIPT_RESOLVED_FINDINGS` (sebelum → sesudah); status terkininya
  *   DI-ASSERT oleh array kategori di atas, bukan oleh daftar itu.
@@ -25,7 +25,7 @@ export interface ReceiptCase {
   };
 }
 
-// ── 1. Label nominal (Total/Jumlah/Grand Total) — nominal harus dari label ──
+// ── 1. Label nominal (Total/Jumlah/Grand Total), nominal harus dari label ──
 export const AMOUNT_LABELS: ReceiptCase[] = [
   { text: 'Total Rp 55.000', expect: { amount: 55000 } },
   { text: 'TOTAL Rp 55.000', expect: { amount: 55000 } },

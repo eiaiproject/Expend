@@ -206,7 +206,7 @@ export async function recognizeImageDetailed(file: File, onProgress: (n: number)
     const confidence = raw === null ? null : Math.max(0, Math.min(100, Math.round(raw)));
     return { text: (data.text ?? '') as string, confidence };
   } finally {
-    // Hanya reset bila masih pemilik token — panggilan lebih baru menang.
+    // Hanya reset bila masih pemilik token, panggilan lebih baru menang.
     if (myToken === progressToken) currentOnProgress = () => {};
   }
 }

@@ -20,6 +20,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm audit --omit=dev --audit-level=moderate
       - run: npm run lint
+      - run: npm run lint:prose
       - run: npm run typecheck
       # test:coverage menjalankan seluruh unit test sekaligus menghasilkan
       # coverage/lcov.info (dirujuk sonar-project.properties).
