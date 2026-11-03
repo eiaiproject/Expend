@@ -967,7 +967,7 @@ export default function ChatView() {
             aria-label={t('chat.formatHelp')}
             title={t('chat.formatHelp')}
             onClick={() => setShowSheet(true)}
-            className="w-12 h-12 rounded-full bg-[var(--bg)] border border-[var(--border)] grid place-items-center shrink-0 text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--border)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+            className="hidden sm:grid w-12 h-12 rounded-full bg-[var(--bg)] border border-[var(--border)] place-items-center shrink-0 text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--border)] active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
           >
             <span aria-hidden>?</span>
           </button>

@@ -3,7 +3,7 @@ import { useTranslation } from '../i18n';
 import { useFocusTrap } from '../utils/focusTrap';
 import { fmtIDR } from '../utils/format';
 
-const EXAMPLES = ['kopi 25rb dari BSI', 'bayar listrik 200rb via GoPay', 'makan siang 30rb kemarin'];
+const EXAMPLE_KEYS = ['onboarding.example1', 'onboarding.example2', 'onboarding.example3'] as const;
 
 export function OnboardingCoach({
   open,
@@ -18,12 +18,18 @@ export function OnboardingCoach({
   const [step, setStep] = useState(0);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const skipRef = useRef<HTMLButtonElement>(null);
-  useFocusTrap(dialogRef, { onClose, initialFocusRef: skipRef, active: open });
+  // Tutup selalu mengembalikan wizard ke langkah pertama, sehingga replay dari
+  // Settings tidak membuka di langkah terakhir sesi sebelumnya.
+  const closeCoach = () => {
+    setStep(0);
+    onClose();
+  };
+  useFocusTrap(dialogRef, { onClose: closeCoach, initialFocusRef: skipRef, active: open });
   if (!open) return null;
   const last = step === 3;
   return (
     <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <div className="fixed inset-0 bg-black/40 cursor-pointer" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/40 cursor-pointer" onClick={closeCoach} aria-hidden="true" />
       <dialog
         ref={dialogRef}
         open
@@ -33,12 +39,12 @@ export function OnboardingCoach({
       >
         <div className="flex items-center justify-between gap-2">
           <p className="text-[11px] font-bold tracking-wide uppercase text-[var(--text-muted)] tabular-nums">
-            {step + 1} / 4
+            {t('onboarding.stepOf', { current: step + 1, total: 4 })}
           </p>
           <button
             ref={skipRef}
             type="button"
-            onClick={onClose}
+            onClick={closeCoach}
             className="min-h-12 px-3 rounded-[var(--radius-md)] text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bone)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
           >
             {t('onboarding.skip')}
@@ -57,17 +63,20 @@ export function OnboardingCoach({
             <p className="text-sm font-semibold">{t('onboarding.step2Title')}</p>
             <p className="text-xs text-[var(--text-secondary)] mt-1">{t('onboarding.step2Desc')}</p>
             <div className="mt-3 space-y-2">
-              {EXAMPLES.map((ex) => (
+              {EXAMPLE_KEYS.map((key) => {
+                const ex = t(key);
+                return (
                 <button
-                  key={ex}
+                  key={key}
                   type="button"
                   aria-label={t('chat.useExample', { example: ex })}
-                  onClick={() => onTryExample(ex)}
+                  onClick={() => { setStep(0); onTryExample(ex); }}
                   className="w-full min-h-12 text-left font-mono text-xs rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                 >
                   {ex}
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -111,7 +120,7 @@ export function OnboardingCoach({
           ) : (
             <button
               type="button"
-              onClick={onClose}
+              onClick={closeCoach}
               className="flex-1 min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
             >
               {t('onboarding.done')}
