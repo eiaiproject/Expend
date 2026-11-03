@@ -9,6 +9,7 @@ const id = {
   'common.confirm': 'Konfirmasi',
   'common.delete': 'Hapus',
   'common.skipToContent': 'Lewati ke konten utama',
+  'common.retry': 'Coba lagi',
 
   // Navigation
   'nav.main': 'Navigasi utama',
@@ -48,6 +49,7 @@ const id = {
   'home.groupWeek': 'Minggu',
   'home.groupMonth': 'Bulan',
   'home.noMatch': 'Tidak ada transaksi pada rentang ini.',
+  'home.loadError': 'Data transaksi gagal dimuat. Periksa ruang penyimpanan browser lalu coba lagi.',
 
   // Chat
   'chat.title': 'Catat pengeluaran',
@@ -155,6 +157,7 @@ const id = {
   'settings.deleteAllButton': 'Hapus semua',
   'settings.deleteSuccess': 'Semua data transaksi berhasil dihapus.',
   'settings.deleteError': 'Gagal menghapus data. Coba lagi.',
+  'settings.countError': 'Jumlah transaksi tidak dapat dibaca.',
 
   // Export columns
   'export.date': 'Tanggal',

@@ -14,6 +14,7 @@ import { SectionCard } from '../components/SectionCard';
 import { EmptyState } from '../components/EmptyState';
 import { InlineAlert } from '../components/InlineAlert';
 import { SkeletonCard } from '../components/SkeletonCard';
+import { DbErrorNotice } from '../components/DbErrorNotice';
 import { FormatCheatSheet } from '../components/FormatCheatSheet';
 import { Wordmark } from '../components/Wordmark';
 import { QuickToggles } from '../components/QuickToggles';
@@ -91,9 +92,22 @@ const QUICK_LABEL_KEY: Record<QuickRange, TranslationKey> = {
 
 export default function HomeView() {
   const { t } = useTranslation();
-  const txsResult = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray(), []);
+  const [dbRetry, setDbRetry] = useState(0);
+  const txsResult = useLiveQuery(
+    () => db.transactions.orderBy('date').reverse().toArray().catch(() => null),
+    [dbRetry],
+  );
   const txs = txsResult ?? EMPTY_TXS;
   const isLoading = txsResult === undefined;
+  const loadFailed = txsResult === null;
+  const retryDb = async () => {
+    try {
+      await db.open();
+    } catch {
+      // Query berikutnya tetap menampilkan notice yang sama bila DB masih gagal.
+    }
+    setDbRetry((n) => n + 1);
+  };
   const [error, setError] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
   const [editing, setEditing] = useState<Transaction | null>(null);
@@ -209,6 +223,14 @@ export default function HomeView() {
 
       {isLoading && <SkeletonCard lines={3} />}
 
+      {loadFailed && (
+        <DbErrorNotice
+          message={t('home.loadError')}
+          retryLabel={t('common.retry')}
+          onRetry={() => void retryDb()}
+        />
+      )}
+
       {error && (
         <div role="alert" className="text-xs px-3 py-2.5 rounded-[var(--radius-md)] bg-[var(--danger-bg)] border border-[var(--danger-border)] text-[var(--danger)] flex items-start gap-2">
           <span className="flex-1">{error}</span>
@@ -229,7 +251,7 @@ export default function HomeView() {
         </div>
       )}
 
-      {!isLoading && txs.length === 0 ? (
+      {!isLoading && !loadFailed && (txs.length === 0 ? (
         <EmptyState
           title={t('home.emptyTitle')}
           description={t('home.emptyDesc')}
@@ -441,7 +463,7 @@ export default function HomeView() {
             {t('home.recordNew')}
           </Link>
         </>
-      )}
+      ))}
 
       {toast && (
         // key per pesan: tanpa ini instance Toast tidak remount saat pesan baru
