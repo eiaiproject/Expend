@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 const MAX_BYTES = 1_000_000;
-const files = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { encoding: 'utf8' })
+const files = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { encoding: 'utf8' }) // NOSONAR - S4036: no user input, git comes from the controlled CI PATH
   .split('\0')
   .filter(Boolean)
   .filter((p) => !p.startsWith('tests/') && !p.startsWith('docs/') && !p.endsWith('package-lock.json'));
@@ -21,8 +21,9 @@ const rules = [
 let failed = false;
 for (const file of files) {
   try {
-    if (statSync(file).size > MAX_BYTES) continue;
-    const text = readFileSync(file, 'utf8');
+    const buf = readFileSync(file);
+    if (buf.byteLength > MAX_BYTES) continue;
+    const text = buf.toString('utf8');
     for (const rule of rules) {
       if (rule.re.test(text)) {
         console.error(`check-secrets: ${rule.name} terdeteksi di ${file}`);

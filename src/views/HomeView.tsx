@@ -6,11 +6,11 @@ import { filterByDate, validateDateRange, jsonBlob, exportFilename, downloadBlob
 import { summarizeActiveTransactions } from '../utils/transactionSummary';
 import { addDaysISO, todayLocalISO } from '../utils/date';
 import { isBackupDueWithInterval, getBackupInterval, readLastBackup, recordBackup, BACKUP_KEY, BACKUP_INTERVAL_KEY } from '../utils/backup';
-import { restoreTransaction, softDeleteTransaction, updateTransaction } from '../utils/transactionMutations';
+import { restoreTransaction, softDeleteTransaction } from '../utils/transactionMutations';
 import { useDebouncedValue } from '../utils/useDebouncedValue';
 import { isEditableElement } from '../utils/keyboard';
 import { groupTransactions, type GroupGranularity } from '../utils/grouping';
-import { GRANULARITY_LABEL_KEY, QUICK_LABEL_KEY, highlightMatch, type QuickRange } from './home/homeUtils';
+import { GRANULARITY_LABEL_KEY, QUICK_LABEL_KEY, highlightMatch } from './home/homeUtils';
 import { Receipt, Trash2, ChatRoundDots, Gallery, Edit, Calendar } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { SectionCard } from '../components/SectionCard';

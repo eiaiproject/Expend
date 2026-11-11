@@ -4,10 +4,15 @@
 
 - Add XLSX import and optional BYOK receipt extraction
 
+### Changed
+
+- Refresh React, React DOM, React Router, Tailwind Vite plugin, and Vitest
+
 ### Fixed
 
 - Keep changelog entries for empty releases
 - Harden upload locking, local dates, pixel limits, dedupe, and amount rounding
+- Resolve CodeQL and Sonar security findings
 
 
 ## 0.20.1 - 2026-11-03

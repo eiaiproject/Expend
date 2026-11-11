@@ -1,4 +1,4 @@
-import { recognizeImageDetailed, validateImageFile, validateFileMagic, validateImagePixels, OcrImageTooLargeError, OcrModelError } from '../../utils/ocr';
+import { validateImageFile, validateFileMagic, validateImagePixels, OcrImageTooLargeError, OcrModelError } from '../../utils/ocr';
 import { todayLocalISO } from '../../utils/date';
 import type { ChatMessage } from '../../db/db';
 
@@ -54,4 +54,4 @@ export async function clearShareCache(): Promise<void> {
 }
 
 // Re-export agar call site lama tetap sederhana bila butuh recognize langsung.
-export { recognizeImageDetailed };
+export { recognizeImageDetailed } from '../../utils/ocr';

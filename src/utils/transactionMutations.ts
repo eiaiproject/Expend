@@ -39,7 +39,7 @@ export async function restoreTransaction(txId: number, at?: string): Promise<voi
   const timestamp = nowISO(at);
   await db.transaction('rw', [db.transactions, db.transactionAudit], async () => {
     const before = await db.transactions.get(txId);
-    if (!before || !before.deletedAt) throw new Error('transaction-not-found');
+    if (!before?.deletedAt) throw new Error('transaction-not-found');
     await db.transactionAudit.add({ txId, action: 'restore', at: timestamp, before, after: { ...before, deletedAt: undefined } });
     await db.transactions.update(txId, { deletedAt: undefined, updatedAt: timestamp });
   });

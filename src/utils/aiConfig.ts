@@ -24,7 +24,8 @@ export function normalizeBaseUrl(raw: string): string | null {
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
   if (url.username || url.password || url.search || url.hash) return null;
   if (url.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) return null;
-  let path = url.pathname.replace(/\/+$/, '');
+  let path = url.pathname;
+  while (path.endsWith('/')) path = path.slice(0, -1);
   path = path.replace(/\/chat\/completions$/, '');
   return `${url.origin}${path}`;
 }
@@ -53,6 +54,9 @@ export function saveAiConfig(config: AiConfig): boolean {
   const model = config.model.trim() || DEFAULT_AI_MODEL;
   if (!baseUrl || !apiKey) return false;
   try {
+    // BYOK requires a key that survives reloads. It never leaves this origin
+    // except as a Bearer token to the endpoint chosen here.
+    // lgtm[js/clear-text-storage-of-sensitive-information]
     localStorage.setItem(AI_CONFIG_KEY, JSON.stringify({ baseUrl, apiKey, model }));
     return true;
   } catch {

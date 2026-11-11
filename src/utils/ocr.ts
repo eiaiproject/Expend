@@ -259,7 +259,7 @@ export function imageDimensions(header: Uint8Array): Dimensions | null {
 
   if (header.length >= 24 && header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46 &&
     header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50) {
-    const chunk = String.fromCharCode(header[12]!, header[13]!, header[14]!, header[15]!);
+    const chunk = String.fromCodePoint(header[12]!, header[13]!, header[14]!, header[15]!);
     if (chunk === 'VP8X' && header.length >= 30) {
       const width = 1 + (header[24]! | (header[25]! << 8) | (header[26]! << 16));
       const height = 1 + (header[27]! | (header[28]! << 8) | (header[29]! << 16));

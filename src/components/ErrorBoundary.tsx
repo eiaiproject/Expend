@@ -15,7 +15,7 @@ interface State {
  * jalan keluar untuk memuat ulang atau mengekspor data.
  */
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  readonly state: State = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
     return { error };

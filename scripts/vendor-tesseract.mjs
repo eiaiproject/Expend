@@ -14,7 +14,7 @@
 
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,22 +56,23 @@ function sha256(buffer) {
   return createHash('sha256').update(buffer).digest('hex');
 }
 
-function hasValidExisting(dest, expected) {
-  if (!existsSync(dest) || statSync(dest).size < MIN_LANG_BYTES) return false;
-  return sha256(readFileSync(dest)) === expected;
+function validExistingSize(dest, expected) {
+  try {
+    const buf = readFileSync(dest);
+    return buf.byteLength >= MIN_LANG_BYTES && sha256(buf) === expected ? buf.byteLength : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Unduh satu model bahasa; verifikasi checksum sebelum menulis. */
 async function fetchLang(lang) {
   const dest = join(langDir, `${lang}.traineddata.gz`);
   const expected = LANG_SHA256[lang];
-  if (hasValidExisting(dest, expected)) {
+  const existingSize = validExistingSize(dest, expected);
+  if (existingSize !== null) {
     console.log(`vendor-tesseract: ${lang} sudah ada dan checksum cocok, dilewati`);
-    return statSync(dest).size;
-  }
-  if (existsSync(dest)) {
-    console.warn(`vendor-tesseract: checksum ${lang} tidak cocok, file lama dihapus`);
-    rmSync(dest, { force: true });
+    return existingSize;
   }
   try {
     const res = await fetch(`${LANG_CDN}/${lang}/4.0.0_best_int/${lang}.traineddata.gz`);

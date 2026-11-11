@@ -150,10 +150,11 @@ function messageContent(payload: unknown): string {
 export function parseAiReceiptPayload(raw: unknown, today = todayLocalISO()): AiParsedReceipt {
   let value: unknown = raw;
   if (typeof raw === 'string') {
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) throw new AiResponseError();
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if (start < 0 || end <= start) throw new AiResponseError();
     try {
-      value = JSON.parse(match[0]);
+      value = JSON.parse(raw.slice(start, end + 1));
     } catch {
       throw new AiResponseError();
     }
@@ -211,7 +212,7 @@ async function imageDataUrl(file: File): Promise<string> {
   }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
     reader.onerror = () => reject(new AiResponseError());
     reader.readAsDataURL(file);
   });

@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
-const files = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { encoding: 'utf8' })
+const files = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { encoding: 'utf8' }) // NOSONAR - S4036: no user input, git comes from the controlled CI PATH
   .split('\0')
   .filter(Boolean)
   .filter((p) => p.startsWith('src/') || p.startsWith('public/') || p.startsWith('scripts/'));
