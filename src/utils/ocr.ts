@@ -234,13 +234,17 @@ function isJpegSofMarker(marker: number): boolean {
     (marker >= 0xcd && marker <= 0xcf);
 }
 
+function isJpegStandaloneMarker(marker: number): boolean {
+  return marker === 0xd8 || marker === 0xd9 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7);
+}
+
 function jpegDimensions(header: Uint8Array): Dimensions | null {
   if (header.length < 4 || header[0] !== 0xff || header[1] !== 0xd8) return null;
   let i = 2;
   while (i + 4 <= header.length) {
     if (header[i] !== 0xff) { i++; continue; }
     const marker = header[i + 1]!;
-    if (marker === 0xd8 || marker === 0xd9 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+    if (isJpegStandaloneMarker(marker)) {
       i += 2;
       continue;
     }
