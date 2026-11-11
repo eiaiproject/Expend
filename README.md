@@ -1,6 +1,6 @@
 # Expend
 
-[![version](https://img.shields.io/badge/version-0.20.1-teal)](https://github.com/eiaiproject/Expend/releases)
+[![version](https://img.shields.io/badge/version-0.21.0-teal)](https://github.com/eiaiproject/Expend/releases)
 [![CI](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml/badge.svg)](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-teal.svg)](LICENSE)
 

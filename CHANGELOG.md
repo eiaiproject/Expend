@@ -1,4 +1,15 @@
 # Changelog
+## 0.21.0 - 2026-11-11
+### Added
+
+- Add XLSX import and optional BYOK receipt extraction
+
+### Fixed
+
+- Keep changelog entries for empty releases
+- Harden upload locking, local dates, pixel limits, dedupe, and amount rounding
+
+
 ## 0.20.1 - 2026-11-03
 ### Fixed
 
