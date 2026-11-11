@@ -120,6 +120,13 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
         for (let i = 0; i < count; i++) {
           const b = controls.nth(i);
           if (!(await b.isVisible())) continue;
+          // Skip links are clipped to 1x1 by `sr-only` until keyboard focus;
+          // they are not touch targets in that state.
+          const clipped = await b.evaluate((el) => {
+            const s = getComputedStyle(el);
+            return s.clip !== 'auto' || s.clipPath !== 'none';
+          });
+          if (clipped) continue;
           const box = await b.boundingBox();
           if (!box || box.width === 0) continue;
           if (box.width < minTouch || box.height < minTouch) {
