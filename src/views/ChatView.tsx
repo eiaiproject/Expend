@@ -1,17 +1,23 @@
 import { useEffect, useEffectEvent, useRef, useState, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { db, type ChatMessage } from '../db/db';
 import { addChatMessage } from '../utils/chatHistory';
 import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
-import { recognizeImageDetailed, isOcrReady, validateImageFile, validateFileMagic, OcrModelError } from '../utils/ocr';
+import { recognizeImageDetailed, isOcrReady } from '../utils/ocr';
+import { getAiConfig } from '../utils/aiConfig';
+import { parseReceiptWithAi } from '../utils/ai';
+import { clearShareCache, ocrFailureKey, ocrFileErrorKey, readSharedFile, scrollToBottom, shouldShowTime } from './chat/chatHelpers';
+import { PendingCard, type Pending } from './chat/PendingCard';
+import { OcrProgressCard } from './chat/OcrProgressCard';
+import { ChatEmptyState } from './chat/ChatEmptyState';
+import { MessageBubble } from './chat/MessageBubble';
 import { fmtIDR } from '../utils/format';
-import { todayLocalISO } from '../utils/date';
+import { isValidISODate, todayLocalISO } from '../utils/date';
 import { useKeyboardInset } from '../utils/keyboard';
 import { useDebouncedValue } from '../utils/useDebouncedValue';
 import { detectInputLang } from '../utils/langDetect';
-import { Send, Check, Gallery, ChatRoundDots, Receipt, Camera, ChevronDown, X } from 'reicon-react';
-import { Link } from 'react-router-dom';
+import { Send, Gallery, ChatRoundDots, Camera, ChevronDown } from 'reicon-react';
 import { InlineAlert } from '../components/InlineAlert';
 import { Toast, useToast } from '../components/Toast';
 import { LiveParseFeedback } from '../components/LiveParseFeedback';
@@ -19,71 +25,10 @@ import { QuickToggles } from '../components/QuickToggles';
 import { FormatCheatSheet } from '../components/FormatCheatSheet';
 import { OcrGuideOverlay } from '../components/OcrGuideOverlay';
 import { useTranslation } from '../i18n';
-
-type Pending = { description: string; amount: number; date: string; note?: string; source?: string };
-
-function fmtTime(iso: string) {
-  try {
-    return new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '';
-  }
-}
-
-function scrollToBottom(listRef: React.RefObject<HTMLDivElement | null>, instant = false) {
-  // Scroll di dalam wadah list SAJA (bukan endRef.scrollIntoView): scrollIntoView
-  // menggelembung ke semua ancestor scrollable termasuk main (overflow:hidden
-  // tetap bisa di-scroll programatik) sehingga seluruh kolom bergeser dan
-  // composer lepas dari docking keyboard.
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: instant || prefersReduced ? 'auto' : 'smooth' });
-}
+import { DbErrorNotice } from '../components/DbErrorNotice';
+import { requestPersistentStorage } from '../utils/storage';
 
 const CHAT_PAGE = 50;
-
-/**
- * Bangun File dari entri `shared-file` di share-cache (null bila tak ada).
- * Gambar diprioritaskan atas teks share: pesan perbankan (mis. SeaBank
- * "Halo, aku sudah kirim Rp...") adalah noise percakapan - screenshot
- * adalah struk yang sebenarnya.
- */
-async function readSharedFile(cache: Cache): Promise<File | null> {
-  const fileRes = await cache.match('shared-file');
-  if (!fileRes) return null;
-  const blob = await fileRes.blob();
-  const name = decodeURIComponent(fileRes.headers.get('x-file-name') || 'receipt.png');
-  const type = fileRes.headers.get('content-type') || 'image/png';
-  return new File([blob], name, { type });
-}
-
-// Timestamp hanya saat ganti hari/role agar list tidak berisik.
-// Dipisah dari komponen agar S3776 tidak menghitung rantai || ini.
-function shouldShowTime(prev: { createdAt: string; role: string } | undefined, cur: { createdAt: string; role: string }): boolean {
-  if (!prev) return true;
-  return prev.createdAt.slice(0, 10) !== cur.createdAt.slice(0, 10) || cur.role !== prev.role;
-}
-
-/**
- * Validasi berkas bukti sebelum OCR. Dipisah dari handleFile supaya rantai
- * cabangnya tidak menambah kompleksitas kognitif fungsi yang mengurus state UI
- * (Sonar S3776), dan supaya urutan validasi tetap terbaca sebagai satu daftar.
- */
-async function ocrFileErrorKey(file: File): Promise<'chat.ocrFormatError' | 'chat.ocrTooLarge' | null> {
-  const fileErr = validateImageFile(file);
-  if (fileErr === 'format' || fileErr === 'empty') return 'chat.ocrFormatError';
-  if (fileErr === 'too-large') return 'chat.ocrTooLarge';
-  // A7: Validasi magic number untuk cegah polyglot file
-  const magicErr = await validateFileMagic(file);
-  return magicErr === 'magic' ? 'chat.ocrFormatError' : null;
-}
-
-/**
- * Model OCR yang gagal dimuat (asetnya ~8 MB, di-cache setelah pemakaian
- * pertama) butuh saran berbeda dari foto yang memang tidak terbaca.
- */
-function ocrFailureKey(e: unknown): 'chat.ocrModelError' | 'chat.ocrReadError' {
-  return e instanceof OcrModelError ? 'chat.ocrModelError' : 'chat.ocrReadError';
-}
 
 export default function ChatView() {
   const { t, lang } = useTranslation();
@@ -132,11 +77,15 @@ export default function ChatView() {
   const [pendingEditable, setPendingEditable] = useState(false);
   const keyboardInset = useKeyboardInset();
   const [visibleLimit, setVisibleLimit] = useState(CHAT_PAGE);
+  const [chatRetry, setChatRetry] = useState(0);
   // Hanya 50 pesan terakhir agar render tetap ringan; pesan lama tidak dihapus.
   // Loading awal dibedakan dari empty (R-27). hasLoaded mengunci agar reload transien
   // Dexie saat kirim pesan tidak me-remount wadah scroll (itu yang melempar ke atas).
-  const messagesResult = useLiveQuery(() => db.chatMessages.orderBy('createdAt').reverse().limit(visibleLimit).toArray().then((arr) => arr.reverse()), [visibleLimit]);
-  const [messageCache, setMessageCache] = useState<{ snapshot: typeof messagesResult; loaded: boolean }>({
+  const messagesResult = useLiveQuery(
+    () => db.chatMessages.orderBy('createdAt').reverse().limit(visibleLimit).toArray().then((arr) => arr.reverse()).catch(() => null),
+    [visibleLimit, chatRetry],
+  );
+  const [messageCache, setMessageCache] = useState<{ snapshot: ChatMessage[] | undefined; loaded: boolean }>({
     snapshot: undefined,
     loaded: false,
   });
@@ -144,10 +93,11 @@ export default function ChatView() {
   // Semantik: pesan lama tetap tampil saat reload transien agar wadah scroll
   // tidak remount (itu yang melempar ke atas); loading awal dibedakan dari
   // empty (R-27). Guard perbandingan referensi mencegah loop render.
-  if (messagesResult !== undefined && messagesResult !== messageCache.snapshot) {
+  if (Array.isArray(messagesResult) && messagesResult !== messageCache.snapshot) {
     setMessageCache({ snapshot: messagesResult, loaded: true });
   }
-  const messages = messagesResult ?? messageCache.snapshot ?? [];
+  const messagesFailed = messagesResult === null;
+  const messages = Array.isArray(messagesResult) ? messagesResult : messageCache.snapshot ?? [];
   const isMessagesLoading = !messageCache.loaded && messagesResult === undefined;
   const totalChat = useLiveQuery(() => db.chatMessages.count(), []) ?? 0;
   const endRef = useRef<HTMLDivElement>(null);
@@ -262,10 +212,13 @@ export default function ChatView() {
       window.history.replaceState({}, '', '/chat');
       return;
     }
-    await onSharedFile(file);
-    await cache.delete('shared-file');
-    // Discard share text when image is available
-    await cache.delete('shared-meta');
+    try {
+      await onSharedFile(file);
+    } finally {
+      // Jangan tinggalkan payload share di cache, termasuk saat OCR/handler gagal.
+      await cache.delete('shared-file');
+      await cache.delete('shared-meta');
+    }
   });
 
   const handleSharedTextFallback = useEffectEvent(async (cache: Cache): Promise<void> => {
@@ -276,18 +229,21 @@ export default function ChatView() {
       setOcrError(shareErrorMessage());
       return;
     }
-    const meta = await metaRes.json();
-    const sharedText = [meta.text, meta.url].filter(Boolean).join(' ').trim();
-    if (sharedText) {
-      const parsed = parseChatInput(sharedText);
-      if (parsed) {
-        setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || todayLocalISO(), source: parsed.source, note: parsed.note });
-        setPendingEditable(false);
-      } else {
-        setInput(sharedText.slice(0, 500));
+    try {
+      const meta = await metaRes.json();
+      const sharedText = [meta.text, meta.url].filter(Boolean).join(' ').trim();
+      if (sharedText) {
+        const parsed = parseChatInput(sharedText, t('chat.untitled'));
+        if (parsed) {
+          setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date || todayLocalISO(), source: parsed.source, note: parsed.note });
+          setPendingEditable(false);
+        } else {
+          setInput(sharedText.slice(0, 500));
+        }
       }
+    } finally {
+      await cache.delete('shared-meta');
     }
-    await cache.delete('shared-meta');
   });
 
   // Handle share target
@@ -304,6 +260,7 @@ export default function ChatView() {
         // sampai await pertama, jadi urutannya identik.
         const shareError = params.get('error');
         if (shareError) {
+          await clearShareCache();
           setOcrError(shareErrorMessage());
           window.history.replaceState({}, '', '/chat');
           return;
@@ -318,6 +275,7 @@ export default function ChatView() {
         window.history.replaceState({}, '', '/chat');
       } catch {
         // B3: Cache API error (iOS Safari compatibility / quota exceeded)
+        await clearShareCache();
         setOcrError(shareErrorMessage());
         window.history.replaceState({}, '', '/chat');
       }
@@ -362,8 +320,10 @@ export default function ChatView() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     const now = new Date().toISOString();
+    let userMessageAdded = false;
     try {
       await addChatMessage({ role: 'user', text, createdAt: now });
+      userMessageAdded = true;
 
       // Deteksi bahasa per-input; toast sekali per session (sessionStorage),
       // bukan per-mount, dengan arah pesan yang benar (id↔en).
@@ -381,7 +341,7 @@ export default function ChatView() {
         }
       }
 
-      const parsed = parseChatInput(text);
+      const parsed = parseChatInput(text, t('chat.untitled'));
       if (!parsed) {
         await addChatMessage({
           role: 'assistant',
@@ -390,7 +350,9 @@ export default function ChatView() {
         });
         return;
       }
-      const today = now.slice(0, 10);
+      // `now` is UTC; a transaction saved at 00:30 WIB must still get today's
+      // local date, not yesterday's UTC date.
+      const today = todayLocalISO();
       const p: Pending = { description: parsed.description, amount: parsed.amount, date: parsed.date || today, source: parsed.source, note: parsed.note };
       setPending(p);
       setOcrConfidence(null);
@@ -401,6 +363,9 @@ export default function ChatView() {
         createdAt: new Date().toISOString(),
         parsed: p,
       });
+    } catch {
+      if (!userMessageAdded) setInput(text);
+      showToast(t('chat.saveError'), 'error');
     } finally {
       isSendingRef.current = false;
       setIsSending(false);
@@ -426,25 +391,71 @@ export default function ChatView() {
     });
   }
 
+  function clearFileInputs() {
+    if (fileRef.current) fileRef.current.value = '';
+    if (cameraRef.current) cameraRef.current.value = '';
+  }
+
   async function handleFile(file: File) {
     if (ocrInFlight.current) {
       showToast(t('chat.ocrBusy'), 'error');
+      clearFileInputs();
       return;
     }
-    captureSendAnchor();
-    const fileErrKey = await ocrFileErrorKey(file);
-    if (fileErrKey) {
-      setOcrError(t(fileErrKey));
-      return;
-    }
+    // Lock before the first await so two quick file selections cannot both
+    // pass the guard and start OCR/AI concurrently.
     ocrInFlight.current = true;
-    setOcrError(null);
-    const url = URL.createObjectURL(file);
-    if (mountedRef.current) {
-      setPreviewUrl(url);
-      setOcrProgress(0);
-    }
+    let url: string | null = null;
     try {
+      const fileErrKey = await ocrFileErrorKey(file);
+      if (fileErrKey) {
+        if (mountedRef.current) setOcrError(t(fileErrKey));
+        return;
+      }
+      captureSendAnchor();
+      setOcrError(null);
+      url = URL.createObjectURL(file);
+      if (mountedRef.current) {
+        setPreviewUrl(url);
+        setOcrProgress(0);
+      }
+
+      // BYOK bersifat opsional. Saat key tersedia, coba model vision lebih dulu;
+      // kegagalan apa pun jatuh ke OCR lokal, jadi aplikasi tetap bisa dipakai.
+      const aiConfig = getAiConfig();
+      if (aiConfig) {
+        try {
+          setOcrProgress(15);
+          const aiParsed = await parseReceiptWithAi(file, aiConfig);
+          if (!mountedRef.current) return;
+          setOcrConfidence(null);
+          setPending({
+            description: aiParsed.description,
+            amount: aiParsed.amount,
+            date: aiParsed.date,
+            note: aiParsed.note,
+            source: aiParsed.source,
+          });
+          setPendingEditable(false);
+          await addChatMessage({
+            role: 'assistant',
+            text: t('chat.recorded', { desc: aiParsed.description, amount: fmtIDR(aiParsed.amount) }),
+            createdAt: new Date().toISOString(),
+            parsed: { description: aiParsed.description, amount: aiParsed.amount },
+          });
+          return;
+        } catch {
+          try {
+            if (!sessionStorage.getItem('expend_ai_fallback')) {
+              sessionStorage.setItem('expend_ai_fallback', '1');
+              showToast(t('chat.aiFallback'));
+            }
+          } catch {
+            // sessionStorage bisa diblokir; fallback OCR tetap berjalan.
+          }
+        }
+      }
+      setOcrProgress(20);
       const { text, confidence } = await recognizeImageDetailed(file, (n) => {
         if (mountedRef.current) setOcrProgress(n);
       });
@@ -467,19 +478,30 @@ export default function ChatView() {
       if (mountedRef.current) setOcrError(t(ocrFailureKey(e)));
     } finally {
       ocrInFlight.current = false;
-      URL.revokeObjectURL(url);
+      if (url) URL.revokeObjectURL(url);
       if (mountedRef.current) {
         setOcrProgress(null);
         setOcrAvailable(isOcrReady());
         setPreviewUrl(null);
       }
-      if (fileRef.current) fileRef.current.value = '';
-      if (cameraRef.current) cameraRef.current.value = '';
+      clearFileInputs();
     }
   }
 
+  async function retryMessages() {
+    try {
+      await db.open();
+    } catch {
+      // Notice tetap tampil jika query berikutnya masih gagal.
+    }
+    setChatRetry((n) => n + 1);
+  }
+
   async function saveNow(p: Pending) {
-    if (!p.amount || !Number.isFinite(p.amount) || p.amount <= 0 || p.amount > 1_000_000_000_000) {
+    // Rupiah is integer-only. The pending form uses type=number and can emit
+    // decimals; round once here so DB and summary never store fractions.
+    const amount = Math.round(p.amount);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000_000_000) {
       if (mountedRef.current) setOcrError(t('chat.saveInvalid'));
       return;
     }
@@ -488,19 +510,23 @@ export default function ChatView() {
     if (mountedRef.current) setIsSaving(true);
     try {
       const now = new Date().toISOString();
-      await db.transaction('rw', [db.transactions, db.chatMessages], async () => {
+      const description = p.description.trim() || t('chat.untitled');
+      const date = isValidISODate(p.date) ? p.date : todayLocalISO();
+      await db.transaction('rw', [db.transactions, db.chatMessages, db.transactionAudit], async () => {
         const txId = (await db.transactions.add({
-          description: p.description,
-          amount: p.amount,
-          date: p.date,
+          description,
+          amount,
+          date,
           createdAt: now,
-          rawText: p.description,
+          rawText: description,
           note: p.note || undefined,
           source: p.source || undefined,
         })) as number;
+        const after = await db.transactions.get(txId);
+        if (after) await db.transactionAudit.add({ txId, action: 'create', at: now, after });
         await addChatMessage({
           role: 'assistant',
-          text: t('chat.saved', { desc: p.description, amount: fmtIDR(p.amount) }),
+          text: t('chat.saved', { desc: description, amount: fmtIDR(amount) }),
           createdAt: new Date().toISOString(),
           txId,
         });
@@ -510,6 +536,7 @@ export default function ChatView() {
           createdAt: new Date().toISOString(),
         });
       });
+      void requestPersistentStorage();
       if (mountedRef.current) {
         setPending(null);
         setOcrError(null);
@@ -585,78 +612,22 @@ export default function ChatView() {
 
       {/* Empty state - outside of role="log" */}
       {!isMessagesLoading && messages.length === 0 && !pending && ocrProgress === null && (
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-3">
-          <div className="w-full rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5 mt-6 mb-4">
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--accent-soft)] border border-[var(--border)]/60 grid place-items-center shrink-0 shadow-sm">
-                <Receipt size={18} className="text-[var(--accent)]" aria-hidden />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold tracking-tight leading-none">{t('chat.startRecording')}</p>
-                <p className="text-sm text-[var(--text-secondary)] mt-1.5 leading-relaxed">{t('chat.startDesc')}</p>
-                <div className="mt-3 rounded-[10px] border border-[var(--border)] bg-[var(--bg)] overflow-hidden">
-                  <div className="px-3 py-1.5 border-b border-[var(--border)]/60 bg-[var(--card)] flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" aria-hidden />
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" aria-hidden />
-                    <span className="text-xs font-mono tracking-wide text-[var(--text-muted)] uppercase">{t('chat.example')}</span>
-                    <span className="ml-auto text-xs font-sans normal-case tracking-normal text-[var(--text-muted)]">{t('chat.tapExample')}</span>
-                  </div>
-                  <div className="px-3 py-2.5 flex flex-col gap-1 font-mono text-xs leading-5 text-[var(--text-secondary)]">
-                    <button
-                      type="button"
-                      aria-label={t('chat.useExample', { example: 'kopi 25rb dari BSI' })}
-                      onClick={() => {
-                        setInput('kopi 25rb dari BSI');
-                        textareaRef.current?.focus();
-                      }}
-                      className="text-left flex items-center min-h-12 rounded-[8px] px-2 py-1.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-                    >
-                      <span>kopi <span className="text-[var(--accent)] font-medium">25rb</span> <span className="text-[var(--text-muted)]">dari BSI</span></span>
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={t('chat.useExample', { example: 'bayar listrik 200rb via GoPay' })}
-                      onClick={() => {
-                        setInput('bayar listrik 200rb via GoPay');
-                        textareaRef.current?.focus();
-                      }}
-                      className="text-left flex items-center min-h-12 rounded-[8px] px-2 py-1.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-                    >
-                      <span>bayar listrik <span className="text-[var(--accent)] font-medium">200rb</span> <span className="text-[var(--text-muted)]">via GoPay</span></span>
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={t('chat.useExample', { example: 'belanja indomaret 50000' })}
-                      onClick={() => {
-                        setInput('belanja indomaret 50000');
-                        textareaRef.current?.focus();
-                      }}
-                      className="text-left flex items-center min-h-12 rounded-[8px] px-2 py-1.5 hover:bg-[var(--bone)] active:scale-[0.99] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-                    >
-                      <span>belanja indomaret <span className="text-[var(--accent)] font-medium">50000</span></span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-5">
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="w-full min-h-12 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-medium inline-flex items-center justify-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-              >
-                <Gallery size={16} aria-hidden />
-                {t('chat.uploadReceipt')}
-              </button>
-            </div>
-          </div>
-          {/* Panduan pra-capture di dalam area scroll (bukan fixed flow) agar
-              viewport pendek/landscape tak mendorong composer keluar layar. */}
-          {showOcrGuide && keyboardInset === 0 && (
-            <div className="mb-4">
-              <OcrGuideOverlay onDismiss={dismissGuide} />
-            </div>
-          )}
+        <ChatEmptyState
+          showOcrGuide={showOcrGuide}
+          keyboardInset={keyboardInset}
+          onSelectExample={(text) => { setInput(text); textareaRef.current?.focus(); }}
+          onPickFile={() => fileRef.current?.click()}
+          onDismissGuide={dismissGuide}
+        />
+      )}
+
+      {messagesFailed && (
+        <div className="px-4 md:px-6 pt-4">
+          <DbErrorNotice
+            message={t('chat.loadError')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void retryMessages()}
+          />
         </div>
       )}
 
@@ -699,186 +670,25 @@ export default function ChatView() {
               </button>
             </div>
           )}
-          {messages.map((m, i) => {
-            const showTime = shouldShowTime(messages[i - 1], m);
-            return (
-              <div key={m.id} className="flex motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 96px' } as any}>
-                <div className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className="max-w-[76%]">
-                    <div
-                      className={`px-4 py-3 text-sm leading-[22px] ${
-                        m.role === 'user'
-                          ? 'bg-[var(--accent-fill)] text-[var(--accent-ink)] rounded-[var(--radius-lg)] rounded-br-[var(--radius-sm)]'
-                          : 'bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-lg)] rounded-bl-[var(--radius-sm)]'
-                      }`}
-                    >
-                      {m.text === '__LINK_RINGKASAN__' ? (
-                        <Link to="/" className="text-sm font-semibold text-[var(--accent)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded">
-                          {t('chat.viewSummary')}
-                        </Link>
-                      ) : (
-                        <p className="whitespace-pre-wrap break-words">{m.text}</p>
-                      )}
-                    </div>
-                    {showTime && (
-                      <p className={`mt-1 text-xs tabular-nums ${m.role === 'user' ? 'text-right text-[var(--text-muted)]' : 'text-[var(--text-muted)]'}`}>
-                        {fmtTime(m.createdAt)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {messages.map((m, i) => (
+            <MessageBubble key={m.id} message={m} showTime={shouldShowTime(messages[i - 1], m)} lang={lang} />
+          ))}
 
           {ocrProgress !== null && (
-            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4">
-              {previewUrl && (
-                <div className="mb-3 rounded-[var(--radius-md)] overflow-hidden border border-[var(--border)]">
-                  <img src={previewUrl} alt={t('chat.uploadReceipt')} className="w-full max-h-48 object-cover" />
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-[var(--bg)] border border-[var(--border)] grid place-items-center">
-                  <Gallery size={14} className="text-[var(--text-secondary)]" aria-hidden />
-                </div>
-                <p className="text-xs font-semibold" aria-live="polite">
-                  {t('chat.readingReceipt')} {ocrProgress}%
-                </p>
-                <span className="ml-auto text-xs text-[var(--text-muted)]">{t('chat.offline')}</span>
-              </div>
-              <progress value={ocrProgress} max={100} aria-label="Memindai bukti" aria-valuetext={`${ocrProgress}%`} className="mt-3 h-1.5 w-full rounded-full overflow-hidden" />
-              <p className="text-xs text-[var(--text-muted)] mt-2">{t('chat.stayOnPage')}</p>
-            </div>
+            <OcrProgressCard progress={ocrProgress} previewUrl={previewUrl} />
           )}
 
           {pending && (
-            <div className="rounded-[var(--radius-lg)] border border-[var(--accent)] bg-[var(--card)] p-5 overflow-clip motion-safe:animate-[in_0.2s_ease-out] motion-reduce:animate-none">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-[var(--accent-fill)] text-[var(--accent-ink)] grid place-items-center">
-                  <Check size={14} aria-hidden />
-                </div>
-                <p className="text-xs font-bold tracking-wide uppercase text-[var(--accent)]">{t('chat.checkTransaction')}</p>
-                <button
-                  type="button"
-                  onClick={() => setPendingEditable((v) => !v)}
-                  aria-expanded={pendingEditable}
-                  className="ml-auto text-xs font-semibold text-[var(--accent)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded px-1 min-h-8"
-                >
-                  {t('chat.pendingEdit')}
-                </button>
-              </div>
-              {/* Ringkasan selalu di atas aksi: Simpan/Batal tidak boleh jatuh
-                  di bawah fold layar kecil/keyboard. */}
-              <p className="mt-3 text-sm font-bold leading-snug break-words">{pending.description}</p>
-              <p className="mt-1 text-xs text-[var(--text-secondary)] tabular-nums">
-                {fmtIDR(pending.amount || 0)} &middot; {pending.date}{pending.source ? ` · ${pending.source}` : ''}
-              </p>
-              {pending.note && (
-                <p className="mt-1 text-xs text-[var(--text-secondary)] break-words">
-                  {t('chat.note')}: {pending.note}
-                </p>
-              )}
-              {ocrConfidence !== null && (
-                <div className="mt-2 space-y-1">
-                  <p className="text-xs font-semibold text-[var(--text-secondary)] tabular-nums" aria-live="polite">
-                    {t('chat.ocrConfidence', { value: ocrConfidence })}
-                  </p>
-                  <p className="text-xs text-[var(--text-muted)]">{t('chat.ocrPriorityNote')}</p>
-                </div>
-              )}
-              {(pendingEditable || !pending.amount) && (
-                <div className="mt-4 space-y-3 border-t border-[var(--border)]/60 pt-4">
-                <label htmlFor="pending-desc" className="block">
-                  <span className="text-xs font-medium text-[var(--text-secondary)]">{t('chat.description')}</span>
-                  <input
-                    id="pending-desc"
-                    value={pending.description}
-                    onChange={(e) => setPending({ ...pending, description: e.target.value })}
-                    autoComplete="off"
-                    placeholder={t('chat.descPlaceholder')}
-                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
-                  />
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label htmlFor="pending-amount" className="block">
-                    <span className="text-xs font-medium text-[var(--text-secondary)]">{t('chat.amount')}</span>
-                    <input
-                      id="pending-amount"
-                      type="number"
-                      inputMode="numeric"
-                      min="0"
-                      max="1000000000000"
-                      value={pending.amount || ''}
-                      onChange={(e) => {
-                        const v = Math.max(0, Number(e.target.value) || 0);
-                        setPending({ ...pending, amount: v });
-                      }}
-                      placeholder="50000"
-                      className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
-                    />
-                  </label>
-                  <label htmlFor="pending-date" className="block">
-                    <span className="text-xs font-medium text-[var(--text-secondary)]">{t('chat.date')}</span>
-                    <input
-                      id="pending-date"
-                      type="date"
-                      value={pending.date}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        // C4: Validasi format YYYY-MM-DD sebelum update state
-                        if (/^\d{4}-\d{2}-\d{2}$/.test(v) || v === '') {
-                          setPending({ ...pending, date: v });
-                        }
-                      }}
-                      className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
-                    />
-                  </label>
-                </div>
-                <label htmlFor="pending-source" className="block">
-                  <span className="text-xs font-medium text-[var(--text-secondary)]">{t('chat.source')}</span>
-                  <input
-                    id="pending-source"
-                    value={pending.source ?? ''}
-                    onChange={(e) => setPending({ ...pending, source: e.target.value })}
-                    autoComplete="off"
-                    placeholder={t('chat.sourcePlaceholder')}
-                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
-                  />
-                </label>
-                <label htmlFor="pending-note" className="block">
-                  <span className="text-xs font-medium text-[var(--text-secondary)]">{t('chat.note')} <span className="text-[var(--text-muted)]">({t('chat.noteOptional')})</span></span>
-                  <input
-                    id="pending-note"
-                    value={pending.note ?? ''}
-                    onChange={(e) => setPending({ ...pending, note: e.target.value })}
-                    autoComplete="off"
-                    placeholder={t('chat.notePlaceholder')}
-                    className="mt-1 w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
-                  />
-                </label>
-              </div>
-              )}
-              <div className="sticky bottom-0 -mx-5 -mb-5 mt-4 border-t border-[var(--border)]/60 bg-[var(--card)] px-5 pb-5 pt-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={confirmSave}
-                  disabled={!pending.amount || isSaving}
-                  className="flex-1 min-h-12 py-3 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-                >
-                  <Check size={16} aria-hidden />
-                  {t('chat.saveTransaction')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setPending(null); setOcrError(null); setOcrConfidence(null); }}
-                  className="min-h-12 px-5 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] text-sm font-semibold inline-flex items-center gap-2 hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-                >
-                  <X size={16} aria-hidden />
-                  {t('common.cancel')}
-                </button>
-              </div>
-            </div>
+            <PendingCard
+              pending={pending}
+              editable={pendingEditable}
+              saving={isSaving}
+              ocrConfidence={ocrConfidence}
+              onToggleEdit={() => setPendingEditable((v) => !v)}
+              onChange={setPending}
+              onSave={() => void confirmSave()}
+              onCancel={() => { setPending(null); setOcrError(null); setOcrConfidence(null); }}
+            />
           )}
 
           <div ref={endRef} className="pb-4" />
@@ -920,7 +730,7 @@ export default function ChatView() {
             : 'pb-[calc(66px+env(safe-area-inset-bottom))] md:pb-[calc(10px+env(safe-area-inset-bottom))]'
         }`}
       >
-      {liveDebounced.trim() !== '' && <LiveParseFeedback debounced={liveDebounced} />}
+      {liveDebounced.trim() !== '' && <LiveParseFeedback debounced={liveDebounced} fallbackDescription={t('chat.untitled')} />}
         <form onSubmit={handleSend} className="flex items-end gap-2 bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-xl)] p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[var(--accent)] focus-within:border-[var(--accent)] transition-all">
           <input
             ref={fileRef}

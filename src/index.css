@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @theme {
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 :root {
   /* Skema form-control/UA mengikuti TEMA APLIKASI, bukan OS: tanpa ini,
@@ -147,7 +147,17 @@ progress::-moz-progress-bar { background: var(--accent); border-radius: 9999px; 
   *, *::before, *::after { animation-duration: 0.01ms; transition-duration: 0.01ms; }
 }
 @media (prefers-contrast: more) {
-  :root { --border: #C9C9C9; --text-secondary: #2A2A2A; --accent: #1a2d19; }
+  /* Nilai terang hanya untuk tema terang. Tema gelap punya token sendiri,
+     supaya preferensi kontras tidak menimpa teks menjadi gelap di atas gelap. */
+  :root:not([data-theme="dark"]) { --border: #C9C9C9; --text-secondary: #2A2A2A; --accent: #1a2d19; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --border: #8a8a8a; --text-secondary: #f0f0f0; --accent: #6a9f3e; }
+  }
+  [data-theme="dark"] { --border: #8a8a8a; --text-secondary: #f0f0f0; --accent: #6a9f3e; }
+}
+@keyframes in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .list-item { content-visibility: auto; contain-intrinsic-size: 0 72px; display: flex; }
 

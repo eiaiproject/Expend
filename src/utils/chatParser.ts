@@ -357,9 +357,9 @@ const GENERIC_SOURCE_RE = /\b(?:tunai|cash|kas)\b/gi;
 // adalah nama/atribut dan tidak boleh dipotong.
 const TRAILING_LOCATION_RE = /\s+(?:di\s+)?(?:lantai|lt|zona|blok|meja|ruang|no\.?)\s+\d{1,2}\s*$/i; // NOSONAR
 
-function formatDescription(raw: string, hasGenericSource: boolean, stripSourceClause = false): string {
+function formatDescription(raw: string, hasGenericSource: boolean, stripSourceClause = false, fallback = 'Pengeluaran'): string {
   let desc = raw.trim();
-  if (!desc) return 'Pengeluaran';
+  if (!desc) return fallback;
 
   // Remove verb prefix
   desc = desc.replace(VERB_RE, '').trim();
@@ -399,11 +399,11 @@ function formatDescription(raw: string, hasGenericSource: boolean, stripSourceCl
   desc = desc.replace(/^(?:di|ke|dari|untuk|dengan|dan|atau|yang)\s+/i, '').trim();
   // Sisa tanda baca/simbol menggantung ("kopi -50000" → "Kopi -").
   desc = desc.replace(/^[\s+\-–—]+|[\s+\-–—]+$/g, '').trim(); // NOSONAR - anchored
-  if (/^(ref|resi|trace|no|id)$/i.test(desc)) return 'Pengeluaran';
+  if (/^(ref|resi|trace|no|id)$/i.test(desc)) return fallback;
   // Verba tanpa objek bukan nama transaksi ("tf 50rb" → "Pengeluaran").
-  if (BARE_VERB_RE.test(desc)) return 'Pengeluaran';
+  if (BARE_VERB_RE.test(desc)) return fallback;
 
-  if (!desc) return 'Pengeluaran';
+  if (!desc) return fallback;
   return titleCasePreserveAcronyms(desc).slice(0, 80);
 }
 
@@ -439,7 +439,7 @@ export function splitNoteClause(text: string): { head: string; note?: string } {
 }
 
 // Main export
-export function parseChatInput(input: string): ParsedExpense | null {
+export function parseChatInput(input: string, fallbackDescription = 'Pengeluaran'): ParsedExpense | null {
   // A2: Batasi panjang input untuk cegah ReDoS - regex kompleks
   // (sumber dana, amount candidate) aman pada input terbatas (<500 char).
   // NFKC menyeragamkan lebar penuh (２５ｒｂ → 25rb) dan NBSP → spasi biasa,
@@ -522,6 +522,7 @@ export function parseChatInput(input: string): ParsedExpense | null {
     rawDesc,
     !!source && GENERIC_DESC_SOURCES.has(source),
     sourceFromClause,
+    fallbackDescription,
   );
 
   return { description, amount, source, date, ...(note ? { note } : {}) };

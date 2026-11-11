@@ -72,7 +72,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        // og-image.png (304 kB) cuma dibaca crawler, dan aset OCR (~8 MB) harus
+        // og-image.png (304 kB) cuma dibaca crawler, dan aset OCR (~12 MB) harus
         // di-cache saat dipakai - bukan saat install. Keduanya bikin precache
         // membengkak tanpa manfaat; sisa aset OCR tetap masuk lewat
         // runtimeCaching di bawah (CacheFirst).

@@ -1,7 +1,7 @@
 import { APP_VERSION, EXPORT_FORMAT_VERSION } from '../config/version';
 import type { Transaction } from '../db/db';
 import { t } from '../i18n/shared';
-import { todayLocalISO } from './date';
+import { isValidISODate, todayLocalISO } from './date';
 
 type ExportRow = { [key: string]: string | number };
 
@@ -51,22 +51,9 @@ export function csvBlob(txs: Transaction[]): Blob {
   return new Blob([toCSV(toExportRows(txs))], { type: 'text/csv;charset=utf-8' });
 }
 
-const DATE_ISO_RE = /^\d{4}-\d{2}-\d{2}$/; // NOSONAR - anchored date check
-
 type DateRangeError = 'invalid-date' | 'from-after-to';
 
-function isValidISODate(d: string): boolean {
-  if (!DATE_ISO_RE.test(d)) return false;
-  const [ys, ms, ds] = d.split('-');
-  const y = Number(ys);
-  const m = Number(ms);
-  const dd = Number(ds);
-  if (m < 1 || m > 12 || dd < 1 || dd > 31) return false;
-  // hari valid per bulan (termasuk kabisat), tanpa sensitif timezone
-  return dd <= new Date(y, m, 0).getDate();
-}
-
-export { isValidISODate };
+export { isValidISODate } from './date';
 
 /**
  * Validasi rentang From/To untuk ekspor (inklusif, YYYY-MM-DD).

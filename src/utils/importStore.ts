@@ -28,18 +28,26 @@ function isQuotaError(e: unknown): boolean {
  * Non-kuota error dilempar ke pemanggil (toast generik di sana).
  */
 export async function persistFreshTransactions(items: StorableTransaction[]): Promise<PersistOutcome> {
-  const existing = await db.transactions.toArray();
-  const existingKeys = new Set(existing.map(txDedupeKey));
-  const fresh = items.filter((tx) => !existingKeys.has(txDedupeKey(tx)));
-  if (fresh.length) {
-    try {
-      await db.transaction('rw', db.transactions, async () => {
-        await db.transactions.bulkAdd(fresh.map((tx) => ({ ...tx })));
+  try {
+    return await db.transaction('rw', db.transactions, async () => {
+      // Baca dedupe dan tulis di transaksi yang sama. Dua impor bersamaan
+      // akan diserialisasi Dexie, sehingga baris yang sama tidak lolos dua kali.
+      const existing = await db.transactions.toArray();
+      // Soft-deleted rows stay in the DB for undo/audit, but they must not
+      // block a later import of the same transaction.
+      const existingKeys = new Set(existing.filter((tx) => !tx.deletedAt).map(txDedupeKey));
+      const seen = new Set<string>();
+      const fresh = items.filter((tx) => {
+        const key = txDedupeKey(tx);
+        if (existingKeys.has(key) || seen.has(key)) return false;
+        seen.add(key);
+        return true;
       });
-    } catch (e) {
-      if (isQuotaError(e)) return { status: 'quota' };
-      throw e;
-    }
+      if (fresh.length) await db.transactions.bulkAdd(fresh.map((tx) => ({ ...tx })));
+      return { status: 'saved' as const, fresh: fresh.length, skippedInDb: items.length - fresh.length };
+    });
+  } catch (e) {
+    if (isQuotaError(e)) return { status: 'quota' };
+    throw e;
   }
-  return { status: 'saved', fresh: fresh.length, skippedInDb: items.length - fresh.length };
 }

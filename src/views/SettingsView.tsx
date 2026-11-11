@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef, useEffect, useId } from 'react';
-import { ChevronDown, Lock, CloudCross, Information, Download, Trash2, Calendar } from 'reicon-react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { ChevronDown, Download, Calendar } from 'reicon-react';
 import { db, type Transaction } from '../db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { PageHeader } from '../components/PageHeader';
@@ -8,12 +8,19 @@ import { Toast, useToast } from '../components/Toast';
 import { ExportWizard, type ExportKind } from '../components/ExportWizard';
 import { FormatCheatSheet } from '../components/FormatCheatSheet';
 import { csvBlob, jsonBlob, parseImportJSON, IMPORT_MAX_BYTES, filterByDate, exportFilename, downloadBlob, validateDateRange } from '../utils/export';
+import { fmtDate } from '../utils/format';
 import { parseSheetsCSV, SHEETS_IMPORT_MAX_BYTES } from '../utils/sheetsImport';
+import { parseSheetsXLSX } from '../utils/xlsxImport';
 import { persistFreshTransactions, type StorableTransaction } from '../utils/importStore';
 import { isBackupDueWithInterval, readLastBackup, recordBackup, getBackupInterval, setBackupInterval as persistBackupInterval, BACKUP_KEY, BACKUP_INTERVAL_KEY, type BackupInterval } from '../utils/backup';
 import { getFontSize, setFontSize as persistFontSize, isHighContrast, setHighContrast as persistHighContrast, type FontSize } from '../utils/a11yPrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DbErrorNotice } from '../components/DbErrorNotice';
+import { SettingsSection, Toggle } from '../components/SettingsPrimitives';
+import { SettingsInfoSections } from './settings/SettingsInfoSections';
+import { AiSettingsSection } from './settings/AiSettingsSection';
+import { clearAllData } from '../utils/transactionMutations';
+import { getStorageStatus, type StorageStatus } from '../utils/storage';
 import { APP_VERSION } from '../config/version';
 
 const EXPORT_ERROR_KEY = {
@@ -28,93 +35,13 @@ import { useTheme, type Theme } from '../utils/theme';
 /** Array stabil untuk state "wizard tertutup" - hindari alokasi baru tiap render. */
 const WIZARD_TXS_EMPTY: Transaction[] = [];
 
+type ImportParseResult = { ok: boolean; transactions: StorableTransaction[]; skipped: number; errors: string[] };
+
 const FONT_SIZE_LABEL_KEY: Record<FontSize, TranslationKey> = {
   s: 'settings.fontSizeS',
   m: 'settings.fontSizeM',
   l: 'settings.fontSizeL',
 };
-
-function SettingsSection({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
-  // useId memberi id stabil dan unik, termasuk saat judul section diterjemahkan
-  // atau memuat spasi dan tanda baca.
-  const headingId = useId();
-  return (
-    <section aria-labelledby={headingId} className="space-y-2">
-      <h2 id={headingId} className="text-xs font-bold tracking-wide uppercase text-[var(--text-secondary)] px-1">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
-function SettingsRow({
-  icon,
-  iconBg = 'bg-[var(--accent-soft)]',
-  iconColor = 'text-[var(--accent)]',
-  title,
-  description,
-  action,
-  trailing,
-}: {
-  readonly icon: React.ReactNode;
-  readonly iconBg?: string;
-  readonly iconColor?: string;
-  readonly title: string;
-  readonly description?: string;
-  readonly action?: () => void;
-  readonly trailing?: React.ReactNode;
-}) {
-  const Tag = action ? 'button' : 'div';
-  return (
-    <Tag
-      type={action ? 'button' : undefined}
-      onClick={action}
-      className={`flex items-center gap-3 px-4 py-3 w-full text-left ${action ? 'hover:bg-[var(--bg)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded-[var(--radius-md)]' : ''}`}
-    >
-      <div className={`w-9 h-9 rounded-[var(--radius-md)] ${iconBg} grid place-items-center shrink-0`}>
-        <div className={iconColor}>{icon}</div>
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold leading-snug">{title}</p>
-        {description && <p className="text-xs text-[var(--text-secondary)] mt-0.5 leading-relaxed">{description}</p>}
-      </div>
-      {trailing ?? (action && <ChevronDown size={16} className="text-[var(--text-muted)] shrink-0 pointer-events-none" aria-hidden />)}
-    </Tag>
-  );
-}
-
-function Toggle({
-  checked,
-  onChange,
-  label,
-}: {
-  readonly checked: boolean;
-  readonly onChange: (v: boolean) => void;
-  readonly label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={() => onChange(!checked)}
-      className="relative flex items-center min-h-12 min-w-12 justify-center focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50 rounded-[var(--radius-md)]"
-    >
-      <div
-        className={`relative w-11 h-6 rounded-full transition-colors ${
-          checked ? 'bg-[var(--accent-fill)]' : 'bg-[var(--border-strong)]'
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[var(--accent-ink)] shadow-sm transition-transform ${
-            checked ? 'translate-x-5' : ''
-          }`}
-          aria-hidden
-        />
-      </div>
-    </button>
-  );
-}
 
 export default function SettingsView() {
   const { t, lang, setLang } = useTranslation();
@@ -122,7 +49,7 @@ export default function SettingsView() {
   // Halaman ini cuma butuh jumlah baris; tabel penuh dimuat hanya saat wizard
   // ekspor dibuka (sebelumnya seluruh transaksi dibaca setiap kali Settings dibuka).
   const [dbRetry, setDbRetry] = useState(0);
-  const txCountResult = useLiveQuery(() => db.transactions.count().catch(() => null), [dbRetry]);
+  const txCountResult = useLiveQuery(() => db.transactions.filter((tx) => !tx.deletedAt).count().catch(() => null), [dbRetry]);
   const txCount = txCountResult ?? 0;
   const countLoading = txCountResult === undefined;
   const countFailed = txCountResult === null;
@@ -151,18 +78,26 @@ export default function SettingsView() {
   // Wizard butuh seluruh baris (untuk preview + rentang tanggal), jadi tabel
   // penuh baru dibaca saat wizard terbuka - bukan setiap Settings dibuka.
   const wizardTxs = useLiveQuery(
-    () => (showWizard ? db.transactions.orderBy('date').reverse().toArray() : Promise.resolve(WIZARD_TXS_EMPTY)),
+    () => (showWizard
+      ? db.transactions.orderBy('date').reverse().toArray().then((rows) => rows.filter((tx) => !tx.deletedAt))
+      : Promise.resolve(WIZARD_TXS_EMPTY)),
     [showWizard],
   ) ?? WIZARD_TXS_EMPTY;
   const [showSheet, setShowSheet] = useState(false);
   const [fontSize, setFontSize] = useState<FontSize>(getFontSize);
   const [highContrast, setHighContrast] = useState(isHighContrast);
   const [backupInterval, setBackupInterval] = useState<BackupInterval>(getBackupInterval);
+  const [storageStatus, setStorageStatus] = useState<StorageStatus>('unsupported');
   // Harus mengikuti interval yang dipilih user (sama seperti banner di Summary).
   // Sebelumnya di sini selalu 30 hari, sehingga status "backup jatuh tempo" di
   // halaman tempat interval diatur justru tidak sinkron dengan pengaturannya.
   const backupDue = isBackupDueWithInterval(txCount, lastBackup, backupInterval);
   const importRef = useRef<HTMLInputElement>(null);
+  const importInFlight = useRef(false);
+
+  useEffect(() => {
+    void getStorageStatus().then(setStorageStatus);
+  }, []);
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -191,7 +126,7 @@ export default function SettingsView() {
       return;
     }
     try {
-      const all = await db.transactions.toArray();
+      const all = (await db.transactions.toArray()).filter((tx) => !tx.deletedAt);
       const filtered = filterByDate(all, from || undefined, to || undefined);
       if (!filtered.length) {
         showToast(t('settings.noExport'), 'error');
@@ -229,19 +164,18 @@ export default function SettingsView() {
   // Jalur persist bersama impor JSON dan CSV Sheets: parse → dedupe vs DB
   // → bulkAdd atomik → toast. Satu tempat agar pesan dan kebijakan identik.
   const persistParsedImport = useCallback(async (
-    file: File,
-    parse: (raw: string) => { ok: boolean; transactions: StorableTransaction[]; skipped: number; errors: string[] },
+    parse: () => Promise<ImportParseResult>,
     msg: { ok: TranslationKey; skipped: TranslationKey; fail: TranslationKey },
   ) => {
-    let res;
+    let res: ImportParseResult;
     try {
-      res = parse(await file.text());
+      res = await parse();
     } catch {
       showToast(t(msg.fail), 'error');
       return;
     }
     if (!res.ok || res.transactions.length === 0) {
-      showToast(res.errors[0] ?? t(msg.fail), 'error');
+      showToast(t(msg.fail), 'error');
       return;
     }
     let outcome;
@@ -267,46 +201,63 @@ export default function SettingsView() {
       return;
     }
     await persistParsedImport(
-      file,
-      parseSheetsCSV,
+      async () => parseSheetsCSV(await file.text()),
+      { ok: 'settings.importSheetsSukses', skipped: 'settings.importSheetsSkipped', fail: 'settings.importSheetsError' },
+    );
+  }, [showToast, t, persistParsedImport]);
+
+  const handleImportSheetsXLSX = useCallback(async (file: File) => {
+    if (file.size > SHEETS_IMPORT_MAX_BYTES || file.size === 0) {
+      showToast(t('settings.importSheetsError'), 'error');
+      return;
+    }
+    await persistParsedImport(
+      () => parseSheetsXLSX(file),
       { ok: 'settings.importSheetsSukses', skipped: 'settings.importSheetsSkipped', fail: 'settings.importSheetsError' },
     );
   }, [showToast, t, persistParsedImport]);
 
   const handleImportFile = useCallback(async (file: File) => {
-    const lower = file.name.toLowerCase();
-    const isCsv = lower.endsWith('.csv');
-    const isJson = lower.endsWith('.json');
-    if (!isCsv && !isJson) {
-      showToast(t('settings.importJSONError'), 'error');
-      return;
-    }
-    if (isCsv) {
-      await handleImportSheetsCSV(file);
+    if (importInFlight.current) {
+      showToast(t('settings.importBusy'), 'error');
       if (importRef.current) importRef.current.value = '';
       return;
     }
-    if (file.size > IMPORT_MAX_BYTES || file.size === 0) {
-      showToast(t('settings.importJSONError'), 'error');
-      return;
-    }
+    importInFlight.current = true;
     try {
+      const lower = file.name.toLowerCase();
+      const isCsv = lower.endsWith('.csv');
+      const isJson = lower.endsWith('.json');
+      const isXlsx = lower.endsWith('.xlsx');
+      if (!isCsv && !isJson && !isXlsx) {
+        showToast(t('settings.importUnsupported'), 'error');
+        return;
+      }
+      if (isCsv) {
+        await handleImportSheetsCSV(file);
+        return;
+      }
+      if (isXlsx) {
+        await handleImportSheetsXLSX(file);
+        return;
+      }
+      if (file.size > IMPORT_MAX_BYTES || file.size === 0) {
+        showToast(t('settings.importJSONError'), 'error');
+        return;
+      }
       await persistParsedImport(
-        file,
-        parseImportJSON,
+        async () => parseImportJSON(await file.text()),
         { ok: 'settings.importJSONSukses', skipped: 'settings.importJSONSkipped', fail: 'settings.importJSONError' },
       );
     } finally {
+      importInFlight.current = false;
       if (importRef.current) importRef.current.value = '';
     }
-  }, [showToast, t, handleImportSheetsCSV, persistParsedImport]);
+  }, [showToast, t, handleImportSheetsCSV, handleImportSheetsXLSX, persistParsedImport]);
 
   const handleDeleteAll = useCallback(async () => {
     try {
-      await db.transaction('rw', [db.transactions, db.chatMessages], async () => {
-        await db.transactions.clear();
-        await db.chatMessages.clear();
-      });
+      await clearAllData();
       showToast(t('settings.deleteSuccess'));
     } catch {
       showToast(t('settings.deleteError'), 'error');
@@ -417,6 +368,8 @@ export default function SettingsView() {
         </SectionCard>
       </SettingsSection>
 
+      <AiSettingsSection />
+
       {/* Data */}
       {/* Language */}
       <SettingsSection title={t('settings.language')}>
@@ -508,7 +461,8 @@ export default function SettingsView() {
             >
               <Download size={16} aria-hidden /> {t('settings.backupNow')}
             </button>
-            <input ref={importRef} type="file" accept="application/json,.json,text/csv,.csv" className="hidden" aria-label={t('settings.importFile')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f); }} />
+            <p className="text-xs text-[var(--text-muted)]">{t('settings.importFileDesc')}</p>
+            <input ref={importRef} type="file" accept="application/json,.json,text/csv,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" className="hidden" aria-label={t('settings.importFile')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f); }} />
             {backupDue && (
               <p className="text-xs text-[var(--text-secondary)]" role="note">
                 {t('settings.backupDue')}
@@ -516,91 +470,20 @@ export default function SettingsView() {
             )}
             {!backupDue && lastBackup && (
               <p className="text-xs text-[var(--text-muted)]">
-                {t('settings.backupLast', { date: lastBackup.slice(0, 10) })}
+                {t('settings.backupLast', { date: fmtDate(lastBackup.slice(0, 10), lang) })}
               </p>
             )}
           </div>
         </SectionCard>
       </SettingsSection>
 
-      {/* Privacy */}
-      <SettingsSection title={t('settings.privacy')}>
-        <SectionCard padding="sm">
-          <div className="divide-y divide-[var(--border)]">
-            <SettingsRow
-              icon={<Lock size={18} />}
-              title={t('settings.localStorage')}
-              description={t('settings.localStorageDesc')}
-            />
-            <SettingsRow
-              icon={<CloudCross size={18} />}
-              iconBg="bg-[var(--bg)] border border-[var(--border)]"
-              iconColor="text-[var(--text-muted)]"
-              title={t('settings.noExternalConnection')}
-              description={t('settings.offlineDesc')}
-            />
-            <SettingsRow
-              icon={<Information size={18} />}
-              iconBg="bg-[var(--bg)] border border-[var(--border)]"
-              iconColor="text-[var(--text-muted)]"
-              title={t('settings.receiptData')}
-              description={t('settings.receiptDataDesc')}
-            />
-            {/* Peringatan data tidak terenkripsi */}
-            <SettingsRow
-              icon={<Lock size={18} />}
-              iconBg="bg-[var(--danger-soft)]"
-              iconColor="text-[var(--danger)]"
-              title={t('settings.notEncrypted')}
-              description={t('settings.notEncryptedDesc')}
-            />
-          </div>
-        </SectionCard>
-      </SettingsSection>
-
-      {/* About */}
-      <SettingsSection title={t('settings.about')}>
-        <SectionCard padding="sm">
-          <div className="divide-y divide-[var(--border)]">
-            <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--accent-soft)] grid place-items-center shrink-0">
-                <Information size={18} className="text-[var(--accent)]" aria-hidden />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">Expend</p>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">{t('settings.aboutDesc')}</p>
-              </div>
-              <span className="inline-flex items-center rounded-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)] px-2.5 py-1 text-xs font-mono font-bold">{t('settings.version', { version })}</span>
-            </div>
-          </div>
-        </SectionCard>
-      </SettingsSection>
-
-      {/* Danger Zone */}
-      <SettingsSection title={t('settings.dangerZone')}>
-        <div className="rounded-[var(--radius-lg)] border border-[var(--danger-border)] bg-[var(--danger-bg)]/30">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--danger-soft)] grid place-items-center shrink-0">
-              <Trash2 size={18} className="text-[var(--danger)]" aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-[var(--danger-deep)]">{t('settings.deleteAll')}</p>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                {deleteAllDescription()}
-              </p>
-            </div>
-            <button
-              type="button"
-              aria-label={t('settings.deleteAll')}
-              disabled={txCount === 0}
-              onClick={() => setConfirmDelete(true)}
-              className="shrink-0 min-h-12 px-4 rounded-[var(--radius-md)] bg-[var(--danger-fill)] text-[var(--danger-fill-ink)] text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--danger)]/50 disabled:opacity-40 disabled:active:scale-100"
-            >
-              {t('common.delete')}
-            </button>
-          </div>
-        </div>
-      </SettingsSection>
+      <SettingsInfoSections
+        storageStatus={storageStatus}
+        txCount={txCount}
+        version={version}
+        deleteAllDescription={deleteAllDescription}
+        onRequestDelete={() => setConfirmDelete(true)}
+      />
 
       {/* Footer */}
       <div className="text-center pt-2 pb-4">

@@ -6,7 +6,7 @@ vi.mock('tesseract.js', () => ({
   })),
 }));
 import { createWorker } from 'tesseract.js';
-import { recognizeImage, validateImageFile, validateFileMagic, detectImageType } from '../../src/utils/ocr';
+import { recognizeImage, validateImageFile, validateFileMagic, validateImagePixels, detectImageType, imageDimensions } from '../../src/utils/ocr';
 
 // Header asli tiap format + satu non-gambar, supaya validasi diuji dari isi
 // file (bukan dari MIME yang dilaporkan perangkat).
@@ -71,6 +71,72 @@ describe('detectImageType', () => {
     expect(detectImageType(bytes([0xff, 0xd8]))).toBeNull();
     expect(detectImageType(bytes([]))).toBeNull();
     expect(detectImageType(bytes(WAVE))).toBeNull();
+  });
+});
+
+describe('imageDimensions', () => {
+  it('membaca dimensi PNG dari IHDR', () => {
+    const png = new Uint8Array(24);
+    png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+    png.set([0x00, 0x00, 0x03, 0x20], 16);
+    png.set([0x00, 0x00, 0x02, 0x58], 20);
+    expect(imageDimensions(png)).toEqual({ width: 800, height: 600 });
+  });
+
+  it('membaca dimensi JPEG dari marker SOF', () => {
+    const jpeg = new Uint8Array([
+      0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x02, 0x58, 0x03, 0x20,
+    ]);
+    expect(imageDimensions(jpeg)).toEqual({ width: 800, height: 600 });
+  });
+
+  it('membaca dimensi WebP VP8X, VP8L, dan VP8', () => {
+    const vp8x = new Uint8Array(30);
+    vp8x.set([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50], 0);
+    vp8x.set([0x56, 0x50, 0x38, 0x58], 12);
+    vp8x.set([0x1f, 0x03, 0x00], 24);
+    vp8x.set([0x57, 0x02, 0x00], 27);
+    expect(imageDimensions(vp8x)).toEqual({ width: 800, height: 600 });
+
+    const vp8l = new Uint8Array(25);
+    vp8l.set([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50], 0);
+    vp8l.set([0x56, 0x50, 0x38, 0x4c], 12);
+    vp8l[20] = 0x2f;
+    const bits = (799 | (599 << 14)) >>> 0;
+    vp8l.set([bits & 0xff, (bits >>> 8) & 0xff, (bits >>> 16) & 0xff, (bits >>> 24) & 0xff], 21);
+    expect(imageDimensions(vp8l)).toEqual({ width: 800, height: 600 });
+
+    const vp8 = new Uint8Array(30);
+    vp8.set([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50], 0);
+    vp8.set([0x56, 0x50, 0x38, 0x20], 12);
+    vp8.set([0x9d, 0x01, 0x2a], 23);
+    vp8.set([0x20, 0x03], 26);
+    vp8.set([0x58, 0x02], 28);
+    expect(imageDimensions(vp8)).toEqual({ width: 800, height: 600 });
+  });
+
+  it('mengembalikan null untuk header terpotong', () => {
+    expect(imageDimensions(new Uint8Array([0xff, 0xd8]))).toBeNull();
+    expect(imageDimensions(new Uint8Array(0))).toBeNull();
+  });
+});
+
+describe('validateImagePixels', () => {
+  it('menolak header gambar di atas batas piksel sebelum decode', async () => {
+    const png = new Uint8Array(24);
+    png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+    png.set([0x00, 0x00, 0x27, 0x10], 16); // 10.000 px
+    png.set([0x00, 0x00, 0x27, 0x10], 20);
+    await expect(validateImagePixels(new File([png], 'big.png', { type: 'image/png' }))).resolves.toBe('too-large');
+  });
+
+  it('menerima gambar kecil dan header yang tidak terbaca', async () => {
+    const png = new Uint8Array(24);
+    png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+    png.set([0x00, 0x00, 0x03, 0x20], 16); // 800 px
+    png.set([0x00, 0x00, 0x02, 0x58], 20); // 600 px
+    await expect(validateImagePixels(new File([png], 'small.png', { type: 'image/png' }))).resolves.toBeNull();
+    await expect(validateImagePixels(new File([new Uint8Array(0)], 'empty.png', { type: 'image/png' }))).resolves.toBeNull();
   });
 });
 

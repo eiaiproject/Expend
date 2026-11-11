@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 import type { RefObject } from 'react';
 import { useTranslation } from '../i18n';
 import { useFocusTrap } from '../utils/focusTrap';
@@ -27,6 +27,7 @@ export function ConfirmDialog({
   returnFocusRef,
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
+  const descriptionId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement & HTMLDialogElement>(null);
 
@@ -42,10 +43,11 @@ export function ConfirmDialog({
         open
         aria-modal="true"
         aria-labelledby="dialog-title"
+        aria-describedby={descriptionId}
         className="relative z-10 w-full max-w-sm rounded-[var(--radius-lg)] bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] p-5 shadow-lg"
       >
         <h2 id="dialog-title" className="text-base font-bold leading-snug">{title}</h2>
-        <p className="text-sm text-[var(--text-secondary)] mt-2 leading-relaxed">{description}</p>
+        <p id={descriptionId} className="text-sm text-[var(--text-secondary)] mt-2 leading-relaxed">{description}</p>
         <div className="flex gap-2 mt-5 justify-end">
           <button
             ref={cancelRef}
