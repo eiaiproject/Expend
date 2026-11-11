@@ -104,6 +104,7 @@ for (const sec of ORDER) {
   body += `\n### ${sec}\n\n`;
   for (const item of grouped[sec]) body += `- ${item}\n`;
 }
+if (!body) body = '\n### Changed\n\n- Internal release, no user-facing changes.\n';
 
 const entry = `\n## ${version} - ${date}${body}\n`;
 

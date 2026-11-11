@@ -15,12 +15,12 @@ interface Parts {
 }
 
 /** Parse sinkron murni untuk badge live (presentation layer; parser tak diubah). */
-export function getLiveParts(raw: string): Parts | null {
+export function getLiveParts(raw: string, fallbackDescription = 'Pengeluaran'): Parts | null {
   const text = raw.trim();
   if (!text) return null;
   let parsed: ReturnType<typeof parseChatInput>;
   try {
-    parsed = parseChatInput(text);
+    parsed = parseChatInput(text, fallbackDescription);
   } catch {
     return null;
   }
@@ -55,9 +55,9 @@ export function hasDigits(s: string): boolean {
  * Feedback parsing real-time: badge per komponen + InlineAlert actionable
  * saat gagal parse. Input `debounced` dari parent (300ms) agar <350ms.
  */
-export function LiveParseFeedback({ debounced }: { readonly debounced: string }) {
+export function LiveParseFeedback({ debounced, fallbackDescription = 'Pengeluaran' }: { readonly debounced: string; readonly fallbackDescription?: string }) {
   const { t } = useTranslation();
-  const parts = useMemo(() => getLiveParts(debounced), [debounced]);
+  const parts = useMemo(() => getLiveParts(debounced, fallbackDescription), [debounced, fallbackDescription]);
   const text = debounced.trim();
   if (!text) return null;
   if (!parts) {

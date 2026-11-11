@@ -113,18 +113,41 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
         });
         overflows.forEach((d) => issues.push({ vp, route, rule: 'text-overflow', detail: d }));
 
-        // 4. Touch targets
+        // 4. Touch targets: buttons and links both count as interactive controls.
         const minTouch = vp === 'android' ? 48 : 44;
-        const buttons = page.locator('button:not([aria-hidden="true"])');
-        const count = await buttons.count();
+        const controls = page.locator('button:not([aria-hidden="true"]), a[href]');
+        const count = await controls.count();
         for (let i = 0; i < count; i++) {
-          const b = buttons.nth(i);
+          const b = controls.nth(i);
           if (!(await b.isVisible())) continue;
+          // Skip links are clipped to 1x1 by `sr-only` until keyboard focus;
+          // they are not touch targets in that state.
+          const clipped = await b.evaluate((el) => {
+            const s = getComputedStyle(el);
+            return s.clip !== 'auto' || s.clipPath !== 'none';
+          });
+          if (clipped) continue;
           const box = await b.boundingBox();
           if (!box || box.width === 0) continue;
           if (box.width < minTouch || box.height < minTouch) {
             const text = ((await b.textContent()) || '').trim().slice(0, 20) || (await b.getAttribute('aria-label')) || '';
-            issues.push({ vp, route, rule: 'touch-target', detail: `button "${text}" ${Math.round(box.width)}x${Math.round(box.height)} < ${minTouch}` });
+            const tag = await b.evaluate((el) => el.tagName.toLowerCase());
+            issues.push({ vp, route, rule: 'touch-target', detail: `${tag} "${text}" ${Math.round(box.width)}x${Math.round(box.height)} < ${minTouch}` });
+          }
+        }
+
+        // 4b. Keyboard focus must be visible on the first interactive control.
+        const firstControl = controls.first();
+        if ((await firstControl.count()) > 0 && (await firstControl.isVisible())) {
+          await page.keyboard.press('Tab');
+          const focusState = await page.evaluate(() => {
+            const el = document.activeElement as HTMLElement | null;
+            if (!el) return null;
+            const s = getComputedStyle(el);
+            return { outline: s.outlineStyle, width: parseFloat(s.outlineWidth), shadow: s.boxShadow };
+          });
+          if (focusState && focusState.outline === 'none' && focusState.width === 0 && focusState.shadow === 'none') {
+            issues.push({ vp, route, rule: 'focus-visible', detail: 'focused control has no outline or shadow' });
           }
         }
 
@@ -185,9 +208,6 @@ for (const vp of Object.keys(viewports) as (keyof typeof viewports)[]) {
             if (fg.length < 3) continue;
             const ratio = (Math.max(lum(fg), lum(bg)) + 0.05) / (Math.min(lum(fg), lum(bg)) + 0.05);
             if (ratio < 4.5 && (el.textContent || '').trim().length > 0) {
-              // Skip nav links - they have their own bg and the audit parent-walk misses it
-              const isNavLink = el.closest('nav[aria-label="Navigasi utama"]') !== null;
-              if (isNavLink) continue;
               v.push(`${el.tagName}.${(el.className.toString() || '').slice(0, 30)} ratio=${ratio.toFixed(2)} text="${(el.textContent || '').trim().slice(0, 20)}"`);
             }
           }

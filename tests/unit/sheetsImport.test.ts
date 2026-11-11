@@ -7,6 +7,7 @@ import {
   parseSheetsDateCell,
   parseSheetsAmountCell,
   parseSheetsSourceCell,
+  parseSheetsRows,
   parseCSVRows,
 } from '../../src/utils/sheetsImport';
 
@@ -58,6 +59,40 @@ describe('parseSheetsSourceCell', () => {
     expect(parseSheetsSourceCell('Kasbon Warung')).toBeUndefined();
     // Mengandung nama bank dikenal → kanonis (bukan dihilangkan)
     expect(parseSheetsSourceCell('Kartu Kredit Mandiri')).toBe('Mandiri');
+  });
+});
+
+describe('parseSheetsRows (XLSX)', () => {
+  it('menerima Date Excel, nominal numerik, dan kolom opsional kosong', () => {
+    const res = parseSheetsRows([
+      ['Tanggal', 'Penerima', 'Nominal', 'Sumber Dana', 'Catatan'],
+      [new Date(Date.UTC(2026, 8, 1, 19)), 'Shopee Indonesia', 14603, 'Jago', 'Dompet STNK'],
+      ['2026-09-02', 'Dhora', 79000, 'Jago', null],
+    ]);
+    expect(res.ok).toBe(true);
+    expect(res.transactions).toHaveLength(2);
+    expect(res.transactions[0]).toMatchObject({
+      description: 'Shopee Indonesia',
+      amount: 14603,
+      date: '2026-09-01',
+      source: 'Jago',
+      note: 'Dompet STNK',
+    });
+    expect(res.transactions[1]!.note).toBeUndefined();
+  });
+
+  it('menolak header kurang dan melewati baris tanggal/nominal rusak', () => {
+    expect(parseSheetsRows([['Tanggal', 'Penerima', 'Nominal']]).ok).toBe(false);
+    const res = parseSheetsRows([
+      ['Tanggal', 'Penerima', 'Nominal', 'Sumber Dana', 'Catatan'],
+      ['bukan-tanggal', 'Kopi', 25000, 'Tunai', ''],
+      ['2026-09-15', 'Teh', 0, 'Tunai', ''],
+      ['2026-09-15', 'Kopi', 25000, 'Tunai', ''],
+    ]);
+    expect(res.ok).toBe(true);
+    expect(res.transactions).toHaveLength(1);
+    expect(res.skipped).toBe(2);
+    expect(res.errors).toHaveLength(2);
   });
 });
 

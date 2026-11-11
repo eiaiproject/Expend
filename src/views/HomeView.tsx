@@ -2,13 +2,16 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { fmtIDR, fmtDate, monthLabelFor } from '../utils/format';
-import { filterByDate, validateDateRange, jsonBlob, exportFilename, downloadBlob, isValidISODate } from '../utils/export';
-import { todayLocalISO } from '../utils/date';
+import { filterByDate, validateDateRange, jsonBlob, exportFilename, downloadBlob } from '../utils/export';
+import { summarizeActiveTransactions } from '../utils/transactionSummary';
+import { addDaysISO, todayLocalISO } from '../utils/date';
 import { isBackupDueWithInterval, getBackupInterval, readLastBackup, recordBackup, BACKUP_KEY, BACKUP_INTERVAL_KEY } from '../utils/backup';
+import { restoreTransaction, softDeleteTransaction } from '../utils/transactionMutations';
 import { useDebouncedValue } from '../utils/useDebouncedValue';
 import { isEditableElement } from '../utils/keyboard';
 import { groupTransactions, type GroupGranularity } from '../utils/grouping';
-import { Receipt, Trash2, ChatRoundDots, Gallery, Edit, X, Calendar } from 'reicon-react';
+import { GRANULARITY_LABEL_KEY, QUICK_LABEL_KEY, highlightMatch } from './home/homeUtils';
+import { Receipt, Trash2, ChatRoundDots, Gallery, Edit, Calendar } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { SectionCard } from '../components/SectionCard';
 import { EmptyState } from '../components/EmptyState';
@@ -21,81 +24,21 @@ import { QuickToggles } from '../components/QuickToggles';
 import { Toast, useToast } from '../components/Toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { Transaction } from '../db/db';
-import { useFocusTrap } from '../utils/focusTrap';
 import { useTranslation } from '../i18n';
-import type { TranslationKey } from '../i18n/id';
+import { EditSheet } from './home/EditSheet';
 
 const EMPTY_TXS: Transaction[] = [];
 /** Jumlah grup (hari/minggu/bulan) yang dirender sekaligus. */
 const GROUP_PAGE = 30;
-const QUICK_EXAMPLES = ['Kopi 25rb', 'Makan siang 30rb', 'Transport 15rb'];
-
-/** Highlight case-insensitive dengan <mark> untuk hasil search. */
-function highlightMatch(text: string, query: string): React.ReactNode {
-  const q = query.trim();
-  if (!q) return text;
-  const lower = text.toLowerCase();
-  const lq = q.toLowerCase();
-  const parts: React.ReactNode[] = [];
-  let i = 0;
-  let k = 0;
-  for (;;) {
-    const idx = lower.indexOf(lq, i);
-    if (idx === -1) {
-      parts.push(text.slice(i));
-      break;
-    }
-    if (idx > i) parts.push(text.slice(i, idx));
-    parts.push(<mark key={k++} className="bg-[var(--warning-soft)] rounded px-0.5">{text.slice(idx, idx + q.length)}</mark>);
-    i = idx + q.length;
-  }
-  return <>{parts}</>;
-}
-
-function addDaysISO(iso: string, days: number): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const dt = new Date(y!, m! - 1, d!);
-  dt.setDate(dt.getDate() + days);
-  const yy = dt.getFullYear();
-  const mm = String(dt.getMonth() + 1).padStart(2, '0');
-  const dd = String(dt.getDate()).padStart(2, '0');
-  return `${yy}-${mm}-${dd}`;
-}
-
-function monthLabel(key: string): string {
-  const [y, m] = key.split('-').map(Number);
-  const lang = (() => {
-    try {
-      const v = localStorage.getItem('expend_lang');
-      return v === 'en' ? 'en' : 'id';
-    } catch {
-      return 'id';
-    }
-  })() as 'id' | 'en';
-  return monthLabelFor(`${y}-${String(m).padStart(2, '0')}`, lang);
-}
-
-const GRANULARITY_LABEL_KEY: Record<GroupGranularity, TranslationKey> = {
-  day: 'home.groupDay',
-  week: 'home.groupWeek',
-  month: 'home.groupMonth',
-};
-
-type QuickRange = 'today' | 'week' | 'month' | 'all';
-
-const QUICK_LABEL_KEY: Record<QuickRange, TranslationKey> = {
-  today: 'home.quickToday',
-  week: 'home.quick7d',
-  month: 'home.quickMonth',
-  all: 'home.quickAll',
-};
+const QUICK_EXAMPLE_KEYS = ['home.example1', 'home.example2', 'home.example3'] as const;
 
 export default function HomeView() {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [dbRetry, setDbRetry] = useState(0);
+  const [txLimit, setTxLimit] = useState(1000);
   const txsResult = useLiveQuery(
-    () => db.transactions.orderBy('date').reverse().toArray().catch(() => null),
-    [dbRetry],
+    () => db.transactions.orderBy('date').reverse().limit(txLimit).toArray().then((rows) => rows.filter((tx) => !tx.deletedAt)).catch(() => null),
+    [dbRetry, txLimit],
   );
   const txs = txsResult ?? EMPTY_TXS;
   const isLoading = txsResult === undefined;
@@ -171,7 +114,7 @@ export default function HomeView() {
 
   const backupNow = async () => {
     try {
-      const all = await db.transactions.toArray();
+      const all = (await db.transactions.toArray()).filter((tx) => !tx.deletedAt);
       if (!all.length) return;
       const ok = downloadBlob(jsonBlob(all), exportFilename('json'));
       if (!ok) {
@@ -195,7 +138,18 @@ export default function HomeView() {
     () => (q ? dateFiltered.filter((tx) => tx.description.toLowerCase().includes(q)) : dateFiltered),
     [dateFiltered, q],
   );
-  const total = useMemo(() => filtered.reduce((a, tx) => a + tx.amount, 0), [filtered]);
+  const fallbackTotal = useMemo(() => filtered.reduce((a, tx) => a + tx.amount, 0), [filtered]);
+  const summary = useLiveQuery(
+    () => summarizeActiveTransactions({
+      from: filterFrom || undefined,
+      to: filterTo || undefined,
+      query: debouncedQuery,
+    }).catch(() => null),
+    [filterFrom, filterTo, debouncedQuery, dbRetry],
+  );
+  const total = summary?.total ?? fallbackTotal;
+  const visibleCount = summary?.count ?? filtered.length;
+  const hasMoreRows = summary !== null && summary !== undefined && summary.count > filtered.length;
   const groups = useMemo(() => groupTransactions(filtered, granularity), [filtered, granularity]);
   // Daftar dibatasi per grup: 1.000 transaksi dengan rentang tanggal lebar
   // sebelumnya merender ribuan baris sekaligus. Grup yang tersembunyi dibuka
@@ -205,9 +159,9 @@ export default function HomeView() {
   const shownGroups = useMemo(() => groups.slice(0, visibleGroups), [groups, visibleGroups]);
   const hiddenGroups = groups.length - shownGroups.length;
   const groupLabel = (key: string) => {
-    if (granularity === 'month') return monthLabel(key);
-    if (granularity === 'week') return `${fmtDate(key)} - ${fmtDate(addDaysISO(key, 6))}`;
-    return fmtDate(key);
+    if (granularity === 'month') return monthLabelFor(key, lang);
+    if (granularity === 'week') return `${fmtDate(key, lang)} - ${fmtDate(addDaysISO(key, 6), lang)}`;
+    return fmtDate(key, lang);
   };
 
   return (
@@ -273,16 +227,19 @@ export default function HomeView() {
             </Link>
             <p className="text-xs font-bold text-[var(--text-secondary)] mt-2">{t('home.tryExamples')}</p>
             <div className="flex flex-wrap justify-center gap-2">
-              {QUICK_EXAMPLES.map((ex) => (
-                <Link
-                  key={ex}
-                  to={`/chat?input=${encodeURIComponent(ex)}`}
-                  aria-label={t('chat.useExample', { example: ex })}
-                  className="min-h-12 inline-flex items-center px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-semibold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-                >
-                  {ex}
-                </Link>
-              ))}
+              {QUICK_EXAMPLE_KEYS.map((key) => {
+                const ex = t(key);
+                return (
+                  <Link
+                    key={key}
+                    to={`/chat?input=${encodeURIComponent(ex)}`}
+                    aria-label={t('chat.useExample', { example: ex })}
+                    className="min-h-12 inline-flex items-center px-3.5 rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs font-semibold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+                  >
+                    {ex}
+                  </Link>
+                );
+              })}
             </div>
             <button
               type="button"
@@ -303,7 +260,7 @@ export default function HomeView() {
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-[var(--text-secondary)]">{t('home.totalExpenses')}</p>
                 <p className="text-xl font-bold tracking-tight tabular-nums mt-0.5">{fmtIDR(total)}</p>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5">{filtered.length} {t('home.transactions')}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">{visibleCount} {t('home.transactions')}</p>
               </div>
             </div>
           </SectionCard>
@@ -409,7 +366,7 @@ export default function HomeView() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold truncate">{highlightMatch(tx.description, debouncedQuery)}</p>
                     <p className="text-xs text-[var(--text-secondary)] tabular-nums mt-0.5">
-                      {fmtDate(tx.date)}
+                      {fmtDate(tx.date, lang)}
                       {tx.source && <>{' '}&middot;{' '}<span className="text-[var(--text-muted)]">{tx.source}</span></>}
                     </p>
                     {tx.note && (
@@ -455,6 +412,16 @@ export default function HomeView() {
           </section>
           )}
 
+          {hasMoreRows && (
+            <button
+              type="button"
+              onClick={() => setTxLimit((v) => v + 1000)}
+              className="w-full min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+            >
+              {t('home.loadMoreTransactions')}
+            </button>
+          )}
+
           <Link
             to="/chat"
             className="flex items-center justify-center gap-2 w-full min-h-12 px-5 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
@@ -492,8 +459,20 @@ export default function HomeView() {
           if (!tx?.id) return;
           void (async () => {
             try {
-              await db.transactions.delete(tx.id!);
-              showToast(t('home.transactionDeleted'));
+              await softDeleteTransaction(tx.id!);
+              showToast(t('home.transactionDeleted'), 'success', {
+                label: t('common.undo'),
+                onClick: () => {
+                  void (async () => {
+                    try {
+                      await restoreTransaction(tx.id!);
+                      showToast(t('home.transactionRestored'));
+                    } catch {
+                      setError(t('home.restoreFailed'));
+                    }
+                  })();
+                },
+              });
             } catch {
               setError(t('home.deleteFailed'));
             }
@@ -519,165 +498,3 @@ export default function HomeView() {
   );
 }
 
-interface EditSheetProps {
-  readonly tx: Transaction;
-  readonly onClose: () => void;
-  readonly onSaved: () => void;
-  readonly onError: () => void;
-}
-
-function EditSheet({ tx, onClose, onSaved, onError }: EditSheetProps) {
-  const { t } = useTranslation();
-  const [description, setDescription] = useState(tx.description);
-  const [amount, setAmount] = useState(String(tx.amount));
-  const [date, setDate] = useState(tx.date);
-  const [source, setSource] = useState(tx.source ?? '');
-  const [note, setNote] = useState(tx.note ?? '');
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const firstFieldRef = useRef<HTMLInputElement>(null);
-  const sheetRef = useRef<HTMLFormElement>(null);
-
-  useFocusTrap(sheetRef, { onClose, initialFocusRef: firstFieldRef });
-
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (saving || !tx.id) return;
-    const parsedAmount = Number(amount.replaceAll(/\D/g, ''));
-    if (!parsedAmount || parsedAmount <= 0 || parsedAmount > 1_000_000_000_000) {
-      setFormError(t('home.invalidAmount'));
-      return;
-    }
-    if (!isValidISODate(date)) {
-      setFormError(t('home.invalidDate'));
-      return;
-    }
-    setFormError(null);
-    setSaving(true);
-    try {
-      await db.transactions.update(tx.id, {
-        description: description.trim() || tx.description,
-        amount: parsedAmount,
-        date,
-        source: source.trim() || undefined,
-        note: note.trim() || undefined,
-      });
-      onSaved();
-    } catch {
-      onError();
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  // `absolute` (bukan `fixed`) agar modal mengikuti Shell yang sudah dipotong
-  // ke visualViewport.height. Di Android keyboard hanya mengecilkan visual
-  // viewport (interactive-widget=resizes-visual), jadi modal `fixed` tetap
-  // menempel ke viewport layout dan berakhir di balik keyboard. Shell
-  // (relative di App.tsx) menjadi containing block-nya, sehingga tak perlu
-  // kompensasi inset ganda.
-  return (
-    <dialog
-      open
-      aria-modal="true"
-      aria-label={t('home.editTransaction', { name: tx.description })}
-      onCancel={(e) => { e.preventDefault(); onClose(); }}
-      className="absolute inset-0 z-50 m-0 max-w-none max-h-none w-full h-full bg-transparent text-[var(--text-primary)] overflow-y-auto overflow-x-hidden p-0 md:p-4 motion-safe:animate-[in_0.2s_ease-out]"
-    >
-      {/* min-h-full + scroll: form di dasar layar saat muat, tetapi tetap bisa
-          di-scroll penuh ketika keyboard menyisakan ruang sedikit. */}
-      <div className="min-h-full flex items-end md:items-center justify-center">
-      <form
-        ref={sheetRef}
-        onSubmit={handleSave}
-        className="w-full md:max-w-md bg-[var(--card)] border border-[var(--border)] rounded-t-[var(--radius-xl)] md:rounded-[var(--radius-xl)] p-5 space-y-4"
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold">{t('home.editTransaction', { name: tx.description })}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t('home.cancel')}
-            className="min-w-12 min-h-12 grid place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-          >
-            <X size={18} aria-hidden />
-          </button>
-        </div>
-
-        {formError && <InlineAlert>{formError}</InlineAlert>}
-
-        <label className="block">
-          <span className="text-xs font-medium text-[var(--text-secondary)]">{t('home.editDescription')}</span>
-          <input
-            ref={firstFieldRef}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            className="mt-1 w-full min-h-12 px-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
-          />
-        </label>
-
-        <label className="block">
-          <span className="text-xs font-medium text-[var(--text-secondary)]">{t('home.editAmount')}</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-            className="mt-1 w-full min-h-12 px-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
-          />
-        </label>
-
-        <label className="block">
-          <span className="text-xs font-medium text-[var(--text-secondary)]">{t('home.editDate')}</span>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            className="mt-1 w-full min-h-12 px-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
-          />
-        </label>
-
-        <label className="block">
-          <span className="text-xs font-medium text-[var(--text-secondary)]">{t('home.editSource')}</span>
-          <input
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-            placeholder="BCA, GoPay, Tunai"
-            className="mt-1 w-full min-h-12 px-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)]"
-          />
-        </label>
-
-        <label className="block">
-          <span className="text-xs font-medium text-[var(--text-secondary)]">{t('home.editNote')}</span>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={2}
-            className="mt-1 w-full min-h-12 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)] resize-none"
-          />
-        </label>
-
-        <div className="flex gap-2 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 min-h-12 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] text-sm font-semibold hover:bg-[var(--bone)] active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-          >
-            {t('home.cancel')}
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 min-h-12 rounded-[var(--radius-md)] bg-[var(--accent-fill)] text-[var(--accent-ink)] text-sm font-bold hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 transition-all focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-          >
-            {t('home.saveChanges')}
-          </button>
-        </div>
-      </form>
-      </div>
-    </dialog>
-  );
-}

@@ -1,4 +1,20 @@
 # Changelog
+## 0.21.0 - 2026-11-11
+### Added
+
+- Add XLSX import and optional BYOK receipt extraction
+
+### Changed
+
+- Refresh React, React DOM, React Router, Tailwind Vite plugin, and Vitest
+
+### Fixed
+
+- Keep changelog entries for empty releases
+- Harden upload locking, local dates, pixel limits, dedupe, and amount rounding
+- Resolve CodeQL and Sonar security findings
+
+
 ## 0.20.1 - 2026-11-03
 ### Fixed
 
@@ -92,6 +108,9 @@
 
 
 ## 0.16.2 - 2026-09-13
+### Changed
+
+- Internal release, no user-facing changes.
 
 ## 0.16.1 - 2026-09-13
 ### Fixed
@@ -136,20 +155,44 @@
 
 
 ## 0.15.8 - 2026-09-11
+### Changed
+
+- Internal release, no user-facing changes.
 
 ## 0.15.7 - 2026-09-11
+### Changed
+
+- Internal release, no user-facing changes.
 
 ## 0.15.6 - 2026-09-11
+### Changed
+
+- Internal release, no user-facing changes.
 
 ## 0.15.5 - 2026-09-11
+### Changed
+
+- Internal release, no user-facing changes.
 
 ## 0.15.4 - 2026-09-11
+### Changed
+
+- Internal release, no user-facing changes.
 
 ## 0.15.3 - 2026-09-11
+### Changed
+
+- Internal release, no user-facing changes.
 
 ## 0.15.2 - 2026-09-11
+### Changed
+
+- Internal release, no user-facing changes.
 
 ## 0.15.1 - 2026-09-11
+### Changed
+
+- Internal release, no user-facing changes.
 
 ## 0.15.0 - 2026-09-11
 ### Added
@@ -170,8 +213,14 @@
 
 
 ## 0.14.9 - 2026-09-09
+### Changed
+
+- Internal release, no user-facing changes.
 
 ## 0.14.8 - 2026-09-09
+### Changed
+
+- Internal release, no user-facing changes.
 
 ## 0.14.7 - 2026-09-09
 ### Fixed
@@ -234,6 +283,9 @@
 
 
 ## 0.13.2 - 2026-09-08
+### Changed
+
+- Internal release, no user-facing changes.
 
 ## 0.13.1 - 2026-09-08
 ### Fixed

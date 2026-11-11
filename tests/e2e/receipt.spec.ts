@@ -1,10 +1,7 @@
 import { test, expect } from '@playwright/test';
-import * as fs from 'node:fs';
+import { makeReceiptImage, SCROLL_RECEIPT_LINES } from './receipt-fixture';
 
 test('receipt upload → preview editable → Simpan → Home', async ({ page }) => {
-  // Fixture public/test-receipt.png di-gitignore (lihat .gitignore) dan tidak
-  // dikomit; lewati jujur bila tidak ada, bukan gagal palsu.
-  test.skip(!fs.existsSync('public/test-receipt.png'), 'fixture public/test-receipt.png tidak tersedia (gitignored)');
   await page.goto('/');
   await page.evaluate(
     () =>
@@ -18,7 +15,11 @@ test('receipt upload → preview editable → Simpan → Home', async ({ page })
   await page.reload();
   await page.goto('/chat');
   const input = page.locator('input[type="file"]').first();
-  await input.setInputFiles('public/test-receipt.png');
+  await input.setInputFiles({
+    name: 'receipt.png',
+    mimeType: 'image/png',
+    buffer: await makeReceiptImage(page, SCROLL_RECEIPT_LINES),
+  });
   await expect(page.getByRole('progressbar')).toBeVisible({ timeout: 5000 });
   await expect(page.getByText('Periksa transaksi')).toBeVisible({ timeout: 20000 });
   // Regresi scroll: kartu pending harus langsung terlihat (list terkunci di
@@ -31,6 +32,8 @@ test('receipt upload → preview editable → Simpan → Home', async ({ page })
       { timeout: 5000 },
     )
     .toBeLessThan(200);
+  // Kartu default adalah ringkasan; buka form untuk memeriksa field editable.
+  await page.getByRole('button', { name: 'Ubah' }).click();
   await expect(page.locator('input[type="date"]')).toHaveValue('2026-08-31', { timeout: 5000 });
   await expect(page.locator('input[type="number"]')).not.toHaveValue('0');
   await page.getByRole('button', { name: 'Simpan transaksi' }).click();

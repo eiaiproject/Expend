@@ -2,10 +2,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle, AlertCircle, X } from 'reicon-react';
 import { useTranslation } from '../i18n';
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface ToastData {
   id: number;
   message: string;
   type: 'success' | 'error';
+  action?: ToastAction;
 }
 
 let toastSeq = 0;
@@ -13,9 +19,9 @@ let toastSeq = 0;
 /** Shared toast state for views (replaces per-view useState+showToast). */
 export function useToast() {
   const [toast, setToast] = useState<ToastData | null>(null);
-  const showToast = useCallback((message: string, type: ToastData['type'] = 'success') => {
+  const showToast = useCallback((message: string, type: ToastData['type'] = 'success', action?: ToastAction) => {
     toastSeq += 1;
-    setToast({ id: toastSeq, message, type });
+    setToast({ id: toastSeq, message, type, action });
   }, []);
   const dismissToast = useCallback(() => setToast(null), []);
   return { toast, showToast, dismissToast };
@@ -24,11 +30,12 @@ export function useToast() {
 interface ToastProps {
   readonly message: string;
   readonly type?: 'success' | 'error';
+  readonly action?: ToastAction;
   readonly onDismiss?: () => void;
   readonly duration?: number;
 }
 
-export function Toast({ message, type = 'success', onDismiss, duration = 4000 }: ToastProps) {
+export function Toast({ message, type = 'success', action, onDismiss, duration = 6000 }: ToastProps) {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(true);
 
@@ -53,9 +60,9 @@ export function Toast({ message, type = 'success', onDismiss, duration = 4000 }:
   const iconClass = type === 'success' ? 'text-[var(--success)]' : 'text-[var(--danger)]';
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
+    <output
+      role={type === 'error' ? 'alert' : undefined}
+      aria-live={type === 'error' ? 'assertive' : 'polite'}
       className={`fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 max-w-sm w-[calc(100%-2rem)] px-4 py-3 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] shadow-lg flex items-start gap-3 transition-all duration-300 ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
       }`}
@@ -63,6 +70,15 @@ export function Toast({ message, type = 'success', onDismiss, duration = 4000 }:
     >
       <Icon size={18} className={`shrink-0 mt-0.5 ${iconClass}`} aria-hidden />
       <p className="text-sm flex-1 min-w-0 leading-snug">{message}</p>
+      {action && (
+        <button
+          type="button"
+          onClick={() => { action.onClick(); setVisible(false); onDismiss?.(); }}
+          className="shrink-0 min-h-12 px-2 -my-2 rounded-[var(--radius-sm)] text-xs font-bold text-[var(--accent)] hover:bg-[var(--bg)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
+        >
+          {action.label}
+        </button>
+      )}
       <button
         type="button"
         onClick={() => { setVisible(false); onDismiss?.(); }}
@@ -71,6 +87,6 @@ export function Toast({ message, type = 'success', onDismiss, duration = 4000 }:
       >
         <X size={14} aria-hidden />
       </button>
-    </div>
+    </output>
   );
 }

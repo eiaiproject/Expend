@@ -19,6 +19,9 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci --ignore-scripts
       - run: npm audit --omit=dev --audit-level=moderate
+      - run: npm audit --audit-level=high
+      - run: node scripts/check-secrets.mjs
+      - run: node scripts/check-sast.mjs
       - run: npm run lint
       - run: npm run lint:prose
       - run: npm run typecheck
@@ -68,8 +71,17 @@ jobs:
       contents: write
     uses: ./.github/workflows/release.yml
   deploy:
-    needs: [ci, e2e]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Tunggu release selesai agar checkout `main` memuat commit bump versi yang
+    # baru dibuat release.yml. Release boleh skipped (push commit release tidak
+    # memicu release lagi), tetapi CI/E2E tetap wajib sukses.
+    needs: [ci, e2e, release]
+    if: >-
+      !cancelled() &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'push' &&
+      needs.ci.result == 'success' &&
+      needs.e2e.result == 'success' &&
+      (needs.release.result == 'success' || needs.release.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -77,6 +89,9 @@ jobs:
       deployments: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Ambil main terbaru setelah release.yml push commit bump versi.
+          ref: main
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --ignore-scripts

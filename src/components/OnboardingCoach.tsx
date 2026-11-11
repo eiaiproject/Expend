@@ -85,11 +85,11 @@ export function OnboardingCoach({
             <p className="text-sm font-semibold">{t('onboarding.step3Title')}</p>
             <p className="text-xs text-[var(--text-secondary)] mt-1">{t('onboarding.step3Desc')}</p>
             <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs" aria-hidden="true">
-              <span className="rounded-full bg-[var(--bone)] border border-[var(--border)] px-2.5 py-1 font-medium">Kopi</span>
+              <span className="rounded-full bg-[var(--bone)] border border-[var(--border)] px-2.5 py-1 font-medium">{t('onboarding.chipDescription')}</span>
               <span className="rounded-full bg-[var(--success-soft)] text-[var(--success)] px-2.5 py-1 font-bold tabular-nums">{fmtIDR(25000)}</span>
               <span className="rounded-full bg-[var(--info-soft)] text-[var(--info)] px-2.5 py-1 font-semibold">BSI</span>
             </div>
-            <p className="font-mono text-xs text-[var(--text-muted)] mt-2">kopi 25rb dari BSI</p>
+            <p className="font-mono text-xs text-[var(--text-muted)] mt-2">{t('onboarding.example1')}</p>
           </div>
         )}
         {step === 3 && (
@@ -128,7 +128,6 @@ export function OnboardingCoach({
           )}
         </div>
       </dialog>
-      <style>{`@keyframes in { from { opacity:0; transform: translateY(4px)} to { opacity:1; transform: translateY(0)} }`}</style>
     </div>
   );
 }

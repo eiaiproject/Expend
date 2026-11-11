@@ -1,45 +1,54 @@
 # Expend
 
-![version](https://img.shields.io/badge/version-0.20.1-teal)
+[![version](https://img.shields.io/badge/version-0.21.0-teal)](https://github.com/eiaiproject/Expend/releases)
+[![CI](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml/badge.svg)](https://github.com/eiaiproject/Expend/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-teal.svg)](LICENSE)
 
-**Expend is an offline-first expense tracker that runs entirely in your browser.** Type an expense the way you would say it (`kopi 25rb dari BSI`), or upload a receipt photo, and Expend turns it into a structured transaction. There is no account, no server, and no analytics: every transaction stays in IndexedDB on your device.
+**Expend is a local-first expense tracker that runs in your browser.** Write an
+expense the way you would say it, or upload a receipt, and Expend turns it into
+a structured transaction. There is no account, no application server, and no
+analytics. Transactions stay in IndexedDB on your device by default.
 
 ![Expend social card](public/og-image.png)
 
-## Why it exists
+## Why Expend
 
-Logging a coffee should take five seconds, not a login form plus four dropdowns. Expend is built for people who want to record spending in Bahasa Indonesia or English, on a phone, often without a stable connection. It installs as a PWA, works offline after the first visit, and keeps financial data local by default.
+Recording a coffee should not require a login form and four dropdowns. Expend
+is built for quick entry in Bahasa Indonesia or English, including on a phone
+and without a stable connection. It installs as a PWA and works offline after
+the app shell and the OCR assets have been cached.
 
-## What you get
+## Features
 
-| Capability | Detail |
+| Area | What the app does |
 | --- | --- |
-| Chat-style entry | Natural language parsing for description, amount, date, source of funds, and note |
-| Receipt OCR | Transfer receipts, shop receipts, and QRIS receipts read on-device with Tesseract.js |
-| Summary | Search, date filters, grouping by day/week/month, per-group subtotals, inline edit |
-| Export and import | JSON backups and RFC 4180 CSV, plus import of Google Sheets CSV exports |
-| Privacy | No network calls with transaction data, no tracking, no external OCR CDN |
-| Offline | Service worker caches the app and OCR assets after first use |
-| Accessibility | Skip link, focus trap, 48 px mobile targets, high contrast mode, font scaling, reduced motion |
-| Bilingual | Bahasa Indonesia and English, switchable in Settings |
+| Record | Parses description, amount, date, source of funds, and note from natural language |
+| Receipts | Reads transfer, shop, and QRIS receipts with on-device Tesseract.js OCR |
+| Summary | Search, date filters, day/week/month grouping, group totals, inline edit, soft delete and undo |
+| Data | JSON backup/restore, CSV export, and import of JSON, CSV, or XLSX |
+| Optional AI | A user-supplied OpenAI-compatible vision endpoint can extract receipts before local OCR fallback |
+| Privacy | Local by default, no tracking, no external OCR CDN in production builds |
+| Accessibility | Skip link, focus trap, 48 px targets, high contrast, three font sizes, reduced motion |
+| Language | Bahasa Indonesia and English, switchable in Settings |
 
 ## Quick start
 
-Requires Node.js 22 or newer.
+Node.js 22 or newer is required.
 
 ```bash
 npm ci --ignore-scripts
-npm run vendor:ocr   # once: copy OCR worker, core, and ind/eng models into public/
+npm run vendor:ocr   # once: copy the OCR worker, core, and ind/eng models into public/
 npm run dev          # http://localhost:3000
 ```
 
-`npm run vendor:ocr` is also part of `prebuild`, so production builds always ship the OCR assets from the same origin.
+`npm run vendor:ocr` also runs as part of `prebuild`, so production builds serve
+OCR assets from the same origin.
 
-## How to use it
+## Using Expend
 
 ### Record with a sentence
 
-Open **Record** and type:
+Open **Record** (Catat) and type:
 
 | Input | Result |
 | --- | --- |
@@ -50,70 +59,131 @@ Open **Record** and type:
 | `kopi 25rb note untuk rapat` | note `untuk rapat` |
 | `kopi 50` | rejected: plain numbers below Rp100 are treated as noise |
 
-Supported amounts include `50000`, `50.000`, `50,000`, `50rb`, `50k`, `1.5jt`, and `Rp 50.000`. The maximum accepted amount is Rp1.000.000.000.000. Dates use the device's local timezone, so `hari ini` and `kemarin` resolve correctly in WIB.
+Amounts can be written as `50000`, `50.000`, `50,000`, `50rb`, `50k`, `1.5jt`,
+or `Rp 50.000`. The accepted range is Rp1 to Rp1.000.000.000.000. Relative dates
+use the device's local timezone, so `hari ini` and `kemarin` resolve correctly in
+WIB.
 
 ### Record from a receipt
 
-Upload a JPG, PNG, or WebP image up to 10 MB. OCR runs locally. The parser prefers the labelled final total over components and never treats cash tendered or change as the amount. On QRIS receipts the merchant name becomes the description. Top-up receipts use the saldo as the amount. A `Catatan:` or `Note:` line becomes the transaction note. Damaged numbers such as `1O.000` are rejected instead of guessed.
+Upload a JPG, PNG, or WebP image up to 10 MB. The image must also be at most
+40 megapixels. OCR runs on the device. The parser prefers a labelled final total
+over components and does not treat cash tendered or change as the amount. On QRIS
+receipts the merchant becomes the description. Top-up receipts use the saldo as
+the amount. A `Catatan:` or `Note:` line becomes the note. OCR-confusable digits
+such as `1O.000` are rejected rather than silently guessed.
 
-The first OCR run downloads the worker, core, and both language models from Expend's own origin (about 8 MB). Later runs are served by the service worker cache, so OCR works offline.
+To use the optional AI path, open **Settings > AI assistant (BYOK)** and enter a
+valid HTTPS OpenAI-compatible base URL, API key, and model. With AI configured,
+Expend sends the compressed receipt image to that endpoint first and falls back
+to local OCR if the request fails. The API key stays in this browser's
+`localStorage` and is excluded from exports and backups. The provider receives
+the image only while AI is configured and enabled. Disconnect AI in Settings to
+return to fully local processing.
 
-### Review and export
+The first OCR run downloads the worker, core, and both language models from
+Expend's own origin, about 12 MB in total. Later runs use the service worker
+cache, so OCR can work offline.
 
-**Summary** lists transactions newest first. Filter by date, group by day/week/month, search descriptions, and edit or delete a row. **Settings** holds theme, language, font size, high contrast, backup reminders, JSON/CSV export, import, and the danger zone.
+### Review, back up, and import
+
+**Summary** (Ringkasan) lists active transactions newest first. Search
+descriptions, filter by date, group by day/week/month, and edit or delete a row.
+Deleting is a soft delete with an undo action.
+
+**Settings** contains Preferences, AI assistant (BYOK), Language, Data, Privacy,
+About, and Danger Zone. From Data you can export JSON or CSV, import JSON, CSV,
+or XLSX, set a local backup reminder, or download a JSON backup. The export
+wizard supports an optional date range. XLSX import reads only the `Transaksi`
+sheet and ignores operational sheets such as `Log`.
 
 ## Data and privacy
 
-- Transactions live in IndexedDB in your browser profile. Expend never uploads them.
-- JSON export is the backup format. **Export JSON** writes `expend-YYYY-MM-DD.json` with a versioned schema. CSV export is for spreadsheets.
-- Import is append-only, validates every row, and skips exact duplicates.
-- Data is **not encrypted**. Anyone with access to the browser profile or device can read it. Clearing site data removes all transactions.
-- Backup reminders are local timestamps in `localStorage`, not cloud sync.
+- Transactions live in IndexedDB in your browser profile. Expend does not upload
+  them.
+- JSON export is the backup format. It uses a versioned schema and records the
+  app version. CSV is for spreadsheets.
+- Import is append-only. Every row is validated, exact duplicates are skipped,
+  and XLSX reads the `Transaksi` sheet only.
+- BYOK configuration is stored in `localStorage`. When AI is enabled, receipt
+  images are sent to the endpoint you configured, subject to that provider's
+  retention policy.
+- Data is **not encrypted at rest**. Anyone with access to the browser profile or
+  device can read it. Clearing site data removes the local transactions.
+- Backup reminders are local timestamps in `localStorage`; there is no cloud
+  sync.
+- The permanent erase control is in **Settings > Danger Zone**.
+
+See the [threat model](docs/THREAT_MODEL.md) for the accepted risks.
 
 ## Tech stack
 
-React 19, Vite 8, Tailwind CSS 4, Dexie 4 (IndexedDB), React Router 7, Tesseract.js 7, vite-plugin-pwa, and reicon-react icons.
+React 19, TypeScript, Vite 8, Tailwind CSS 4, Dexie 4, React Router 7,
+Tesseract.js 7, read-excel-file, vite-plugin-pwa, and reicon-react.
 
 ## Project layout
 
-```
-src/views/          HomeView (Summary), ChatView (Record), SettingsView
-src/components/     Shared UI: dialogs, toasts, navigation, feedback
-src/db/db.ts        Dexie schema and migrations
-src/utils/          Parsers, OCR, export/import, dates, grouping, backup
-src/i18n/           Indonesian and English dictionaries
-public/             Icons, social image, share handler, vendored OCR assets
-tests/unit/         Vitest suites, fixtures, contrast and version guards
-tests/e2e/          Playwright flows and the pixel-perfect visual audit
-scripts/            Version sync, release, Tesseract vendoring, prose guard
-docs/               Dexie migration notes and Sheets import format
+```text
+src/views/       Summary, Record, and Settings screens
+src/components/  Shared dialogs, navigation, feedback, and export UI
+src/db/          Dexie schema and migrations
+src/utils/       Parsers, OCR, AI, export/import, dates, grouping, backup
+src/i18n/        Indonesian and English dictionaries
+public/          Icons, social image, share handler, and vendored OCR assets
+tests/unit/      Vitest suites and fixtures
+tests/e2e/       Playwright flows and the visual audit
+scripts/         Version sync, release, Tesseract vendoring, lint guards
+docs/            Architecture, threat model, Dexie notes, import format, notices
 ```
 
 ## Development
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Vite dev server on port 3000 |
+| `npm run dev` | Vite dev server on port 3000, localhost only |
+| `npm run dev:lan` | Bind the dev server to `0.0.0.0` for phone testing |
 | `npm run build` | Production build |
 | `npm run preview` | Preview the production build |
-| `npm run typecheck` | TypeScript over `src`, `tests`, and root configs |
+| `npm run typecheck` | TypeScript over source, tests, and config |
 | `npm run lint` | ESLint |
-| `npm run lint:prose` | Rejects em dashes in prose and comments |
+| `npm run lint:prose` | Reject em dashes in prose and comments |
 | `npm run test` | Vitest in watch mode |
-| `npm run test:unit` | Vitest single run |
-| `npm run test:coverage` | Unit tests with coverage for Sonar |
-| `npx playwright test` | E2E and visual audit (starts the dev server) |
+| `npm run test:unit` | Run unit tests once |
+| `npm run test:coverage` | Unit tests with coverage |
+| `npx playwright test` | E2E and visual audit, starts the dev server |
 
-`tests/e2e/visual-audit.spec.ts` checks four viewports across three routes for touch targets, padding, overflow, and contrast. It fails on any finding outside its small `INTENTIONAL` list, and entries there need a written reason.
+The Playwright visual audit checks four viewports across the three routes for
+overflow, touch targets, padding, and contrast.
 
 ## Versioning and releases
 
-Expend uses semver and Conventional Commits. A merge to `main` cuts a release after CI is green: breaking changes become MAJOR once 1.0 ships (MINOR while on 0.x), `feat` becomes MINOR, and `fix`, `perf`, `refactor`, and `revert` become PATCH.
+Expend uses SemVer and Conventional Commits. After CI is green, a merge to
+`main` releases according to the highest change since the last release:
+breaking changes are MAJOR after 1.0 (MINOR while the package is 0.x), `feat` is
+MINOR, and `fix`, `perf`, `refactor`, and `revert` are PATCH. `docs`, `test`,
+`ci`, `build`, `style`, and `chore` commits do not cut a release on their own.
 
-`package.json` is the only hand-written version. The Settings badge reads `__APP_VERSION__`, the README badge and CHANGELOG are updated by `scripts/sync-version.mjs`, and tags plus release commits are produced by `scripts/auto-release.mjs`. The exported JSON schema (`EXPORT_FORMAT_VERSION`) and the IndexedDB schema (`db.version(N)`) are versioned separately because they must move monotonically, not with feature releases.
+`package.json` is the only hand-written version. Vite injects it into the UI as
+`__APP_VERSION__`, so the version shown in **Settings > About** always matches
+the package. `scripts/sync-version.mjs` updates the README badge and CHANGELOG,
+and `scripts/auto-release.mjs` creates the release commit and tag. The export
+schema and IndexedDB schema are versioned separately.
 
-## More documentation
+## Documentation
 
-- [Design notes](docs/DESIGN.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Threat model](docs/THREAT_MODEL.md)
 - [Dexie migrations](docs/dexie-migrations.md)
-- [Google Sheets CSV import](docs/sheets-import.md)
+- [Spreadsheet import](docs/sheets-import.md)
+- [Third-party notices](docs/THIRD_PARTY_NOTICES.md)
+
+## Contributing and security
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Report
+vulnerabilities through GitHub private vulnerability reporting as described in
+[SECURITY.md](SECURITY.md). Participation is covered by the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).

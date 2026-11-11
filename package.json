@@ -1,14 +1,16 @@
 {
   "name": "expend",
   "private": true,
-  "version": "0.20.1",
+  "license": "MIT",
+  "version": "0.21.0",
   "engines": {
     "node": ">=22"
   },
   "type": "module",
   "sideEffects": false,
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev": "vite --port=3000",
+    "dev:lan": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "prebuild": "node scripts/vendor-tesseract.mjs",
     "vendor:ocr": "node scripts/vendor-tesseract.mjs",
@@ -25,21 +27,22 @@
   "dependencies": {
     "dexie": "^4.4.6",
     "dexie-react-hooks": "^4.4.0",
-    "react": "^19.0.1",
-    "react-dom": "^19.3.0",
-    "react-router-dom": "^7.18.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.5",
+    "read-excel-file": "^9.3.14",
     "reicon-react": "^1.2.5",
     "tesseract.js": "^7.0.0",
-    "wasm-feature-detect": "^1.9.0"
+    "wasm-feature-detect": "1.9.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.5",
     "@types/node": "^26.6.1",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "@vitest/coverage-v8": "^5.0.3",
+    "@vitest/coverage-v8": "^5.1.0",
     "eslint": "^10.12.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "fake-indexeddb": "^6.2.5",
@@ -48,6 +51,6 @@
     "typescript-eslint": "^8.70.0",
     "vite": "^8.3.0",
     "vite-plugin-pwa": "^2.0.0",
-    "vitest": "^5.0.0"
+    "vitest": "^5.1.0"
   }
 }

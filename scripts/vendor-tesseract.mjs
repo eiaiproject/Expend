@@ -3,32 +3,18 @@
  * vendor-tesseract.mjs
  *
  * Menyalin aset OCR ke `public/tesseract/` supaya worker + core + model bahasa
- * disajikan dari origin sendiri, bukan dari CDN pihak ketiga
- * (cdn.jsdelivr.net / tessdata.projectnaptha.com). Dampaknya:
+ * disajikan dari origin sendiri, bukan dari CDN pihak ketiga.
  *
- *   - OCR tidak lagi bergantung jaringan ke domain orang lain; aset masuk ke
- *     cache Service Worker (`ocr-cache`, CacheFirst) sehingga OCR berikutnya
- *     jalan penuh offline.
- *   - Tidak ada kebocoran request ke pihak ketiga dari aplikasi yang
- *     mengklaim privacy-first.
- *
- * Tata letak yang dihasilkan (persis yang diharapkan tesseract.js):
- *   public/tesseract/worker.min.js
- *   public/tesseract/tesseract-core-simd-lstm.wasm.js
- *   public/tesseract/tesseract-core-lstm.wasm.js
- *   public/tesseract/lang/{ind,eng}.traineddata.gz
- *
- * Core & worker diambil dari node_modules (tanpa jaringan). Model bahasa TIDAK
- * ikut paket npm, jadi diunduh sekali dari CDN yang sama seperti default
- * tesseract.js; bila unduhan gagal (mis. build offline), skrip hanya memberi
- * peringatan dan aplikasi otomatis kembali ke `langPath` CDN - build tidak
- * pernah gagal karena langkah opsional ini.
- *
- * Dijalankan otomatis lewat `prebuild`; manual: `npm run vendor:ocr`.
+ * Core & worker diambil dari node_modules (tanpa jaringan). Model bahasa tidak
+ * ikut paket npm dan diunduh sekali dari CDN. Setiap model diverifikasi dengan
+ * SHA-256. Di CI (`CI=true`) atau saat `REQUIRE_OCR_ASSETS=1`, kegagalan unduh
+ * atau checksum menghentikan build; di mesin lokal tanpa jaringan, skrip hanya
+ * memberi peringatan dan aplikasi kembali ke `langPath` CDN.
  */
 
+import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { copyFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,11 +28,15 @@ const CORE_FILES = ['tesseract-core-simd-lstm.wasm.js', 'tesseract-core-lstm.was
 const LANGS = ['ind', 'eng'];
 const LANG_CDN = 'https://cdn.jsdelivr.net/npm/@tesseract.js-data';
 const MIN_LANG_BYTES = 100_000;
+const REQUIRE_ASSETS = process.env.CI === 'true' || process.env.REQUIRE_OCR_ASSETS === '1';
+
+const LANG_SHA256 = {
+  ind: 'a8896d2f584a5baae73d658b86b765acc7b15b7ba05e014f62b1a2a23b699a91',
+  eng: '45b4cb346724ac1774f1c36f42f182b887bcdb28ebe63e6fff90ac41f3fcff91',
+};
 
 const require = createRequire(import.meta.url);
 const tesseractDir = dirname(require.resolve('tesseract.js/package.json'));
-// Resolve core lewat tesseract.js sendiri agar versinya selalu cocok dengan
-// yang diharapkan worker (bukan versi yang kebetulan ada di root node_modules).
 const tjRequire = createRequire(require.resolve('tesseract.js/package.json'));
 const coreDir = dirname(tjRequire.resolve('tesseract.js-core/package.json'));
 
@@ -62,29 +52,59 @@ copy(join(tesseractDir, 'dist/worker.min.js'), join(outDir, 'worker.min.js'));
 for (const file of CORE_FILES) copy(join(coreDir, file), join(outDir, file));
 console.log(`vendor-tesseract: worker + ${CORE_FILES.length} varian core -> public/tesseract/`);
 
-/** Unduh satu model bahasa; kembalian byte yang ditambahkan ke total. */
+function sha256(buffer) {
+  return createHash('sha256').update(buffer).digest('hex');
+}
+
+function validExistingSize(dest, expected) {
+  try {
+    const buf = readFileSync(dest);
+    return buf.byteLength >= MIN_LANG_BYTES && sha256(buf) === expected ? buf.byteLength : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Unduh satu model bahasa; verifikasi checksum sebelum menulis. */
 async function fetchLang(lang) {
   const dest = join(langDir, `${lang}.traineddata.gz`);
-  if (existsSync(dest) && statSync(dest).size >= MIN_LANG_BYTES) {
-    console.log(`vendor-tesseract: ${lang} sudah ada (${(statSync(dest).size / 1024).toFixed(0)} KB), dilewati`);
-    return statSync(dest).size;
+  const expected = LANG_SHA256[lang];
+  const existingSize = validExistingSize(dest, expected);
+  if (existingSize !== null) {
+    console.log(`vendor-tesseract: ${lang} sudah ada dan checksum cocok, dilewati`);
+    return existingSize;
   }
   try {
     const res = await fetch(`${LANG_CDN}/${lang}/4.0.0_best_int/${lang}.traineddata.gz`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const buf = Buffer.from(await res.arrayBuffer());
     if (buf.byteLength < MIN_LANG_BYTES) throw new Error(`ukuran ${buf.byteLength} B tidak wajar`);
+    const actual = sha256(buf);
+    if (actual !== expected) throw new Error(`checksum mismatch: ${actual}`);
     await writeFile(dest, buf);
     console.log(`vendor-tesseract: ${lang}.traineddata.gz -> ${(buf.byteLength / 1024).toFixed(0)} KB`);
     return buf.byteLength;
   } catch (e) {
+    if (REQUIRE_ASSETS) throw new Error(`model ${lang} wajib tersedia: ${e.message}`);
     console.warn(`vendor-tesseract: gagal mengunduh model ${lang} (${e.message}) - OCR akan memakai langPath CDN`);
     return 0;
   }
 }
 
-// Paralel (bukan await sekuensial di loop): 2 bahasa independen, total
-// dijumlah dari hasil masing-masing agar tanpa mutasi bersamaan.
-for (const n of await Promise.all(LANGS.map(fetchLang))) bytes += n;
+let failed = false;
+const results = await Promise.allSettled(LANGS.map(fetchLang));
+for (let i = 0; i < results.length; i++) {
+  const result = results[i];
+  if (result.status === 'fulfilled') {
+    bytes += result.value;
+  } else {
+    failed = true;
+    console.error(`vendor-tesseract: ${LANGS[i]}: ${result.reason instanceof Error ? result.reason.message : result.reason}`);
+  }
+}
 
 console.log(`vendor-tesseract: total ${(bytes / 1024 / 1024).toFixed(1)} MB di public/tesseract/ (tidak di-precache)`);
+if (failed) {
+  console.error('vendor-tesseract: aset OCR tidak lengkap; build dihentikan karena CI/REQUIRE_OCR_ASSETS.');
+  process.exitCode = 1;
+}

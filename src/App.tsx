@@ -8,7 +8,9 @@ import { OnboardingCoach } from './components/OnboardingCoach';
 import { isOnboarded, markOnboarded } from './utils/onboarding';
 import { applyA11yPrefs } from './utils/a11yPrefs';
 import { applyTheme, migrateLegacyTheme } from './utils/theme';
+import { requestPersistentStorage } from './utils/storage';
 import { I18nProvider, useTranslation } from './i18n';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const HomeView = lazy(() => import('./views/HomeView'));
 const ChatView = lazy(() => import('./views/ChatView'));
@@ -27,6 +29,7 @@ function Shell() {
     migrateLegacyTheme();
     applyTheme();
     applyA11yPrefs();
+    void requestPersistentStorage();
   }, []);
 
   // replay dari Settings ("Lihat tutorial lagi") via event lokal.
@@ -91,7 +94,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <I18nProvider>
-        <Shell />
+        <ErrorBoundary>
+          <Shell />
+        </ErrorBoundary>
       </I18nProvider>
     </BrowserRouter>
   );

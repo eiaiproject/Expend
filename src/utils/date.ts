@@ -12,3 +12,26 @@ export function todayLocalISO(d = new Date()): string {
   const dd = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${dd}`;
 }
+
+export function addDaysISO(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y!, m! - 1, d!);
+  dt.setDate(dt.getDate() + days);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
+const DATE_ISO_RE = /^\d{4}-\d{2}-\d{2}$/; // NOSONAR - anchored date check
+
+/** True hanya untuk YYYY-MM-DD yang benar-benar ada di kalender. */
+export function isValidISODate(d: string): boolean {
+  if (!DATE_ISO_RE.test(d)) return false;
+  const [ys, ms, ds] = d.split('-');
+  const y = Number(ys);
+  const m = Number(ms);
+  const dd = Number(ds);
+  if (!Number.isInteger(y) || m < 1 || m > 12 || dd < 1 || dd > 31) return false;
+  return dd <= new Date(y, m, 0).getDate();
+}

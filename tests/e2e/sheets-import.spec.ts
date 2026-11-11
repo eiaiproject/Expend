@@ -16,7 +16,7 @@ test('impor CSV Sheets: 5 kolom masuk, ID/Status dibuang, Perlu dicek ikut', asy
     mimeType: 'text/csv',
     buffer: Buffer.from(SHEETS_CSV, 'utf-8'),
   });
-  await expect(page.getByText(/Sheets/).first()).toBeVisible({ timeout: 8000 });
+  await expect(page.getByText(/spreadsheet/i).first()).toBeVisible({ timeout: 8000 });
 
   await page.goto('/');
   await expect(page.getByText('Kopi Sheets').first()).toBeVisible({ timeout: 10000 });

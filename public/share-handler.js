@@ -10,6 +10,15 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
+async function clearShareCache() {
+  try {
+    const cache = await caches.open('share-cache');
+    await Promise.all([cache.delete('shared-file'), cache.delete('shared-meta')]);
+  } catch (e) {
+    // Cache tidak tersedia; redirect tetap harus berjalan.
+  }
+}
+
 async function handlePost(event) {
   try {
     const formData = await event.request.formData();
@@ -20,12 +29,12 @@ async function handlePost(event) {
     const OCR_MAX_BYTES = 10 * 1024 * 1024;
     if (file && typeof file === 'object' && 'arrayBuffer' in file && file.size > 0) {
       if (file.size > OCR_MAX_BYTES) {
-        await cache.delete('shared-file');
+        await clearShareCache();
         return Response.redirect(`/chat?share=1&error=${encodeURIComponent('file too large')}`, 303);
       }
       const mime = (file.type || '').toLowerCase();
       if (mime && !mime.startsWith('image/')) {
-        await cache.delete('shared-file');
+        await clearShareCache();
         return Response.redirect(`/chat?share=1&error=${encodeURIComponent('not an image')}`, 303);
       }
       const buf = await file.arrayBuffer();
@@ -43,6 +52,7 @@ async function handlePost(event) {
   } catch (e) { // NOSONAR - share must redirect to chat even if cache fails
     // B2: Sertakan info error agar ChatView bisa menampilkan pesan fallback
     // ke user, bukan halaman chat kosong tanpa penjelasan.
+    await clearShareCache();
     const msg = e instanceof Error ? e.message : 'cache failed';
     return Response.redirect(`/chat?share=1&error=${encodeURIComponent(msg)}`, 303);
   }

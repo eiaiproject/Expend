@@ -4,13 +4,14 @@ import { db } from '../../src/db/db';
 beforeEach(async () => {
   await db.transactions.clear();
   await db.chatMessages.clear();
+  await db.transactionAudit.clear();
 });
 
 describe('db schema', () => {
-  it('opens at version 3 with both stores', async () => {
+  it('opens at version 4 with transaction, chat, and audit stores', async () => {
     await db.open();
-    expect(db.verno).toBe(3);
-    expect(db.tables.map((t) => t.name).sort()).toEqual(['chatMessages', 'transactions']);
+    expect(db.verno).toBe(4);
+    expect(db.tables.map((t) => t.name).sort()).toEqual(['chatMessages', 'transactionAudit', 'transactions']);
   });
 
   it('round-trips a transaction (migration smoke test)', async () => {
@@ -25,7 +26,7 @@ describe('db schema', () => {
     expect(row?.amount).toBe(25000);
   });
 
-  it('migrates v2 rows (without amount/source indexes) to v3 shape', async () => {
+  it('migrates v2 rows (without amount/source indexes) to v4 shape', async () => {
     const id = await db.transactions.add({
       description: 'Nasi Goreng',
       amount: 35000,
