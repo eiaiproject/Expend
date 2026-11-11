@@ -6,7 +6,7 @@ import { parseChatInput } from '../utils/chatParser';
 import { parseReceiptText } from '../utils/receiptParser';
 import { recognizeImageDetailed, isOcrReady } from '../utils/ocr';
 import { getAiConfig } from '../utils/aiConfig';
-import { parseReceiptWithAi } from '../utils/ai';
+import { parseReceiptWithAi, type AiParsedReceipt } from '../utils/ai';
 import { clearShareCache, ocrFailureKey, ocrFileErrorKey, readSharedFile, scrollToBottom, shouldShowTime } from './chat/chatHelpers';
 import { PendingCard, type Pending } from './chat/PendingCard';
 import { OcrProgressCard } from './chat/OcrProgressCard';
@@ -309,6 +309,65 @@ export default function ChatView() {
     } catch {}
   }, []);
 
+  /** Toast hint bahasa sekali per sesi; dipisah agar handleSend tetap sederhana. */
+  function maybeShowLanguageHint(text: string) {
+    const detected = detectInputLang(text);
+    if (!detected || detected === lang) return;
+    let shown = false;
+    try {
+      shown = sessionStorage.getItem(LANG_HINT_KEY) === '1';
+    } catch {
+      // sessionStorage bisa diblokir; hint tetap ditampilkan sekali.
+    }
+    if (shown) return;
+    try {
+      sessionStorage.setItem(LANG_HINT_KEY, '1');
+    } catch {
+      // Flag gagal disimpan bukan alasan menahan hint.
+    }
+    showToast(t(detected === 'en' ? 'chat.detectedLang' : 'chat.detectedLangId'));
+  }
+
+  /** Tampilkan hasil AI/OCR sebagai kartu verifikasi + pesan chat. */
+  async function showParsedReceipt(receipt: AiParsedReceipt, confidence: number | null) {
+    if (!mountedRef.current) return;
+    setOcrConfidence(confidence);
+    setPending({
+      description: receipt.description,
+      amount: receipt.amount,
+      date: receipt.date,
+      source: receipt.source,
+      note: receipt.note,
+    });
+    setPendingEditable(false);
+    await addChatMessage({
+      role: 'assistant',
+      text: t('chat.recorded', { desc: receipt.description, amount: fmtIDR(receipt.amount) }),
+      createdAt: new Date().toISOString(),
+      parsed: { description: receipt.description, amount: receipt.amount },
+    });
+  }
+
+  /** Coba vision BYOK; null berarti lanjut ke OCR lokal (termasuk tanpa key). */
+  async function tryAiReceipt(file: File): Promise<AiParsedReceipt | null> {
+    const aiConfig = getAiConfig();
+    if (!aiConfig) return null;
+    try {
+      setOcrProgress(15);
+      return await parseReceiptWithAi(file, aiConfig);
+    } catch {
+      try {
+        if (!sessionStorage.getItem('expend_ai_fallback')) {
+          sessionStorage.setItem('expend_ai_fallback', '1');
+          showToast(t('chat.aiFallback'));
+        }
+      } catch {
+        // sessionStorage bisa diblokir; fallback OCR tetap berjalan.
+      }
+      return null;
+    }
+  }
+
   async function handleSend(e?: React.FormEvent) {
     e?.preventDefault();
     const text = input.trim();
@@ -327,19 +386,7 @@ export default function ChatView() {
 
       // Deteksi bahasa per-input; toast sekali per session (sessionStorage),
       // bukan per-mount, dengan arah pesan yang benar (id↔en).
-      const detected = detectInputLang(text);
-      if (detected && detected !== lang) {
-        let shown = false;
-        try {
-          shown = sessionStorage.getItem(LANG_HINT_KEY) === '1';
-        } catch {}
-        if (!shown) {
-          try {
-            sessionStorage.setItem(LANG_HINT_KEY, '1');
-          } catch {}
-          showToast(t(detected === 'en' ? 'chat.detectedLang' : 'chat.detectedLangId'));
-        }
-      }
+      maybeShowLanguageHint(text);
 
       const parsed = parseChatInput(text, t('chat.untitled'));
       if (!parsed) {
@@ -422,39 +469,12 @@ export default function ChatView() {
 
       // BYOK bersifat opsional. Saat key tersedia, coba model vision lebih dulu;
       // kegagalan apa pun jatuh ke OCR lokal, jadi aplikasi tetap bisa dipakai.
-      const aiConfig = getAiConfig();
-      if (aiConfig) {
-        try {
-          setOcrProgress(15);
-          const aiParsed = await parseReceiptWithAi(file, aiConfig);
-          if (!mountedRef.current) return;
-          setOcrConfidence(null);
-          setPending({
-            description: aiParsed.description,
-            amount: aiParsed.amount,
-            date: aiParsed.date,
-            note: aiParsed.note,
-            source: aiParsed.source,
-          });
-          setPendingEditable(false);
-          await addChatMessage({
-            role: 'assistant',
-            text: t('chat.recorded', { desc: aiParsed.description, amount: fmtIDR(aiParsed.amount) }),
-            createdAt: new Date().toISOString(),
-            parsed: { description: aiParsed.description, amount: aiParsed.amount },
-          });
-          return;
-        } catch {
-          try {
-            if (!sessionStorage.getItem('expend_ai_fallback')) {
-              sessionStorage.setItem('expend_ai_fallback', '1');
-              showToast(t('chat.aiFallback'));
-            }
-          } catch {
-            // sessionStorage bisa diblokir; fallback OCR tetap berjalan.
-          }
-        }
+      const aiParsed = await tryAiReceipt(file);
+      if (aiParsed) {
+        await showParsedReceipt(aiParsed, null);
+        return;
       }
+
       setOcrProgress(20);
       const { text, confidence } = await recognizeImageDetailed(file, (n) => {
         if (mountedRef.current) setOcrProgress(n);
@@ -466,14 +486,7 @@ export default function ChatView() {
         await handleUnparsedReceipt();
         return;
       }
-      setPending({ description: parsed.description, amount: parsed.amount, date: parsed.date, note: parsed.note, source: parsed.source });
-      setPendingEditable(false);
-      await addChatMessage({
-        role: 'assistant',
-        text: t('chat.recorded', { desc: parsed.description, amount: fmtIDR(parsed.amount) }),
-        createdAt: new Date().toISOString(),
-        parsed: { description: parsed.description, amount: parsed.amount },
-      });
+      await showParsedReceipt(parsed, confidence);
     } catch (e) {
       if (mountedRef.current) setOcrError(t(ocrFailureKey(e)));
     } finally {

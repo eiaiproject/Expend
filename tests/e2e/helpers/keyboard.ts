@@ -16,6 +16,19 @@ export async function simulateKeyboardOpen(page: Page, keyboardPx = 300) {
   }, keyboardPx);
 }
 
+// Kembalikan getter visualViewport ke nilai native: keyboard tertutup berarti
+// tinggi viewport pulih, sama seperti di perangkat sungguhan.
+export async function simulateKeyboardClose(page: Page) {
+  await page.evaluate(() => {
+    const vv = window.visualViewport as unknown as { dispatchEvent(e: Event): boolean };
+    const proto = Object.getPrototypeOf(vv) as { height?: number; offsetTop?: number };
+    delete proto.height;
+    delete proto.offsetTop;
+    vv.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event('resize'));
+  });
+}
+
 export const MOBILE = { width: 390, height: 844 };
 export const KEYBOARD = 300;
 export const fold = MOBILE.height - KEYBOARD; // batas atas keyboard simulasi

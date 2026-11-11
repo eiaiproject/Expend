@@ -26,11 +26,11 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('[expend] render error', error, info.componentStack);
   }
 
-  private reload = () => {
+  private readonly reload = () => {
     window.location.reload();
   };
 
-  private openSettings = () => {
+  private readonly openSettings = () => {
     window.location.assign('/settings');
   };
 

@@ -15,7 +15,7 @@ const rules = [
   { name: 'slack-token', re: /\bxox[baprs]-[A-Za-z0-9-]{20,}\b/ },
   { name: 'google-api-key', re: /\bAIza[0-9A-Za-z_-]{35}\b/ },
   { name: 'stripe-live-key', re: /\bsk_live_[0-9A-Za-z]{20,}\b/ },
-  { name: 'generic-assignment', re: /\b(?:api[_-]?key|secret|token|password)\b\s*[:=]\s*['"][A-Za-z0-9_./+=-]{20,}['"]/i },
+  { name: 'generic-assignment', re: /\b(?:api[_-]?key|secret|token|password)\b\s*[:=]\s*['"][a-z0-9_./+=-]{20,}['"]/i },
 ];
 
 let failed = false;

@@ -218,6 +218,71 @@ export async function validateFileMagic(file: File): Promise<OcrFileError | null
 
 type Dimensions = { width: number; height: number };
 
+function pngDimensions(header: Uint8Array): Dimensions | null {
+  if (header.length < 24 || header[0] !== 0x89 || header[1] !== 0x50 || header[2] !== 0x4e || header[3] !== 0x47) {
+    return null;
+  }
+  const width = ((header[16]! << 24) | (header[17]! << 16) | (header[18]! << 8) | header[19]!) >>> 0;
+  const height = ((header[20]! << 24) | (header[21]! << 16) | (header[22]! << 8) | header[23]!) >>> 0;
+  return width > 0 && height > 0 ? { width, height } : null;
+}
+
+function isJpegSofMarker(marker: number): boolean {
+  return (marker >= 0xc0 && marker <= 0xc3) ||
+    (marker >= 0xc5 && marker <= 0xc7) ||
+    (marker >= 0xc9 && marker <= 0xcb) ||
+    (marker >= 0xcd && marker <= 0xcf);
+}
+
+function jpegDimensions(header: Uint8Array): Dimensions | null {
+  if (header.length < 4 || header[0] !== 0xff || header[1] !== 0xd8) return null;
+  let i = 2;
+  while (i + 4 <= header.length) {
+    if (header[i] !== 0xff) { i++; continue; }
+    const marker = header[i + 1]!;
+    if (marker === 0xd8 || marker === 0xd9 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+      i += 2;
+      continue;
+    }
+    const len = (header[i + 2]! << 8) | header[i + 3]!;
+    if (len < 2) break;
+    if (isJpegSofMarker(marker) && i + 9 <= header.length) {
+      const height = (header[i + 5]! << 8) | header[i + 6]!;
+      const width = (header[i + 7]! << 8) | header[i + 8]!;
+      if (width > 0 && height > 0) return { width, height };
+    }
+    i += 2 + len;
+  }
+  return null;
+}
+
+function isWebpHeader(header: Uint8Array): boolean {
+  return header.length >= 12 &&
+    header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46 &&
+    header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50;
+}
+
+function webpDimensions(header: Uint8Array): Dimensions | null {
+  if (header.length < 24 || !isWebpHeader(header)) return null;
+  const chunk = String.fromCodePoint(header[12]!, header[13]!, header[14]!, header[15]!);
+  if (chunk === 'VP8X' && header.length >= 30) {
+    const width = 1 + (header[24]! | (header[25]! << 8) | (header[26]! << 16));
+    const height = 1 + (header[27]! | (header[28]! << 8) | (header[29]! << 16));
+    return { width, height };
+  }
+  if (chunk === 'VP8L' && header.length >= 25 && header[20] === 0x2f) {
+    const bits = header[21]! | (header[22]! << 8) | (header[23]! << 16) | (header[24]! << 24);
+    return { width: (bits & 0x3fff) + 1, height: ((bits >>> 14) & 0x3fff) + 1 };
+  }
+  if (chunk === 'VP8 ' && header.length >= 30 && header[23] === 0x9d && header[24] === 0x01 && header[25] === 0x2a) {
+    return {
+      width: (header[26]! | (header[27]! << 8)) & 0x3fff,
+      height: (header[28]! | (header[29]! << 8)) & 0x3fff,
+    };
+  }
+  return null;
+}
+
 /**
  * Baca dimensi dari header tanpa decode penuh. JPEG/PNG/WebP adalah satu-satunya
  * format yang lolos validasi, jadi parser ini tidak perlu menangani format lain.
@@ -225,58 +290,7 @@ type Dimensions = { width: number; height: number };
  * lanjut ke decode biasa, tetapi batas piksel tidak bisa ditegakkan untuk kasus itu.
  */
 export function imageDimensions(header: Uint8Array): Dimensions | null {
-  if (header.length >= 24 && header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4e && header[3] === 0x47) {
-    const width = ((header[16]! << 24) | (header[17]! << 16) | (header[18]! << 8) | header[19]!) >>> 0;
-    const height = ((header[20]! << 24) | (header[21]! << 16) | (header[22]! << 8) | header[23]!) >>> 0;
-    return width > 0 && height > 0 ? { width, height } : null;
-  }
-
-  if (header.length >= 4 && header[0] === 0xff && header[1] === 0xd8) {
-    let i = 2;
-    while (i + 4 <= header.length) {
-      if (header[i] !== 0xff) { i++; continue; }
-      const marker = header[i + 1]!;
-      if (marker === 0xd8 || marker === 0xd9 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
-        i += 2;
-        continue;
-      }
-      const len = (header[i + 2]! << 8) | header[i + 3]!;
-      if (len < 2) break;
-      const isSof =
-        (marker >= 0xc0 && marker <= 0xc3) ||
-        (marker >= 0xc5 && marker <= 0xc7) ||
-        (marker >= 0xc9 && marker <= 0xcb) ||
-        (marker >= 0xcd && marker <= 0xcf);
-      if (isSof && i + 9 <= header.length) {
-        const height = (header[i + 5]! << 8) | header[i + 6]!;
-        const width = (header[i + 7]! << 8) | header[i + 8]!;
-        if (width > 0 && height > 0) return { width, height };
-      }
-      i += 2 + len;
-    }
-    return null;
-  }
-
-  if (header.length >= 24 && header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46 &&
-    header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50) {
-    const chunk = String.fromCodePoint(header[12]!, header[13]!, header[14]!, header[15]!);
-    if (chunk === 'VP8X' && header.length >= 30) {
-      const width = 1 + (header[24]! | (header[25]! << 8) | (header[26]! << 16));
-      const height = 1 + (header[27]! | (header[28]! << 8) | (header[29]! << 16));
-      return { width, height };
-    }
-    if (chunk === 'VP8L' && header.length >= 25 && header[20] === 0x2f) {
-      const bits = header[21]! | (header[22]! << 8) | (header[23]! << 16) | (header[24]! << 24);
-      return { width: (bits & 0x3fff) + 1, height: ((bits >>> 14) & 0x3fff) + 1 };
-    }
-    if (chunk === 'VP8 ' && header.length >= 30 && header[23] === 0x9d && header[24] === 0x01 && header[25] === 0x2a) {
-      return {
-        width: (header[26]! | (header[27]! << 8)) & 0x3fff,
-        height: (header[28]! | (header[29]! << 8)) & 0x3fff,
-      };
-    }
-  }
-  return null;
+  return pngDimensions(header) ?? jpegDimensions(header) ?? webpDimensions(header);
 }
 
 interface OcrResult {

@@ -171,12 +171,12 @@ export function AiSettingsSection() {
           )}
 
           {message && (
-            <p
-              role={status === 'error' ? 'alert' : 'status'}
-              className={`text-xs leading-relaxed ${status === 'error' ? 'text-[var(--danger-deep)]' : 'text-[var(--text-secondary)]'}`}
+            <output
+              role={status === 'error' ? 'alert' : undefined}
+              className={`block text-xs leading-relaxed ${status === 'error' ? 'text-[var(--danger-deep)]' : 'text-[var(--text-secondary)]'}`}
             >
               {message === 'settings.aiTestOk' ? t(message, { model: testedModel ?? model }) : t(message)}
-            </p>
+            </output>
           )}
         </div>
       </SectionCard>

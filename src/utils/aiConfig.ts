@@ -56,7 +56,7 @@ export function saveAiConfig(config: AiConfig): boolean {
   try {
     // BYOK requires a key that survives reloads. It never leaves this origin
     // except as a Bearer token to the endpoint chosen here.
-    // lgtm[js/clear-text-storage-of-sensitive-information]
+    // lgtm[js/clear-text-storage-of-sensitive-data]
     localStorage.setItem(AI_CONFIG_KEY, JSON.stringify({ baseUrl, apiKey, model }));
     return true;
   } catch {

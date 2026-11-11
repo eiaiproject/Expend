@@ -62,11 +62,11 @@ async function uploadReceipt(page: Page) {
 }
 
 test('OCR memakai aset lokal dan tidak menyentuh host pihak ketiga', async ({ page }) => {
-  // Dilewati hanya bila aset OCR belum di-vendor di checkout ini (mis. clone
-  // segar tanpa `npm run vendor:ocr`); CI selalu menjalankannya lebih dulu.
+  // Aset wajib sudah di-vendor (`npm run vendor:ocr`); CI melakukannya sebelum
+  // e2e. Tanpa aset test ini memang gagal, bukan dilewati, supaya
+  // ketergantungan ke CDN tidak lolos diam-diam.
   const assetsReady = REQUIRED_ASSETS.every((p) => existsSync(p));
-  test.skip(!process.env.CI && !assetsReady, 'aset OCR belum di-vendor - jalankan `npm run vendor:ocr` lebih dulu');
-  expect(assetsReady, 'CI wajib memiliki aset OCR hasil vendor:ocr').toBe(true);
+  expect(assetsReady, 'aset OCR belum di-vendor - jalankan `npm run vendor:ocr` lebih dulu').toBe(true);
   test.setTimeout(180_000);
 
   const localOcrAssets: string[] = [];
@@ -100,8 +100,7 @@ test('OCR tetap selesai saat semua host pihak ketiga diblokir', async ({ page, c
   // Alasan yang sama seperti test di atas: tanpa aset lokal, memblokir host luar
   // tidak membuktikan apa pun karena OCR memang belum bisa dijalankan.
   const assetsReady = REQUIRED_ASSETS.every((p) => existsSync(p));
-  test.skip(!process.env.CI && !assetsReady, 'aset OCR belum di-vendor - jalankan `npm run vendor:ocr` lebih dulu');
-  expect(assetsReady, 'CI wajib memiliki aset OCR hasil vendor:ocr').toBe(true);
+  expect(assetsReady, 'aset OCR belum di-vendor - jalankan `npm run vendor:ocr` lebih dulu').toBe(true);
   // Route interception Playwright mengganggu subresource yang di-`importScripts`
   // dari worker blob di webkit (asetnya 200, tetapi OCR gagal dengan pesan
   // model). Klaimnya tetap terjaga karena test di atas berjalan di webkit juga.

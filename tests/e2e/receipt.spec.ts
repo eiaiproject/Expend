@@ -32,6 +32,8 @@ test('receipt upload → preview editable → Simpan → Home', async ({ page })
       { timeout: 5000 },
     )
     .toBeLessThan(200);
+  // Kartu default adalah ringkasan; buka form untuk memeriksa field editable.
+  await page.getByRole('button', { name: 'Ubah' }).click();
   await expect(page.locator('input[type="date"]')).toHaveValue('2026-08-31', { timeout: 5000 });
   await expect(page.locator('input[type="number"]')).not.toHaveValue('0');
   await page.getByRole('button', { name: 'Simpan transaksi' }).click();

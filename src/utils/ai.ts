@@ -142,12 +142,7 @@ function messageContent(payload: unknown): string {
   throw new AiResponseError();
 }
 
-/**
- * Validasi payload model. Menerima JSON mentah atau objek; nominal dan tanggal
- * dinormalisasi dengan parser yang sama seperti impor spreadsheet, sehingga
- * hasil AI tidak bisa menyimpan angka di luar batas aplikasi.
- */
-export function parseAiReceiptPayload(raw: unknown, today = todayLocalISO()): AiParsedReceipt {
+function parseAiJson(raw: unknown): Record<string, unknown> {
   let value: unknown = raw;
   if (typeof raw === 'string') {
     const start = raw.indexOf('{');
@@ -160,31 +155,56 @@ export function parseAiReceiptPayload(raw: unknown, today = todayLocalISO()): Ai
     }
   }
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new AiResponseError();
-  const o = value as Record<string, unknown>;
+  return value as Record<string, unknown>;
+}
 
+function parseAiDescription(o: Record<string, unknown>): string {
   const description = typeof o.description === 'string' ? o.description.trim() : '';
   if (!description) throw new AiResponseError();
+  return description.slice(0, 80);
+}
 
+function parseAiAmount(o: Record<string, unknown>): number {
   let amount: number | null = null;
   if (typeof o.amount === 'number') amount = Math.round(o.amount);
   else if (typeof o.amount === 'string') amount = parseSheetsAmountCell(o.amount);
   if (!amount || amount <= 0 || amount > MAX_AMOUNT) throw new AiResponseError();
+  return amount;
+}
 
-  let date = today;
-  if (typeof o.date === 'string' && o.date.trim()) {
-    const rawDate = o.date.trim();
-    const parsedDate = parseSheetsDateCell(rawDate)
-      ?? (/^\d{4}-\d{2}-\d{2}T/.test(rawDate) ? parseSheetsDateCell(rawDate.slice(0, 10)) : null);
-    if (!parsedDate || !isValidISODate(parsedDate)) throw new AiResponseError();
-    date = parsedDate;
-  }
+function parseAiDate(o: Record<string, unknown>, today: string): string {
+  if (typeof o.date !== 'string' || !o.date.trim()) return today;
+  const rawDate = o.date.trim();
+  const parsedDate = parseSheetsDateCell(rawDate)
+    ?? (/^\d{4}-\d{2}-\d{2}T/.test(rawDate) ? parseSheetsDateCell(rawDate.slice(0, 10)) : null);
+  if (!parsedDate || !isValidISODate(parsedDate)) throw new AiResponseError();
+  return parsedDate;
+}
 
+function parseAiSource(o: Record<string, unknown>): string | undefined {
   const sourceText = typeof o.source === 'string' ? o.source.trim() : '';
-  const source = sourceText ? (detectKnownSource(sourceText) ?? sourceText.slice(0, 80)) : undefined;
-  const noteText = typeof o.note === 'string' ? o.note.trim() : '';
-  const note = noteText ? noteText.slice(0, 200) : undefined;
+  return sourceText ? (detectKnownSource(sourceText) ?? sourceText.slice(0, 80)) : undefined;
+}
 
-  return { description: description.slice(0, 80), amount, date, source, note };
+function parseAiNote(o: Record<string, unknown>): string | undefined {
+  const noteText = typeof o.note === 'string' ? o.note.trim() : '';
+  return noteText ? noteText.slice(0, 200) : undefined;
+}
+
+/**
+ * Validasi payload model. Menerima JSON mentah atau objek; nominal dan tanggal
+ * dinormalisasi dengan parser yang sama seperti impor spreadsheet, sehingga
+ * hasil AI tidak bisa menyimpan angka di luar batas aplikasi.
+ */
+export function parseAiReceiptPayload(raw: unknown, today = todayLocalISO()): AiParsedReceipt {
+  const o = parseAiJson(raw);
+  return {
+    description: parseAiDescription(o),
+    amount: parseAiAmount(o),
+    date: parseAiDate(o, today),
+    source: parseAiSource(o),
+    note: parseAiNote(o),
+  };
 }
 
 async function imageDataUrl(file: File): Promise<string> {

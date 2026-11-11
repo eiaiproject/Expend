@@ -17,6 +17,7 @@ export function OcrProgressCard({ progress, previewUrl }: { readonly progress: n
     <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4">
       {preview && (
         <div className="mb-3 rounded-[var(--radius-md)] overflow-hidden border border-[var(--border)]">
+          {/* codeql[js/xss-through-dom] - safePreviewUrl hanya meloloskan blob: dari URL.createObjectURL. */}
           <img src={preview} alt={t('chat.uploadReceipt')} className="w-full max-h-48 object-cover" />
         </div>
       )}

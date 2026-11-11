@@ -60,8 +60,8 @@ export function Toast({ message, type = 'success', action, onDismiss, duration =
   const iconClass = type === 'success' ? 'text-[var(--success)]' : 'text-[var(--danger)]';
 
   return (
-    <div
-      role={type === 'error' ? 'alert' : 'status'}
+    <output
+      role={type === 'error' ? 'alert' : undefined}
       aria-live={type === 'error' ? 'assertive' : 'polite'}
       className={`fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 max-w-sm w-[calc(100%-2rem)] px-4 py-3 rounded-[var(--radius-md)] bg-[var(--card)] border border-[var(--border)] shadow-lg flex items-start gap-3 transition-all duration-300 ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
@@ -87,6 +87,6 @@ export function Toast({ message, type = 'success', action, onDismiss, duration =
       >
         <X size={14} aria-hidden />
       </button>
-    </div>
+    </output>
   );
 }

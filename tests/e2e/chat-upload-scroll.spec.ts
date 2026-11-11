@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
-import { simulateKeyboardOpen, MOBILE, KEYBOARD, fold } from './helpers/keyboard';
+import { simulateKeyboardOpen, simulateKeyboardClose, MOBILE, KEYBOARD, fold } from './helpers/keyboard';
 import { makeReceiptImage, SCROLL_RECEIPT_LINES } from './receipt-fixture';
 
 // Pembuka bersama test 3-4: viewport + DB bersih + upload resi sintetis +
@@ -206,8 +206,10 @@ test('keyboard + upload: keyboard tertutup saat upload', async ({ page }) => {
     .poll(async () => (await composer.boundingBox())?.y ?? -1)
     .toBeLessThan(fold);
 
-  // Blur textarea (tutup keyboard)
-  await page.locator('h1').click();
+  // Blur textarea lalu pulihkan tinggi visualViewport: keyboard tertutup.
+  // Blur saja tidak cukup karena helper simulasi membekukan tinggi viewport.
+  await ta.blur();
+  await simulateKeyboardClose(page);
   await expect
     .poll(async () => (await composer.boundingBox())?.y ?? -1)
     .toBeGreaterThan(fold);
