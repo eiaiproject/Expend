@@ -167,8 +167,16 @@ function payeeEndFor(tokens: string[], chosen: Candidate | null, source: SourceM
   return tokens.length
 }
 
+function isWrappingChar(char: string): boolean {
+  return char === ',' || char === '.' || char === ';' || char === ':' || char.trim() === ''
+}
+
 function trimWrapping(value: string): string {
-  return value.replace(/^[\s,.;:]+/, '').replace(/[\s,.;:]+$/, '')
+  let start = 0
+  let end = value.length
+  while (start < end && isWrappingChar(value[start])) start += 1
+  while (end > start && isWrappingChar(value[end - 1])) end -= 1
+  return value.slice(start, end)
 }
 
 function buildPayee(

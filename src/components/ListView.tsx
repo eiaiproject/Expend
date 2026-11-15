@@ -155,17 +155,22 @@ function compareTransactions(a: Transaction, b: Transaction, sort: Sort): number
   return a.date === b.date ? b.number.localeCompare(a.number) : b.date.localeCompare(a.date)
 }
 
+interface TransactionFilters {
+  readonly query: string
+  readonly allDates: boolean
+  readonly period: Period
+  readonly from: string
+  readonly to: string
+  readonly source: string
+  readonly sort: Sort
+}
+
 function filterTransactions(
   items: Transaction[],
-  query: string,
-  allDates: boolean,
-  period: Period,
-  from: string,
-  to: string,
-  source: string,
-  sort: Sort,
+  filters: TransactionFilters,
   today: string,
 ): Transaction[] {
+  const { query, allDates, period, from, to, source, sort } = filters
   const needle = query.trim().toLowerCase()
   const numeric = parseAmount(query)
   const range = allDates && needle ? null : rangeFor(period, from, to, today)
@@ -187,7 +192,7 @@ function groupTransactions(items: Transaction[], sort: Sort): Group[] {
   const groups: Group[] = []
   for (const item of items) {
     const last = groups.at(-1)
-    if (last && last.date === item.date) last.items.push(item)
+    if (last?.date === item.date) last.items.push(item)
     else groups.push({ date: item.date, items: [item] })
   }
   return groups
@@ -445,13 +450,7 @@ export function ListView({ onEdit, hideAmounts }: ListViewProps) {
       data
         ? filterTransactions(
             data.items,
-            query,
-            allDates,
-            period,
-            from,
-            to,
-            source,
-            sort,
+            { query, allDates, period, from, to, source, sort },
             today,
           )
         : null,

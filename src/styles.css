@@ -2027,4 +2027,8 @@ ul {
     animation-duration: 0.01ms;
     transition-duration: 0.01ms;
   }
+
+  .toast {
+    animation: none;
+  }
 }

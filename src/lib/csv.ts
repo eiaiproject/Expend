@@ -45,18 +45,18 @@ export function toCsv(transactions: Transaction[]): string {
 
 interface QuotedScan {
   cell: string
-  index: number
+  skipNext: boolean
   quoted: boolean
 }
 
 function readQuotedCell(source: string, index: number, cell: string): QuotedScan {
   if (source[index] !== '"') {
-    return { cell: cell + source[index], index, quoted: true }
+    return { cell: cell + source[index], skipNext: false, quoted: true }
   }
   if (source[index + 1] === '"') {
-    return { cell: `${cell}"`, index: index + 1, quoted: true }
+    return { cell: `${cell}"`, skipNext: true, quoted: true }
   }
-  return { cell, index, quoted: false }
+  return { cell, skipNext: false, quoted: false }
 }
 
 function splitRows(text: string): string[][] {
@@ -66,15 +66,17 @@ function splitRows(text: string): string[][] {
   let cell = ''
   let quoted = false
 
-  for (let i = 0; i < source.length; i += 1) {
+  let index = 0
+  while (index < source.length) {
     if (quoted) {
-      const scanned = readQuotedCell(source, i, cell)
+      const scanned = readQuotedCell(source, index, cell)
       cell = scanned.cell
       quoted = scanned.quoted
-      i = scanned.index
+      index += scanned.skipNext ? 2 : 1
       continue
     }
-    const char = source[i]
+    const char = source[index]
+    index += 1
     if (char === '"') {
       quoted = true
       continue

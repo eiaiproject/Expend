@@ -366,6 +366,12 @@ function DraftFooter({
   onDiscard,
   onClose,
 }: DraftFooterProps) {
+  const keepEditingRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (discardOpen) keepEditingRef.current?.focus()
+  }, [discardOpen])
+
   return (
     <footer className="sheet-foot">
       {discardOpen ? (
@@ -373,10 +379,10 @@ function DraftFooter({
           <p>Buang perubahan yang belum disimpan?</p>
           <div className="discard-actions">
             <button
+              ref={keepEditingRef}
               type="button"
               className="btn btn-small btn-primary"
               onClick={onKeepEditing}
-              autoFocus
             >
               Lanjut edit
             </button>
