@@ -5,8 +5,16 @@
   <rect width="1200" height="630" fill="#F4F2ED"/>
 
   <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
-    <rect x="72" y="52" width="44" height="44" rx="12" fill="#14140F"/>
-    <text x="94" y="82" text-anchor="middle" font-size="20" font-weight="700" letter-spacing="-1.5" fill="#F4F2ED">ex</text>
+    <svg x="72" y="52" width="44" height="44" viewBox="0 0 512 512">
+      <rect width="512" height="512" rx="112" fill="#14140F"/>
+      <path d="M150 80H362Q390 80 390 108V378L373.25 410L356.5 378L339.75 410L323 378L306.25 410L289.5 378L272.75 410L256 378L239.25 410L222.5 378L205.75 410L189 378L172.25 410L155.5 378L138.75 410L122 378V108Q122 80 150 80Z" fill="#F4F2ED"/>
+      <g fill="#14140F">
+        <rect x="190" y="151" width="26" height="156" rx="8"/>
+        <rect x="190" y="151" width="132" height="26" rx="8"/>
+        <rect x="190" y="216" width="102" height="26" rx="8"/>
+        <rect x="190" y="281" width="132" height="26" rx="8"/>
+      </g>
+    </svg>
     <text x="128" y="82" font-size="27" font-weight="600" letter-spacing="-1.2" fill="#14140F">expend</text>
     <text x="724" y="79" text-anchor="end" font-family="SF Mono, Menlo, Consolas, monospace" font-size="10.5" letter-spacing="1.6" fill="#6B6B66">PWA</text>
     <line x1="72" y1="126" x2="724" y2="126" stroke="#D8D5CC"/>

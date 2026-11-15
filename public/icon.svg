@@ -1,15 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ikon placeholder Expend">
-  <rect width="512" height="512" rx="96" fill="#111110" />
-  <text
-    x="256"
-    y="268"
-    text-anchor="middle"
-    dominant-baseline="middle"
-    font-family="Helvetica, Arial, sans-serif"
-    font-size="300"
-    font-weight="600"
-    letter-spacing="-24"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ikon Expend">
+  <rect width="512" height="512" rx="112" fill="#111110" />
+  <path
+    d="M150 80H362Q390 80 390 108V378L373.25 410L356.5 378L339.75 410L323 378L306.25 410L289.5 378L272.75 410L256 378L239.25 410L222.5 378L205.75 410L189 378L172.25 410L155.5 378L138.75 410L122 378V108Q122 80 150 80Z"
     fill="#F4F2ED"
-  >ex</text>
-  <rect x="132" y="368" width="248" height="8" fill="#F4F2ED" />
+  />
+  <g fill="#111110">
+    <rect x="190" y="151" width="26" height="156" rx="8" />
+    <rect x="190" y="151" width="132" height="26" rx="8" />
+    <rect x="190" y="216" width="102" height="26" rx="8" />
+    <rect x="190" y="281" width="132" height="26" rx="8" />
+  </g>
 </svg>

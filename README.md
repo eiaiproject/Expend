@@ -10,7 +10,7 @@ The application UI is written in Indonesian. This README documents the behavior 
 
 ![Expend — record expenses from chat and transfer receipts](public/og-image.png)
 
-> **Status:** v0.1.0, early development. The chat parser and core bookkeeping flows are covered by automated tests; receipt layouts and device support are documented under [Known limitations](#known-limitations).
+> **Status:** v0.2.0, early development. The chat parser and core bookkeeping flows are covered by automated tests; receipt layouts and device support are documented under [Known limitations](#known-limitations).
 
 ## Contents
 
