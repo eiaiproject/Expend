@@ -34,10 +34,10 @@ export function formatTransactionNumber(value: number): string {
 export type TransactionDraft = Omit<Transaction, 'id' | 'number' | 'createdAt'>
 export type TransactionInput = Omit<Transaction, 'id' | 'createdAt'>
 
-export async function createTransaction(input: TransactionDraft): Promise<Transaction> {
+export function createTransaction(input: TransactionDraft): Promise<Transaction> {
   return db.transaction('rw', db.transactions, async () => {
     const used = new Set(
-      (await db.transactions.orderBy('number').uniqueKeys()).map((value) => String(value)),
+      (await db.transactions.orderBy('number').uniqueKeys()).map(String),
     )
     let candidate = 1
     while (used.has(formatTransactionNumber(candidate))) candidate += 1
@@ -110,16 +110,16 @@ export async function getRecentTransactions(limit: number): Promise<Transaction[
   return items.sort(oldestFirst)
 }
 
-export async function countTransactions(): Promise<number> {
+export function countTransactions(): Promise<number> {
   return db.transactions.count()
 }
 
 export async function getTransactionSources(): Promise<string[]> {
   const keys = await db.transactions.orderBy('source').uniqueKeys()
-  return keys.map((value) => String(value)).sort()
+  return keys.map(String).sort()
 }
 
-export async function getSortedTransactions(): Promise<Transaction[]> {
+export function getSortedTransactions(): Promise<Transaction[]> {
   return getAllTransactions()
 }
 

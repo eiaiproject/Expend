@@ -13,13 +13,13 @@ const SORTS: Array<{ id: Sort; label: string }> = [
 ]
 
 interface FilterSheetProps {
-  source: string
-  sort: Sort
-  sources: string[]
-  onSource: (source: string) => void
-  onSort: (sort: Sort) => void
-  onReset: () => void
-  onClose: () => void
+  readonly source: string
+  readonly sort: Sort
+  readonly sources: string[]
+  readonly onSource: (source: string) => void
+  readonly onSort: (sort: Sort) => void
+  readonly onReset: () => void
+  readonly onClose: () => void
 }
 
 export function FilterSheet({

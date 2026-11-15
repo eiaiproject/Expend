@@ -2,9 +2,9 @@ import type { Transaction } from '../lib/db'
 import { formatIDR } from '../lib/money'
 
 interface TransactionRowProps {
-  transaction: Transaction
-  onEdit: (transaction: Transaction) => void
-  hideAmounts: boolean
+  readonly transaction: Transaction
+  readonly onEdit: (transaction: Transaction) => void
+  readonly hideAmounts: boolean
 }
 
 export function TransactionRow({ transaction, onEdit, hideAmounts }: TransactionRowProps) {

@@ -23,6 +23,16 @@ import { TransactionRow } from './TransactionRow'
 
 type Period = 'this-month' | 'last-month' | 'three-months' | 'all' | 'custom'
 
+interface Range {
+  start: string
+  end: string
+}
+
+interface Group {
+  date: string
+  items: Transaction[]
+}
+
 const PERIODS: Array<{ id: Period; label: string }> = [
   { id: 'this-month', label: 'Bulan ini' },
   { id: 'last-month', label: 'Bulan lalu' },
@@ -42,6 +52,45 @@ interface SavedFilters {
   source: string
   sort: Sort
   allDates: boolean
+}
+
+interface ListViewProps {
+  readonly onEdit: (transaction: Transaction) => void
+  readonly hideAmounts: boolean
+}
+
+interface ListToolbarProps {
+  readonly query: string
+  readonly hasQuery: boolean
+  readonly period: Period
+  readonly from: string
+  readonly to: string
+  readonly today: string
+  readonly activeFilters: number
+  readonly allDates: boolean
+  readonly noResults: boolean
+  readonly onQuery: (value: string) => void
+  readonly onOpenFilter: () => void
+  readonly onPeriod: (period: Period) => void
+  readonly onFrom: (value: string) => void
+  readonly onTo: (value: string) => void
+  readonly onToggleAllDates: () => void
+}
+
+interface ListContentProps {
+  readonly filtered: Transaction[] | null
+  readonly grouped: Group[]
+  readonly today: string
+  readonly hasQuery: boolean
+  readonly source: string
+  readonly period: Period
+  readonly allDates: boolean
+  readonly visible: number
+  readonly hideAmounts: boolean
+  readonly onEdit: (transaction: Transaction) => void
+  readonly onSearchAll: () => void
+  readonly onReset: () => void
+  readonly onMore: () => void
 }
 
 function loadFilters(): Partial<SavedFilters> {
@@ -71,12 +120,7 @@ function loadFilters(): Partial<SavedFilters> {
   }
 }
 
-interface ListViewProps {
-  onEdit: (transaction: Transaction) => void
-  hideAmounts: boolean
-}
-
-function rangeFor(period: Period, from: string, to: string, today: string) {
+function rangeFor(period: Period, from: string, to: string, today: string): Range | null {
   if (period === 'this-month') return { start: monthStart(today), end: monthEnd(today) }
   if (period === 'last-month') {
     const previous = previousMonth(today)
@@ -93,6 +137,266 @@ function dayLabel(date: string, today: string): string {
   if (date === today) return 'Hari ini'
   if (date === addDays(today, -1)) return 'Kemarin'
   return longDate(date)
+}
+
+function matchesSearch(item: Transaction, needle: string, numeric: number | null): boolean {
+  if (!needle) return true
+  const values = [item.number, item.payee, item.note, item.source]
+  if (values.some((value) => value.toLowerCase().includes(needle))) return true
+  return numeric !== null && item.amount === numeric
+}
+
+function compareTransactions(a: Transaction, b: Transaction, sort: Sort): number {
+  if (sort === 'highest') return b.amount - a.amount || b.date.localeCompare(a.date)
+  if (sort === 'lowest') return a.amount - b.amount || b.date.localeCompare(a.date)
+  if (sort === 'oldest') {
+    return a.date === b.date ? a.number.localeCompare(b.number) : a.date.localeCompare(b.date)
+  }
+  return a.date === b.date ? b.number.localeCompare(a.number) : b.date.localeCompare(a.date)
+}
+
+function filterTransactions(
+  items: Transaction[],
+  query: string,
+  allDates: boolean,
+  period: Period,
+  from: string,
+  to: string,
+  source: string,
+  sort: Sort,
+  today: string,
+): Transaction[] {
+  const needle = query.trim().toLowerCase()
+  const numeric = parseAmount(query)
+  const range = allDates && needle ? null : rangeFor(period, from, to, today)
+
+  return items
+    .filter((item) => {
+      if (range && (item.date < range.start || item.date > range.end)) return false
+      if (source !== 'all' && item.source !== source) return false
+      return matchesSearch(item, needle, numeric)
+    })
+    .sort((a, b) => compareTransactions(a, b, sort))
+}
+
+function groupTransactions(items: Transaction[], sort: Sort): Group[] {
+  if (sort === 'highest' || sort === 'lowest') {
+    return [{ date: '', items }]
+  }
+
+  const groups: Group[] = []
+  for (const item of items) {
+    const last = groups.at(-1)
+    if (last && last.date === item.date) last.items.push(item)
+    else groups.push({ date: item.date, items: [item] })
+  }
+  return groups
+}
+
+function customRangeLabel(period: Period, from: string, to: string): string {
+  if (period !== 'custom') return ''
+  if (from && to) return `${shortDate(from)} sampai ${shortDate(to)}`
+  if (from) return `dari ${shortDate(from)}`
+  if (to) return `sampai ${shortDate(to)}`
+  return ''
+}
+
+function summarySuffix(
+  summaryRange: string,
+  range: Range | null,
+  allDates: boolean,
+  period: Period,
+): string {
+  if (summaryRange) return ` · ${summaryRange}`
+  if (range && !allDates && period !== 'custom') {
+    return ` · ${shortDate(range.start)} sampai ${shortDate(range.end)}`
+  }
+  return ''
+}
+
+function emptyMessage(hasQuery: boolean, source: string, period: Period): string {
+  if (hasQuery || source !== 'all' || period !== 'this-month') {
+    return 'Tidak ada transaksi yang cocok dengan pencarian atau filter ini.'
+  }
+  return 'Belum ada transaksi pada periode ini.'
+}
+
+function ListToolbar({
+  query,
+  hasQuery,
+  period,
+  from,
+  to,
+  today,
+  activeFilters,
+  allDates,
+  noResults,
+  onQuery,
+  onOpenFilter,
+  onPeriod,
+  onFrom,
+  onTo,
+  onToggleAllDates,
+}: ListToolbarProps) {
+  return (
+    <div className="list-toolbar">
+      <div className="search-line">
+        <div className="search">
+          <Search size={17} strokeWidth={1.75} aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            placeholder="Cari penerima atau nominal"
+            aria-label="Cari transaksi"
+            onChange={(event) => onQuery(event.target.value)}
+          />
+          {hasQuery ? (
+            <button
+              type="button"
+              className="search-clear"
+              onClick={() => onQuery('')}
+              aria-label="Hapus pencarian"
+            >
+              <X size={16} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          className="filter-btn"
+          onClick={onOpenFilter}
+          aria-label={activeFilters > 0 ? `Buka filter, ${activeFilters} aktif` : 'Buka filter'}
+        >
+          <SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
+          {activeFilters > 0 ? <span className="filter-count">{activeFilters}</span> : null}
+        </button>
+      </div>
+
+      <fieldset className="chip-row" aria-label="Periode">
+        {PERIODS.map((item) => (
+          <button
+            type="button"
+            className="chip"
+            key={item.id}
+            aria-pressed={period === item.id}
+            onClick={() => onPeriod(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </fieldset>
+
+      {period === 'custom' ? (
+        <div className="date-range">
+          <span className="date-field">
+            <label htmlFor="filter-from">Dari</label>
+            <input
+              id="filter-from"
+              type="date"
+              value={from}
+              max={to || today}
+              onChange={(event) => onFrom(event.target.value)}
+            />
+          </span>
+          <span className="date-field">
+            <label htmlFor="filter-to">Sampai</label>
+            <input
+              id="filter-to"
+              type="date"
+              value={to}
+              min={from || undefined}
+              max={today}
+              onChange={(event) => onTo(event.target.value)}
+            />
+          </span>
+        </div>
+      ) : null}
+
+      {hasQuery && period !== 'all' && !noResults ? (
+        <button
+          type="button"
+          className="chip chip-wide"
+          aria-pressed={allDates}
+          onClick={onToggleAllDates}
+        >
+          Cari di semua tanggal
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function ListContent({
+  filtered,
+  grouped,
+  today,
+  hasQuery,
+  source,
+  period,
+  allDates,
+  visible,
+  hideAmounts,
+  onEdit,
+  onSearchAll,
+  onReset,
+  onMore,
+}: ListContentProps) {
+  if (filtered === null) {
+    return (
+      <div className="skeleton-list" aria-busy="true" aria-label="Memuat transaksi">
+        {[0, 1, 2, 3].map((item) => (
+          <div className="skeleton" key={item} />
+        ))}
+      </div>
+    )
+  }
+
+  if (filtered.length === 0) {
+    return (
+      <div className="empty-card">
+        <p>{emptyMessage(hasQuery, source, period)}</p>
+        <div className="empty-actions">
+          {hasQuery && !allDates && period !== 'all' ? (
+            <button type="button" className="btn btn-small" onClick={onSearchAll}>
+              Cari di semua tanggal
+            </button>
+          ) : null}
+          <button type="button" className="btn btn-small" onClick={onReset}>
+            Atur ulang filter
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="day-groups">
+        {grouped.map((group) => (
+          <section className="day-group" key={group.date || 'nominal'}>
+            <h2 className="day-label">
+              {group.date ? dayLabel(group.date, today) : 'Diurutkan nominal'}
+            </h2>
+            <ul className="list-card">
+              {group.items.map((transaction) => (
+                <TransactionRow
+                  key={transaction.id}
+                  transaction={transaction}
+                  onEdit={onEdit}
+                  hideAmounts={hideAmounts}
+                />
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+      {filtered.length > visible ? (
+        <button type="button" className="btn btn-block load-more" onClick={onMore}>
+          Muat {Math.min(PAGE_SIZE, filtered.length - visible)} transaksi lagi
+        </button>
+      ) : null}
+    </>
+  )
 }
 
 export function ListView({ onEdit, hideAmounts }: ListViewProps) {
@@ -136,69 +440,54 @@ export function ListView({ onEdit, hideAmounts }: ListViewProps) {
 
   const sources = data?.sources ?? []
 
-  const filtered = useMemo(() => {
-    if (!data) return null
-    const needle = query.trim().toLowerCase()
-    const numeric = parseAmount(query)
-    const range = allDates && needle ? null : rangeFor(period, from, to, today)
+  const filtered = useMemo(
+    () =>
+      data
+        ? filterTransactions(
+            data.items,
+            query,
+            allDates,
+            period,
+            from,
+            to,
+            source,
+            sort,
+            today,
+          )
+        : null,
+    [data, query, allDates, period, from, to, source, sort, today],
+  )
 
-    const items = data.items.filter((item) => {
-      if (range && (item.date < range.start || item.date > range.end)) return false
-      if (source !== 'all' && item.source !== source) return false
-      if (!needle) return true
-      if (item.number.toLowerCase().includes(needle)) return true
-      if (item.payee.toLowerCase().includes(needle)) return true
-      if (item.note.toLowerCase().includes(needle)) return true
-      if (item.source.toLowerCase().includes(needle)) return true
-      if (numeric !== null && item.amount === numeric) return true
-      return false
-    })
-
-    items.sort((a, b) => {
-      if (sort === 'highest') return b.amount - a.amount || b.date.localeCompare(a.date)
-      if (sort === 'lowest') return a.amount - b.amount || b.date.localeCompare(a.date)
-      if (sort === 'oldest') {
-        return a.date === b.date ? a.number.localeCompare(b.number) : a.date.localeCompare(b.date)
-      }
-      return a.date === b.date ? b.number.localeCompare(a.number) : b.date.localeCompare(a.date)
-    })
-
-    return items
-  }, [data, query, allDates, period, from, to, source, sort, today])
-
-  const grouped = useMemo(() => {
-    if (!filtered) return []
-    const items = filtered.slice(0, visible)
-    if (sort === 'highest' || sort === 'lowest') {
-      return [{ date: '', items }]
-    }
-    const groups: Array<{ date: string; items: Transaction[] }> = []
-    for (const item of items) {
-      const last = groups[groups.length - 1]
-      if (last && last.date === item.date) last.items.push(item)
-      else groups.push({ date: item.date, items: [item] })
-    }
-    return groups
-  }, [filtered, sort, visible])
+  const grouped = useMemo(
+    () => groupTransactions(filtered?.slice(0, visible) ?? [], sort),
+    [filtered, sort, visible],
+  )
 
   const total = (filtered ?? []).reduce((sum, item) => sum + item.amount, 0)
   const noResults = filtered !== null && filtered.length === 0
   const range = rangeFor(period, from, to, today)
   const activeFilters = (source !== 'all' ? 1 : 0) + (sort !== 'newest' ? 1 : 0)
-  const customRange =
-    period === 'custom'
-      ? from && to
-        ? `${shortDate(from)} sampai ${shortDate(to)}`
-        : from
-          ? `dari ${shortDate(from)}`
-          : to
-            ? `sampai ${shortDate(to)}`
-            : ''
-      : ''
+  const customRange = customRangeLabel(period, from, to)
   const summaryRange = allDates && hasQuery ? 'semua tanggal' : customRange
+  const suffix = summarySuffix(summaryRange, range, allDates, period)
 
   const choosePeriod = (next: Period) => {
     setPeriod(next)
+    setAllDates(false)
+  }
+
+  const changeQuery = (value: string) => {
+    setQuery(value)
+    if (!value.trim()) setAllDates(false)
+  }
+
+  const changeFrom = (value: string) => {
+    setFrom(value)
+    setAllDates(false)
+  }
+
+  const changeTo = (value: string) => {
+    setTo(value)
     setAllDates(false)
   }
 
@@ -219,171 +508,44 @@ export function ListView({ onEdit, hideAmounts }: ListViewProps) {
         <p>Cari, saring, lalu buka untuk mengubah</p>
       </div>
 
-      <div className="list-toolbar">
-        <div className="search-line">
-          <div className="search">
-            <Search size={17} strokeWidth={1.75} aria-hidden="true" />
-            <input
-              type="search"
-              value={query}
-              placeholder="Cari penerima atau nominal"
-              aria-label="Cari transaksi"
-              onChange={(event) => {
-                const value = event.target.value
-                setQuery(value)
-                if (!value.trim()) setAllDates(false)
-              }}
-            />
-            {hasQuery ? (
-              <button
-                type="button"
-                className="search-clear"
-                onClick={() => setQuery('')}
-                aria-label="Hapus pencarian"
-              >
-                <X size={16} strokeWidth={1.75} aria-hidden="true" />
-              </button>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            className="filter-btn"
-            onClick={() => setFilterOpen(true)}
-            aria-label={
-              activeFilters > 0 ? `Buka filter, ${activeFilters} aktif` : 'Buka filter'
-            }
-          >
-            <SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
-            {activeFilters > 0 ? <span className="filter-count">{activeFilters}</span> : null}
-          </button>
-        </div>
-
-        <div className="chip-row" role="group" aria-label="Periode">
-          {PERIODS.map((item) => (
-            <button
-              type="button"
-              className="chip"
-              key={item.id}
-              aria-pressed={period === item.id}
-              onClick={() => choosePeriod(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        {period === 'custom' ? (
-          <div className="date-range">
-            <span className="date-field">
-              <label htmlFor="filter-from">Dari</label>
-              <input
-                id="filter-from"
-                type="date"
-                value={from}
-                max={to || today}
-                onChange={(event) => {
-                  setFrom(event.target.value)
-                  setAllDates(false)
-                }}
-              />
-            </span>
-            <span className="date-field">
-              <label htmlFor="filter-to">Sampai</label>
-              <input
-                id="filter-to"
-                type="date"
-                value={to}
-                min={from || undefined}
-                max={today}
-                onChange={(event) => {
-                  setTo(event.target.value)
-                  setAllDates(false)
-                }}
-              />
-            </span>
-          </div>
-        ) : null}
-
-        {hasQuery && period !== 'all' && !noResults ? (
-          <button
-            type="button"
-            className="chip chip-wide"
-            aria-pressed={allDates}
-            onClick={() => setAllDates((value) => !value)}
-          >
-            Cari di semua tanggal
-          </button>
-        ) : null}
-      </div>
+      <ListToolbar
+        query={query}
+        hasQuery={hasQuery}
+        period={period}
+        from={from}
+        to={to}
+        today={today}
+        activeFilters={activeFilters}
+        allDates={allDates}
+        noResults={noResults}
+        onQuery={changeQuery}
+        onOpenFilter={() => setFilterOpen(true)}
+        onPeriod={choosePeriod}
+        onFrom={changeFrom}
+        onTo={changeTo}
+        onToggleAllDates={() => setAllDates((value) => !value)}
+      />
 
       <div className="list-summary">
-        <span>
-          {filtered ? `${filtered.length} transaksi` : 'Memuat...'}
-          {summaryRange
-            ? ` · ${summaryRange}`
-            : range && !allDates && period !== 'custom'
-              ? ` · ${shortDate(range.start)} sampai ${shortDate(range.end)}`
-              : ''}
-        </span>
+        <span>{filtered ? `${filtered.length} transaksi${suffix}` : 'Memuat...'}</span>
         <span className="mono">{formatIDR(total, hideAmounts)}</span>
       </div>
 
-      {filtered === null ? (
-        <div className="skeleton-list" aria-busy="true" aria-label="Memuat transaksi">
-          {[0, 1, 2, 3].map((item) => (
-            <div className="skeleton" key={item} />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="empty-card">
-          <p>
-            {hasQuery || source !== 'all' || period !== 'this-month'
-              ? 'Tidak ada transaksi yang cocok dengan pencarian atau filter ini.'
-              : 'Belum ada transaksi pada periode ini.'}
-          </p>
-          <div className="empty-actions">
-            {hasQuery && !allDates && period !== 'all' ? (
-              <button type="button" className="btn btn-small" onClick={() => setAllDates(true)}>
-                Cari di semua tanggal
-              </button>
-            ) : null}
-            <button type="button" className="btn btn-small" onClick={resetFilters}>
-              Atur ulang filter
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="day-groups">
-            {grouped.map((group) => (
-              <section className="day-group" key={group.date || 'nominal'}>
-                <h2 className="day-label">
-                  {group.date ? dayLabel(group.date, today) : 'Diurutkan nominal'}
-                </h2>
-                <ul className="list-card">
-                  {group.items.map((transaction) => (
-                    <TransactionRow
-                      key={transaction.id}
-                      transaction={transaction}
-                      onEdit={onEdit}
-                      hideAmounts={hideAmounts}
-                    />
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </div>
-          {filtered.length > visible ? (
-            <button
-              type="button"
-              className="btn btn-block load-more"
-              onClick={() => setVisible((value) => value + PAGE_SIZE)}
-            >
-              Muat {Math.min(PAGE_SIZE, filtered.length - visible)} transaksi lagi
-            </button>
-          ) : null}
-        </>
-      )}
+      <ListContent
+        filtered={filtered}
+        grouped={grouped}
+        today={today}
+        hasQuery={hasQuery}
+        source={source}
+        period={period}
+        allDates={allDates}
+        visible={visible}
+        hideAmounts={hideAmounts}
+        onEdit={onEdit}
+        onSearchAll={() => setAllDates(true)}
+        onReset={resetFilters}
+        onMore={() => setVisible((value) => value + PAGE_SIZE)}
+      />
 
       {filterOpen ? (
         <FilterSheet

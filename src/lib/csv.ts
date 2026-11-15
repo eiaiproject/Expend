@@ -16,7 +16,7 @@ export interface CsvParseResult {
   errors: string[]
 }
 
-const FORMULA_PREFIX = /^[=+\-@\t\r]/
+const FORMULA_PREFIX = /^[=+@\t\r-]/
 
 function guardFormula(value: string): string {
   return FORMULA_PREFIX.test(value) ? `'${value}` : value
@@ -28,7 +28,7 @@ function unguardFormula(value: string): string {
 
 function escapeCell(value: string): string {
   const safe = guardFormula(value)
-  return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe
+  return /[",\r\n]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe
 }
 
 export function toCsv(transactions: Transaction[]): string {
@@ -43,6 +43,22 @@ export function toCsv(transactions: Transaction[]): string {
   return `\uFEFF${lines.join('\r\n')}\r\n`
 }
 
+interface QuotedScan {
+  cell: string
+  index: number
+  quoted: boolean
+}
+
+function readQuotedCell(source: string, index: number, cell: string): QuotedScan {
+  if (source[index] !== '"') {
+    return { cell: cell + source[index], index, quoted: true }
+  }
+  if (source[index + 1] === '"') {
+    return { cell: `${cell}"`, index: index + 1, quoted: true }
+  }
+  return { cell, index, quoted: false }
+}
+
 function splitRows(text: string): string[][] {
   const source = text.replace(/^\uFEFF/, '')
   const rows: string[][] = []
@@ -51,20 +67,14 @@ function splitRows(text: string): string[][] {
   let quoted = false
 
   for (let i = 0; i < source.length; i += 1) {
-    const char = source[i]
     if (quoted) {
-      if (char === '"') {
-        if (source[i + 1] === '"') {
-          cell += '"'
-          i += 1
-        } else {
-          quoted = false
-        }
-      } else {
-        cell += char
-      }
+      const scanned = readQuotedCell(source, i, cell)
+      cell = scanned.cell
+      quoted = scanned.quoted
+      i = scanned.index
       continue
     }
+    const char = source[i]
     if (char === '"') {
       quoted = true
       continue

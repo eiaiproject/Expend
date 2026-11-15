@@ -11,10 +11,10 @@ import { addDays, longDate, todayWIB } from '../lib/date'
 import { formatIDR } from '../lib/money'
 
 interface ChatFeedProps {
-  onEdit: (transaction: Transaction) => void
-  onViewAll: () => void
-  highlightId?: number | null
-  hideAmounts: boolean
+  readonly onEdit: (transaction: Transaction) => void
+  readonly onViewAll: () => void
+  readonly highlightId?: number | null
+  readonly hideAmounts: boolean
 }
 
 function dayLabel(date: string, today: string): string {
@@ -51,7 +51,7 @@ export function ChatFeed({ onEdit, onViewAll, highlightId, hideAmounts }: ChatFe
 
   const groups: Array<{ date: string; items: Transaction[] }> = []
   for (const item of recent) {
-    const last = groups[groups.length - 1]
+    const last = groups.at(-1)
     if (last && last.date === item.date) last.items.push(item)
     else groups.push({ date: item.date, items: [item] })
   }
@@ -80,9 +80,11 @@ export function ChatFeed({ onEdit, onViewAll, highlightId, hideAmounts }: ChatFe
           <div className="skeleton skeleton-bubble" />
           <div className="skeleton skeleton-bubble short" />
         </div>
-      ) : recent.length === 0 ? (
+      ) : null}
+      {data !== undefined && recent.length === 0 ? (
         <p className="chat-empty-line">Belum ada transaksi.</p>
-      ) : (
+      ) : null}
+      {data !== undefined && recent.length > 0 ? (
         <div className="chat-feed">
           {groups.map((group) => (
             <div className="chat-day" key={group.date}>
@@ -128,7 +130,7 @@ export function ChatFeed({ onEdit, onViewAll, highlightId, hideAmounts }: ChatFe
             </button>
           ) : null}
         </div>
-      )}
+      ) : null}
 
       <span ref={endRef} className="chat-end" aria-hidden="true" />
     </section>

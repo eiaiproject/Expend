@@ -4,7 +4,7 @@ import { useDialogDismiss } from '../lib/useDialogDismiss'
 import { useSheetHistory } from '../lib/useSheetHistory'
 
 interface TutorialDialogProps {
-  onClose: () => void
+  readonly onClose: () => void
 }
 
 export function TutorialDialog({ onClose }: TutorialDialogProps) {

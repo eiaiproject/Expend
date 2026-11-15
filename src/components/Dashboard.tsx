@@ -50,11 +50,11 @@ function BarChart({
   onSelect,
   hideAmounts,
 }: {
-  bars: Bar[]
-  label: string
-  selected: number
-  onSelect: (index: number) => void
-  hideAmounts: boolean
+  readonly bars: Bar[]
+  readonly label: string
+  readonly selected: number
+  readonly onSelect: (index: number) => void
+  readonly hideAmounts: boolean
 }) {
   const max = Math.max(1, ...bars.map((bar) => bar.value))
   const itemsRef = useRef<Array<HTMLButtonElement | null>>([])
@@ -86,7 +86,7 @@ function BarChart({
   }
 
   return (
-    <div className="chart" role="group" aria-label={label}>
+    <fieldset className="chart" aria-label={label}>
       <div className="chart-bars">
         {bars.map((bar, index) => (
           <button
@@ -114,7 +114,7 @@ function BarChart({
           </button>
         ))}
       </div>
-    </div>
+    </fieldset>
   )
 }
 
@@ -122,8 +122,8 @@ export function Dashboard({
   onGoToComposer,
   hideAmounts,
 }: {
-  onGoToComposer: () => void
-  hideAmounts: boolean
+  readonly onGoToComposer: () => void
+  readonly hideAmounts: boolean
 }) {
   const today = todayWIB()
   const data = useLiveQuery(async () => {
@@ -246,8 +246,27 @@ export function Dashboard({
     )
   }
 
-  const bars =
-    mode === 'daily' ? stats.daily : mode === 'weekly' ? stats.weekly : stats.monthly
+  const modeDetails: Record<
+    ChartMode,
+    { bars: Bar[]; caption: string; chartLabel: string }
+  > = {
+    daily: {
+      bars: stats.daily,
+      caption: stats.rangeLabel,
+      chartLabel: 'harian',
+    },
+    weekly: {
+      bars: stats.weekly,
+      caption: 'Minggu mulai Senin, dipotong ke bulan berjalan',
+      chartLabel: 'mingguan',
+    },
+    monthly: {
+      bars: stats.monthly,
+      caption: 'Enam bulan terakhir, bulan ini sampai hari ini',
+      chartLabel: 'bulanan',
+    },
+  }
+  const { bars, caption, chartLabel } = modeDetails[mode]
   const activeIndex =
     selected !== null && selected < bars.length ? selected : bars.length - 1
   const activeBar = bars[activeIndex] ?? bars[0]
@@ -256,13 +275,6 @@ export function Dashboard({
     stats.previousTotal === 0
       ? 'Belum ada pembanding pada periode yang sama bulan lalu.'
       : `${formatSignedPercent(((stats.total - stats.previousTotal) / stats.previousTotal) * 100)} dari ${formatIDR(stats.previousTotal, hideAmounts)} pada ${stats.previousLabel}.`
-
-  const caption =
-    mode === 'daily'
-      ? stats.rangeLabel
-      : mode === 'weekly'
-        ? 'Minggu mulai Senin, dipotong ke bulan berjalan'
-        : 'Enam bulan terakhir, bulan ini sampai hari ini'
 
   return (
     <section className="page dashboard" aria-labelledby="dashboard-title">
@@ -281,7 +293,7 @@ export function Dashboard({
       </div>
 
       <div className="chart-card">
-        <div className="segmented" role="group" aria-label="Pilih periode grafik">
+        <fieldset className="segmented" aria-label="Pilih periode grafik">
           {MODES.map((item) => (
             <button
               type="button"
@@ -295,7 +307,7 @@ export function Dashboard({
               {item.label}
             </button>
           ))}
-        </div>
+        </fieldset>
 
         <div className="chart-readout" aria-live="polite">
           <span>{activeBar.hint}</span>
@@ -304,7 +316,7 @@ export function Dashboard({
 
         <BarChart
           bars={bars}
-          label={`Pengeluaran ${mode === 'daily' ? 'harian' : mode === 'weekly' ? 'mingguan' : 'bulanan'}`}
+          label={`Pengeluaran ${chartLabel}`}
           selected={activeIndex}
           onSelect={setSelected}
           hideAmounts={hideAmounts}

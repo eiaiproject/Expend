@@ -27,7 +27,7 @@ export function useSheetHistory(
     const push = () => {
       pushed.current = true
       window.history.pushState(
-        { ...(window.history.state ?? {}), [marker]: true },
+        { ...window.history.state, [marker]: true },
         '',
         window.location.href,
       )

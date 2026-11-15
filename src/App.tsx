@@ -346,7 +346,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className="app" id="app">
       <a className="skip" href="#main">
         Lewati ke konten
       </a>
@@ -373,14 +373,14 @@ export default function App() {
         />
 
         {!online ? (
-          <div className="offline" role="status">
+          <output className="offline">
             <WifiOff size={14} strokeWidth={1.75} aria-hidden="true" />
             Offline. Data tetap tersimpan.
-          </div>
+          </output>
         ) : null}
 
         {swUpdate ? (
-          <div className="update-banner" role="status">
+          <output className="update-banner">
             <span>Versi baru Expend tersedia.</span>
             <button
               type="button"
@@ -397,7 +397,7 @@ export default function App() {
             >
               <X size={15} strokeWidth={1.75} aria-hidden="true" />
             </button>
-          </div>
+          </output>
         ) : null}
 
         <main id="main" className="content" ref={contentRef}>
@@ -469,9 +469,9 @@ export default function App() {
       ) : null}
 
       {toast ? (
-        <div className="toast" role="status">
+        <output className="toast">
           {toast}
-        </div>
+        </output>
       ) : null}
     </div>
   )

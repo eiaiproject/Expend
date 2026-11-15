@@ -20,14 +20,14 @@ const TABS = [
 ] as const
 
 interface ChromeProps {
-  view: View
-  onView: (view: View) => void
-  theme: Theme
-  onToggleTheme: () => void
-  hideAmounts: boolean
-  onToggleAmounts: () => void
-  onOpenTutorial: () => void
-  onOpenSettings: () => void
+  readonly view: View
+  readonly onView: (view: View) => void
+  readonly theme: Theme
+  readonly onToggleTheme: () => void
+  readonly hideAmounts: boolean
+  readonly onToggleAmounts: () => void
+  readonly onOpenTutorial: () => void
+  readonly onOpenSettings: () => void
 }
 
 export function Sidebar({

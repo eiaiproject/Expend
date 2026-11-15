@@ -15,17 +15,22 @@ import { useSheetHistory } from '../lib/useSheetHistory'
 import { APP_VERSION } from '../lib/version'
 
 interface SettingsDialogProps {
-  onClose: () => void
-  onNotify: (message: string) => void
-  theme: Theme
-  themePreference: ThemePreference
-  onTheme: (theme: ThemePreference) => void
+  readonly onClose: () => void
+  readonly onNotify: (message: string) => void
+  readonly theme: Theme
+  readonly themePreference: ThemePreference
+  readonly onTheme: (theme: ThemePreference) => void
 }
 
 function formatBytes(value: number): string {
   if (value < 1024) return `${value} B`
   if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`
   return `${(value / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function persistenceLabel(persisted: boolean | null): string {
+  if (persisted === null) return 'tidak didukung'
+  return persisted ? 'aktif' : 'belum aktif'
 }
 
 export function SettingsDialog({
@@ -182,7 +187,7 @@ export function SettingsDialog({
                 <p>Ikuti tema perangkat, atau pilih terang atau gelap secara permanen.</p>
               </div>
             </div>
-            <div className="segmented segmented-compact" role="group" aria-label="Tema">
+            <fieldset className="segmented segmented-compact" aria-label="Tema">
               <button
                 type="button"
                 aria-pressed={themePreference === 'system'}
@@ -204,7 +209,7 @@ export function SettingsDialog({
               >
                 Gelap
               </button>
-            </div>
+            </fieldset>
           </section>
 
           <section className="settings-card">
@@ -226,8 +231,7 @@ export function SettingsDialog({
               </p>
             ) : null}
             <p className="settings-meta">
-              Penyimpanan permanen:{' '}
-              {persisted === null ? 'tidak didukung' : persisted ? 'aktif' : 'belum aktif'}
+              Penyimpanan permanen: {persistenceLabel(persisted)}
             </p>
             {persisted !== true ? (
               <button type="button" className="btn btn-block" onClick={handlePersist}>
@@ -303,7 +307,7 @@ export function SettingsDialog({
             ) : null}
 
             {pending ? (
-              <div className="import-preview" role="status">
+              <div className="import-preview" aria-live="polite">
                 <p>
                   {pending.rows.length} transaksi siap diimport dari{' '}
                   <span className="mono">{pending.fileName}</span>.

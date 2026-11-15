@@ -27,16 +27,66 @@ const BULAN: Record<string, string> = {
   dec: '12',
 }
 
-const RE_TANGGAL = /([0-9Oo]{1,2})\s*([A-Za-z]{3,})\.?\s+(\d{4})/
+const RE_TANGGAL_MENEMPEL = /\b([0-9Oo]{1,2})([A-Za-z]{3,})\.?\s+(\d{4})/
+const RE_TANGGAL_BERPISAH = /\b([0-9Oo]{1,2})\s+([A-Za-z]{3,})\.?\s+(\d{4})/
 const RE_TANGGAL_ANGKA = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/
 const RE_NOMINAL = /(?:Rp|IDR)\.?\s?([\d.,]+)/i
 const RE_NAMA = /^[A-Z][A-Z\s.'-]{2,}$/
 const RE_NAMA_UMUM = /^[A-Za-z][A-Za-z0-9\s.'&/-]{1,60}$/
-const RE_BUKAN_NAMA =
-  /^(transfer|transaksi|berhasil|sukses|detail|tanggal|waktu|jumlah|nominal|total|biaya|admin|bank|bca|bri|bni|mandiri|jago|seabank|gopay|ovo|dana|shopeepay|tunai|reference|ref|no|id|status|metode|sumber|penerima|beneficiary|recipient|source|amount|memo|keterangan|catatan|berita|description|remarks)\b/i
+
+const BUKAN_NAMA = new Set([
+  'transfer',
+  'transaksi',
+  'berhasil',
+  'sukses',
+  'detail',
+  'tanggal',
+  'waktu',
+  'jumlah',
+  'nominal',
+  'total',
+  'biaya',
+  'admin',
+  'bank',
+  'bca',
+  'bri',
+  'bni',
+  'mandiri',
+  'jago',
+  'seabank',
+  'gopay',
+  'ovo',
+  'dana',
+  'shopeepay',
+  'tunai',
+  'reference',
+  'ref',
+  'no',
+  'id',
+  'status',
+  'metode',
+  'sumber',
+  'penerima',
+  'beneficiary',
+  'recipient',
+  'source',
+  'amount',
+  'memo',
+  'keterangan',
+  'catatan',
+  'berita',
+  'description',
+  'remarks',
+])
+
+function isBukanNama(line: string): boolean {
+  const first = /^[a-z]+/i.exec(line)?.[0].toLowerCase()
+  return first !== undefined && BUKAN_NAMA.has(first)
+}
+
 const LABEL_KET = /(berita\s+transfer|berita|catatan|keterangan|memo|description|remarks)/i
 const RE_KET_LABEL =
-  /^(?:berita\s+transfer|berita|catatan|keterangan|memo|description|remarks)\s*[:\-]?\s*/i
+  /^(?:berita\s+transfer|berita|catatan|keterangan|memo|description|remarks)\s*[:-]?\s*/i
 
 const LABEL_PENERIMA = /^penerima\b/i
 const LABEL_DETAIL = /^detail\s+transaksi\b/i
@@ -47,27 +97,95 @@ const STOP_MANDIRI = (line: string) =>
   LABEL_SUMBER.test(line) ||
   /^(beneficiary|sender)\b/i.test(line)
 
-const LABEL_JAGO =
-  /^(id\s+transaksi|sumber\s+(akun|dana)|tanggal\s*(&|dan)\s*waktu|nama\s+acquirer|biaya|pan\s+(merchant|pelanggan)|id\s+terminal|nomor\s+referensi|resi\b)/i
+const LABEL_JAGO_PATTERNS = [
+  /^id\s+transaksi\b/i,
+  /^sumber\s+(akun|dana)\b/i,
+  /^tanggal\s*(?:&|dan)\s*waktu\b/i,
+  /^nama\s+acquirer\b/i,
+  /^biaya\b/i,
+  /^pan\s+(merchant|pelanggan)\b/i,
+  /^id\s+terminal\b/i,
+  /^nomor\s+referensi\b/i,
+  /^resi\b/i,
+]
+const isLabelJago = (line: string) => LABEL_JAGO_PATTERNS.some((rule) => rule.test(line))
 const isLogoJago = (line: string) => /^(?:bank\s+)?jago(?:\s+syariah)?$/i.test(line)
 
-const LABEL_SEABANK =
-  /^(dari|ke|jumlah\s+transfer|no\.?\s*(transaksi|referensi)|metode\s+transaksi|product|waktu\s+transaksi|username|butuh\s+bantuan|resi\b|bukti\s+transaksi)/i
+const LABEL_SEABANK_PATTERNS = [
+  /^dari\b/i,
+  /^ke\b/i,
+  /^jumlah\s+transfer\b/i,
+  /^no\.?\s*(transaksi|referensi)\b/i,
+  /^metode\s+transaksi\b/i,
+  /^product\b/i,
+  /^waktu\s+transaksi\b/i,
+  /^username\b/i,
+  /^butuh\s+bantuan\b/i,
+  /^resi\b/i,
+  /^bukti\s+transaksi\b/i,
+]
+const isLabelSeaBank = (line: string) =>
+  LABEL_SEABANK_PATTERNS.some((rule) => rule.test(line))
 
-const LABEL_BCA =
-  /^(beneficiary\s+(name|account)|transaction\s+type|transfer\s+(currency|amount|successful)|source\s+(of\s+fund|currency)|reference\s+no\.?)/i
+const LABEL_BCA_PATTERNS = [
+  /^beneficiary\s+(name|account)\b/i,
+  /^transaction\s+type\b/i,
+  /^transfer\s+(currency|amount|successful)\b/i,
+  /^source\s+(of\s+fund|currency)\b/i,
+  /^reference\s+no\.?/i,
+]
+const isLabelBca = (line: string) => LABEL_BCA_PATTERNS.some((rule) => rule.test(line))
 const isWatermarkBCA = (line: string) => /^(bca|grup\s+bca)$/i.test(line)
 
 const LABEL_BRI =
   /^(sumber\s+dana|tujuan|jenis\s+transaksi|nominal|biaya\s+admin|no\.?\s*ref|informasi|npwp|total\s+transaksi)/i
 const isWatermarkBRI = (line: string) => /^bri$/i.test(line)
 
-const LABEL_GOPAY =
-  /^(rincian\s+transaksi|status|metode\s+pembayaran|waktu|id\s+transaksi|jumlah|total|dikirim\s+dari|aplikasi\s+ringan|download|get\s+it)/i
-const RE_PENERIMA_GOPAY = /^(?:ditransfer|dibayar|dikirim)\s+ke\s+(.+)$/i
+const LABEL_GOPAY_PATTERNS = [
+  /^rincian\s+transaksi\b/i,
+  /^status\b/i,
+  /^metode\s+pembayaran\b/i,
+  /^waktu\b/i,
+  /^id\s+transaksi\b/i,
+  /^jumlah\b/i,
+  /^total\b/i,
+  /^dikirim\s+dari\b/i,
+  /^aplikasi\s+ringan\b/i,
+  /^download\b/i,
+  /^get\s+it\b/i,
+]
+const isLabelGoPay = (line: string) =>
+  LABEL_GOPAY_PATTERNS.some((rule) => rule.test(line))
 
-const LABEL_PENERIMA_UMUM =
-  /^(penerima|nama\s+penerima|beneficiary(?:\s+name)?|recipient|tujuan|ke|kepada|ditransfer\s+ke|dibayar\s+ke|dikirim\s+ke)\b/i
+const GOPAY_PAYEE_PREFIXES = ['ditransfer ke ', 'dibayar ke ', 'dikirim ke ']
+function gopayPayee(line: string): string | null {
+  const lower = line.toLowerCase()
+  const prefix = GOPAY_PAYEE_PREFIXES.find((value) => lower.startsWith(value))
+  if (!prefix) return null
+  return line.slice(prefix.length).trim() || null
+}
+
+const LABEL_PENERIMA_UMUM_PATTERNS = [
+  /^penerima\b/i,
+  /^nama\s+penerima\b/i,
+  /^beneficiary(?:\s+name)?\b/i,
+  /^recipient\b/i,
+  /^tujuan\b/i,
+  /^ke\b/i,
+  /^kepada\b/i,
+  /^ditransfer\s+ke\b/i,
+  /^dibayar\s+ke\b/i,
+  /^dikirim\s+ke\b/i,
+]
+const isLabelPenerimaUmum = (line: string) =>
+  LABEL_PENERIMA_UMUM_PATTERNS.some((rule) => rule.test(line))
+
+function stripLabel(line: string, patterns: RegExp[]): string {
+  for (const pattern of patterns) {
+    if (pattern.test(line)) return line.replace(pattern, '').replace(/^[:\s]+/, '').trim()
+  }
+  return line
+}
 const LABEL_SUMBER_UMUM = /^(sumber\s+dana|source\s+of\s+fund|sumber)\b/i
 
 const LABEL_JAGO_PAYEE = [
@@ -99,10 +217,10 @@ const isJagoStatus = (line: string) =>
 
 const isJagoName = (line: string) =>
   RE_NAMA_UMUM.test(line) &&
-  !RE_BUKAN_NAMA.test(line) &&
-  !LABEL_PENERIMA_UMUM.test(line) &&
+  !isBukanNama(line) &&
+  !isLabelPenerimaUmum(line) &&
   !LABEL_SUMBER_UMUM.test(line) &&
-  !LABEL_JAGO.test(line) &&
+  !isLabelJago(line) &&
   !LABEL_KET.test(line) &&
   !/^(?:dari|pengirim|sender)\b/i.test(line) &&
   !isBankName(line) &&
@@ -120,9 +238,9 @@ function namaJago(lines: string[], index: number, label: RegExp): string {
     const line = lines[i]
     if (isJagoName(line)) return line
     if (
-      LABEL_JAGO.test(line) ||
+      isLabelJago(line) ||
       LABEL_KET.test(line) ||
-      LABEL_PENERIMA_UMUM.test(line) ||
+      isLabelPenerimaUmum(line) ||
       LABEL_SUMBER_UMUM.test(line) ||
       isJagoAmount(line) ||
       isJagoStatus(line) ||
@@ -140,20 +258,21 @@ function namaJago(lines: string[], index: number, label: RegExp): string {
 function namaCadanganJago(lines: string[]): string {
   const senderIndex = lines.findIndex((line) => /^(?:dari|pengirim|sender)\b/i.test(line))
   const senderValue = senderIndex > -1 ? lines[senderIndex + 1] : ''
-  const candidates = lines
-    .filter((line) => line !== senderValue && isJagoName(line))
-    .map((line) => line.replace(/^QR\s+/i, '').trim())
-    .filter(Boolean)
-  return candidates[0] ?? ''
+  for (const line of lines) {
+    if (line === senderValue || !isJagoName(line)) continue
+    const candidate = line.replace(/^QR\s+/i, '').trim()
+    if (candidate) return candidate
+  }
+  return ''
 }
 
 const isLabelUmum = (line: string) =>
   STOP_MANDIRI(line) ||
-  LABEL_JAGO.test(line) ||
-  LABEL_SEABANK.test(line) ||
-  LABEL_BCA.test(line) ||
+  isLabelJago(line) ||
+  isLabelSeaBank(line) ||
+  isLabelBca(line) ||
   LABEL_BRI.test(line) ||
-  LABEL_GOPAY.test(line) ||
+  isLabelGoPay(line) ||
   LABEL_KET.test(line)
 
 const isWatermark = (line: string) => isWatermarkBCA(line) || isWatermarkBRI(line)
@@ -173,23 +292,30 @@ function kosong(today: string, raw: string): Draft {
   }
 }
 
+function tanggalBernama(line: string): string | null {
+  const named = RE_TANGGAL_BERPISAH.exec(line) ?? RE_TANGGAL_MENEMPEL.exec(line)
+  if (!named) return null
+  const month = BULAN[named[2].slice(0, 3).toLowerCase()]
+  if (!month) return null
+  const day = named[1].replace(/[Oo]/g, '0').padStart(2, '0')
+  const iso = `${named[3]}-${month}-${day}`
+  return isValidISODate(iso) ? iso : null
+}
+
+function tanggalAngka(line: string): string | null {
+  const numeric = RE_TANGGAL_ANGKA.exec(line)
+  if (!numeric) return null
+  const year = numeric[3].length === 2 ? 2000 + Number(numeric[3]) : Number(numeric[3])
+  const iso = `${year}-${numeric[2].padStart(2, '0')}-${numeric[1].padStart(2, '0')}`
+  return isValidISODate(iso) ? iso : null
+}
+
 function ambilTanggal(lines: string[]): string | null {
   for (const line of lines) {
-    const named = line.match(RE_TANGGAL)
-    if (named) {
-      const month = BULAN[named[2].slice(0, 3).toLowerCase()]
-      if (month) {
-        const day = named[1].replace(/[Oo]/g, '0').padStart(2, '0')
-        const iso = `${named[3]}-${month}-${day}`
-        if (isValidISODate(iso)) return iso
-      }
-    }
-    const numeric = line.match(RE_TANGGAL_ANGKA)
-    if (numeric) {
-      const year = numeric[3].length === 2 ? 2000 + Number(numeric[3]) : Number(numeric[3])
-      const iso = `${year}-${numeric[2].padStart(2, '0')}-${numeric[1].padStart(2, '0')}`
-      if (isValidISODate(iso)) return iso
-    }
+    const named = tanggalBernama(line)
+    if (named) return named
+    const numeric = tanggalAngka(line)
+    if (numeric) return numeric
   }
   return null
 }
@@ -207,14 +333,14 @@ function ambilNominal(lines: string[]): number | null {
 
   for (const line of candidates) {
     if (!line) continue
-    const direct = line.match(RE_NOMINAL)
+    const direct = RE_NOMINAL.exec(line)
     if (direct) {
       const value = parseAmount(direct[1])
       if (value !== null) return value
     }
     const index = lines.indexOf(line)
     const next = lines[index + 1] ?? ''
-    const below = next.match(RE_NOMINAL)
+    const below = RE_NOMINAL.exec(next)
     if (below) {
       const value = parseAmount(below[1])
       if (value !== null) return value
@@ -262,7 +388,7 @@ function nilaiLabel(lines: string[], index: number, label: RegExp): string | nul
 }
 
 function nilaiLabelUmum(lines: string[], index: number): string | null {
-  const sameLine = lines[index].replace(LABEL_PENERIMA_UMUM, '').replace(/^[:\s]+/, '').trim()
+  const sameLine = stripLabel(lines[index], LABEL_PENERIMA_UMUM_PATTERNS)
   if (sameLine) return sameLine
   for (let i = index + 1; i < lines.length; i += 1) {
     const line = lines[i]
@@ -272,7 +398,7 @@ function nilaiLabelUmum(lines: string[], index: number): string | null {
     }
     if (
       isLabelUmum(line) ||
-      LABEL_PENERIMA_UMUM.test(line) ||
+      isLabelPenerimaUmum(line) ||
       LABEL_SUMBER_UMUM.test(line) ||
       /^(?:tanggal|waktu|jam)\b/i.test(line) ||
       /\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}/.test(line)
@@ -286,7 +412,7 @@ function nilaiLabelUmum(lines: string[], index: number): string | null {
 
 function sumberDiTeks(lines: string[]): string {
   for (const line of lines) {
-    const value = line.replace(/^(?:sumber\s+dana|source\s+of\s+fund)\s*[:\-]?\s*/i, '')
+    const value = line.replace(/^(?:sumber\s+dana|source\s+of\s+fund)\s*[:-]?\s*/i, '')
     const tokens = value.split(/\s+/)
     for (let i = 0; i < tokens.length; i += 1) {
       const match = matchSourceAt(tokens, i)
@@ -312,7 +438,7 @@ function parseGeneric(lines: string[], today: string, bank: BankKey | null): Dra
   draft.note = ambilKeterangan(lines) ?? ''
   draft.source = sumberDiTeks(lines) || (bank ? SUMBER_BANK[bank] : '')
 
-  const labelIndex = lines.findIndex((line) => LABEL_PENERIMA_UMUM.test(line))
+  const labelIndex = lines.findIndex((line) => isLabelPenerimaUmum(line))
   if (labelIndex > -1) draft.payee = nilaiLabelUmum(lines, labelIndex) ?? ''
 
   if (!draft.payee) {
@@ -320,8 +446,12 @@ function parseGeneric(lines: string[], today: string, bank: BankKey | null): Dra
       lines.find((line, index) => {
         if (index === 0 && !/^QR\s+\S/i.test(line)) return false
         if (!RE_NAMA_UMUM.test(line)) return false
-        if (RE_BUKAN_NAMA.test(line)) return false
-        if (isLabelUmum(line) || LABEL_PENERIMA_UMUM.test(line) || LABEL_SUMBER_UMUM.test(line)) {
+        if (isBukanNama(line)) return false
+        if (
+          isLabelUmum(line) ||
+          isLabelPenerimaUmum(line) ||
+          LABEL_SUMBER_UMUM.test(line)
+        ) {
           return false
         }
         if (/\d{4,}/.test(line)) return false
@@ -334,6 +464,33 @@ function parseGeneric(lines: string[], today: string, bank: BankKey | null): Dra
   return draft
 }
 
+function namaSetelahPenerimaMandiri(lines: string[], start: number): string {
+  for (let i = start + 1; i < lines.length; i += 1) {
+    const line = lines[i]
+    if (STOP_MANDIRI(line) || LABEL_KET.test(line)) break
+    if (/^bank\b/i.test(line)) continue
+    if (RE_NAMA.test(line)) return line
+  }
+  return ''
+}
+
+function namaDariJudulMandiri(lines: string[]): string {
+  const title = lines.findIndex((line) => /^transfer\s+berhasil\b/i.test(line))
+  if (title === -1) return ''
+  for (let i = title + 1; i < lines.length; i += 1) {
+    const line = lines[i]
+    if (
+      /^(?:bank|total|detail|sumber|penerima)\b/i.test(line) ||
+      isLabelUmum(line) ||
+      isJagoAmount(line)
+    ) {
+      return ''
+    }
+    if (RE_NAMA.test(line)) return line
+  }
+  return ''
+}
+
 function parseMandiri(lines: string[], today: string): Draft {
   const draft = kosong(today, '')
   draft.date = ambilTanggal(lines) ?? today
@@ -342,32 +499,8 @@ function parseMandiri(lines: string[], today: string): Draft {
   draft.source = 'Mandiri'
 
   const start = lines.findIndex((line) => LABEL_PENERIMA.test(line))
-  if (start > -1) {
-    for (let i = start + 1; i < lines.length; i += 1) {
-      const line = lines[i]
-      if (STOP_MANDIRI(line) || LABEL_KET.test(line)) break
-      if (/^bank\b/i.test(line)) continue
-      if (!draft.payee && RE_NAMA.test(line)) draft.payee = line
-    }
-  }
-
-  if (!draft.payee) {
-    const title = lines.findIndex((line) => /^transfer\s+berhasil\b/i.test(line))
-    for (let i = title + 1; title > -1 && i < lines.length; i += 1) {
-      const line = lines[i]
-      if (
-        /^(?:bank|total|detail|sumber|penerima)\b/i.test(line) ||
-        isLabelUmum(line) ||
-        isJagoAmount(line)
-      ) {
-        break
-      }
-      if (RE_NAMA.test(line)) {
-        draft.payee = line
-        break
-      }
-    }
-  }
+  draft.payee = start > -1 ? namaSetelahPenerimaMandiri(lines, start) : ''
+  if (!draft.payee) draft.payee = namaDariJudulMandiri(lines)
   return draft
 }
 
@@ -443,10 +576,12 @@ function parseGoPay(lines: string[], today: string): Draft {
   draft.amount = ambilNominal(lines)
   draft.note = ambilKeterangan(lines) ?? ''
 
-  const label = lines.findIndex((line) => RE_PENERIMA_GOPAY.test(line))
-  if (label > -1) {
-    const match = lines[label].match(RE_PENERIMA_GOPAY)
-    if (match?.[1]) draft.payee = match[1].trim()
+  for (const line of lines) {
+    const payee = gopayPayee(line)
+    if (payee) {
+      draft.payee = payee
+      break
+    }
   }
   if (!draft.payee) {
     const index = lines.findIndex((line) => /^(ditransfer|dibayar|dikirim)\s+ke$/i.test(line))
@@ -499,7 +634,7 @@ export function parseReceipt(text: string, today = todayWIB()): ReceiptResult {
     .filter(Boolean)
   const bank = deteksiBank(lines)
   const raw = text.trim()
-  let draft = kosong(today, raw)
+  let draft: Draft
 
   if (bank === 'gopay') draft = parseGoPay(lines, today)
   else if (bank === 'jago') draft = parseJago(lines, today)

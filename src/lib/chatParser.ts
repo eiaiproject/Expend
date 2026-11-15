@@ -23,6 +23,24 @@ interface Candidate {
   explicit: boolean
 }
 
+interface SourceMatch {
+  name: string
+  index: number
+  length: 1 | 2 | 3
+}
+
+interface DateInfo {
+  date: string
+  consumed: number
+  warning?: string
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+const SHORT_DATE = /^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?$/
+const CURRENCY_ONLY = /^(rp|idr)\.?$/i
+const CURRENCY_PREFIX = /^(rp|idr)\.?(.+)$/i
+const AMOUNT_SUFFIX = /^(rb|ribu|k|jt|juta)$/
+
 export function emptyDraft(today = todayWIB()): Draft {
   return {
     date: today,
@@ -35,71 +53,143 @@ export function emptyDraft(today = todayWIB()): Draft {
   }
 }
 
-function takeDate(
-  tokens: string[],
-  today: string,
-): { date: string; consumed: number; warning?: string } {
+function invalidDate(today: string): DateInfo {
+  return { date: today, consumed: 1, warning: 'Tanggal tidak dikenali, dipakai hari ini.' }
+}
+
+function parseYear(rawYear: string | undefined, today: string): number {
+  if (!rawYear) return Number(today.slice(0, 4))
+  return rawYear.length === 2 ? 2000 + Number(rawYear) : Number(rawYear)
+}
+
+function takeIsoDate(first: string, today: string): DateInfo | null {
+  if (!ISO_DATE.test(first)) return null
+  return isValidISODate(first) ? { date: first, consumed: 1 } : invalidDate(today)
+}
+
+function takeShortDate(first: string, today: string): DateInfo | null {
+  const parts = SHORT_DATE.exec(first)
+  if (!parts) return null
+
+  const year = parseYear(parts[3], today)
+  const iso = `${String(year).padStart(4, '0')}-${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}`
+  return isValidISODate(iso) ? { date: iso, consumed: 1 } : invalidDate(today)
+}
+
+function takeDate(tokens: string[], today: string): DateInfo {
   const first = tokens[0]
   if (!first) return { date: today, consumed: 0 }
+  return takeIsoDate(first, today) ?? takeShortDate(first, today) ?? { date: today, consumed: 0 }
+}
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(first)) {
-    if (isValidISODate(first)) return { date: first, consumed: 1 }
-    return { date: today, consumed: 1, warning: 'Tanggal tidak dikenali, dipakai hari ini.' }
+function prefixedAmount(
+  tokens: string[],
+  index: number,
+): { candidate: Candidate; advance: number } | null {
+  if (!CURRENCY_ONLY.test(tokens[index])) return null
+  const next = tokens[index + 1]
+  if (!next) return null
+  const value = parseAmount(next)
+  if (value === null) return null
+  return {
+    candidate: { index, end: index + 1, value, explicit: true },
+    advance: 1,
+  }
+}
+
+function attachedOrPlainAmount(
+  tokens: string[],
+  index: number,
+): { candidate: Candidate; advance: number } | null {
+  const token = tokens[index]
+  const attached = CURRENCY_PREFIX.exec(token)
+  const numeric = attached?.[2] ?? token
+  const value = parseAmount(numeric)
+  if (value === null) return null
+
+  const suffix = tokens[index + 1]?.toLowerCase()
+  if (suffix && AMOUNT_SUFFIX.test(suffix)) {
+    return {
+      candidate: {
+        index,
+        end: index + 1,
+        value: parseAmount(`${numeric}${suffix}`) ?? value,
+        explicit: Boolean(attached),
+      },
+      advance: 1,
+    }
   }
 
-  const parts = first.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?$/)
-  if (parts) {
-    const year = parts[3]
-      ? parts[3].length === 2
-        ? 2000 + Number(parts[3])
-        : Number(parts[3])
-      : Number(today.slice(0, 4))
-    const iso = `${String(year).padStart(4, '0')}-${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}`
-    if (isValidISODate(iso)) return { date: iso, consumed: 1 }
-    return { date: today, consumed: 1, warning: 'Tanggal tidak dikenali, dipakai hari ini.' }
+  return {
+    candidate: { index, end: index, value, explicit: Boolean(attached) },
+    advance: 0,
   }
-
-  return { date: today, consumed: 0 }
 }
 
 function amountCandidates(tokens: string[], start: number): Candidate[] {
   const candidates: Candidate[] = []
 
   for (let i = start; i < tokens.length; i += 1) {
-    const token = tokens[i]
-
-    if (/^(rp|idr)\.?$/i.test(token)) {
-      const next = tokens[i + 1]
-      if (!next) continue
-      const value = parseAmount(next)
-      if (value !== null) {
-        candidates.push({ index: i, end: i + 1, value, explicit: true })
-        i += 1
-      }
-      continue
-    }
-
-    const attached = token.match(/^(rp|idr)\.?(.+)$/i)
-    const numeric = attached ? attached[2] : token
-    const value = parseAmount(numeric)
-    if (value === null) continue
-
-    const suffix = tokens[i + 1]?.toLowerCase()
-    if (suffix && /^(rb|ribu|k|jt|juta)$/.test(suffix)) {
-      candidates.push({
-        index: i,
-        end: i + 1,
-        value: parseAmount(`${numeric}${suffix}`) ?? value,
-        explicit: Boolean(attached),
-      })
-      i += 1
-      continue
-    }
-
-    candidates.push({ index: i, end: i, value, explicit: Boolean(attached) })
+    const amount = prefixedAmount(tokens, i) ?? attachedOrPlainAmount(tokens, i)
+    if (!amount) continue
+    candidates.push(amount.candidate)
+    i += amount.advance
   }
 
   return candidates
+}
+
+function findCandidateWithSource(
+  tokens: string[],
+  candidates: Candidate[],
+): { chosen: Candidate; source: SourceMatch } | null {
+  for (const candidate of candidates) {
+    const index = candidate.end + 1
+    if (index >= tokens.length) continue
+    const match = matchSourceAt(tokens, index)
+    if (match) return { chosen: candidate, source: { ...match, index } }
+  }
+  return null
+}
+
+function findSource(tokens: string[], start: number, chosen: Candidate | null): SourceMatch | null {
+  for (let i = start; i < tokens.length; i += 1) {
+    if (chosen && i >= chosen.index && i <= chosen.end) continue
+    const match = matchSourceAt(tokens, i)
+    if (match) return { ...match, index: i }
+  }
+  return null
+}
+
+function payeeEndFor(tokens: string[], chosen: Candidate | null, source: SourceMatch | null): number {
+  if (chosen) return chosen.index
+  if (source) return source.index
+  return tokens.length
+}
+
+function trimWrapping(value: string): string {
+  return value.replace(/^[\s,.;:]+/, '').replace(/[\s,.;:]+$/, '')
+}
+
+function buildPayee(
+  tokens: string[],
+  start: number,
+  end: number,
+  source: SourceMatch | null,
+): string {
+  const parts: string[] = []
+  for (let i = start; i < end; i += 1) {
+    if (source && i >= source.index && i < source.index + source.length) continue
+    if (CURRENCY_ONLY.test(tokens[i])) continue
+    parts.push(tokens[i])
+  }
+  return trimWrapping(parts.join(' '))
+}
+
+function buildNote(tokens: string[], chosen: Candidate, source: SourceMatch | null): string {
+  const sourceAfterAmount = source !== null && source.index > chosen.end
+  const noteStart = sourceAfterAmount ? source.index + source.length : chosen.end + 1
+  return trimWrapping(tokens.slice(noteStart).join(' '))
 }
 
 export function parseChat(input: string, today = todayWIB()): Draft {
@@ -113,58 +203,15 @@ export function parseChat(input: string, today = todayWIB()): Draft {
   if (dateInfo.warning) warnings.push(dateInfo.warning)
 
   const candidates = amountCandidates(tokens, start)
-  let chosen: Candidate | null = null
-  let source = ''
-  let sourceIndex = -1
-  let sourceLength = 0
-
-  for (const candidate of candidates) {
-    const nextIndex = candidate.end + 1
-    if (nextIndex < tokens.length) {
-      const match = matchSourceAt(tokens, nextIndex)
-      if (match) {
-        chosen = candidate
-        source = match.name
-        sourceIndex = nextIndex
-        sourceLength = match.length
-        break
-      }
-    }
-  }
-
-  if (!chosen) {
-    chosen = candidates.find((candidate) => candidate.explicit || candidate.value >= 1000) ?? null
-  }
-
-  if (!source) {
-    for (let i = start; i < tokens.length; i += 1) {
-      if (chosen && i >= chosen.index && i <= chosen.end) continue
-      const match = matchSourceAt(tokens, i)
-      if (match) {
-        source = match.name
-        sourceIndex = i
-        sourceLength = match.length
-        break
-      }
-    }
-  }
-
-  const payeeEnd = chosen ? chosen.index : sourceIndex >= 0 ? sourceIndex : tokens.length
-  const payeeParts: string[] = []
-  for (let i = start; i < payeeEnd; i += 1) {
-    if (sourceIndex >= 0 && i >= sourceIndex && i < sourceIndex + sourceLength) continue
-    if (/^(rp|idr)\.?$/i.test(tokens[i])) continue
-    payeeParts.push(tokens[i])
-  }
-
-  const payee = payeeParts.join(' ').replace(/^[\s,.;:]+|[\s,.;:]+$/g, '')
-
-  let note = ''
-  if (chosen) {
-    const noteStart =
-      sourceIndex > chosen.end ? sourceIndex + sourceLength : chosen.end + 1
-    note = tokens.slice(noteStart).join(' ').replace(/^[\s,.;:]+|[\s,.;:]+$/g, '')
-  }
+  const matched = findCandidateWithSource(tokens, candidates)
+  const chosen =
+    matched?.chosen ??
+    candidates.find((candidate) => candidate.explicit || candidate.value >= 1000) ??
+    null
+  const source = matched?.source ?? findSource(tokens, start, chosen)
+  const payeeEnd = payeeEndFor(tokens, chosen, source)
+  const payee = buildPayee(tokens, start, payeeEnd, source)
+  const note = chosen ? buildNote(tokens, chosen, source) : ''
 
   if (!payee) warnings.push('Penerima belum terdeteksi.')
   if (!chosen) warnings.push('Nominal belum terdeteksi.')
@@ -174,7 +221,7 @@ export function parseChat(input: string, today = todayWIB()): Draft {
     date: dateInfo.date,
     payee,
     amount: chosen?.value ?? null,
-    source,
+    source: source?.name ?? '',
     note,
     raw,
     warnings,

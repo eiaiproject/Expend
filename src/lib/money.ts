@@ -4,13 +4,19 @@ function toNumber(raw: string): number {
   const comma = raw.lastIndexOf(',')
   const dot = raw.lastIndexOf('.')
   if (comma > -1 && dot > -1) {
-    return Number(dot > comma ? raw.replace(/,/g, '') : raw.replace(/\./g, '').replace(',', '.'))
+    return Number(
+      dot > comma
+        ? raw.replaceAll(',', '')
+        : raw.replaceAll('.', '').replace(',', '.'),
+    )
   }
   if (dot > -1) {
-    return Number(raw.slice(dot + 1).length === 3 ? raw.replace(/\./g, '') : raw)
+    return Number(raw.slice(dot + 1).length === 3 ? raw.replaceAll('.', '') : raw)
   }
   if (comma > -1) {
-    return Number(raw.slice(comma + 1).length === 3 ? raw.replace(/,/g, '') : raw.replace(',', '.'))
+    return Number(
+      raw.slice(comma + 1).length === 3 ? raw.replaceAll(',', '') : raw.replace(',', '.'),
+    )
   }
   return Number(raw)
 }
@@ -20,7 +26,7 @@ export function parseAmount(input: string): number | null {
   value = value.replace(/^rp\.?/, '').replace(/^idr\.?/, '')
   if (!value) return null
 
-  const suffix = value.match(/^(\d+(?:[.,]\d+)?)(rb|ribu|k|jt|juta)$/)
+  const suffix = /^(\d+(?:[.,]\d+)?)(rb|ribu|k|jt|juta)$/.exec(value)
   if (suffix) {
     const base = toNumber(suffix[1])
     if (!Number.isFinite(base)) return null

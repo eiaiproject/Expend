@@ -639,6 +639,7 @@ ul {
 }
 
 .ocr-card {
+  display: block;
   margin-bottom: 8px;
   padding: 10px 12px;
   border: 1px solid var(--rule);
@@ -705,20 +706,30 @@ ul {
 }
 
 .meter {
-  position: relative;
+  display: block;
+  width: 100%;
   height: 4px;
   margin-top: 8px;
+  border: 0;
   border-radius: 999px;
   background: var(--rule);
   overflow: hidden;
+  appearance: none;
 }
 
-.meter span {
-  position: absolute;
-  inset: 0;
+.meter::-webkit-progress-bar {
+  border-radius: inherit;
+  background: var(--rule);
+}
+
+.meter::-webkit-progress-value {
+  border-radius: inherit;
   background: var(--ink);
-  transform-origin: left center;
-  transition: transform 160ms linear;
+}
+
+.meter::-moz-progress-bar {
+  border-radius: inherit;
+  background: var(--ink);
 }
 
 /* List */
@@ -828,8 +839,10 @@ ul {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 10px;
-  padding-bottom: 2px;
+  min-width: 0;
+  margin: 10px 0 0;
+  padding: 0 0 2px;
+  border: 0;
 }
 
 .chip {
@@ -1100,6 +1113,8 @@ ul {
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   gap: 2px;
+  min-width: 0;
+  margin: 0;
   padding: 3px;
   border: 1px solid var(--rule);
   border-radius: 12px;
@@ -1140,7 +1155,10 @@ ul {
 }
 
 .chart {
-  margin-top: 8px;
+  min-width: 0;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
 }
 
 .chart-bars {
@@ -2003,10 +2021,10 @@ ul {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+  #app *,
+  #app *::before,
+  #app *::after {
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
   }
 }

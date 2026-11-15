@@ -35,12 +35,49 @@ const ALIASES: Record<string, string> = {
   cash: 'Tunai',
 }
 
+function isAsciiAlphaNumeric(char: string): boolean {
+  const code = char.charCodeAt(0)
+  return (
+    (code >= 48 && code <= 57) ||
+    (code >= 65 && code <= 90) ||
+    (code >= 97 && code <= 122)
+  )
+}
+
 function cleanToken(token: string): string {
-  return token.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '')
+  let start = 0
+  let end = token.length
+  while (start < end && !isAsciiAlphaNumeric(token[start])) start += 1
+  while (end > start && !isAsciiAlphaNumeric(token[end - 1])) end -= 1
+  return token.slice(start, end).toLowerCase()
+}
+
+function collapseWhitespace(value: string): string {
+  let result = ''
+  let pendingSpace = false
+  for (const char of value) {
+    if (char.trim() === '') {
+      pendingSpace = result.length > 0
+      continue
+    }
+    if (pendingSpace) {
+      result += ' '
+      pendingSpace = false
+    }
+    result += char
+  }
+  return result
+}
+
+function stripTrailingPunctuation(value: string): string {
+  let end = value.length
+  while (end > 0 && '.,;:'.includes(value[end - 1])) end -= 1
+  return value.slice(0, end)
 }
 
 export function canonicalSource(raw: string): string {
-  const key = raw.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[.,;:]+$/g, '')
+  const normalized = collapseWhitespace(raw.trim().toLowerCase())
+  const key = stripTrailingPunctuation(normalized)
   return ALIASES[key] ?? raw.trim()
 }
 

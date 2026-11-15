@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlertCircle, ArrowUp, ImagePlus, ScanText, X } from 'lucide-react'
-import { parseChat } from '../lib/chatParser'
+import { parseChat, type Draft } from '../lib/chatParser'
 import { formatIDR } from '../lib/money'
 import type { OcrPhase } from '../lib/ocr'
 
@@ -15,18 +15,27 @@ interface OcrErrorState {
   message: string
 }
 
+function previewParts(parsed: Draft | null, hideAmounts: boolean): string[] {
+  if (!parsed) return []
+  const parts: string[] = []
+  if (parsed.payee) parts.push(parsed.payee)
+  if (parsed.amount) parts.push(formatIDR(parsed.amount, hideAmounts))
+  if (parsed.source) parts.push(parsed.source)
+  return parts
+}
+
 interface ComposerProps {
-  onSubmit: (text: string) => void
-  onUpload: (file: File) => void
-  ocr: OcrState | null
-  onCancelOcr: () => void
-  ocrError: OcrErrorState | null
-  onRetryOcr: () => void
-  onDismissOcrError: () => void
-  resetToken: number
-  focusRequest: boolean
-  onFocusHandled: () => void
-  hideAmounts: boolean
+  readonly onSubmit: (text: string) => void
+  readonly onUpload: (file: File) => void
+  readonly ocr: OcrState | null
+  readonly onCancelOcr: () => void
+  readonly ocrError: OcrErrorState | null
+  readonly onRetryOcr: () => void
+  readonly onDismissOcrError: () => void
+  readonly resetToken: number
+  readonly focusRequest: boolean
+  readonly onFocusHandled: () => void
+  readonly hideAmounts: boolean
 }
 
 export function Composer({
@@ -70,11 +79,7 @@ export function Composer({
   }
 
   const parsed = text.trim() ? parseChat(text) : null
-  const previewParts = parsed
-    ? [parsed.payee, parsed.amount ? formatIDR(parsed.amount, hideAmounts) : null, parsed.source].filter(
-        Boolean,
-      )
-    : []
+  const preview = previewParts(parsed, hideAmounts)
 
   return (
     <div className="composer-dock">
@@ -106,7 +111,7 @@ export function Composer({
         ) : null}
 
         {ocr ? (
-          <div className="ocr-card" role="status" aria-live="polite">
+          <output className="ocr-card" aria-live="polite">
             <div className="ocr-head">
               <span className="ocr-title">
                 <ScanText size={16} strokeWidth={1.75} aria-hidden="true" />
@@ -127,17 +132,13 @@ export function Composer({
                 ? ` · ${Math.round(ocr.progress * 100)}%`
                 : ' · menyiapkan'}
             </p>
-            <div
+            <progress
               className="meter"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(ocr.progress * 100)}
+              max={100}
+              value={Math.max(2, Math.round(ocr.progress * 100))}
               aria-label="Progres membaca bukti transfer"
-            >
-              <span style={{ transform: `scaleX(${Math.max(ocr.progress, 0.02)})` }} />
-            </div>
-          </div>
+            />
+          </output>
         ) : null}
 
         <form
@@ -190,8 +191,8 @@ export function Composer({
                 }
               }}
             />
-            {previewParts.length > 0 ? (
-              <p className="dock-preview">{previewParts.join(' · ')}</p>
+            {preview.length > 0 ? (
+              <p className="dock-preview">{preview.join(' · ')}</p>
             ) : null}
           </div>
 
