@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ikon placeholder Expend">
+  <rect width="512" height="512" rx="96" fill="#111110" />
+  <text
+    x="256"
+    y="268"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    font-family="Helvetica, Arial, sans-serif"
+    font-size="300"
+    font-weight="600"
+    letter-spacing="-24"
+    fill="#F4F2ED"
+  >ex</text>
+  <rect x="132" y="368" width="248" height="8" fill="#F4F2ED" />
+</svg>

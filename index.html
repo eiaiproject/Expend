@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <title>Expend — Catat Pengeluaran lewat Chat &amp; Bukti Transfer</title>
+    <meta
+      name="description"
+      content="Catat pengeluaran lewat chat atau unggah bukti transfer. Langsung jadi catatan yang bisa dicari, disaring, dan diekspor. Tanpa akun, data di perangkat."
+    />
+    <meta name="application-name" content="Expend" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Expend" />
+    <meta property="og:locale" content="id_ID" />
+    <meta
+      property="og:title"
+      content="Expend — Catat Pengeluaran lewat Chat &amp; Bukti Transfer"
+    />
+    <meta
+      property="og:description"
+      content="Catat pengeluaran lewat chat atau unggah bukti transfer. Langsung jadi catatan yang bisa dicari, disaring, dan diekspor. Tanpa akun, data di perangkat."
+    />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Kartu Expend bertuliskan Catat pengeluaran lewat chat, dengan contoh chat Indomaret berubah menjadi transaksi Rp100.000."
+    />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Expend — Catat Pengeluaran lewat Chat &amp; Bukti Transfer"
+    />
+    <meta
+      name="twitter:description"
+      content="Catat pengeluaran lewat chat atau unggah bukti transfer. Langsung jadi catatan yang bisa dicari, disaring, dan diekspor. Tanpa akun, data di perangkat."
+    />
+    <meta name="twitter:image" content="/og-image.png" />
+    <meta
+      name="twitter:image:alt"
+      content="Kartu Expend bertuliskan Catat pengeluaran lewat chat, dengan contoh chat Indomaret berubah menjadi transaksi Rp100.000."
+    />
+
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#F4F2ED" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Expend" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Expend",
+        "description": "Pencatat pengeluaran pribadi lewat chat dan bukti transfer. Data tersimpan di perangkat.",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Memerlukan JavaScript dan IndexedDB.",
+        "inLanguage": "id",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "IDR"
+        },
+        "featureList": [
+          "Catat pengeluaran lewat chat",
+          "Impor bukti transfer dari enam bank",
+          "Pencarian dan filter transaksi",
+          "Dasbor pengeluaran bulanan",
+          "Ekspor CSV",
+          "Data tersimpan di perangkat"
+        ]
+      }
+    </script>
+    <script>
+      try {
+        var saved = localStorage.getItem('expend-theme')
+        var dark =
+          saved === 'dark' ||
+          (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.querySelector('meta[name="theme-color"]').content = dark
+          ? '#111110'
+          : '#F4F2ED'
+        if (saved === 'light' || saved === 'dark') {
+          document.querySelector('meta[name="color-scheme"]').content = saved
+        }
+      } catch (error) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
