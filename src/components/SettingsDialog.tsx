@@ -10,6 +10,7 @@ import {
 import { downloadCsv, parseCsv } from '../lib/csv'
 import { todayWIB } from '../lib/date'
 import type { Theme, ThemePreference } from '../lib/theme'
+import { useDialogDismiss } from '../lib/useDialogDismiss'
 import { useSheetHistory } from '../lib/useSheetHistory'
 import { APP_VERSION } from '../lib/version'
 
@@ -77,6 +78,7 @@ export function SettingsDialog({
     if (busy) return
     closeSheet()
   }
+  useDialogDismiss(dialogRef, requestClose)
 
   const handleExport = async () => {
     setBusy('export')
@@ -146,9 +148,6 @@ export function SettingsDialog({
       onCancel={(event) => {
         event.preventDefault()
         requestClose()
-      }}
-      onClick={(event) => {
-        if (event.target === dialogRef.current) requestClose()
       }}
     >
       <div className="sheet-form">

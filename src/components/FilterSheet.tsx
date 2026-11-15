@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
+import { useDialogDismiss } from '../lib/useDialogDismiss'
 import { useSheetHistory } from '../lib/useSheetHistory'
 
 export type Sort = 'newest' | 'oldest' | 'highest' | 'lowest'
@@ -32,6 +33,7 @@ export function FilterSheet({
 }: FilterSheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const close = useSheetHistory('filter', onClose)
+  useDialogDismiss(dialogRef, close)
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -49,9 +51,6 @@ export function FilterSheet({
       onCancel={(event) => {
         event.preventDefault()
         close()
-      }}
-      onClick={(event) => {
-        if (event.target === dialogRef.current) close()
       }}
     >
       <div className="sheet-form">

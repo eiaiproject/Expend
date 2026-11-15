@@ -6,6 +6,7 @@ import type { Transaction } from '../lib/db'
 import { shortDate, todayWIB } from '../lib/date'
 import { formatIDR, parseAmount } from '../lib/money'
 import { SOURCES, canonicalSource, isKnownSource } from '../lib/sources'
+import { useDialogDismiss } from '../lib/useDialogDismiss'
 import { useSheetHistory } from '../lib/useSheetHistory'
 
 interface DraftDialogProps {
@@ -94,6 +95,7 @@ export function DraftDialog({
     if (handleBack()) return
     close()
   }
+  useDialogDismiss(dialogRef, requestClose)
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -161,9 +163,6 @@ export function DraftDialog({
           return
         }
         requestClose()
-      }}
-      onClick={(event) => {
-        if (event.target === dialogRef.current) requestClose()
       }}
     >
       <form className="sheet-form" onSubmit={submit} noValidate>
